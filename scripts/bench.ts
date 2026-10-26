@@ -11,9 +11,9 @@ const opt = (k: string, d?: string) => {
   return i >= 0 ? args[i + 1] : d;
 };
 const suite = opt("--suite", "synth")!;
-const root = path.join("..", "bench", suite);
+const root = path.join("bench", suite);
 const clipsDir = path.join(root, "clips");
-const outDir = path.join("..", "bench", "runs", suite);
+const outDir = path.join("bench", "runs", suite);
 mkdirSync(outDir, { recursive: true });
 const only = opt("--only")?.split(",");
 const conc = Number(opt("--concurrency", "3"));

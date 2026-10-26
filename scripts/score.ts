@@ -8,8 +8,8 @@ import type { Law } from "../lib/physics/law";
 
 const args = process.argv.slice(2);
 const opt = (k: string, d: string) => (args.includes(k) ? args[args.indexOf(k) + 1] : d);
-const runsDir = opt("--runs", "../bench/runs/synth");
-const truthDir = "../bench/synth/clips";
+const runsDir = opt("--runs", "bench/runs/synth");
+const truthDir = "bench/synth/clips";
 const out = opt("--out", "data/bench/synth.json");
 
 type Truth = {

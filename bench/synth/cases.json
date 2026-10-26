@@ -1,0 +1,3320 @@
+{
+ "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
+ "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+ "n_cases": 26,
+ "cases": [
+  {
+   "case_id": "ff01_earth_orange_ball",
+   "phenomenon": "free_fall",
+   "variant": "earth_ball",
+   "description": "Orange ball released from rest and dropped 2 m onto a floor; metre stick standing upright beside the path.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 2.1,
+     "unit": "m"
+    },
+    "initial_velocity": {
+     "value": 0.0,
+     "unit": "m/s"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "1/m (none)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 108,
+   "duration_s": 1.8,
+   "physics_duration_s": 1.8,
+   "metres_per_pixel": 0.00372,
+   "pixels_per_metre": 268.81720430107526,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     614.032
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "body",
+     "noun_phrase": "orange ball",
+     "kind": "ball",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.09,
+     "radius_px": 24.19
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 268.817,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      806.67,
+      614.03
+     ],
+     [
+      806.67,
+      345.22
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 90,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "impact_time_s": 1.1401452434578014
+   },
+   "expected_numeric": {
+    "fall_time_s_numeric": 0.6401452434578013,
+    "impact_speed_m_s_numeric": 0.00013879091298640844,
+    "note": "Object released from rest at release_time_s; after impact it rests on the floor (soft landing), so the free-fall fit window is release_time_s..impact_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/ff01_earth_orange_ball.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/ff01_earth_orange_ball.json"
+  },
+  {
+   "case_id": "ff02_earth_blue_block_tiles",
+   "phenomenon": "free_fall",
+   "variant": "earth_block",
+   "description": "Blue block dropped from rest in front of a tiled wall, 1080p at 120 fps; no scale reference in frame (tile pitch is not given).",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.6,
+     "unit": "m"
+    },
+    "initial_velocity": {
+     "value": 0.0,
+     "unit": "m/s"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "1/m (none)"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 180,
+   "duration_s": 1.5,
+   "physics_duration_s": 1.5,
+   "metres_per_pixel": 0.00194,
+   "pixels_per_metre": 515.4639175257731,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     960.0,
+     886.005
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.3,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "body",
+     "noun_phrase": "blue block",
+     "kind": "block",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "size_m": [
+      0.13,
+      0.085
+     ],
+     "size_px": [
+      67.01,
+      43.81
+     ]
+    }
+   ],
+   "reference": null,
+   "events": {
+    "release_time_s": 0.3,
+    "impact_time_s": 0.8635007803541124
+   },
+   "expected_numeric": {
+    "fall_time_s_numeric": 0.5635007803541124,
+    "impact_speed_m_s_numeric": 0.0070838795253509446,
+    "note": "Object released from rest at release_time_s; after impact it rests on the floor (soft landing), so the free-fall fit window is release_time_s..impact_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/ff02_earth_blue_block_tiles.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/ff02_earth_blue_block_tiles.json"
+  },
+  {
+   "case_id": "ff03_moon_yellow_ball",
+   "phenomenon": "free_fall",
+   "variant": "moon_ball",
+   "description": "Yellow ball dropped on the Moon (g = 1.62 m/s^2) over lunar regolith, black sky; A4 card standing in the motion plane.",
+   "body": "moon",
+   "params": {
+    "g": {
+     "value": 1.62,
+     "unit": "m/s^2"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.8,
+     "unit": "m"
+    },
+    "initial_velocity": {
+     "value": 0.0,
+     "unit": "m/s"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "1/m (none)"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 30,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 90,
+   "duration_s": 3.0,
+   "physics_duration_s": 3.0,
+   "metres_per_pixel": 0.00326,
+   "pixels_per_metre": 306.7484662576687,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     602.331
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.6,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "body",
+     "noun_phrase": "yellow ball",
+     "kind": "ball",
+     "colour_rgb": [
+      245,
+      205,
+      40
+     ],
+     "radius_m": 0.08,
+     "radius_px": 24.54
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 91.104,
+    "short_side_m": 0.21,
+    "short_side_px": 64.417,
+    "size_px": [
+     64.42,
+     91.1
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      776.5,
+      511.23
+     ],
+     [
+      840.92,
+      511.23
+     ],
+     [
+      840.92,
+      602.33
+     ],
+     [
+      776.5,
+      602.33
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.6,
+    "impact_time_s": 2.057208560955875
+   },
+   "expected_numeric": {
+    "fall_time_s_numeric": 1.457208560955875,
+    "impact_speed_m_s_numeric": 0.0002757477919828055,
+    "note": "Object released from rest at release_time_s; after impact it rests on the floor (soft landing), so the free-fall fit window is release_time_s..impact_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/ff03_moon_yellow_ball.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/ff03_moon_yellow_ball.json"
+  },
+  {
+   "case_id": "ff04_mars_white_ball",
+   "phenomenon": "free_fall",
+   "variant": "mars_ball",
+   "description": "White ball dropped on Mars (g = 3.71 m/s^2) over rust-coloured ground; metre stick lying beside the landing spot.",
+   "body": "mars",
+   "params": {
+    "g": {
+     "value": 3.71,
+     "unit": "m/s^2"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 2.4,
+     "unit": "m"
+    },
+    "initial_velocity": {
+     "value": 0.0,
+     "unit": "m/s"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "1/m (none)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 150,
+   "duration_s": 2.5,
+   "physics_duration_s": 2.5,
+   "metres_per_pixel": 0.00416,
+   "pixels_per_metre": 240.38461538461542,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     622.019
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.4,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "body",
+     "noun_phrase": "white ball",
+     "kind": "ball",
+     "colour_rgb": [
+      245,
+      245,
+      242
+     ],
+     "radius_m": 0.08,
+     "radius_px": 19.23
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 240.385,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      712.12,
+      605.19
+     ],
+     [
+      952.5,
+      605.19
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.4,
+    "impact_time_s": 1.518335305016962
+   },
+   "expected_numeric": {
+    "fall_time_s_numeric": 1.118335305016962,
+    "impact_speed_m_s_numeric": 0.00011751568722395689,
+    "note": "Object released from rest at release_time_s; after impact it rests on the floor (soft landing), so the free-fall fit window is release_time_s..impact_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/ff04_mars_white_ball.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/ff04_mars_white_ball.json"
+  },
+  {
+   "case_id": "pr01_earth_green_ball_tiles",
+   "phenomenon": "projectile",
+   "variant": "no_drag",
+   "description": "Green ball launched from a small table at 6 m/s, 55 deg; tiled wall; metre stick on the wall near the floor.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "quadratic_drag_k": {
+     "value": 0.0,
+     "unit": "1/m (dv/dt = -g*yhat - k|v|v)"
+    },
+    "launch_speed": {
+     "value": 6.0,
+     "unit": "m/s"
+    },
+    "launch_angle": {
+     "value": 55,
+     "unit": "deg above horizontal"
+    },
+    "launch_position": {
+     "value": [
+      0.0,
+      0.47000000000000003
+     ],
+     "unit": "m (ball centre, world x right / y up, floor at y=0)"
+    },
+    "ball_radius": {
+     "value": 0.07,
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 144,
+   "duration_s": 2.4,
+   "physics_duration_s": 2.4,
+   "metres_per_pixel": 0.00373,
+   "pixels_per_metre": 268.0965147453083,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     166.966,
+     570.618
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.4,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "green ball",
+     "kind": "ball",
+     "colour_rgb": [
+      40,
+      165,
+      75
+     ],
+     "radius_m": 0.07,
+     "radius_px": 18.77
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 268.097,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      435.06,
+      538.45
+     ],
+     [
+      703.16,
+      538.45
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "launch_time_s": 0.4,
+    "apex_time_s": 0.9009999999999612,
+    "landing_time_s": 1.4776913459030938,
+    "landing_x_m": 3.7088301700174715
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 1.7012111401326442,
+    "flight_time_s_numeric": 1.077691345903094,
+    "note": "Ball rests on a table of height launch_height until launch_time_s (impulsive launch), then flies; on landing it sticks (sand), so fit window is launch_time_s..landing_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pr01_earth_green_ball_tiles.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pr01_earth_green_ball_tiles.json"
+  },
+  {
+   "case_id": "pr02_earth_red_ball_room",
+   "phenomenon": "projectile",
+   "variant": "no_drag",
+   "description": "Red ball launched at 8 m/s, 38 deg in a cluttered room (window, shelf, door, pictures), 1080p at 120 fps; A4 sheet taped to the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "quadratic_drag_k": {
+     "value": 0.0,
+     "unit": "1/m (dv/dt = -g*yhat - k|v|v)"
+    },
+    "launch_speed": {
+     "value": 8.0,
+     "unit": "m/s"
+    },
+    "launch_angle": {
+     "value": 38,
+     "unit": "deg above horizontal"
+    },
+    "launch_position": {
+     "value": [
+      0.0,
+      0.59
+     ],
+     "unit": "m (ball centre, world x right / y up, floor at y=0)"
+    },
+    "ball_radius": {
+     "value": 0.09,
+     "unit": "m"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 240,
+   "duration_s": 2.0,
+   "physics_duration_s": 2.0,
+   "metres_per_pixel": 0.00429,
+   "pixels_per_metre": 233.10023310023308,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     172.595,
+     740.049
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.2,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "red ball",
+     "kind": "ball",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "radius_m": 0.09,
+     "radius_px": 20.98
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 69.231,
+    "short_side_m": 0.21,
+    "short_side_px": 48.951,
+    "size_px": [
+     48.95,
+     69.23
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      1057.21,
+      577.23
+     ],
+     [
+      1106.16,
+      577.23
+     ],
+     [
+      1106.16,
+      646.46
+     ],
+     [
+      1057.21,
+      646.46
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "launch_time_s": 0.2,
+    "apex_time_s": 0.7020999999999611,
+    "landing_time_s": 1.2970555058094528,
+    "landing_x_m": 6.9159322870495865
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 1.8264168830380358,
+    "flight_time_s_numeric": 1.0970555058094529,
+    "note": "Ball rests on a table of height launch_height until launch_time_s (impulsive launch), then flies; on landing it sticks (sand), so fit window is launch_time_s..landing_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pr02_earth_red_ball_room.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pr02_earth_red_ball_room.json"
+  },
+  {
+   "case_id": "pd01_earth_yellow_beachball_k0.25",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "description": "Light yellow beach ball thrown at 11 m/s, 50 deg with strong quadratic drag k = 0.25 1/m, in front of a blackboard.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "quadratic_drag_k": {
+     "value": 0.25,
+     "unit": "1/m (dv/dt = -g*yhat - k|v|v)"
+    },
+    "launch_speed": {
+     "value": 11.0,
+     "unit": "m/s"
+    },
+    "launch_angle": {
+     "value": 50,
+     "unit": "deg above horizontal"
+    },
+    "launch_position": {
+     "value": [
+      0.0,
+      0.51
+     ],
+     "unit": "m (ball centre, world x right / y up, floor at y=0)"
+    },
+    "ball_radius": {
+     "value": 0.11,
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 180,
+   "duration_s": 3.0,
+   "physics_duration_s": 3.0,
+   "metres_per_pixel": 0.00419,
+   "pixels_per_metre": 238.6634844868735,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     155.934,
+     622.486
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.3,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "yellow ball",
+     "kind": "ball",
+     "colour_rgb": [
+      245,
+      205,
+      40
+     ],
+     "radius_m": 0.11,
+     "radius_px": 26.25
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 238.663,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      466.2,
+      593.85
+     ],
+     [
+      704.86,
+      593.85
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "launch_time_s": 0.3,
+    "apex_time_s": 0.8283999999999581,
+    "landing_time_s": 1.5772439582639026,
+    "landing_x_m": 4.196476556757267
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 2.2896297298586874,
+    "flight_time_s_numeric": 1.2772439582639026,
+    "note": "Ball rests on a table of height launch_height until launch_time_s (impulsive launch), then flies; on landing it sticks (sand), so fit window is launch_time_s..landing_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pd01_earth_yellow_beachball_k0.25.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pd01_earth_yellow_beachball_k0.25.json"
+  },
+  {
+   "case_id": "pd02_earth_paper_ball_k0.45",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "description": "Crumpled off-white paper ball thrown at 12 m/s, 40 deg with very strong quadratic drag k = 0.45 1/m; dark blue tiled wall; 1080p.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "quadratic_drag_k": {
+     "value": 0.45,
+     "unit": "1/m (dv/dt = -g*yhat - k|v|v)"
+    },
+    "launch_speed": {
+     "value": 12.0,
+     "unit": "m/s"
+    },
+    "launch_angle": {
+     "value": 40,
+     "unit": "deg above horizontal"
+    },
+    "launch_position": {
+     "value": [
+      0.0,
+      0.47500000000000003
+     ],
+     "unit": "m (ball centre, world x right / y up, floor at y=0)"
+    },
+    "ball_radius": {
+     "value": 0.075,
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 156,
+   "duration_s": 2.6,
+   "physics_duration_s": 2.6,
+   "metres_per_pixel": 0.0023,
+   "pixels_per_metre": 434.7826086956522,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     266.134,
+     858.424
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.3,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "white paper ball",
+     "kind": "ball",
+     "colour_rgb": [
+      238,
+      232,
+      205
+     ],
+     "radius_m": 0.075,
+     "radius_px": 32.61
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 434.783,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      874.83,
+      806.25
+     ],
+     [
+      1309.61,
+      806.25
+     ]
+    ],
+    "thickness_px": 15.22,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "launch_time_s": 0.3,
+    "apex_time_s": 0.6973999999999725,
+    "landing_time_s": 1.34223932797424,
+    "landing_x_m": 3.366784874069226
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 1.589751224919644,
+    "flight_time_s_numeric": 1.04223932797424,
+    "note": "Ball rests on a table of height launch_height until launch_time_s (impulsive launch), then flies; on landing it sticks (sand), so fit window is launch_time_s..landing_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pd02_earth_paper_ball_k0.45.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pd02_earth_paper_ball_k0.45.json"
+  },
+  {
+   "case_id": "pd03_earth_orange_balloon_k0.15",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "description": "Orange foam ball (large radius) lobbed at 9 m/s, 60 deg with quadratic drag k = 0.15 1/m in a cluttered room, 30 fps.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "quadratic_drag_k": {
+     "value": 0.15,
+     "unit": "1/m (dv/dt = -g*yhat - k|v|v)"
+    },
+    "launch_speed": {
+     "value": 9.0,
+     "unit": "m/s"
+    },
+    "launch_angle": {
+     "value": 60,
+     "unit": "deg above horizontal"
+    },
+    "launch_position": {
+     "value": [
+      0.0,
+      0.6
+     ],
+     "unit": "m (ball centre, world x right / y up, floor at y=0)"
+    },
+    "ball_radius": {
+     "value": 0.1,
+     "unit": "m"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 30,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 105,
+   "duration_s": 3.5,
+   "physics_duration_s": 3.5,
+   "metres_per_pixel": 0.00472,
+   "pixels_per_metre": 211.864406779661,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     243.295,
+     630.795
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.3,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "orange ball",
+     "kind": "ball",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.1,
+     "radius_px": 21.19
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 62.924,
+    "short_side_m": 0.21,
+    "short_side_px": 44.492,
+    "size_px": [
+     44.49,
+     62.92
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      432.91,
+      482.81
+     ],
+     [
+      477.4,
+      482.81
+     ],
+     [
+      477.4,
+      545.73
+     ],
+     [
+      432.91,
+      545.73
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "launch_time_s": 0.3,
+    "apex_time_s": 0.8999999999999502,
+    "landing_time_s": 1.6811466691889494,
+    "landing_x_m": 3.894899286774512
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 2.656300886494742,
+    "flight_time_s_numeric": 1.3811466691889493,
+    "note": "Ball rests on a table of height launch_height until launch_time_s (impulsive launch), then flies; on landing it sticks (sand), so fit window is launch_time_s..landing_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pd03_earth_orange_balloon_k0.15.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pd03_earth_orange_balloon_k0.15.json"
+  },
+  {
+   "case_id": "tt01_earth_blue_ball_portrait",
+   "phenomenon": "vertical_toss",
+   "variant": "up_and_down",
+   "description": "Phone-style portrait clip: blue ball tossed straight up at 6.2 m/s from 1 m, falls back to the floor; metre stick standing against the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "initial_upward_velocity": {
+     "value": 6.2,
+     "unit": "m/s"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.0,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1080,
+   "height": 1920,
+   "n_frames": 120,
+   "duration_s": 2.0,
+   "physics_duration_s": 2.0,
+   "metres_per_pixel": 0.00183,
+   "pixels_per_metre": 546.448087431694,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     540.0,
+     1705.69
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.0,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "blue ball",
+     "kind": "ball",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "radius_m": 0.05,
+     "radius_px": 27.32
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 546.448,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      840.55,
+      1705.69
+     ],
+     [
+      840.55,
+      1159.24
+     ]
+    ],
+    "thickness_px": 19.13,
+    "orientation_deg_from_horizontal_ccw": 90,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "launch_time_s": 0.0,
+    "apex_time_s": 0.6319999999999467,
+    "landing_time_s": 1.4021472504103525
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 2.95922527999968,
+    "note": "Clip starts with the ball already moving upward (t=0 is the release). Ball sticks to the floor on landing."
+   },
+   "notes": [],
+   "video_file": "clips/tt01_earth_blue_ball_portrait.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/tt01_earth_blue_ball_portrait.json"
+  },
+  {
+   "case_id": "tt02_earth_yellow_ball_board",
+   "phenomenon": "vertical_toss",
+   "variant": "up_and_down",
+   "description": "Yellow ball tossed up at 4.4 m/s in front of a blackboard, 30 fps (heavy blur); A4 sheet pinned to the board.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "initial_upward_velocity": {
+     "value": 4.4,
+     "unit": "m/s"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 0.9,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 30,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 75,
+   "duration_s": 2.5,
+   "physics_duration_s": 2.5,
+   "metres_per_pixel": 0.00329,
+   "pixels_per_metre": 303.951367781155,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     612.545
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.0,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "yellow ball",
+     "kind": "ball",
+     "colour_rgb": [
+      245,
+      205,
+      40
+     ],
+     "radius_m": 0.055,
+     "radius_px": 16.72
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 90.274,
+    "short_side_m": 0.21,
+    "short_side_px": 63.83,
+    "size_px": [
+     63.83,
+     90.27
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      456.11,
+      513.15
+     ],
+     [
+      519.94,
+      513.15
+     ],
+     [
+      519.94,
+      603.43
+     ],
+     [
+      456.11,
+      603.43
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "launch_time_s": 0.0,
+    "apex_time_s": 0.4484999999999669,
+    "landing_time_s": 1.0596234629026338
+   },
+   "expected_numeric": {
+    "apex_height_m_numeric": 1.8867482137500178,
+    "note": "Clip starts with the ball already moving upward (t=0 is the release). Ball sticks to the floor on landing."
+   },
+   "notes": [],
+   "video_file": "clips/tt02_earth_yellow_ball_board.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/tt02_earth_yellow_ball_board.json"
+  },
+  {
+   "case_id": "pe01_small_8deg_L0.60",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "Small-amplitude (8 deg) 0.60 m pendulum, red bob on a string, light damping; metre stick hung beside it; 1080p.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.6,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.05,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 8.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00122,
+   "pixels_per_metre": 819.672131147541,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     960.0,
+     158.852
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "pendulum bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "radius_m": 0.035,
+     "radius_px": 28.69,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 819.672,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      764.51,
+      994.92
+     ],
+     [
+      764.51,
+      175.25
+     ]
+    ],
+    "thickness_px": 28.69,
+    "orientation_deg_from_horizontal_ccw": 90,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     0.89049,
+     1.66836,
+     2.4462,
+     3.224,
+     4.00177,
+     4.77951,
+     5.55723,
+     6.33491
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.555710522445619,
+     1.5556421766078903,
+     1.5555764506793601,
+     1.5555132434189685,
+     1.5554524578668958,
+     1.5553940007827185
+    ],
+    "period_mean_damped_numeric_s": 1.5555481419669086,
+    "period_undamped_same_amplitude_numeric_s": 1.5557880576043281,
+    "period_small_angle_formula_s": 1.5538925691547856,
+    "nonlinear_period_ratio": 1.0012198323662578,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pe01_small_8deg_L0.60.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pe01_small_8deg_L0.60.json"
+  },
+  {
+   "case_id": "pe02_large_70deg_L0.80",
+   "phenomenon": "pendulum",
+   "variant": "large_amplitude",
+   "description": "Large-amplitude (70 deg) 0.80 m pendulum: period ~20% longer than small-angle; tiled wall; metre stick under the swing.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.8,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.06,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 70.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.05,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00192,
+   "pixels_per_metre": 520.8333333333334,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     102.188
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "pendulum bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "radius_m": 0.05,
+     "radius_px": 26.04,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 520.833,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      379.58,
+      633.44
+     ],
+     [
+      900.42,
+      633.44
+     ]
+    ],
+    "thickness_px": 18.23,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     0.99724,
+     1.97985,
+     2.95676,
+     3.92844,
+     4.89529,
+     5.8577,
+     6.816
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.9595151160217688,
+     1.9485878954214197,
+     1.9385354986222545,
+     1.929267478074416,
+     1.9207055584395754
+    ],
+    "period_mean_damped_numeric_s": 1.9393223093158867,
+    "period_undamped_same_amplitude_numeric_s": 1.9775572145299203,
+    "period_small_angle_formula_s": 1.7942805861865494,
+    "nonlinear_period_ratio": 1.102144909639186,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pe02_large_70deg_L0.80.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pe02_large_70deg_L0.80.json"
+  },
+  {
+   "case_id": "pe03_small_9deg_L0.35_room",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "Short (0.35 m) low-amplitude (9 deg) pendulum in a cluttered room at 120 fps; A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.35,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.08,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 9.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.03,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 600,
+   "duration_s": 5.0,
+   "physics_duration_s": 5.0,
+   "metres_per_pixel": 0.0014,
+   "pixels_per_metre": 714.2857142857143,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     128.929
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.4,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "pendulum bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      40,
+      165,
+      75
+     ],
+     "radius_m": 0.03,
+     "radius_px": 21.43,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 212.143,
+    "short_side_m": 0.21,
+    "short_side_px": 150.0,
+    "size_px": [
+     150.0,
+     212.14
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      442.21,
+      436.07
+     ],
+     [
+      592.21,
+      436.07
+     ],
+     [
+      592.21,
+      648.21
+     ],
+     [
+      442.21,
+      648.21
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.4,
+    "zero_crossing_times_s": [
+     0.6986,
+     1.29289,
+     1.88714,
+     2.48136,
+     3.07553,
+     3.66968,
+     4.26378,
+     4.85786
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.1885458224063339,
+     1.1884663843558918,
+     1.1883906565561204,
+     1.1883184646052296,
+     1.1882496422623778,
+     1.1881840313224843
+    ],
+    "period_mean_damped_numeric_s": 1.188359166918073,
+    "period_undamped_same_amplitude_numeric_s": 1.1886378472821992,
+    "period_small_angle_formula_s": 1.1868050533302013,
+    "nonlinear_period_ratio": 1.001544309191181,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pe03_small_9deg_L0.35_room.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pe03_small_9deg_L0.35_room.json"
+  },
+  {
+   "case_id": "pe04_large_60deg_L1.20_24fps",
+   "phenomenon": "pendulum",
+   "variant": "large_amplitude",
+   "description": "Long (1.20 m) 60 deg pendulum at cinematic 24 fps with a yellow bob in front of a blackboard; A4 sheet on the board.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 1.2,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.03,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 60.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.06,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 24,
+   "capture_fps": 24,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 192,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00182,
+   "pixels_per_metre": 549.4505494505495,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     960.0,
+     120.495
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "pendulum bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      245,
+      205,
+      40
+     ],
+     "radius_m": 0.06,
+     "radius_px": 32.97,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 163.187,
+    "short_side_m": 0.21,
+    "short_side_px": 115.385,
+    "size_px": [
+     115.38,
+     163.19
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      591.49,
+      840.27
+     ],
+     [
+      706.87,
+      840.27
+     ],
+     [
+      706.87,
+      1003.46
+     ],
+     [
+      591.49,
+      1003.46
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     1.09164,
+     2.26768,
+     3.44071,
+     4.61087,
+     5.77829,
+     6.94308
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     2.349071024195775,
+     2.3431901709289527,
+     2.3375761935887436,
+     2.332213886069032
+    ],
+    "period_mean_damped_numeric_s": 2.3405128186956254,
+    "period_undamped_same_amplitude_numeric_s": 2.358356037063564,
+    "period_small_angle_formula_s": 2.1975359457694705,
+    "nonlinear_period_ratio": 1.0731820071492764,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/pe04_large_60deg_L1.20_24fps.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/pe04_large_60deg_L1.20_24fps.json"
+  },
+  {
+   "case_id": "sp01_k25_m0.20_b0.35",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "description": "Green block hanging from a zig-zag spring, k = 25 N/m, m = 0.20 kg, light damping; pulled down 12 cm and released.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 25.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.2,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 125.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 11.180339887498949,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.35,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.35,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.42847999999999997,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.12,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 478.444,
+     "unit": "px"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 300,
+   "duration_s": 5.0,
+   "physics_duration_s": 5.0,
+   "metres_per_pixel": 0.00126,
+   "pixels_per_metre": 793.6507936507936,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     138.381
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "green weight",
+     "kind": "block on spring",
+     "colour_rgb": [
+      40,
+      165,
+      75
+     ],
+     "size_m": [
+      0.09,
+      0.06
+     ],
+     "size_px": [
+      71.43,
+      47.62
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 793.651,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      243.17,
+      645.11
+     ],
+     [
+      1036.83,
+      645.11
+     ]
+    ],
+    "thickness_px": 27.78,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "equilibrium_crossing_times_s": [
+     0.64191,
+     0.92294,
+     1.20397,
+     1.48499,
+     1.76602,
+     2.04705,
+     2.32808,
+     2.6091,
+     2.89013,
+     3.17116,
+     3.45218,
+     3.73321,
+     4.01424,
+     4.29526,
+     4.57629,
+     4.85732
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.5620540344915294,
+     0.5620540339821374,
+     0.5620540342398698,
+     0.5620540346719431,
+     0.5620540343383655,
+     0.5620540339320705,
+     0.5620540343706548,
+     0.5620540347006959,
+     0.5620540341873319,
+     0.5620540340647522,
+     0.5620540345002052,
+     0.5620540345463474
+    ],
+    "period_mean_damped_numeric_s": 0.56205403430397,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sp01_k25_m0.20_b0.35.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sp01_k25_m0.20_b0.35.json"
+  },
+  {
+   "case_id": "sp02_k60_m0.15_b1.0_fast",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "description": "Stiff spring (k = 60 N/m, m = 0.15 kg, 3.2 Hz) with moderate damping, 1080p at 120 fps.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 60.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.15,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 400.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 20.0,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 1.0,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.3,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.324525,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.05,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 744.186,
+     "unit": "px"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 360,
+   "duration_s": 3.0,
+   "physics_duration_s": 3.0,
+   "metres_per_pixel": 0.00066,
+   "pixels_per_metre": 1515.1515151515152,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     960.0,
+     252.481
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.4,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "orange weight",
+     "kind": "block on spring",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "size_m": [
+      0.075,
+      0.05
+     ],
+     "size_px": [
+      113.64,
+      75.76
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 1515.152,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      202.42,
+      948.73
+     ],
+     [
+      1717.58,
+      948.73
+     ]
+    ],
+    "thickness_px": 53.03,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.4,
+    "equilibrium_crossing_times_s": [
+     0.47981,
+     0.63694,
+     0.79407,
+     0.9512,
+     1.10833,
+     1.26546,
+     1.42259,
+     1.57972,
+     1.73684,
+     1.89397,
+     2.0511,
+     2.20823,
+     2.36536,
+     2.52249,
+     2.67962,
+     2.83675,
+     2.99387
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.31425748652676844,
+     0.31425748499716966,
+     0.31425748623211647,
+     0.31425748732678993,
+     0.31425748566683087,
+     0.31425748564396516,
+     0.31425748686425825,
+     0.3142574864573664,
+     0.31425748504935735,
+     0.31425748628313066,
+     0.3142574872566355,
+     0.3142574855985365
+    ],
+    "period_mean_damped_numeric_s": 0.31425748619354543,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sp02_k60_m0.15_b1.0_fast.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sp02_k60_m0.15_b1.0_fast.json"
+  },
+  {
+   "case_id": "sp03_k8_m0.50_b0.12_soft",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "description": "Soft spring (k = 8 N/m, m = 0.50 kg, 0.64 Hz), 25 cm release, at 30 fps in front of a blackboard; A4 sheet on the board.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 8.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.5,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 16.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 4.0,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.12,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.4,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 1.013125,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.25,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 539.028,
+     "unit": "px"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 30,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 240,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00225,
+   "pixels_per_metre": 444.44444444444446,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     88.75
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.6,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "red weight",
+     "kind": "block on spring",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "size_m": [
+      0.11,
+      0.075
+     ],
+     "size_px": [
+      48.89,
+      33.33
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 132.0,
+    "short_side_m": 0.21,
+    "short_side_px": 93.333,
+    "size_px": [
+     93.33,
+     132.0
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      726.67,
+      142.08
+     ],
+     [
+      820.0,
+      142.08
+     ],
+     [
+      820.0,
+      274.08
+     ],
+     [
+      726.67,
+      274.08
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.6,
+    "equilibrium_crossing_times_s": [
+     0.99649,
+     1.78198,
+     2.56747,
+     3.35295,
+     4.13844,
+     4.92393,
+     5.70941,
+     6.4949,
+     7.28039
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.5709730713057302,
+     1.5709730712641687,
+     1.57097307122251,
+     1.5709730711775904,
+     1.5709730711304002,
+     1.5709730710895426,
+     1.5709730712074181
+    ],
+    "period_mean_damped_numeric_s": 1.5709730711996228,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sp03_k8_m0.50_b0.12_soft.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sp03_k8_m0.50_b0.12_soft.json"
+  },
+  {
+   "case_id": "bb01_e0.72_orange",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.72",
+   "description": "Orange ball dropped from 1.5 m onto a wooden floor, e = 0.72, drifting slowly sideways; 5+ bounces visible; metre stick on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.72,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.5,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.3,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.06,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 240,
+   "duration_s": 4.0,
+   "physics_duration_s": 4.0,
+   "metres_per_pixel": 0.00299,
+   "pixels_per_metre": 334.44816053511704,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     479.465,
+     590.769
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.4,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "orange ball",
+     "kind": "ball",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.06,
+     "radius_px": 20.07
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 334.448,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      492.84,
+      48.96
+     ],
+     [
+      827.29,
+      48.96
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.4,
+    "bounce_times_physics_s": [
+     0.94183,
+     1.72206,
+     2.28383,
+     2.6883,
+     2.97952,
+     3.1892,
+     3.34017,
+     3.44887,
+     3.52713,
+     3.58348,
+     3.62405,
+     3.65326,
+     3.67429,
+     3.68943,
+     3.70034,
+     3.70819,
+     3.71384,
+     3.71791,
+     3.72084,
+     3.72295,
+     3.72447,
+     3.72556,
+     3.72635,
+     3.72692,
+     3.72732,
+     3.72762,
+     3.72783,
+     3.72798,
+     3.72809
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 29,
+    "impact_speeds_m_s_numeric": [
+     5.3153362918742815,
+     3.827042127402677,
+     2.7554703289831317,
+     1.983938634121055,
+     1.4284358138203588,
+     1.028473783203858,
+     0.7405011211599777,
+     0.5331608044883838,
+     0.3838757764848366,
+     0.27639055632228254,
+     0.19900119780524334,
+     0.14328085967297544,
+     0.10316221621774198,
+     0.07427679292997318,
+     0.05347928816277787,
+     0.03850508473040004,
+     0.027723658259085317,
+     0.01996103119974221,
+     0.014371939717013532,
+     0.010347793849449144,
+     0.007450408824809659,
+     0.005364291607048528,
+     0.0038622872102771514,
+     0.0027808440445977255,
+     0.0020022049652949677,
+     0.001441584828162176,
+     0.0010379383294260606,
+     0.0007473128503057949,
+     0.000538062505305249
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     1.5,
+     0.8064959986767377,
+     0.44698352511702394,
+     0.2606122536028742,
+     0.16399739512058537,
+     0.11391224230785223,
+     0.0879481091382331,
+     0.07448828876640214,
+     0.06751073019412807,
+     0.06389356176493036,
+     0.062018423064589455,
+     0.06104635089445145,
+     0.060542427123291304,
+     0.060281190900823796,
+     0.06014575988885029,
+     0.060075564818707565,
+     0.06003917107059344,
+     0.060020302082019486,
+     0.060010521674290516,
+     0.0600054475340254,
+     0.06000282113490785,
+     0.060001455900708524,
+     0.06000076011880811,
+     0.06000039280615638,
+     0.06000020424295506,
+     0.060000095109463816,
+     0.060000054744813944,
+     0.060000025682266034,
+     0.06000000475723154,
+     0.06
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/bb01_e0.72_orange.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/bb01_e0.72_orange.json"
+  },
+  {
+   "case_id": "bb02_e0.88_blue_120fps",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.88",
+   "description": "Very bouncy blue ball (e = 0.88) dropped from 1.0 m, 1080p at 120 fps, tiled wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.88,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.0,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.45,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.05,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 480,
+   "duration_s": 4.0,
+   "physics_duration_s": 4.0,
+   "metres_per_pixel": 0.0014,
+   "pixels_per_metre": 714.2857142857143,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     408.214,
+     879.286
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.3,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "blue ball",
+     "kind": "ball",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "radius_m": 0.05,
+     "radius_px": 35.71
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 714.286,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      645.71,
+      86.43
+     ],
+     [
+      1360.0,
+      86.43
+     ]
+    ],
+    "thickness_px": 25.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.3,
+    "bounce_times_physics_s": [
+     0.74009,
+     1.51465,
+     2.19626,
+     2.79608,
+     3.32392,
+     3.78842
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 6,
+    "impact_speeds_m_s_numeric": [
+     4.317290807357565,
+     3.799215909297457,
+     3.3433099990045583,
+     2.9421127979468142,
+     2.589059261015997,
+     2.2783721485168753
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     1.0,
+     0.7856799980203885,
+     0.6197105918040556,
+     0.4911838819963086,
+     0.3916527965210102,
+     0.31457591496352244,
+     0.2548875960625875
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/bb02_e0.88_blue_120fps.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/bb02_e0.88_blue_120fps.json"
+  },
+  {
+   "case_id": "bb03_e0.60_purple_240fps",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.6",
+   "description": "Dead-ish purple ball (e = 0.60) dropped from 0.9 m, captured at 240 fps real time (no slow motion).",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.6,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 0.9,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.35,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.05,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 240,
+   "capture_fps": 240,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 600,
+   "duration_s": 2.5,
+   "physics_duration_s": 2.5,
+   "metres_per_pixel": 0.00235,
+   "pixels_per_metre": 425.531914893617,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     494.255,
+     603.83
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.2,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "purple ball",
+     "kind": "ball",
+     "colour_rgb": [
+      135,
+      65,
+      175
+     ],
+     "radius_m": 0.05,
+     "radius_px": 21.28
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 126.383,
+    "short_side_m": 0.21,
+    "short_side_px": 89.362,
+    "size_px": [
+     89.36,
+     126.38
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      620.85,
+      47.66
+     ],
+     [
+      710.21,
+      47.66
+     ],
+     [
+      710.21,
+      174.04
+     ],
+     [
+      620.85,
+      174.04
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.2,
+    "bounce_times_physics_s": [
+     0.61628,
+     1.11583,
+     1.41555,
+     1.59538,
+     1.70329,
+     1.76803,
+     1.80687,
+     1.83018,
+     1.84416,
+     1.85255,
+     1.85759,
+     1.86061,
+     1.86242,
+     1.86351,
+     1.86416,
+     1.86455,
+     1.86478,
+     1.86493
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 18,
+    "impact_speeds_m_s_numeric": [
+     4.083748268426392,
+     2.4502489571318344,
+     1.4701493703550998,
+     0.8820896182890596,
+     0.5292537670494355,
+     0.3175522563056603,
+     0.19053134985939585,
+     0.11431880599163685,
+     0.0685912796709798,
+     0.041154763878586874,
+     0.024692854403151856,
+     0.014815708717886351,
+     0.008889421306725235,
+     0.005333648860021661,
+     0.003200185391997175,
+     0.0019201073111914618,
+     0.0011520604627256294,
+     0.00069123235361401
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     0.9,
+     0.3559999957420961,
+     0.1601599930367543,
+     0.08965759851610515,
+     0.06427672395040943,
+     0.05513962062214739,
+     0.051850262577586306,
+     0.050666084694879175,
+     0.05023979402636688,
+     0.05008632584949207,
+     0.050031075910532886,
+     0.05001118732779184,
+     0.050004027438005055,
+     0.05000144057933502,
+     0.050000518608560605,
+     0.05000018782342425,
+     0.050000066157027276,
+     0.05000002007421637,
+     0.05
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/bb03_e0.60_purple_240fps.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/bb03_e0.60_purple_240fps.json"
+  },
+  {
+   "case_id": "in01_solid_beta0.4_20deg",
+   "phenomenon": "incline_rolling",
+   "variant": "solid sphere",
+   "description": "SOLID sphere (beta = 2/5) rolling without slipping down a 20 deg wooden ramp from rest, with a rotation marker; compare in02.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "incline_angle_alpha": {
+     "value": 20.0,
+     "unit": "deg"
+    },
+    "beta_moment_of_inertia_factor": {
+     "value": 0.4,
+     "unit": "I/(m R^2); 2/5 solid sphere, 2/3 thin hollow sphere"
+    },
+    "ball_type": {
+     "value": "solid sphere",
+     "unit": "-"
+    },
+    "ball_radius": {
+     "value": 0.04,
+     "unit": "m"
+    },
+    "rolling": {
+     "value": "no slipping",
+     "unit": "-"
+    },
+    "slope_acceleration_a": {
+     "value": 2.396584004303436,
+     "unit": "m/s^2 along the slope = g sin(alpha)/(1+beta)  [truth value used by the integrator]"
+    },
+    "ramp_length_along_slope": {
+     "value": 1.5,
+     "unit": "m"
+    },
+    "start_distance_s0_along_slope": {
+     "value": 0.1,
+     "unit": "m (ball centre path, from top)"
+    },
+    "stopper_face_distance_along_slope": {
+     "value": 1.4,
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 144,
+   "duration_s": 2.4,
+   "physics_duration_s": 2.4,
+   "metres_per_pixel": 0.00194,
+   "pixels_per_metre": 515.4639175257731,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     276.717,
+     548.925
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "blue ball",
+     "kind": "rolling ball (rotating marker on its surface)",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "radius_m": 0.04,
+     "radius_px": 20.62
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 515.464,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      328.26,
+      129.84
+     ],
+     [
+      843.73,
+      129.84
+     ]
+    ],
+    "thickness_px": 18.04,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "stopper_hit_time_s": 1.5254250963943674
+   },
+   "expected_numeric": {
+    "time_to_travel_numeric_s": 1.0254250963943674,
+    "acceleration_numeric_m_s2": 2.3965840043033553,
+    "note": "World slope direction = (cos alpha, -sin alpha). Ball rests until release_time_s, rolls without slipping, stops at the stopper."
+   },
+   "notes": [],
+   "video_file": "clips/in01_solid_beta0.4_20deg.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/in01_solid_beta0.4_20deg.json"
+  },
+  {
+   "case_id": "in02_hollow_beta0.667_20deg",
+   "phenomenon": "incline_rolling",
+   "variant": "hollow sphere",
+   "description": "HOLLOW thin-shelled sphere (beta = 2/3) rolling down the same 20 deg ramp from rest; it accelerates ~14% less than the solid sphere.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "incline_angle_alpha": {
+     "value": 20.0,
+     "unit": "deg"
+    },
+    "beta_moment_of_inertia_factor": {
+     "value": 0.6666666666666666,
+     "unit": "I/(m R^2); 2/5 solid sphere, 2/3 thin hollow sphere"
+    },
+    "ball_type": {
+     "value": "hollow sphere",
+     "unit": "-"
+    },
+    "ball_radius": {
+     "value": 0.04,
+     "unit": "m"
+    },
+    "rolling": {
+     "value": "no slipping",
+     "unit": "-"
+    },
+    "slope_acceleration_a": {
+     "value": 2.0131305636148866,
+     "unit": "m/s^2 along the slope = g sin(alpha)/(1+beta)  [truth value used by the integrator]"
+    },
+    "ramp_length_along_slope": {
+     "value": 1.5,
+     "unit": "m"
+    },
+    "start_distance_s0_along_slope": {
+     "value": 0.1,
+     "unit": "m (ball centre path, from top)"
+    },
+    "stopper_face_distance_along_slope": {
+     "value": 1.4,
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 156,
+   "duration_s": 2.6,
+   "physics_duration_s": 2.6,
+   "metres_per_pixel": 0.00194,
+   "pixels_per_metre": 515.4639175257731,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     276.717,
+     548.925
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "red ball",
+     "kind": "rolling ball (rotating marker on its surface)",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "radius_m": 0.04,
+     "radius_px": 20.62
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.297,
+     0.21
+    ],
+    "length_m": 0.297,
+    "length_px": 153.093,
+    "short_side_m": 0.21,
+    "short_side_px": 108.247,
+    "size_px": [
+     153.09,
+     108.25
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      483.68,
+      75.71
+     ],
+     [
+      636.77,
+      75.71
+     ],
+     [
+      636.77,
+      183.96
+     ],
+     [
+      483.68,
+      183.96
+     ]
+    ],
+    "orientation": "landscape (long side horizontal)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "stopper_hit_time_s": 1.6188305056511119
+   },
+   "expected_numeric": {
+    "time_to_travel_numeric_s": 1.1188305056511119,
+    "acceleration_numeric_m_s2": 2.0131305636146286,
+    "note": "World slope direction = (cos alpha, -sin alpha). Ball rests until release_time_s, rolls without slipping, stops at the stopper."
+   },
+   "notes": [],
+   "video_file": "clips/in02_hollow_beta0.667_20deg.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/in02_hollow_beta0.667_20deg.json"
+  },
+  {
+   "case_id": "co01_e0.90_unequal_mass",
+   "phenomenon": "collision_2d",
+   "variant": "e=0.9",
+   "description": "Top view air-hockey table: light red puck hits a heavier yellow puck (mass ratio ~0.53), near-elastic e = 0.90, off-centre impact.",
+   "body": "earth",
+   "params": {
+    "mass_a": {
+     "value": 0.09047786842338605,
+     "unit": "kg (red puck)"
+    },
+    "mass_b": {
+     "value": 0.17105971998796424,
+     "unit": "kg (yellow puck)"
+    },
+    "mass_ratio_a_over_b": {
+     "value": 0.5289256198347108,
+     "unit": "-"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.9,
+     "unit": "dimensionless (normal relative speed after = e x before)"
+    },
+    "radius_a": {
+     "value": 0.04,
+     "unit": "m"
+    },
+    "radius_b": {
+     "value": 0.055,
+     "unit": "m"
+    },
+    "surface": {
+     "value": "frictionless horizontal (air-hockey table), top view; gravity acts out of the image plane",
+     "unit": "-"
+    },
+    "initial_velocity_a": {
+     "value": [
+      1.0,
+      0.07
+     ],
+     "unit": "m/s"
+    },
+    "initial_velocity_b": {
+     "value": [
+      -0.15,
+      0.0
+     ],
+     "unit": "m/s"
+    },
+    "areal_density_assumption": {
+     "value": 18.0,
+     "unit": "kg/m^2 (same material and height, so mass ~ radius^2)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1920,
+   "height": 1080,
+   "n_frames": 96,
+   "duration_s": 1.6,
+   "physics_duration_s": 1.6,
+   "metres_per_pixel": 0.0012,
+   "pixels_per_metre": 833.3333333333334,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     960.0,
+     540.0
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": null,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "puck_a",
+     "noun_phrase": "red puck",
+     "kind": "puck (top view)",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "radius_m": 0.04,
+     "radius_px": 33.33,
+     "mass_kg": 0.09047786842338605
+    },
+    {
+     "id": "puck_b",
+     "noun_phrase": "yellow puck",
+     "kind": "puck (top view)",
+     "colour_rgb": [
+      245,
+      205,
+      40
+     ],
+     "radius_m": 0.055,
+     "radius_px": 45.83,
+     "mass_kg": 0.17105971998796424
+    }
+   ],
+   "reference": null,
+   "events": {
+    "collision_time_s": 0.5028643731092483
+   },
+   "expected_numeric": {
+    "velocities_before_a_b_m_s": [
+     1.0,
+     0.07,
+     -0.15,
+     0.0
+    ],
+    "velocities_after_a_b_m_s": [
+     -0.35364144911433093,
+     -0.2960571116344729,
+     0.5659756425067536,
+     0.19361698466616753
+    ],
+    "line_of_centres_unit_vector": [
+     0.9653260097300905,
+     0.2610473040247324
+    ],
+    "momentum_before_kg_m_s": [
+     0.06481891042519142,
+     0.006333450789637024
+    ],
+    "kinetic_energy_ratio_after_over_before": 0.8489352057847382,
+    "note": "Impulse acts along the line of centres; tangential velocity components are unchanged. World frame: x right, y up (table centre = image centre)."
+   },
+   "notes": [
+    "Top view; the 'metres_per_pixel' scale is the table plane. No separate scale reference object in frame; table markings: centre circle radius 0.28 m."
+   ],
+   "video_file": "clips/co01_e0.90_unequal_mass.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/co01_e0.90_unequal_mass.json"
+  },
+  {
+   "case_id": "co02_e0.50_equal_mass_120fps",
+   "phenomenon": "collision_2d",
+   "variant": "e=0.5",
+   "description": "Top view, two equal pucks approaching each other, quite inelastic (e = 0.50), 120 fps.",
+   "body": "earth",
+   "params": {
+    "mass_a": {
+     "value": 0.1413716694115407,
+     "unit": "kg (orange puck)"
+    },
+    "mass_b": {
+     "value": 0.1413716694115407,
+     "unit": "kg (white puck)"
+    },
+    "mass_ratio_a_over_b": {
+     "value": 1.0,
+     "unit": "-"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.5,
+     "unit": "dimensionless (normal relative speed after = e x before)"
+    },
+    "radius_a": {
+     "value": 0.05,
+     "unit": "m"
+    },
+    "radius_b": {
+     "value": 0.05,
+     "unit": "m"
+    },
+    "surface": {
+     "value": "frictionless horizontal (air-hockey table), top view; gravity acts out of the image plane",
+     "unit": "-"
+    },
+    "initial_velocity_a": {
+     "value": [
+      0.9,
+      -0.12
+     ],
+     "unit": "m/s"
+    },
+    "initial_velocity_b": {
+     "value": [
+      -0.7,
+      0.1
+     ],
+     "unit": "m/s"
+    },
+    "areal_density_assumption": {
+     "value": 18.0,
+     "unit": "kg/m^2 (same material and height, so mass ~ radius^2)"
+    }
+   },
+   "fps": 120,
+   "capture_fps": 120,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 240,
+   "duration_s": 2.0,
+   "physics_duration_s": 2.0,
+   "metres_per_pixel": 0.0016,
+   "pixels_per_metre": 625.0,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     360.0
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": null,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "puck_a",
+     "noun_phrase": "orange puck",
+     "kind": "puck (top view)",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.05,
+     "radius_px": 31.25,
+     "mass_kg": 0.1413716694115407
+    },
+    {
+     "id": "puck_b",
+     "noun_phrase": "white puck",
+     "kind": "puck (top view)",
+     "colour_rgb": [
+      245,
+      245,
+      242
+     ],
+     "radius_m": 0.05,
+     "radius_px": 31.25,
+     "mass_kg": 0.1413716694115407
+    }
+   ],
+   "reference": null,
+   "events": {
+    "collision_time_s": null
+   },
+   "expected_numeric": {},
+   "notes": [
+    "Top view; the 'metres_per_pixel' scale is the table plane. No separate scale reference object in frame; table markings: centre circle radius 0.28 m."
+   ],
+   "video_file": "clips/co02_e0.50_equal_mass_120fps.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/co02_e0.50_equal_mass_120fps.json"
+  },
+  {
+   "case_id": "sm01_bounce_240fps_x8",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.85",
+   "description": "Macro shot of a small orange ball (r = 2 cm) bouncing, e = 0.85; physics captured at 240 fps and encoded at 30 fps (8x slow motion); 15 cm ruler with 1.5 cm bands.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.85,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 0.14,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.3,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.02,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 240,
+   "slow_motion_factor": 8,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 225,
+   "duration_s": 7.5,
+   "physics_duration_s": 0.9375,
+   "metres_per_pixel": 0.00043,
+   "pixels_per_metre": 2325.5813953488373,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     375.756,
+     530.465
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.12,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "orange ball",
+     "kind": "ball",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.02,
+     "radius_px": 46.51
+    }
+   ],
+   "reference": {
+    "noun_phrase": "15 cm ruler",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 0.15,
+    "length_px": 348.837,
+    "band_length_m": 0.015,
+    "endpoints_px": [
+     [
+      486.51,
+      137.44
+     ],
+     [
+      835.35,
+      137.44
+     ]
+    ],
+    "thickness_px": 14.0,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.12,
+    "bounce_times_physics_s": [
+     0.27641,
+     0.54231,
+     0.76833
+    ],
+    "bounce_times_video_s": [
+     2.2113,
+     4.33851,
+     6.14663
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 3,
+    "impact_speeds_m_s_numeric": [
+     1.534405412495288,
+     1.3042445991494958,
+     1.1086079078055717
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     0.14,
+     0.10669998799161609,
+     0.08264074969056028,
+     0.06525793270042753
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/sm01_bounce_240fps_x8.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sm01_bounce_240fps_x8.json"
+  }
+ ]
+}

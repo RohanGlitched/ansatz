@@ -10,3 +10,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# benchmark run records keep JSON only
+bench/runs/**/*.mp4
