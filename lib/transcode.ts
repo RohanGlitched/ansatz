@@ -85,3 +85,18 @@ export async function cut(input: Uint8Array, t0: number, t1: number, every = 1):
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 }
+
+/** One frame of a prepared clip as PNG, for Muse Spark to point at. */
+export async function frameAt(input: Uint8Array, t: number): Promise<Uint8Array> {
+  const bin = await ffmpeg();
+  const dir = await mkdtemp(path.join(tmpdir(), "ansatz-frame-"));
+  try {
+    const src = path.join(dir, "in.mp4");
+    const out = path.join(dir, "frame.png");
+    await writeFile(src, input);
+    await run(bin, ["-hide_banner", "-y", "-ss", Math.max(0, t).toFixed(4), "-i", src, "-frames:v", "1", out]);
+    return new Uint8Array(await readFile(out));
+  } finally {
+    await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}

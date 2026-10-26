@@ -5,17 +5,17 @@
  * the model calls and their cost.
  */
 import { deleteFile, Ledger, transcribe, uploadFile, type Call } from "./meta/client";
-import { trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
+import { trackBoxes, trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
 import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
 import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
 import { controls } from "./physics/library";
-import { critique, eyeball, hypothesise, MODELS, observe, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
+import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit } from "./units";
 import { lawLatex } from "./latex";
 export { toPixels };
-import { cut, prepare } from "./transcode";
+import { cut, frameAt, prepare } from "./transcode";
 
 export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
 
@@ -236,6 +236,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       let trackFile = fileId;
       let map = (f: number) => f;
       let frames = vi.times.length;
+      let trackBytes = prep.video;
+      let trackTimes = vi.times;
       if (useCut) {
         const clip = await cut(prep.video, w0, w1, every);
         const ci = readVideoInfo(clip);
@@ -251,6 +253,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         trackFile = await uploadFile(clip, "window.mp4", "video/mp4");
         extraFiles.push(trackFile);
         frames = ci.times.length;
+        trackBytes = clip;
+        trackTimes = ci.times;
       }
       const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
       const selfRuler = obs.reference.present && obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
@@ -263,6 +267,19 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         for (const alt of altNouns(subjectNoun, obs)) {
           const s2 = await trackNoun(trackFile, alt, ledger, frames);
           if (moving(s2)) { s = s2; break; }
+        }
+      }
+      if (!s || !moving(s)) {
+        // no noun phrase found it: Muse Spark points at the object in one frame and SAM 3.1 follows that box
+        const k = Math.max(0, trackTimes.findIndex((t) => t >= (useCut ? padS : obs.window.start_s)));
+        const png = await frameAt(trackBytes, trackTimes[k] ?? 0);
+        const box = await pointAt(png, { width: vi.width, height: vi.height }, subjectNoun, obs.subjects[0]?.description ?? "", ledger).catch(() => null);
+        if (box) {
+          const s3 = await trackBoxes(trackFile, { width: vi.width, height: vi.height }, [{ id: 1, frame: k, box }], ledger, frames).catch(() => null);
+          if (s3 && moving(s3)) {
+            for (const t of s3.tracks) t.noun = `${subjectNoun} (pointed out by Muse Spark)`;
+            s = s3;
+          }
         }
       }
       if (!s || !moving(s)) throw new ExperimentError(`SAM 3.1 couldn't find a moving “${subjectNoun}” in the clip. Name the moving object yourself and run it again.`, "track");
@@ -454,7 +471,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
       const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
       const namesOne = !winnerFree.length || winnerFree.some((n) => crit?.finding?.includes(`{${n}}`));
-      const finding = crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : defaultFinding(win.law, win.fit);
+      const filled = crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : null;
+      // a placeholder code couldn't fill (a state, not a fitted parameter) means the sentence can't be trusted
+      const finding = filled && !/\{[^}]*\}/.test(filled) ? filled : defaultFinding(win.law, win.fit);
       // counterfactuals: re-run the winner with one parameter scaled, over the same span ×1.4
       const cl = compileLaw(win.law);
       const span = m.series.t;

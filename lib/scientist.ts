@@ -411,3 +411,29 @@ export async function eyeball(fileId: string, narration: string, quantities: { n
   );
   return value;
 }
+
+/** Muse Spark points at the object in one frame (pixel box), so SAM 3.1 can follow it when a noun phrase finds nothing. */
+export async function point(png: Uint8Array, size: { width: number; height: number }, noun: string, description: string, ledger: Ledger): Promise<{ left: number; top: number; right: number; bottom: number } | null> {
+  const text = `This frame is ${size.width}×${size.height} pixels. Find the ${noun} (${description}) that is about to move. Return its tight bounding box in pixel coordinates of this frame (origin top-left, x to the right, y down). If it isn't visible, set found to false.`;
+  const { value } = await respondJson<{ found: boolean; left: number; top: number; right: number; bottom: number }>(
+    {
+      model: MODELS.observe,
+      effort: "medium",
+      input: [{ role: "user", content: [{ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(png).toString("base64")}` }, { type: "input_text", text }] }],
+      name: "point",
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        required: ["found", "left", "top", "right", "bottom"],
+        properties: { found: { type: "boolean" }, left: { type: "number" }, top: { type: "number" }, right: { type: "number" }, bottom: { type: "number" } },
+      },
+      maxOutput: 6000,
+    },
+    ledger,
+    `point at "${noun}"`,
+  );
+  if (!value.found) return null;
+  const clamp = (v: number, hi: number) => Math.max(0, Math.min(hi, Math.round(v)));
+  const box = { left: clamp(value.left, size.width - 1), top: clamp(value.top, size.height - 1), right: clamp(value.right, size.width), bottom: clamp(value.bottom, size.height) };
+  return box.right - box.left >= 2 && box.bottom - box.top >= 2 ? box : null;
+}
