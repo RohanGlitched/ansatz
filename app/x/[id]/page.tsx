@@ -7,6 +7,7 @@ import Tex from "@/components/Tex";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
+import { prettyUnit } from "@/lib/units";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -80,10 +81,10 @@ export default async function ExperimentPage({ params }: Params) {
                   </dt>
                   <dd className="num">
                     <strong>{fmt(v)}</strong>
-                    {Number.isFinite(s) && s > 0 ? <span> ± {fmt(s, 2)}</span> : <span className={styles.nd}> (not pinned down)</span>} {p.unit && p.unit !== "1" ? p.unit : ""}
+                    {Number.isFinite(s) && s > 0 ? <span> ± {fmt(s, 2)}</span> : <span className={styles.nd}> (not pinned down)</span>} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
                     {cmp && (
                       <span className={styles.ref}>
-                        {cmp.label}: {fmt(cmp.reference)} {p.unit}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.
+                        {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.
                       </span>
                     )}
                   </dd>
@@ -202,11 +203,11 @@ export default async function ExperimentPage({ params }: Params) {
                       <td>
                         <Tex>{paramLatex(p.name)}</Tex> <span className="small">{p.meaning}</span>
                       </td>
-                      <td className="num">{eye ? `${fmt(eye.value)} ${eye.unit}` : "—"}</td>
+                      <td className="num">{eye ? `${fmt(eye.value)} ${prettyUnit(eye.unit)}` : "—"}</td>
                       <td className="num">
-                        <strong>{fmt(win.fit.theta[p.name])}</strong> ± {fmt(win.fit.sigma[p.name], 2)} {p.unit}
+                        <strong>{fmt(win.fit.theta[p.name])}</strong> ± {fmt(win.fit.sigma[p.name], 2)} {prettyUnit(p.unit)}
                       </td>
-                      {e.comparisons.length > 0 && <td className="num">{cmp ? `${fmt(cmp.reference)} ${p.unit}` : "—"}</td>}
+                      {e.comparisons.length > 0 && <td className="num">{cmp ? `${fmt(cmp.reference)} ${prettyUnit(p.unit)}` : "—"}</td>}
                     </tr>
                   );
                 })}

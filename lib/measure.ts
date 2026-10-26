@@ -154,6 +154,54 @@ export function flightWindow(t: number[], ypx: number[]): { a: number; b: number
   return { a: Math.max(0, best[0] - 2), b: Math.min(t.length - 1, best[1] + 2), aPx: A };
 }
 
+/**
+ * The longest stretch one downward-curving parabola explains to within the measurement noise: the airborne
+ * part of a jump or throw, found globally (every start and end), so it works when the curvature per frame is
+ * smaller than the pixel quantisation (a slow lunar jump in 240-line TV). O(n²) windows, O(1) each via
+ * prefix sums.
+ */
+export function parabolicSegment(t: number[], y: number[], opts: { minLen?: number; tolPx?: number } = {}): { a: number; b: number; rms: number; aPx: number } | null {
+  const n = t.length;
+  const minLen = opts.minLen ?? 10;
+  if (n < minLen) return null;
+  const t0 = t[0];
+  const P = Array.from({ length: 9 }, () => new Float64Array(n + 1));
+  for (let i = 0; i < n; i++) {
+    const x = t[i] - t0, v = y[i];
+    const terms = [1, x, x * x, x ** 3, x ** 4, v, v * x, v * x * x, v * v];
+    for (let k = 0; k < 9; k++) P[k][i + 1] = P[k][i] + terms[k];
+  }
+  // noise from second differences of the whole series
+  const d: number[] = [];
+  for (let i = 2; i < n; i++) d.push(Math.abs(y[i] - 2 * y[i - 1] + y[i - 2]));
+  d.sort((p, q) => p - q);
+  const noise = Math.max(0.5, ((d[d.length >> 1] ?? 1) * 1.4826) / Math.sqrt(6));
+  const tol = opts.tolPx ?? Math.max(1.0, 1.8 * noise);
+  let best: { a: number; b: number; rms: number; aPx: number } | null = null;
+  for (let a = 0; a + minLen <= n; a++) {
+    for (let b = n - 1; b >= a + minLen - 1; b--) {
+      const len = b - a + 1;
+      if (best && len < best.b - best.a + 1) break;
+      const S = (k: number) => P[k][b + 1] - P[k][a];
+      const M = [[S(0), S(1), S(2)], [S(1), S(2), S(3)], [S(2), S(3), S(4)]];
+      const Y = [S(5), S(6), S(7)];
+      const c = solve3(M, Y);
+      if (!c) continue;
+      const ssr = S(8) - (c[0] * Y[0] + c[1] * Y[1] + c[2] * Y[2]);
+      const rms = Math.sqrt(Math.max(0, ssr) / len);
+      const aPx = 2 * c[2];
+      const span = t[b] - t[a];
+      // it must actually curve (sagitta of the arc well above the noise): a flat or drifting stretch is not a flight
+      const curves = 0.125 * aPx * span * span >= 3 * tol;
+      if (rms <= tol && aPx > 0 && curves && (!best || len > best.b - best.a + 1 || (len === best.b - best.a + 1 && rms < best.rms))) {
+        best = { a, b, rms, aPx };
+        break;
+      }
+    }
+  }
+  return best;
+}
+
 /** Vertical acceleration in px/s² from parabola fits on each flight arc, weighted by arc length. */
 export function pixelGravity(t: number[], ypx: number[]): { aPx: number; arcs: number } | null {
   const segs = flightSegments(t, ypx);
@@ -213,11 +261,14 @@ export function measure(args: {
   wantPivot?: boolean;
   /** "flight": keep only the free-flight stretch (drop rolling, resting, being carried) */
   kind?: "flight" | "swing" | "oscillation" | "along a path" | "other";
+  /** which point of the mask to follow: its centroid, or its top (a person's head, steadier than a body whose limbs move) */
+  point?: "centroid" | "top";
 }): Measured {
   const slow = args.slowMotion && args.slowMotion > 1 ? args.slowMotion : 1;
   const T = (f: number) => (args.times[f] ?? args.times[args.times.length - 1] + (f - args.times.length + 1) * (args.times[1] - args.times[0] || 1 / 30)) / slow;
   const w0 = args.window ? args.window.t0 / slow : -Infinity, w1 = args.window ? args.window.t1 / slow : Infinity;
   let samples = args.track.samples.filter((s) => T(s.f) >= w0 - 1e-9 && T(s.f) <= w1 + 1e-9);
+  if (args.point === "top") samples = samples.map((s) => ({ ...s, cx: (s.box[0] + s.box[2]) / 2, cy: s.box[1] }));
   // slow motion made by repeating frames: identical masks in a row are one real frame shown many times
   const dedup: Sample[] = [];
   for (const s of samples) {
@@ -228,8 +279,12 @@ export function measure(args: {
   const repeated = samples.length - dedup.length;
   if (repeated > samples.length * 0.3) samples = dedup;
   if ((args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
-    const fw = flightWindow(samples.map((s) => T(s.f)), samples.map((s) => s.cy));
-    if (fw) samples = samples.slice(fw.a, fw.b + 1);
+    const ts = samples.map((s) => T(s.f)), ysPx = samples.map((s) => s.cy);
+    const fw = flightWindow(ts, ysPx);
+    // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
+    const ps = parabolicSegment(ts, ysPx);
+    const pick = ps && (!fw || ps.b - ps.a > fw.b - fw.a) ? ps : fw;
+    if (pick) samples = samples.slice(pick.a, pick.b + 1);
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);
   const f0 = samples[0].f, f1 = samples[samples.length - 1].f;
@@ -252,7 +307,7 @@ export function measure(args: {
     y: ys.map((y) => -(y - origin.y) * k),
   };
   let pivot: Pivot | undefined;
-  const pc = args.wantPivot !== false ? fitCircle(samples.map((s) => ({ x: s.cx, y: s.cy }))) : null;
+  const pc = args.wantPivot === true || (args.wantPivot === undefined && (args.kind === "swing" || args.kind === undefined)) ? fitCircle(samples.map((s) => ({ x: s.cx, y: s.cy }))) : null;
   // a pendulum: the path hugs a circle whose centre sits above the body, over a real arc
   if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys)) {
     pivot = pc;

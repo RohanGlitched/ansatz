@@ -21,7 +21,7 @@ export type Observation = {
   motion_kind: MotionKind;
   what_happens: string;
   subjects: { noun_phrase: string; alternatives: string[]; description: string }[];
-  reference: { present: boolean; noun_phrase: string; real_length_m: number; dimension: "longest side" | "shortest side"; basis: string };
+  reference: { present: boolean; noun_phrase: string; real_length_m: number; dimension: "longest side" | "shortest side"; basis: string; relative_uncertainty?: number };
   stated_facts: { quantity: string; value: number; unit: string; said: string }[];
   window: { start_s: number; end_s: number };
   slow_motion: { factor: number; evidence: string };
@@ -61,13 +61,14 @@ const OBS_SCHEMA = {
     reference: {
       type: "object",
       additionalProperties: false,
-      required: ["present", "noun_phrase", "real_length_m", "dimension", "basis"],
+      required: ["present", "noun_phrase", "real_length_m", "dimension", "basis", "relative_uncertainty"],
       properties: {
         present: { type: "boolean", description: "True if an object of well-known size is visible in the plane of the motion: a sheet of A4 paper (0.297 m long side), a metre stick, a credit card (0.0856 m), a door (≈2.0 m) — or the moving object itself when it has a standard size (tennis ball 0.067 m, cricket ball 0.072 m, table-tennis ball 0.040 m, football 0.22 m, basketball 0.24 m)." },
         noun_phrase: { type: "string", description: "Its segmentation name; use exactly the subject's noun_phrase when the moving object is itself the ruler." },
         real_length_m: { type: "number", description: "Its real length in metres along `dimension` (0 if not present)." },
         dimension: { type: "string", enum: ["longest side", "shortest side"] },
         basis: { type: "string", description: "Why that length: a standard (A4 is 0.297 m), a label in view, or what the narrator said." },
+        relative_uncertainty: { type: "number", description: "How well that length is known, as a fraction: 0.003 for an A4 sheet, 0.02 for a sports ball, 0.05 for a person's height, 0.1 for a rough guess." },
       },
     },
     stated_facts: {
@@ -225,12 +226,13 @@ const METHOD = `Rules for writing laws:
 - Observe only the measured channels listed. Prefer the channel that makes the law simplest: theta for a pendulum, s for motion along a straight track, x and y for flight.
 - Give every free parameter a physical meaning, a unit, a realistic guess and generous min/max bounds. Mark a parameter fixed only when its value is GIVEN (stated by the person filming, or g when the fall itself set the scale).
 - Offer 2–4 genuinely different candidates, from the simplest textbook law to richer ones (drag linear vs quadratic, damping, large-angle vs small-angle, rolling inertia, a bounce event with restitution). The candidates compete: the one that best predicts the last 30% of the clip, which it never sees, wins.
+- Respect the setting: on the Moon, Mars-like vacuum or in space there is no air, so no drag terms there.
 - Use SI units. Ids are short slugs.`;
 
 export async function hypothesise(obs: Observation, digest: unknown, given: string[], ledger: Ledger, model = MODELS.hypothesise): Promise<Hypotheses> {
   const text = [
     "You are the theorist in a physics lab. A segmentation model tracked the object below through every frame; here is the measurement. Propose candidate laws of motion that could have produced it.",
-    `What the observer saw: ${obs.phenomenon}. ${obs.what_happens}`,
+    `What the observer saw: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body === "earth" ? "Earth, in air" : obs.body === "moon" ? "the Moon (no air)" : obs.body === "mars" ? "Mars (thin air)" : obs.body}.`,
     `Given (not to be measured): ${given.length ? given.join("; ") : "nothing"}.`,
     `Measurement:\n${JSON.stringify(digest, null, 1)}`,
     METHOD,

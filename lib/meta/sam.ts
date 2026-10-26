@@ -94,6 +94,11 @@ export async function trackNoun(fileId: string, noun: string, ledger: Ledger | n
     null,
     `track "${noun}"`,
   );
+  if (process.env.SAM_DUMP_DIR) {
+    const { writeFileSync, mkdirSync } = await import("node:fs");
+    mkdirSync(process.env.SAM_DUMP_DIR, { recursive: true });
+    writeFileSync(`${process.env.SAM_DUMP_DIR}/${noun.replace(/\W+/g, "_")}-${Date.now()}.txt`, raw);
+  }
   const res = parseSam(raw, noun);
   const frames = Math.max(50, frameCount ?? res.frames);
   ledger?.add({ model: "sam-3.1", purpose: `track "${noun}"`, ms: 0, frames, usd: frames * PRICE.samFrame });

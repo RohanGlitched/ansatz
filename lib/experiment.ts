@@ -12,6 +12,7 @@ import { controls } from "./physics/library";
 import { critique, eyeball, hypothesise, MODELS, observe, revise, type Critique, type Eyeball, type Observation } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
+import { metrePower, prettyUnit } from "./units";
 export { toPixels };
 import { cut, prepare } from "./transcode";
 
@@ -85,7 +86,7 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
     if (!(name in fit.theta)) return m;
     const p = law.params.find((q) => q.name === name);
     const v = fit.theta[name], s = fit.sigma[name];
-    const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${p.unit}` : "";
+    const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${prettyUnit(p.unit)}` : "";
     return s && Number.isFinite(s) && !p?.fixed ? `${fmtNum(v)} ± ${fmtNum(s, 2)}${unit}` : `${fmtNum(v)}${unit}`;
   });
 }
@@ -115,7 +116,12 @@ function residualPattern(fit: Fit, m: Measured) {
  */
 export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   const tie = (fa: number, fb: number) => Math.abs(fa - fb) < Math.max(0.03 * Math.max(fa, fb), 1.5 * noiseFloor);
+  // a law whose fitted parameter is pressed against its bound was limited, not measured: it ranks after every
+  // law whose parameters all landed inside their ranges
+  const pinned = (c: Candidate) => c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]));
   cands.sort((a, b) => {
+    const pa = pinned(a) ? 1 : 0, pb = pinned(b) ? 1 : 0;
+    if (pa !== pb && a.fit.ok && b.fit.ok) return pa - pb;
     const fa = a.fit.ok ? a.fit.testRms : Infinity, fb = b.fit.ok ? b.fit.testRms : Infinity;
     if (Number.isFinite(fa) && Number.isFinite(fb) && tie(fa, fb)) {
       const byBic = Math.abs(a.fit.bic - b.fit.bic) > 2 ? a.fit.bic - b.fit.bic : 0;
@@ -156,7 +162,7 @@ export type RunInput = {
   narrationWav?: Uint8Array | null;
   narrationText?: string;
   source?: Experiment["source"];
-  hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side" } };
+  hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
   onPrepared?: (video: Uint8Array) => Promise<string | void>;
@@ -210,7 +216,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "set by the person filming" };
     if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "set by the person filming" }];
     if (input.hints?.window) obs.window = input.hints.window;
-    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "set by the person filming" };
+    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "set by the person filming", relative_uncertainty: input.hints.ruler.relUncertainty ?? obs.reference.relative_uncertainty ?? 0.03 };
 
     // 4. track: cut the motion window (+0.4 s each side), then SAM follows the subject (and the ruler) through every frame
     const subjectNoun = obs.subjects[0]?.noun_phrase || "ball";
@@ -267,17 +273,26 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const track = mainTrack(subj.tracks, fOf(winT.t0), fOf(winT.t1));
     if (!track) throw new ExperimentError("No track inside the motion window.", "measure");
     const gBody = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
+    // a jumping person: follow the head (top of the mask); arms and legs move the body's centroid around
+    const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1] ?? 0;
+    const tall = med(track.samples.map((s) => s.box[3] - s.box[1])) / Math.max(1, med(track.samples.map((s) => s.box[2] - s.box[0]))) > 1.8;
+    const person = /\b(astronaut|person|man|woman|boy|girl|child|kid|jumper|athlete|player|dancer|student|human|spacesuit|suit)\b/i.test(`${subjectNoun} ${obs.subjects[0]?.description ?? ""}`);
+    const point: "centroid" | "top" = person && tall && obs.motion_kind === "flight" ? "top" : "centroid";
     let scale: { value: number; kind: "reference" | "stated"; note: string } | null = null;
     if (ref && ref.tracks.length && obs.reference.real_length_m > 0) {
       const selfRuler = obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
       const rt = selfRuler ? track : mainTrack(ref.tracks)!;
-      // a moving ball smears along its path, so its true diameter is the mask's short axis
-      const lens = rt.samples.map((s) => (obs.reference.dimension === "shortest side" || selfRuler ? s.minor : s.major)).sort((a, b) => a - b);
+      // a moving ball smears along its path, so a round subject's true diameter is its mask's short axis;
+      // anything elongated (a person, a stick) is measured along the side the observer named
+      const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1] ?? 0;
+      const round = med(rt.samples.map((s) => s.major)) / Math.max(1e-9, med(rt.samples.map((s) => s.minor))) < 1.35;
+      const useMinor = obs.reference.dimension === "shortest side" || (selfRuler && round);
+      const lens = rt.samples.map((s) => (useMinor ? s.minor : s.major)).sort((a, b) => a - b);
       const px = lens[lens.length >> 1];
       if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
     }
     const m = await step("measure", async () => {
-      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind });
+      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point });
       if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind);
       // a pendulum's angle needs no ruler: without one, measure only theta (lengths in pixels would mislead the theorist)
       if (mm.series.ch.theta && (mm.calibration.kind === "none" || mm.calibration.kind === "gravity")) {
@@ -290,7 +305,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const given: string[] = [];
     const stated: Record<string, number> = {};
     if (m.calibration.kind === "gravity") given.push(`g = ${m.calibration.g.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}); it set the scale, so treat g as known and fixed`);
-    if (m.calibration.kind === "reference") given.push(`scale: ${m.calibration.note}`);
+    if (m.calibration.kind === "reference") given.push(`scale: ${m.calibration.note}, known to ±${Math.round((obs.reference.relative_uncertainty ?? 0.03) * 100)}%`);
     if (slow > 1) given.push(`the clip plays ${slow}× slower than real life (${obs.slow_motion.evidence}); times are already corrected to real seconds`);
     for (const f of obs.stated_facts) {
       given.push(`${f.quantity} = ${f.value} ${f.unit} (“${f.said}”)`);
@@ -333,6 +348,20 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       return list;
     }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`);
 
+    // the ruler's own uncertainty moves every length-carrying constant: add it to the fit's statistical error
+    const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : 0;
+    const inflate = (c: Candidate) => {
+      if (!rulerRel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
+      for (const p of c.law.params) {
+        if (p.fixed) continue;
+        const pw = metrePower(p.unit);
+        const v = c.fit.theta[p.name], sStat = c.fit.sigma[p.name];
+        if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rulerRel * Math.abs(v));
+      }
+      (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded = true;
+    };
+    cands.forEach(inflate);
+
     // 8. referee (and one revision), with the eyeball baseline in parallel
     const board = cands.map((c) => ({
       id: c.law.id,
@@ -368,6 +397,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
           const rev = gUsed !== null ? withScaleCorrection(inner) : inner;
           cands.push({ law: inner, fitted: rev, fit: fitLaw(rev, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
+          inflate(cands[cands.length - 1]);
           rankCandidates(cands, noiseFloor);
         } catch {
           /* an unusable revision simply doesn't compete */
@@ -419,16 +449,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     }, (r) => r.finding);
 
     // strobe frames: ~16 evenly spaced masks across the window
-    // strobe instants spaced by distance travelled (about one body-width apart), like a multiflash photograph
-    const inWin = track.samples.filter((s) => s.f >= m.window.f0 && s.f <= m.window.f1);
-    const size = [...inWin.map((s) => s.minor)].sort((a, b) => a - b)[inWin.length >> 1] || 20;
-    const picked: Sample[] = [];
-    for (const s of inWin) {
-      const last = picked[picked.length - 1];
-      if (!last || Math.hypot(s.cx - last.cx, s.cy - last.cy) >= size * 1.05) picked.push(s);
-    }
-    const thin = Math.max(1, Math.ceil(picked.length / 28));
-    const strobe = picked.filter((_, i) => i % thin === 0).map((s) => ({ f: s.f, t: vi.times[s.f] ?? 0, box: s.box, rle: s.rle }));
+    const strobe = pickStrobe(track.samples, m.window.f0, m.window.f1, vi.times);
 
     return {
       id: input.id ?? newId(),
@@ -495,6 +516,27 @@ export function withScaleCorrection(law: Law): Law {
     params: [...law.params, { name: "cal", guess: 1, min: 0.3, max: 3, unit: "", meaning: "scale correction: true metres per provisional metre" }],
     observe: Object.fromEntries(Object.entries(law.observe).map(([c, e]) => [c, LENGTH_CHANNELS.has(c) ? `(${e})/cal` : e])),
   };
+}
+
+/** Strobe instants spaced by distance travelled (about one body-width apart), like a multiflash photograph. */
+export function pickStrobe(samples: Sample[], f0: number, f1: number, times: number[]) {
+  const inWin = samples.filter((s) => s.f >= f0 && s.f <= f1);
+  const size = [...inWin.map((s) => s.minor)].sort((a, b) => a - b)[inWin.length >> 1] || 20;
+  let pathLen = 0;
+  for (let i = 1; i < inWin.length; i++) pathLen += Math.hypot(inWin[i].cx - inWin[i - 1].cx, inWin[i].cy - inWin[i - 1].cy);
+  // one body-width apart for things that travel; a jump in place still gets about eight exposures
+  const gap = Math.max(2, Math.min(size * 1.05, pathLen / 8));
+  const picked: Sample[] = [];
+  let acc = 0;
+  for (let i = 0; i < inWin.length; i++) {
+    if (i) acc += Math.hypot(inWin[i].cx - inWin[i - 1].cx, inWin[i].cy - inWin[i - 1].cy);
+    if (!picked.length || acc >= gap) {
+      picked.push(inWin[i]);
+      acc = 0;
+    }
+  }
+  const thin = Math.max(1, Math.ceil(picked.length / 28));
+  return picked.filter((_, i) => i % thin === 0).map((s) => ({ f: s.f, t: times[s.f] ?? 0, box: s.box, rle: s.rle }));
 }
 
 function pathPx(t: Track) {
