@@ -343,7 +343,7 @@ export async function reviseAgentic(
   let input: unknown = [{ role: "user", content: [{ type: "input_text", text }] }];
   for (let turn = 0; turn < maxTurns; turn++) {
     const raw = await respond(
-      { model, reasoning: { effort: "medium" }, max_output_tokens: 16000, tools, input, ...(prev ? { previous_response_id: prev } : {}) },
+      { model, reasoning: { effort: process.env.WONDER_EFFORT ?? "low" }, max_output_tokens: 16000, tools, input, ...(prev ? { previous_response_id: prev } : {}) },
       ledger,
       `theorist turn ${turn + 1}`,
     );

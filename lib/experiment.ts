@@ -257,7 +257,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         trackTimes = ci.times;
       }
       const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
-      const selfRuler = obs.reference.present && obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
+      const selfRuler = obs.reference.present && sameThing(obs.reference.noun_phrase, subjectNoun);
       jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null) : Promise.resolve(null));
       let [s, r] = await Promise.all(jobs);
       if (selfRuler) r = s;
@@ -302,7 +302,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const point: "centroid" | "top" = person && tall && obs.motion_kind === "flight" ? "top" : "centroid";
     let scale: { value: number; kind: "reference" | "stated"; note: string } | null = null;
     if (ref && ref.tracks.length && obs.reference.real_length_m > 0) {
-      const selfRuler = obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
+      const selfRuler = sameThing(obs.reference.noun_phrase, subjectNoun);
       const rt = selfRuler ? track : mainTrack(ref.tracks)!;
       // a moving ball smears along its path, so a round subject's true diameter is its mask's short axis;
       // anything elongated (a person, a stick) is measured along the side the observer named
@@ -604,6 +604,14 @@ function safeLatex(l: Law) {
   } catch {
     return [];
   }
+}
+
+/** "tennis ball" and "yellow tennis ball" name the same object: one phrase contains the other's words. */
+function sameThing(a: string, b: string) {
+  const wa = a.toLowerCase().split(/\W+/).filter(Boolean), wb = b.toLowerCase().split(/\W+/).filter(Boolean);
+  if (!wa.length || !wb.length) return false;
+  const [short, long] = wa.length <= wb.length ? [wa, wb] : [wb, wa];
+  return short.every((w) => long.includes(w));
 }
 
 function pathPx(t: Track) {
