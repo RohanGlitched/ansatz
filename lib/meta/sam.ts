@@ -13,8 +13,11 @@ export type Sample = {
   cy: number;
   area: number; // px²
   angle: number; // major-axis orientation, radians (image axes, y down)
-  major: number; // full major-axis length, px (4·sqrt(λ1))
+  major: number; // full major-axis length, px (4·sqrt(λ1)): exact for an ellipse
   minor: number;
+  /** true extent along the major / minor axis, px: a rectangle's real length and width (a ruler) */
+  len: number;
+  wid: number;
   box: [number, number, number, number]; // left, top, right, bottom
   conf?: number;
   rle?: { size: [number, number]; counts: string | number[]; origin: [number, number] };
@@ -43,11 +46,25 @@ function moments(rec: SegmentationMaskRecord): Omit<Sample, "f" | "conf" | "rle"
   const tr = cxx + cyy, det = cxx * cyy - cxy * cxy;
   const disc = Math.sqrt(Math.max(0, (tr * tr) / 4 - det));
   const l1 = tr / 2 + disc, l2 = Math.max(0, tr / 2 - disc);
+  const angle = 0.5 * Math.atan2(2 * cxy, cxx - cyy);
+  const ux = Math.cos(angle), uy = Math.sin(angle);
+  let pMin = Infinity, pMax = -Infinity, qMin = Infinity, qMax = -Infinity;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (raster[y * W + x]) {
+    const dx = (x - mx) * sx, dy = (y - my) * sy;
+    const pp = dx * ux + dy * uy, qq = -dx * uy + dy * ux;
+    if (pp < pMin) pMin = pp;
+    if (pp > pMax) pMax = pp;
+    if (qq < qMin) qMin = qq;
+    if (qq > qMax) qMax = qq;
+  }
+  const px = (sx + sy) / 2;
   return {
+    len: pMax - pMin + px,
+    wid: qMax - qMin + px,
     cx: left + (mx + 0.5) * sx,
     cy: top + (my + 0.5) * sy,
     area: n * sx * sy,
-    angle: 0.5 * Math.atan2(2 * cxy, cxx - cyy),
+    angle,
     major: 4 * Math.sqrt(l1),
     minor: 4 * Math.sqrt(l2),
     box: [left, top, right, bottom],

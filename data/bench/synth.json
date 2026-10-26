@@ -1,0 +1,1110 @@
+{
+ "generatedAt": "2026-10-26T21:39:34.142Z",
+ "summary": {
+  "cases": 26,
+  "lawCorrect": 19,
+  "lawJudged": 22,
+  "lawCorrectIfChosenByFit": 19,
+  "medianTrackingErrPx": 0.5280860937209305,
+  "medianConstErrPct": 0.18673690152209987,
+  "constantsWithin5pct": 16,
+  "constantsChecked": 20,
+  "medianEyeballErrPct": 33.33333333333334,
+  "eyeballChecked": 16,
+  "medianPredictionRel": 0.0007015318376899616,
+  "medianPredictionRelControl": 0.0019908687136844737,
+  "medianPredictionRelByFit": 0.0009045670004666351,
+  "totalUsd": 2.718691550000001,
+  "medianSeconds": 89.305
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.72",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum-bounce",
+    "title": "Vacuum projectile with bounce",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.35059987143287696,
+   "point": 56,
+   "predictionRel": 0.003872163659602285,
+   "predictionRelByFit": 0.003872163659602285,
+   "predictionRelControl": 1.1367123692076035,
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.72,
+     "measured": 0.7222063377183924,
+     "sigma": 0.007310362872843812,
+     "errPct": 0.30643579422116723,
+     "withinSigma": 0.3018096032672198,
+     "eyeball": 0,
+     "eyeballErrPct": -100
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00299,
+     "measured": 0.0029982740929622815,
+     "sigma": null,
+     "errPct": 0.27672551713316024,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.1341815,
+   "seconds": 119.714
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.88",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Vacuum projectile",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": false,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": false,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.5227045033465442,
+   "point": 44,
+   "predictionRel": 0.0007015318376899616,
+   "predictionRelByFit": 0.0010893167533810619,
+   "predictionRelControl": 0.0007015318376899616,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.0014,
+     "measured": 0.0014001263740447611,
+     "sigma": null,
+     "errPct": 0.009026717482937546,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.09187175000000002,
+   "seconds": 81.071
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.6",
+   "fps": 240,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Projectile without air resistance",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": false,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": false,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.19604303064629391,
+   "point": 58,
+   "predictionRel": 0.0009045670004666351,
+   "predictionRelByFit": 0.0009045670004666351,
+   "predictionRelControl": 0.0009045669998833265,
+   "checks": [
+    {
+     "quantity": "g",
+     "truth": 9.81,
+     "measured": 8.30702368880522,
+     "sigma": 0.014764682937427054,
+     "errPct": -15.320859441333134,
+     "withinSigma": 101.7953665218831,
+     "eyeball": 9.8,
+     "eyeballErrPct": -0.10193679918450342
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00235,
+     "measured": 0.0019885931998586703,
+     "sigma": null,
+     "errPct": -15.379012771971482,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "reference",
+   "clock": null,
+   "usd": 0.16543025,
+   "seconds": 84.802
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "phenomenon": "collision_2d",
+   "variant": "e=0.9",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "frictionless-glide",
+    "title": "Frictionless glide",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": null,
+    "expect": "—"
+   },
+   "familyIfChosenByFit": null,
+   "winnerIsByFit": false,
+   "trackingErrPx": 589.7229256542997,
+   "point": 19,
+   "predictionRel": 0.0009161549907460341,
+   "predictionRelByFit": 0.0014851368001336269,
+   "predictionRelControl": 0.0010374490169573368,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.0012,
+     "measured": 0.4579749799202198,
+     "sigma": null,
+     "errPct": 38064.58166001832,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.05757125,
+   "seconds": 64.161
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "phenomenon": "collision_2d",
+   "variant": "e=0.5",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "inertial",
+    "title": "Frictionless constant-velocity slide",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": null,
+    "expect": "—"
+   },
+   "familyIfChosenByFit": null,
+   "winnerIsByFit": false,
+   "trackingErrPx": 585.3599635264806,
+   "point": 40,
+   "predictionRel": 0.0005901520449236285,
+   "predictionRelByFit": 0.000664678617213629,
+   "predictionRelControl": 0.000664678617213629,
+   "checks": [],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.08405375,
+   "seconds": 55.855
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "phenomenon": "free_fall",
+   "variant": "earth_ball",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "free-fall-vacuum",
+    "title": "Free fall in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.3010314192540043,
+   "point": 39,
+   "predictionRel": 0.0009026985218432632,
+   "predictionRelByFit": 0.0006709592058301285,
+   "predictionRelControl": 0.0006709592058301285,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00372,
+     "measured": 0.0037143298250374517,
+     "sigma": null,
+     "errPct": -0.15242405813302445,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.05878775000000001,
+   "seconds": 57.318
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "phenomenon": "free_fall",
+   "variant": "earth_block",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Free fall in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.357338462238541,
+   "point": 68,
+   "predictionRel": 0.0007925001283098023,
+   "predictionRelByFit": 0.0005799533915924039,
+   "predictionRelControl": 0.0005799533915924039,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00194,
+     "measured": 0.0019454447800718066,
+     "sigma": null,
+     "errPct": 0.28065876658796274,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.0702555,
+   "seconds": 53.89
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "phenomenon": "free_fall",
+   "variant": "moon_ball",
+   "fps": 30,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Free fall in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.45078031010786557,
+   "point": 44,
+   "predictionRel": 0.00027121843106770713,
+   "predictionRelByFit": 0.0002814048012043665,
+   "predictionRelControl": 0.00027121843668743534,
+   "checks": [
+    {
+     "quantity": "g",
+     "truth": 1.62,
+     "measured": 1.35235657508433,
+     "sigma": 0.0010740526806389816,
+     "errPct": -16.521199068868523,
+     "withinSigma": 249.1902210573527,
+     "eyeball": 1.6,
+     "eyeballErrPct": -1.234567901234569
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00326,
+     "measured": 0.0027260052046407662,
+     "sigma": null,
+     "errPct": -16.38020844660226,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "reference",
+   "clock": null,
+   "usd": 0.11712355000000002,
+   "seconds": 95.082
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "phenomenon": "free_fall",
+   "variant": "mars_ball",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Vacuum free fall",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.6574270980360188,
+   "point": 68,
+   "predictionRel": 0.0002897226392019436,
+   "predictionRelByFit": 0.0002897226392019436,
+   "predictionRelControl": 0.00028972264067852213,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00416,
+     "measured": 0.004178739408940767,
+     "sigma": null,
+     "errPct": 0.4504665610761488,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.065332,
+   "seconds": 55.622
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "phenomenon": "incline_rolling",
+   "variant": "solid sphere",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "constant-drive",
+    "title": "Constant acceleration downhill drive",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": null,
+    "expect": "—"
+   },
+   "familyIfChosenByFit": null,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.5094860188522676,
+   "point": 59,
+   "predictionRel": 0.0004746461900978217,
+   "predictionRelByFit": 0.001367555372301561,
+   "predictionRelControl": 0.00047464619392994595,
+   "checks": [
+    {
+     "quantity": "g",
+     "truth": 9.81,
+     "measured": 2.1151106147019716,
+     "sigma": 28577.43958522353,
+     "errPct": -78.43923940161089,
+     "withinSigma": 0.00026926447914797825
+    },
+    {
+     "quantity": "slope acceleration",
+     "truth": 2.396584004303436,
+     "measured": 20.749235130226342,
+     "sigma": 280344.68233104283,
+     "errPct": 765.7837610936188,
+     "withinSigma": 0.00006546459513097282
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00194,
+     "measured": 0.01678316840025202,
+     "sigma": null,
+     "errPct": 765.1117732088669,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.11448575,
+   "seconds": 105.718
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "phenomenon": "incline_rolling",
+   "variant": "hollow sphere",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "pendulum-large",
+    "title": "Pendulum swing with large-angle sine",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": null,
+    "expect": "—"
+   },
+   "familyIfChosenByFit": null,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.5074251813374261,
+   "point": 67,
+   "predictionRel": 0.0003584234153845311,
+   "predictionRelByFit": 0.0010233870818833215,
+   "predictionRelControl": 0.011488557989090702,
+   "checks": [],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.1696106,
+   "seconds": 191.88
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "quadratic-drag",
+    "title": "Quadratic air drag",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.9450187921770814,
+   "point": 58,
+   "predictionRel": 0.00043505127218158363,
+   "predictionRelByFit": 0.00043505127218158363,
+   "predictionRelControl": 0.0823241768723171,
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.25,
+     "measured": 0.2495676048227704,
+     "sigma": 0.00043224508573172504,
+     "errPct": -0.17295807089183768,
+     "withinSigma": 1.0003472370255293
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00419,
+     "measured": 0.004185305895399483,
+     "sigma": null,
+     "errPct": -0.11203113605052542,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.13515165,
+   "seconds": 145.838
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "quadratic-drag",
+    "title": "Projectile with quadratic air drag",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 1.0796444099113631,
+   "point": 32,
+   "predictionRel": 0.0011695647062044225,
+   "predictionRelByFit": 0.0011695647062044225,
+   "predictionRelControl": 0.06536825088967106,
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.45,
+     "measured": 0.459952833887462,
+     "sigma": 0.003719219624844561,
+     "errPct": 2.211740863880441,
+     "withinSigma": 2.6760543585478502
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.0023,
+     "measured": 0.0022880737483671246,
+     "sigma": null,
+     "errPct": -0.5185326796902321,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.09762475,
+   "seconds": 89.305
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "phenomenon": "projectile_drag",
+   "variant": "quadratic_drag",
+   "fps": 30,
+   "slowMotion": 1,
+   "winner": {
+    "id": "quadratic-drag",
+    "title": "Projectile with quadratic drag",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.7285268438290243,
+   "point": 34,
+   "predictionRel": 0.0010934787778548384,
+   "predictionRelByFit": 0.0010934787778548384,
+   "predictionRelControl": 0.06099273678927886,
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.15,
+     "measured": 0.15108662455550892,
+     "sigma": 0.0012795351648553777,
+     "errPct": 0.7244163703392833,
+     "withinSigma": 0.8492338353449966,
+     "eyeball": 12,
+     "eyeballErrPct": 7900
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00472,
+     "measured": 0.004717011811975857,
+     "sigma": null,
+     "errPct": -0.0633090683081124,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.11236879999999999,
+   "seconds": 130.428
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "quadratic-drag-pendulum",
+    "title": "Pendulum with quadratic air drag",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "a pendulum law"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.2565149025423354,
+   "point": 388,
+   "predictionRel": 0.0023382860461090686,
+   "predictionRelByFit": 0.0023382860461090686,
+   "predictionRelControl": 0.02917386329349429,
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.6,
+     "measured": 0.5997557696684894,
+     "sigma": 0.000051791204337958696,
+     "errPct": -0.04070505525175887,
+     "withinSigma": 4.715671987792576,
+     "eyeball": 0.75,
+     "eyeballErrPct": 25.000000000000007
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.149039,
+   "seconds": 103.652
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "phenomenon": "pendulum",
+   "variant": "large_amplitude",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "viscous-damped",
+    "title": "Damped Pendulum with Linear Friction",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "sin θ (large swings)"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.6128511288456322,
+   "point": 389,
+   "predictionRel": 0.00035684278953655713,
+   "predictionRelByFit": 0.00035684278953655713,
+   "predictionRelControl": 0.04100781885549636,
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.8,
+     "measured": 0.7999675627575397,
+     "sigma": 0.000029289201477822324,
+     "errPct": -0.004054655307547672,
+     "withinSigma": 1.1074812840132475,
+     "eyeball": 0.9,
+     "eyeballErrPct": 12.499999999999996
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.06,
+     "measured": 0.06011204214091326,
+     "sigma": 0.00009255432882878528,
+     "errPct": 0.18673690152209987,
+     "withinSigma": 1.2105553822396014,
+     "eyeball": 0.08,
+     "eyeballErrPct": 33.33333333333334
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.14601550000000002,
+   "seconds": 94.052
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "viscous-pendulum",
+    "title": "Damped Pendulum with Viscous Drag",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "a pendulum law"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.5280860937209305,
+   "point": 274,
+   "predictionRel": 0.0026404110332382143,
+   "predictionRelByFit": 0.0026404110332382143,
+   "predictionRelControl": 0.02897696338835474,
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.35,
+     "measured": 0.35005616199796163,
+     "sigma": 0.00007151371918379112,
+     "errPct": 0.016046285131901938,
+     "withinSigma": 0.7853318021024716,
+     "eyeball": 0.6,
+     "eyeballErrPct": 71.42857142857143
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.08,
+     "measured": 0.07921842900124623,
+     "sigma": 0.0010580175866087838,
+     "errPct": -0.9769637484422118,
+     "withinSigma": 0.7387126723090718,
+     "eyeball": 0.03,
+     "eyeballErrPct": -62.5
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.1118756,
+   "seconds": 91.298
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "phenomenon": "pendulum",
+   "variant": "large_amplitude",
+   "fps": 24,
+   "slowMotion": 1,
+   "winner": {
+    "id": "pendulum-viscous",
+    "title": "Damped pendulum with viscous friction",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "sin θ (large swings)"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.8133161327390422,
+   "point": 179,
+   "predictionRel": 0.0004428642437544149,
+   "predictionRelByFit": 0.0004428642437544149,
+   "predictionRelControl": 0.0229525099776847,
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 1.2,
+     "measured": 1.2002433817373086,
+     "sigma": 0.00007281276389203839,
+     "errPct": 0.02028181144238713,
+     "withinSigma": 3.342569685577583,
+     "eyeball": 1,
+     "eyeballErrPct": -16.666666666666664
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.03,
+     "measured": 0.02996708333530095,
+     "sigma": 0.00013040760727137113,
+     "errPct": -0.10972221566350054,
+     "withinSigma": 0.2524136849666475,
+     "eyeball": 0.04,
+     "eyeballErrPct": 33.33333333333334
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.0811866,
+   "seconds": 61.536
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "phenomenon": "projectile",
+   "variant": "no_drag",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Vacuum projectile",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.9022711334134067,
+   "point": 63,
+   "predictionRel": 0.0003525685193445533,
+   "predictionRelByFit": 0.0003720835548480886,
+   "predictionRelControl": 0.0003525685193445533,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00373,
+     "measured": 0.0037304377275120203,
+     "sigma": null,
+     "errPct": 0.011735322038083423,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.065271,
+   "seconds": 59.707
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "phenomenon": "projectile",
+   "variant": "no_drag",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Projectile in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.5773482766797887,
+   "point": 130,
+   "predictionRel": 0.00029155745647266415,
+   "predictionRelByFit": 0.0003379426658833151,
+   "predictionRelControl": 0.00029155745647266415,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00429,
+     "measured": 0.004284607796203517,
+     "sigma": null,
+     "errPct": -0.12569239618841627,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.09338775,
+   "seconds": 92.975
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.85",
+   "fps": 30,
+   "slowMotion": 8,
+   "winner": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)",
+    "origin": "control"
+   },
+   "family": {
+    "ok": false,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": false,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.3143395044189042,
+   "point": 62,
+   "predictionRel": 0.0006230521964067343,
+   "predictionRelByFit": 0.0006230521964067343,
+   "predictionRelControl": 0.0006230521964067343,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00043,
+     "measured": 0.027570005696152595,
+     "sigma": null,
+     "errPct": 6311.629231663394,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.09240350000000001,
+   "seconds": 86.621
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "spring-damped",
+    "title": "Damped vertical spring",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "damped oscillation"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.2732510759411964,
+   "point": 270,
+   "predictionRel": 0.00093428900479201,
+   "predictionRelByFit": 0.001008273581352489,
+   "predictionRelControl": 0.131427611936432,
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 11.180339887498949,
+     "measured": 11.180783305597615,
+     "sigma": 0.00044398099804432434,
+     "errPct": 0.003966052044280498,
+     "withinSigma": 0.998732154346371,
+     "eyeball": 8.5,
+     "eyeballErrPct": -23.973688765007154
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.35,
+     "measured": 0.35039877981629,
+     "sigma": 0.0008486132795080814,
+     "errPct": 0.11393709036857025,
+     "withinSigma": 0.4699193683619444,
+     "eyeball": 0.12,
+     "eyeballErrPct": -65.71428571428571
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00126,
+     "measured": 4.851140888843087,
+     "sigma": null,
+     "errPct": 384911.18165421323,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.13642025000000002,
+   "seconds": 105.603
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "fps": 120,
+   "slowMotion": 1,
+   "winner": {
+    "id": "pendulum-damped",
+    "title": "Damped large-angle pendulum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "damped oscillation"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": true,
+   "trackingErrPx": 0.48279219655559763,
+   "point": 312,
+   "predictionRel": 0.008714057169084454,
+   "predictionRelByFit": 0.008714057169084454,
+   "predictionRelControl": 0.1374240243298729,
+   "checks": [
+    {
+     "quantity": "damping",
+     "truth": 1,
+     "measured": 0.9518515144803195,
+     "sigma": 0.004783857403778513,
+     "errPct": -4.814848551968054,
+     "withinSigma": 10.064782759128779,
+     "eyeball": 0.15,
+     "eyeballErrPct": -85
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.14963315,
+   "seconds": 117.991
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "phenomenon": "spring_mass",
+   "variant": "damped_vertical",
+   "fps": 30,
+   "slowMotion": 1,
+   "winner": {
+    "id": "damped-viscous",
+    "title": "Damped spring with viscous friction",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "damped oscillation"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.959383918189435,
+   "point": 222,
+   "predictionRel": 0.0006575111029672486,
+   "predictionRelByFit": 0.0007808447588542119,
+   "predictionRelControl": 0.40995792002092907,
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 4,
+     "measured": 3.9999323347349356,
+     "sigma": 0.00014371513987176954,
+     "errPct": -0.001691631626610235,
+     "withinSigma": 0.47082906592015306,
+     "eyeball": 4,
+     "eyeballErrPct": 0
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.12,
+     "measured": 0.11996921674666029,
+     "sigma": 0.00028852288792871605,
+     "errPct": -0.025652711116419074,
+     "withinSigma": 0.10669258706196078,
+     "eyeball": 0.12,
+     "eyeballErrPct": 0
+    }
+   ],
+   "calibration": "none",
+   "clock": null,
+   "usd": 0.0993336,
+   "seconds": 78.206
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "phenomenon": "vertical_toss",
+   "variant": "up_and_down",
+   "fps": 60,
+   "slowMotion": 1,
+   "winner": {
+    "id": "vacuum",
+    "title": "Free fall in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.30575025260142435,
+   "point": 84,
+   "predictionRel": 0.0006171008341292985,
+   "predictionRelByFit": 0.0005178319406631691,
+   "predictionRelControl": 0.0005178319406631691,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00183,
+     "measured": 0.0018333401679460687,
+     "sigma": null,
+     "errPct": 0.18252283858298493,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.0649735,
+   "seconds": 64.263
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "phenomenon": "vertical_toss",
+   "variant": "up_and_down",
+   "fps": 30,
+   "slowMotion": 1,
+   "winner": {
+    "id": "free-fall",
+    "title": "Free fall along vertical line",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "no air drag"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.6408017318204995,
+   "point": 31,
+   "predictionRel": 0.0026606421826617633,
+   "predictionRelByFit": 0.0019908687136844737,
+   "predictionRelControl": 0.0019908687136844737,
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00329,
+     "measured": 0.0033013669616758006,
+     "sigma": null,
+     "errPct": 0.34550035488755904,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "gravity",
+   "clock": null,
+   "usd": 0.05530325,
+   "seconds": 74.47
+  }
+ ]
+}

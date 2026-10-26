@@ -12,8 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const ids = await showcaseIds();
   const exps = (await Promise.all(ids.map(getExperiment))).filter((e): e is Experiment => !!e);
-  const hero = exps[0];
+  const hero = exps.find((e) => e.id === (process.env.HERO_ID ?? "beach-ball-drag")) ?? exps[0];
   const heroWin = hero ? winnerOf(hero) : null;
+  const moon = exps.find((e) => e.id === "moon-jump");
+  const moonG = moon?.comparisons.find((c) => c.param === "g");
 
   return (
     <>
@@ -46,6 +48,26 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      {moon && moonG && (
+        <section className={styles.moon}>
+          <div className={`wrap ${styles.moonGrid}`}>
+            <div>
+              <p className={styles.moonNum}>
+                {moonG.measured.toFixed(2)} ± {moonG.sigma.toFixed(2)} m/s²
+              </p>
+              <h2>The Moon’s gravity, measured from 1972 television</h2>
+              <p className="lede">
+                Apollo 16, April 1972: John Young jumps and salutes beside the flag. SAM 3.1 followed him through 240 frames of 352×240 TV. Muse Spark proposed a jump with a brief leg push and then free fall; it predicted the frames it never saw better than plain free fall. The Moon’s surface gravity is {moonG.reference} m/s².
+              </p>
+              <p style={{ marginTop: 18 }}>
+                <Link href="/x/moon-jump">Open the experiment</Link>
+              </p>
+            </div>
+            <PlateWithControls data={plateData(moon)} />
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="wrap">

@@ -65,8 +65,24 @@
 }
 
 .compact .frame {
-  border-radius: 4px;
+  border-radius: 0;
   box-shadow: none;
+}
+
+/* gallery cards share one 16:9 box; clips of other shapes sit centred in it */
+.box {
+  aspect-ratio: 16 / 9;
+  background: var(--plate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.box .frame {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
 }
 
 @media (max-width: 560px) {

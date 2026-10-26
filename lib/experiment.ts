@@ -287,12 +287,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1] ?? 0;
       const round = med(rt.samples.map((s) => s.major)) / Math.max(1e-9, med(rt.samples.map((s) => s.minor))) < 1.35;
       const useMinor = obs.reference.dimension === "shortest side" || (selfRuler && round);
-      const lens = rt.samples.map((s) => (useMinor ? s.minor : s.major)).sort((a, b) => a - b);
+      // the mask's true extent along its axes (a moment-based size overstates a rectangle by 15%)
+      const lens = rt.samples.map((s) => (useMinor ? s.wid ?? s.minor : s.len ?? s.major)).sort((a, b) => a - b);
       const px = lens[lens.length >> 1];
       if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
     }
     const m = await step("measure", async () => {
-      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point });
+      // gravity can only stand in for a ruler when the body flies freely: a ball rolling down a ramp accelerates at less than g
+      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind !== "flight" });
       if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind);
       // a pendulum's angle needs no ruler: without one, measure only theta (lengths in pixels would mislead the theorist)
       if (mm.series.ch.theta && (mm.calibration.kind === "none" || mm.calibration.kind === "gravity")) {

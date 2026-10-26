@@ -136,7 +136,54 @@
 
 .cardEq {
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   font-size: 15px;
+}
+
+.cardEq::-webkit-scrollbar {
+  display: none;
+}
+
+.moon {
+  background: var(--plate);
+  color: var(--plate-ink);
+  border-top: 0;
+  padding-block: clamp(36px, 5vw, 64px);
+}
+
+.moonGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+}
+
+.moonNum {
+  font-size: clamp(40px, 5.5vw, 72px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  color: #8fa0ff;
+  line-height: 1;
+}
+
+.moonGrid :global(.lede) {
+  color: #b8bec6;
+}
+
+.moonGrid h2 {
+  color: var(--plate-ink);
+  margin: 14px 0 12px;
+}
+
+.moonGrid a {
+  color: var(--plate-ink);
+}
+
+@media (max-width: 900px) {
+  .moonGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cardFinding {
@@ -219,4 +266,13 @@
   .heroLaw {
     grid-template-columns: 1fr;
   }
+}
+
+.moonGrid :global(.key) {
+  color: #b8bec6;
+}
+
+.moonGrid button {
+  color: #b8bec6 !important;
+  border-color: #3a3f46 !important;
 }

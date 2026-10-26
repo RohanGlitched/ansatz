@@ -121,6 +121,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
 
   return (
     <figure className={`${styles.plate} ${compact ? styles.compact : ""}`} ref={holderRef}>
+      <div className={compact ? styles.box : undefined}>
       <div className={styles.frame} style={{ aspectRatio: `${W} / ${H}` }}>
         <canvas ref={canvasRef} width={W} height={H} className={styles.canvas} aria-hidden="true" />
         {drawn === 0 && !failed && <div className={styles.loading}>Developing the print…</div>}
@@ -149,6 +150,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
           </div>
         )}
         {failed && <div className={styles.loading}>The clip didn’t load here, so the print shows the measured path only.</div>}
+      </div>
       </div>
       {data.caption && <figcaption className={styles.caption}>{data.caption}</figcaption>}
     </figure>

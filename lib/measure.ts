@@ -137,14 +137,16 @@ export function flightWindow(t: number[], ypx: number[]): { a: number; b: number
   if (near.length < 5) return null;
   const A = near[near.length >> 1];
   const flight = acc.map((x) => Number.isFinite(x) && Math.abs(x - A) < 0.4 * A);
-  // group flight samples, bridging gaps of up to 5 samples (a bounce smears the local fit over ~2h samples)
+  // group flight samples, bridging short gaps: a bounce smears the local fit over ~2h samples, so allow
+  // 6 samples or 0.08 s, whichever is longer (high frame rates make a bounce span more samples)
   let best: [number, number] | null = null;
   let start = -1, lastIn = -1;
+  const bridged = (i: number) => i - lastIn <= 6 || (t[Math.min(i, t.length - 1)] - t[lastIn]) <= 0.08;
   for (let i = 0; i <= flight.length; i++) {
     if (i < flight.length && flight[i]) {
       if (start < 0) start = i;
       lastIn = i;
-    } else if (start >= 0 && (i === flight.length || i - lastIn > 5)) {
+    } else if (start >= 0 && (i === flight.length || !bridged(i))) {
       if (!best || lastIn - start > best[1] - best[0]) best = [start, lastIn];
       start = -1;
     }
@@ -263,6 +265,8 @@ export function measure(args: {
   kind?: "flight" | "swing" | "oscillation" | "along a path" | "other";
   /** which point of the mask to follow: its centroid, or its top (a person's head, steadier than a body whose limbs move) */
   point?: "centroid" | "top";
+  /** never use gravity as the ruler (the motion isn't free flight) */
+  noGravityRuler?: boolean;
 }): Measured {
   const slow = args.slowMotion && args.slowMotion > 1 ? args.slowMotion : 1;
   const T = (f: number) => (args.times[f] ?? args.times[args.times.length - 1] + (f - args.times.length + 1) * (args.times[1] - args.times[0] || 1 / 30)) / slow;
@@ -296,7 +300,7 @@ export function measure(args: {
   let cal: Calibration;
   if (args.metresPerPixel) cal = { kind: args.metresPerPixel.kind, metresPerPixel: args.metresPerPixel.value, note: args.metresPerPixel.note };
   else {
-    const pg = pixelGravity(t, ys);
+    const pg = args.noGravityRuler ? null : pixelGravity(t, ys);
     const g = args.gravity ?? 9.80665;
     if (pg && pg.aPx > 0 && pg.arcs > 0) cal = { kind: "gravity", metresPerPixel: g / pg.aPx, g, note: `scale from the fall itself: ${pg.aPx.toFixed(0)} px/s² over ${pg.arcs} arc${pg.arcs > 1 ? "s" : ""} = g of ${g.toFixed(3)} m/s²` };
     else cal = { kind: "none", metresPerPixel: 1, note: "no scale: lengths are in pixels" };
