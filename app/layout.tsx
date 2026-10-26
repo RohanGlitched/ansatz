@@ -62,8 +62,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <h3 className={styles.fh}>Built with Meta</h3>
               <span>SAM 3.1 measures every frame</span>
-              <span>Muse Spark watches, listens, theorises</span>
-              <span>Muse Wonder referees</span>
+              <span>Muse Spark watches, proposes laws, referees</span>
+              <span>Muse Wonder writes the revised law</span>
               <span>Muse Voice Transcribe hears the narration</span>
             </div>
             <div>

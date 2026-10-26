@@ -60,6 +60,8 @@ export type Experiment = {
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
+  /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
+  extras?: { robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
 };
@@ -92,10 +94,10 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
   });
 }
 
-/** Residual pattern the referee reads: mean residual in eight time bins per channel, train and test. */
-function residualPattern(fit: Fit, m: Measured) {
+/** Residual pattern the referee reads: mean residual in eight time bins per channel, over the fitted frames only. */
+function residualPattern(fit: Fit, m: Measured, frac = 1) {
   const out: Record<string, number[]> = {};
-  const n = m.series.t.length;
+  const n = Math.max(3, Math.round(m.series.t.length * frac));
   for (const [ch, pred] of Object.entries(fit.predicted)) {
     const ob = m.series.ch[ch];
     if (!ob) continue;
@@ -289,14 +291,17 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const round = med(rt.samples.map((s) => s.major)) / Math.max(1e-9, med(rt.samples.map((s) => s.minor))) < 1.35;
       const useMinor = obs.reference.dimension === "shortest side" || (selfRuler && round);
       // the mask's true extent along its axes (a moment-based size overstates a rectangle by 15%)
-      const lens = rt.samples.map((s) => (useMinor ? s.wid ?? s.minor : s.len ?? s.major)).sort((a, b) => a - b);
-      const px = lens[lens.length >> 1];
+      // a standing person's height is the box's vertical extent in the frames where they stand tallest
+      // (a crouch or tucked legs only ever make the box shorter), not the length of a tilted mask axis
+      const personRuler = selfRuler && person && !useMinor;
+      const lens = rt.samples.map((s) => (personRuler ? s.box[3] - s.box[1] : useMinor ? s.wid ?? s.minor : s.len ?? s.major)).sort((a, b) => a - b);
+      const px = personRuler ? lens[Math.floor(lens.length * 0.75)] : lens[lens.length >> 1];
       if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
     }
     const m = await step("measure", async () => {
       // gravity can only stand in for a ruler when the body flies freely: a ball rolling down a ramp accelerates at less than g
       let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind !== "flight" });
-      if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind);
+      if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind, { point, noGravityRuler: true });
       // a pendulum's angle needs no ruler: without one, measure only theta (lengths in pixels would mislead the theorist)
       if (mm.series.ch.theta && (mm.calibration.kind === "none" || mm.calibration.kind === "gravity")) {
         mm = { ...mm, calibration: { kind: "none", metresPerPixel: 1, note: "no ruler needed: the swing is measured as an angle" }, series: { t: mm.series.t, ch: { theta: mm.series.ch.theta } }, noise: { theta: mm.noise.theta } };
@@ -329,7 +334,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
 
     // 6. hypothesise
-    const dig = digest(m);
+    // the theorist sees only the frames the laws are fitted to: the last 30% stays unseen by every model
+    const dig = digest(m, 40, TRAIN);
     const hyp = await step("hypothesise", () => hypothesise(obs, dig, given, ledger), (r) => r.laws.map((l) => l.title).join("; "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary, latex: safeLatex(l) })) }));
 
     // 7. fit every candidate on the first 70%, predict the rest
@@ -381,12 +387,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       events: c.law.events ?? [],
       fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}${atBound(c.law, k, c.fit.theta[k]) ? " (stuck at its limit)" : ""}`])),
       train_rms: c.fit.trainRms,
-      unseen_rms: c.fit.testRms,
-      unseen_worst: c.fit.testMax,
       bic: c.fit.bic,
       ok: c.fit.ok,
       error: c.fit.why,
-      residual_by_time_bin: residualPattern(c.fit, m),
+      residual_by_time_bin_on_fitted_frames: residualPattern(c.fit, m, TRAIN),
     }));
     const winnerFirst = cands[0];
     const eyePromise: Promise<Eyeball | null> = input.skipEyeball
@@ -582,7 +586,7 @@ function fmtErr(v: number, cal: Calibration, angle = false) {
 }
 
 /** Drops the frames at either end where the body sits still (held in a hand, resting on the floor). */
-function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number; t1: number }, slow: number, scale: { value: number; kind: "reference" | "stated"; note: string } | null, g: number, kind: Observation["motion_kind"]): Measured {
+function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number; t1: number }, slow: number, scale: { value: number; kind: "reference" | "stated"; note: string } | null, g: number, kind: Observation["motion_kind"], extra: { point?: "centroid" | "top"; noGravityRuler?: boolean } = {}): Measured {
   const px = m.px;
   if (px.length < 12) return m;
   const sp = px.map((p, i) => (i ? Math.hypot(p.x - px[i - 1].x, p.y - px[i - 1].y) : 0));
@@ -595,7 +599,7 @@ function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number;
   if (b - a < 10 || (a < 2 && b > px.length - 3)) return m;
   const fa = px[a].f, fb = px[b].f;
   const T = (f: number) => vi.times[f] ?? 0;
-  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind });
+  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind, ...extra });
 }
 
 export type { Pivot };

@@ -272,7 +272,23 @@ export function measure(args: {
   const T = (f: number) => (args.times[f] ?? args.times[args.times.length - 1] + (f - args.times.length + 1) * (args.times[1] - args.times[0] || 1 / 30)) / slow;
   const w0 = args.window ? args.window.t0 / slow : -Infinity, w1 = args.window ? args.window.t1 / slow : Infinity;
   let samples = args.track.samples.filter((s) => T(s.f) >= w0 - 1e-9 && T(s.f) <= w1 + 1e-9);
-  if (args.point === "top") samples = samples.map((s) => ({ ...s, cx: (s.box[0] + s.box[2]) / 2, cy: s.box[1] }));
+  let airborne = false;
+  if (args.point === "top") {
+    // a jumping person is airborne while the feet (the mask's bottom edge) are above where they stand
+    const bottoms = samples.map((s) => s.box[3]);
+    const ground = [...bottoms].sort((a, b) => a - b)[Math.floor(bottoms.length * 0.9)];
+    const up = bottoms.map((b) => b < ground - 3);
+    let best: [number, number] | null = null, start = -1;
+    for (let i = 0; i <= up.length; i++) {
+      if (i < up.length && up[i]) { if (start < 0) start = i; }
+      else if (start >= 0) { if (!best || i - 1 - start > best[1] - best[0]) best = [start, i - 1]; start = -1; }
+    }
+    if (best && best[1] - best[0] >= 8) {
+      samples = samples.slice(best[0], best[1] + 1);
+      airborne = true;
+    }
+    samples = samples.map((s) => ({ ...s, cx: (s.box[0] + s.box[2]) / 2, cy: s.box[1] }));
+  }
   // slow motion made by repeating frames: identical masks in a row are one real frame shown many times
   const dedup: Sample[] = [];
   for (const s of samples) {
@@ -280,9 +296,11 @@ export function measure(args: {
     if (p && p.cx === s.cx && p.cy === s.cy && p.area === s.area) continue;
     dedup.push(s);
   }
+  // a moving object never lands on exactly the same sub-pixel centroid twice by chance: identical masks in a
+  // row are a repeated frame (slow motion by repetition, or a 24 fps source padded to 30 fps, one in five)
   const repeated = samples.length - dedup.length;
-  if (repeated > samples.length * 0.3) samples = dedup;
-  if ((args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
+  if (repeated >= Math.max(2, samples.length * 0.08)) samples = dedup;
+  if (!airborne && (args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
     const ts = samples.map((s) => T(s.f)), ysPx = samples.map((s) => s.cy);
     const fw = flightWindow(ts, ysPx);
     // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
@@ -304,7 +322,10 @@ export function measure(args: {
   else {
     const pg = args.noGravityRuler ? null : pixelGravity(t, ys);
     const g = args.gravity ?? 9.80665;
-    if (pg && pg.aPx > 0 && pg.arcs > 0) cal = { kind: "gravity", metresPerPixel: g / pg.aPx, g, note: `scale from the fall itself: ${pg.aPx.toFixed(0)} px/s² over ${pg.arcs} arc${pg.arcs > 1 ? "s" : ""} = g of ${g.toFixed(3)} m/s²` };
+    // gravity as the ruler only when the result is physically plausible: the object must come out between 5 mm and 3 m
+    const sizePx = [...samples.map((s) => s.minor)].sort((a, b) => a - b)[samples.length >> 1] ?? 0;
+    const plausible = pg && pg.aPx > 0 && pg.arcs > 0 && sizePx * (g / pg.aPx) > 0.005 && sizePx * (g / pg.aPx) < 3;
+    if (pg && plausible) cal = { kind: "gravity", metresPerPixel: g / pg.aPx, g, note: `scale from the fall itself: ${pg.aPx.toFixed(0)} px/s² over ${pg.arcs} arc${pg.arcs > 1 ? "s" : ""} = g of ${g.toFixed(3)} m/s²` };
     else cal = { kind: "none", metresPerPixel: 1, note: "no scale: lengths are in pixels" };
   }
   const k = cal.metresPerPixel;
@@ -338,9 +359,10 @@ export function measure(args: {
 }
 
 /** A compact, model-readable digest of a measured series: what the scientist sees before proposing laws. */
-export function digest(m: Measured, maxRows = 40) {
-  const { t, ch } = m.series;
-  const n = t.length;
+export function digest(m: Measured, maxRows = 40, frac = 1) {
+  const { t, ch: all } = m.series;
+  const n = Math.max(3, Math.round(t.length * frac));
+  const ch = Object.fromEntries(Object.entries(all).map(([k, v]) => [k, v.slice(0, n)]));
   const step = Math.max(1, Math.ceil(n / maxRows));
   const keys = Object.keys(ch);
   const rows: string[] = [`t_s,${keys.join(",")}`];
@@ -351,6 +373,7 @@ export function digest(m: Measured, maxRows = 40) {
   });
   return {
     samples: n,
+    note: frac < 1 ? `These are the first ${Math.round(frac * 100)}% of the measured frames; the rest are held back to test the laws.` : undefined,
     duration_s: +(t[n - 1] - t[0]).toFixed(4),
     units: m.calibration.kind === "none" ? "x, y, r, s in pixels (no scale); theta in radians; t in seconds" : "x, y, r, s in metres (y up); theta in radians from straight down; t in seconds",
     calibration: m.calibration.note,

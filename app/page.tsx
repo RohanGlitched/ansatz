@@ -2,6 +2,7 @@ import Link from "next/link";
 import PlateWithControls from "@/components/PlateWithControls";
 import StrobePlate from "@/components/StrobePlate";
 import Tex from "@/components/Tex";
+import MoonHero from "@/components/MoonHero";
 import { getExperiment, plateData, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
@@ -19,6 +20,9 @@ export default async function Home() {
 
   return (
     <>
+      {moon ? (
+        <MoonHero e={moon} />
+      ) : (
       <section className={`wrap ${styles.hero}`}>
         <div className={styles.heroText}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
@@ -48,30 +52,11 @@ export default async function Home() {
           </div>
         )}
       </section>
-
-      {moon && moonG && (
-        <section className={styles.moon}>
-          <div className={`wrap ${styles.moonGrid}`}>
-            <div>
-              <p className={styles.moonNum}>
-                {moonG.measured.toFixed(2)} ± {moonG.sigma.toFixed(2)} m/s²
-              </p>
-              <h2>The Moon’s gravity, measured from 1972 television</h2>
-              <p className="lede">
-                Apollo 16, April 1972: John Young jumps and salutes beside the flag. SAM 3.1 followed him through 240 frames of 352×240 TV. Muse Spark proposed a jump with a brief leg push and then free fall; it predicted the frames it never saw better than plain free fall. The Moon’s surface gravity is {moonG.reference} m/s².
-              </p>
-              <p style={{ marginTop: 18 }}>
-                <Link href="/x/moon-jump">Open the experiment</Link>
-              </p>
-            </div>
-            <PlateWithControls data={plateData(moon)} />
-          </div>
-        </section>
       )}
 
       <section className="section">
         <div className="wrap">
-          <h2 className={styles.h2}>Five Meta models, one scientific method</h2>
+          <h2 className={styles.h2}>Four Meta models, one scientific method</h2>
           <p className="lede" style={{ marginTop: 12 }}>
             Ansatz doesn’t ask a model what the answer is. It asks models to look, measure and guess, then lets the data decide.
           </p>
@@ -79,7 +64,7 @@ export default async function Home() {
             <li>
               <span className={styles.step}>Observe</span>
               <h3>Watch and listen</h3>
-              <p>Muse Spark watches the clip and reads its captions; Muse Voice Transcribe hears what you said while filming, in English, Hindi or both. Out comes what moves, when, what is known, and whether the clip is slowed down.</p>
+              <p>Muse Voice Transcribe hears what you said while filming, in English, Hindi or both; Muse Spark watches the clip, reads its captions and that transcript. Out comes what moves, when, what is known, and whether the clip is slowed down.</p>
               <p className={styles.model}>Muse Spark 1.3 and Muse Voice Transcribe</p>
             </li>
             <li>
@@ -103,8 +88,8 @@ export default async function Home() {
             <li>
               <span className={styles.step}>Referee</span>
               <h3>Explain or revise</h3>
-              <p>Muse Wonder reads the scoreboard and the residuals. If they drift in a way no candidate explains, it writes one more law and that law has to earn its place the same way.</p>
-              <p className={styles.model}>Muse Wonder 1.0</p>
+              <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. If they drift in a way no candidate explains, Muse Wonder writes one more law, and that law has to earn its place the same way.</p>
+              <p className={styles.model}>Muse Spark 1.3 and Muse Wonder 1.0</p>
             </li>
           </ol>
         </div>

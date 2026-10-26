@@ -114,7 +114,8 @@ function familyOk(t: Truth, law: Law, fit: Candidate["fit"]): { ok: boolean | nu
   if (ph === "pendulum" && t.variant === "large_amplitude") return { ok: usesSin(law), expect: "sin θ (large swings)" };
   if (ph === "pendulum") return { ok: true, expect: "a pendulum law" };
   if (ph === "bouncing_ball") return { ok: (law.events?.length ?? 0) > 0, expect: "bounces (an impact event)" };
-  if (ph === "spring_mass") return { ok: hasDrag(law), expect: "damped oscillation" };
+  if (ph === "spring_mass") return { ok: hasDrag(law) && !usesSin(law) && !law.state.includes("theta"), expect: "a damped spring (not a pendulum)" };
+  if (ph === "collision_2d") return { ok: false, expect: "two bodies (not supported yet)" };
   return { ok: null, expect: "—" };
 }
 
@@ -173,7 +174,8 @@ for (const f of files.sort()) {
 
 const R = rows as { family: { ok: boolean | null }; familyIfChosenByFit: boolean | null; checks: Check[]; trackingErrPx: number | null; predictionRel: number; predictionRelControl: number | null; predictionRelByFit: number | null; usd: number; seconds: number }[];
 const med = (a: number[]) => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[s.length >> 1] : NaN; };
-const checks = R.flatMap((r) => r.checks.filter((c) => !c.quantity.startsWith("scale")));
+// every measured number counts, the camera's scale included (a wrong scale is a wrong measurement)
+const checks = R.flatMap((r) => r.checks);
 const summary = {
   cases: R.length,
   lawCorrect: R.filter((r) => r.family.ok === true).length,

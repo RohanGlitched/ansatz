@@ -19,7 +19,7 @@ export function controls(channels: string[], opts: { g: number; gFixed: boolean 
       observe: { theta: "theta" },
     });
   }
-  if (channels.includes("x") && channels.includes("y")) {
+  if (channels.includes("x") && channels.includes("y") && !channels.includes("theta")) {
     out.push({
       id: "textbook-vacuum",
       title: "Textbook projectile (no air)",
@@ -29,7 +29,7 @@ export function controls(channels: string[], opts: { g: number; gFixed: boolean 
       params: [gParam],
       observe: { x: "x", y: "y" },
     });
-  } else if (channels.includes("y")) {
+  } else if (channels.includes("y") && !channels.includes("theta")) {
     out.push({
       id: "textbook-fall",
       title: "Textbook fall (no air)",

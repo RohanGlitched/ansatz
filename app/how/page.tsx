@@ -26,7 +26,7 @@ export default function HowPage() {
         </Step>
         <Step n="2" title="Watch and listen" who="Muse Spark 1.3, Muse Voice Transcribe">
           <p>
-            Muse Spark watches the whole clip with its soundtrack and narration and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema; search grounding is available for the size of an object it recognises.
+            Muse Spark watches the whole clip, with Voice Transcribe’s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema; search grounding is available for the size of an object it recognises.
           </p>
         </Step>
         <Step n="3" title="Measure every frame" who="SAM 3.1">
@@ -39,7 +39,7 @@ export default function HowPage() {
         </Step>
         <Step n="4" title="Propose laws" who="Muse Spark 1.3">
           <p>
-            Muse Spark reads a digest of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given) and writes two to four candidate laws as initial-value problems in a small equation language:
+            Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; the last 30% is never shown to any model) and writes two to four candidate laws as initial-value problems in a small equation language:
           </p>
           <div className={styles.code}>
             <Tex display>{"\\ddot{x} = -k\\,\\dot{x}\\sqrt{\\dot{x}^2+\\dot{y}^2}, \\qquad \\ddot{y} = -g - k\\,\\dot{y}\\sqrt{\\dot{x}^2+\\dot{y}^2}"}</Tex>
@@ -55,7 +55,7 @@ export default function HowPage() {
         </Step>
         <Step n="6" title="Referee, and one revision" who="Muse Spark 1.3, Muse Wonder 1.0">
           <p>
-            Muse Spark reads the scoreboard and the residuals binned in time. If the winner drifts in a way that points to a missing effect, it names the effect, and Muse Wonder writes one more law; that law is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.
+            Muse Spark reads the ranking and the residuals binned in time over the fitted frames (never the held-out errors, so a revision can’t be tuned to the test). If the winner drifts in a way that points to a missing effect, it names the effect, and Muse Wonder writes one more law; that law is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.
           </p>
         </Step>
         <Step n="7" title="The clock check" who="code">

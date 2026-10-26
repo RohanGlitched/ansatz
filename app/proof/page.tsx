@@ -120,7 +120,7 @@ export default async function ProofPage() {
                   {moonG.measured.toFixed(2)} ± {moonG.sigma.toFixed(2)} m/s²
                 </p>
                 <p>
-                  <strong>The Moon’s gravity from 1972 television.</strong> John Young’s jump salute, Apollo 16, tracked by SAM 3.1 and fitted with a law Muse Spark wrote (a brief leg push, then free fall). The Moon’s surface gravity is {moonG.reference} m/s². The error bar is mostly the ruler: Young’s suited height, known to about ±5%.
+                  <strong>The Moon’s gravity from 1972 television, measured blind.</strong> John Young’s jump salute, Apollo 16. No narration: the only inputs were the clip, the word “astronaut” for SAM 3.1 and the ruler. SAM 3.1 tracked him, the airborne frames came from his boots leaving the ground, and a plain ballistic law won. The Moon’s surface gravity is {moonG.reference} m/s². The error bar is mostly the ruler: his suited height, taken as 1.88 m ± 5%. With that ruler his boots rose 0.40 m on average; the Apollo Lunar Surface Journal says about 0.42 m.
                 </p>
               </Link>
             )}
@@ -128,7 +128,7 @@ export default async function ProofPage() {
               <Link href="/x/slowmo-pendulum" className={styles.realCard}>
                 <p className={styles.realBig}>{slow.clock.factor.toFixed(1)}× slow motion</p>
                 <p>
-                  <strong>A clip that lies about time, caught.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
+                  <strong>A clip that hides its slow motion, caught.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
                 </p>
               </Link>
             )}

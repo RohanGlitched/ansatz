@@ -383,9 +383,21 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
   const cov = invert(JtJ);
   const theta2: Record<string, number> = {};
   const sigma: Record<string, number> = {};
+  // residuals of a smooth track are correlated frame to frame, so n samples carry fewer than n independent
+  // pieces of information: inflate by sqrt((1+rho)/(1-rho)) from the lag-1 autocorrelation of the residuals
+  let rho = 0;
+  {
+    let num = 0, den = 0;
+    for (let i = 1; i < r.length; i++) num += r[i] * r[i - 1];
+    for (let i = 0; i < r.length; i++) den += r[i] * r[i];
+    rho = den > 0 ? Math.max(0, Math.min(0.95, num / den)) : 0;
+  }
+  const inflate = Math.sqrt((1 + rho) / (1 - rho));
   c.free.forEach((name, i) => {
     theta2[name] = theta[i];
-    sigma[name] = cov ? Math.sqrt(Math.max(0, cov[i][i] * s2)) : NaN;
+    // a negative or non-finite variance means the parameter isn't identifiable from this data: say so, never ±0
+    const v = cov ? cov[i][i] * s2 : NaN;
+    sigma[name] = Number.isFinite(v) && v > 0 ? Math.sqrt(v) * inflate : NaN;
   });
   for (const p of law.params) if (p.fixed) { theta2[p.name] = p.guess; sigma[p.name] = 0; }
 

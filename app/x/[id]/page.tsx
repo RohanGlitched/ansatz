@@ -41,7 +41,8 @@ export default async function ExperimentPage({ params }: Params) {
     <article>
       <header className={`wrap ${styles.head}`}>
         <p className={styles.kicker}>
-          Experiment <span className="num">{e.id}</span>, {e.observation.phenomenon}
+          {e.observation.phenomenon.charAt(0).toUpperCase() + e.observation.phenomenon.slice(1)}
+          {e.source.kind === "showcase" && e.source.credit ? `, ${e.source.credit.split(" (")[0].split(",")[0]}` : `, run ${new Date(e.createdAt).toUTCString().slice(5, 16)}`}
         </p>
         <h1 className={styles.finding}>{e.headline ?? e.finding}</h1>
         {e.headline && <p className={styles.detailFinding}>{e.finding}</p>}
@@ -143,7 +144,7 @@ export default async function ExperimentPage({ params }: Params) {
                 <div className={styles.rank}>{c.rank}</div>
                 <div className={styles.cand}>
                   <p className={styles.candTitle}>
-                    {c.law.title} <span className={styles.origin}>{c.origin === "muse" ? "proposed by Muse Spark" : c.origin === "revision" ? "added by the Muse Wonder referee" : "textbook control"}</span>
+                    {c.law.title} <span className={styles.origin}>{c.origin === "muse" ? "proposed by Muse Spark" : c.origin === "revision" ? "written by Muse Wonder at the referee’s request" : "textbook control"}</span>
                   </p>
                   <div className={styles.candEq}>
                     {lawLatex(c.law).map((l, i) => (
@@ -164,7 +165,13 @@ export default async function ExperimentPage({ params }: Params) {
           </ol>
           {e.critique?.why_it_won && (
             <p className={styles.referee}>
-              <strong>Referee (Muse Wonder):</strong> {e.critique.why_it_won}
+              <strong>Referee ({e.ledger.calls.find((c) => c.purpose.startsWith("referee"))?.model ?? e.models.critique}):</strong> {e.critique.why_it_won}
+              {e.critique.verdict === "revise" && e.critique.revision_idea && (
+                <>
+                  {" "}
+                  It asked for one more law ({e.critique.revision_idea}), which {e.ledger.calls.find((c) => c.purpose.startsWith("write a revised law"))?.model ?? "Muse Wonder"} wrote and which competed above.
+                </>
+              )}
             </p>
           )}
         </div>
@@ -192,6 +199,35 @@ export default async function ExperimentPage({ params }: Params) {
           </p>
         </div>
       </section>
+
+      {e.extras?.robustness && (
+        <section className={`section ${styles.band}`}>
+          <div className="wrap">
+            <h2>How sensitive is this?</h2>
+            <p className="lede" style={{ marginTop: 12 }}>{e.extras.robustness.note}</p>
+            <table className={styles.vs}>
+              <thead>
+                <tr>
+                  <th>Reading</th>
+                  <th>g (m/s²)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {e.extras.robustness.rows.map((r) => (
+                  <tr key={r.label}>
+                    <td>{r.label}</td>
+                    <td className="num">
+                      <strong>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {e.extras.crossCheck && <p style={{ marginTop: 16, maxWidth: "75ch" }}>{e.extras.crossCheck}</p>}
+            {e.extras.ruler && <p className="small" style={{ marginTop: 8 }}>Ruler: {e.extras.ruler}</p>}
+          </div>
+        </section>
+      )}
 
       {e.eyeball && (
         <section className={`section ${styles.band}`}>
@@ -229,6 +265,7 @@ export default async function ExperimentPage({ params }: Params) {
               </tbody>
             </table>
             <p className="small" style={{ marginTop: 10 }}>Its account of the law: “{e.eyeball.law_in_words}”</p>
+            {e.extras?.eyeballNote && <p style={{ marginTop: 12, maxWidth: "75ch" }}>{e.extras.eyeballNote}</p>}
           </div>
         </section>
       )}

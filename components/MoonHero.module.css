@@ -1,0 +1,127 @@
+.hero {
+  background: var(--plate);
+  color: var(--plate-ink);
+  padding-block: clamp(36px, 5.5vw, 76px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+
+.text {
+  min-width: 0;
+}
+
+.text h1 {
+  color: var(--plate-ink);
+  margin-bottom: 18px;
+  font-size: clamp(32px, 4vw, 52px);
+}
+
+.text :global(.lede) {
+  color: #b8bec6;
+}
+
+.result {
+  margin-top: 26px;
+  display: grid;
+  gap: 4px;
+}
+
+.num {
+  font-size: clamp(30px, 3.6vw, 46px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: #8fa0ff;
+}
+
+.ref {
+  color: #b8bec6;
+  font-size: 16px;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.cta :global(.btn) {
+  background: var(--plate-ink);
+  color: var(--plate);
+  border-color: var(--plate-ink);
+}
+
+.cta :global(.btn:hover) {
+  background: #8fa0ff;
+  border-color: #8fa0ff;
+  color: var(--plate);
+}
+
+.cta :global(.btn.ghost) {
+  background: transparent;
+  color: var(--plate-ink);
+}
+
+.visual {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  position: relative;
+}
+
+.clip {
+  position: absolute;
+  left: 9%;
+  top: 2%;
+  width: 28%;
+  z-index: 1;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+
+.clip video {
+  width: 100%;
+  aspect-ratio: 352 / 240;
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+
+.caption {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 11.5px;
+  color: #e9ebe6;
+  text-shadow: 0 1px 2px #000;
+}
+
+.chart {
+  margin: 0;
+  min-width: 0;
+}
+
+.chart :global(.key) {
+  color: #b8bec6;
+  font-size: 13px;
+}
+
+@media (max-width: 1080px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .clip {
+    position: relative;
+    width: 100%;
+  }
+}
