@@ -21,8 +21,12 @@ const STEPS: { id: StepId; label: string; who: string }[] = [
 ];
 
 export type Sample = { file: string; label: string; hint: string; noun?: string; slowMotion?: number; narration?: string };
+type Event = { step: string; state: string; detail?: string; at: number; data?: unknown };
+/** a real run's progress log, kept so anyone can watch one without spending a cent */
+export type Replay = { id: string; clip: string; recorded: string; events: Event[] };
+const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples }: { samples: Sample[] }) {
+export default function NewExperiment({ samples, replay }: { samples: Sample[]; replay?: Replay }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -42,6 +46,8 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
   const liveRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const t0 = useRef(0);
+  const speed = useRef(1);
+  const [replaying, setReplaying] = useState(false);
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -106,8 +112,37 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
     setRecording(false);
   }
 
+  function apply(d: Event) {
+    if (d.state === "done" && d.data) {
+      if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data as LiveData["measure"] }));
+      if (d.step === "hypothesise") setLive((l) => ({ ...l, laws: (d.data as { laws: LiveData["laws"] }).laws }));
+      if (d.step === "fit") setLive((l) => ({ ...l, board: (d.data as { board: LiveData["board"] }).board }));
+    }
+    setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : (d.state as StepState["state"]), detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
+  }
+
+  async function watchReplay() {
+    if (!replay) return;
+    setError(null);
+    setPreview(replay.clip);
+    setReplaying(true);
+    setBusy(true);
+    setSteps({ upload: { state: "run", started: 0 } });
+    setLive({});
+    speed.current = REPLAY_SPEED;
+    t0.current = performance.now();
+    for (const d of replay.events) {
+      const wait = d.at / REPLAY_SPEED - (performance.now() - t0.current);
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      apply(d);
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+    router.push(`/x/${replay.id}`);
+  }
+
   async function run() {
     if (!file) return;
+    speed.current = 1;
     setBusy(true);
     setError(null);
     setSteps({ upload: { state: "run", started: 0 } });
@@ -160,12 +195,7 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
           if (ev === "started") {
             runId = d.id;
           } else if (ev === "progress") {
-            if (d.state === "done" && d.data) {
-              if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data }));
-              if (d.step === "hypothesise") setLive((l) => ({ ...l, laws: d.data.laws }));
-              if (d.step === "fit") setLive((l) => ({ ...l, board: d.data.board }));
-            }
-            setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : d.state, detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
+            apply(d);
           } else if (ev === "done") {
             router.push(`/x/${d.id}`);
             return;
@@ -204,7 +234,7 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
     throw new Error("The experiment is taking too long. Open it later from its link: /x/" + id);
   }
 
-  const elapsed = busy ? (performance.now() - t0.current) / 1000 : 0;
+  const elapsed = busy ? ((performance.now() - t0.current) / 1000) * speed.current : 0;
 
   return (
     <div className={styles.grid}>
@@ -250,6 +280,14 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
                 </button>
               )}
             </div>
+            {replay && (
+              <div className={styles.samples}>
+                <p className="small">Just want to see one run? This replays a real one, recorded on {replay.recorded}, at {REPLAY_SPEED}× speed. No model is called.</p>
+                <button type="button" className="btn ghost" onClick={watchReplay}>
+                  Watch a recorded run
+                </button>
+              </div>
+            )}
             {samples.length > 0 && (
               <div className={styles.samples}>
                 <p className="small">No clip handy? Use one of these:</p>
@@ -265,7 +303,10 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
             )}
           </>
         ) : (
-          <LiveRun src={preview} live={live} />
+          <>
+            {replaying && <p className={styles.replayNote}>Replay of a recorded run at {REPLAY_SPEED}× speed. Times on the right are the real ones.</p>}
+            <LiveRun src={preview} live={live} />
+          </>
         )}
         {error && (
           <p className={styles.error} role="alert">
@@ -343,7 +384,7 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
         </>
         )}
         <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
-          {busy ? `Running… ${elapsed.toFixed(0)} s` : "Run the experiment"}
+          {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : "Run the experiment"}
         </button>
         <p className="small">{!file && !busy ? "Choose or film a clip first." : "About a minute and a half. Each run calls five Meta models and costs about 15–30 cents, which we pay."}</p>
       </div>

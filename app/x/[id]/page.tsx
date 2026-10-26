@@ -128,6 +128,9 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
           <p style={{ marginTop: 18 }}>
             <a className="btn ghost" href={`/x/${e.id}/report`}>
               Lab report (print or PDF)
+            </a>{" "}
+            <a className="btn ghost" href={`/x/${e.id}/data.csv`} download>
+              Download the data (CSV)
             </a>
           </p>
           {e.clock && (

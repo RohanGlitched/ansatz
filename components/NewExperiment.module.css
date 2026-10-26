@@ -217,3 +217,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+.replayNote {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--measured);
+  color: var(--ink-2);
+  font-size: 14px;
+}

@@ -140,7 +140,7 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   cands.forEach((c, i) => (c.rank = i + 1));
 }
 
-function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"]): Comparison[] {
+function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"], m?: Measured): Comparison[] {
   const out: Comparison[] = [];
   // a free flight written as uniform acceleration along a vertical path: |a| is the gravity it measured
   const a = law.params.find((p) => !p.fixed && /^a$/i.test(p.name) && /m\/s/.test(p.unit ?? ""));
@@ -151,8 +151,12 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
   }
   // a pendulum written with an angular frequency w0 = sqrt(g/L): with L known, g = w0² L is a measurement too
   const w = law.params.find((p) => !p.fixed && (/^(w0|w|omega0|omega)$/i.test(p.name) || /angular frequency/i.test(p.meaning ?? "")));
-  if (w && stated.l !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
-    const v = fit.theta[w.name] ** 2 * stated.l, s = 2 * fit.theta[w.name] * stated.l * (fit.sigma[w.name] || 0);
+  // L is the narrator's figure, or else the radius of the swing's circle measured against the ruler in view
+  const ruled = m?.pivot && (m.calibration.kind === "reference" || m.calibration.kind === "stated") && m.pivot.arcDeg > 15;
+  const Lm = stated.l ?? (ruled ? m!.pivot!.r * m!.calibration.metresPerPixel : undefined);
+  const relL = stated.l !== undefined ? 0 : ruled ? Math.hypot(m!.pivot!.rmsPx / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
+  if (w && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
+    const v = fit.theta[w.name] ** 2 * Lm, s = Math.hypot(2 * fit.theta[w.name] * Lm * (fit.sigma[w.name] || 0), v * relL);
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
     if (Number.isFinite(v)) out.push({ param: "g", measured: v, sigma: s, reference: ref, label: `${obs.body === "earth" ? "standard gravity on Earth" : `gravity on the ${obs.body}`} (g = ω₀²L)`, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
   }
@@ -480,7 +484,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 9. report
     const win = cands[0];
     const rep = await step("report", async () => {
-      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line);
+      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line, m);
       // the referee's sentence is used only if it types no numbers of its own and names the winner's fitted values
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
       const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
