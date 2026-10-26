@@ -413,7 +413,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       }
       return c;
     }, (c) => (c ? (c.verdict === "revise" ? `asked for one more law (${c.revision_idea.split(/[.;]/)[0].slice(0, 90)}); Muse Wonder wrote it and it was tested` : "accepted the result") : "referee unavailable; ranking stands"));
-    const eye = await eyePromise;
+    // the baseline is a comparison, not part of the result: it gets a short grace period after the referee
+    const eye = await Promise.race([eyePromise, new Promise<null>((res) => setTimeout(() => res(null), 25_000))]);
 
     // 9. report
     const win = cands[0];

@@ -324,7 +324,7 @@ export async function eyeball(fileId: string, narration: string, quantities: { n
   const { value } = await respondJson<Eyeball>(
     {
       model: MODELS.eyeball,
-      effort: "high",
+      effort: "medium",
       input: [{ role: "user", content: [{ type: "input_file", file_id: fileId }, { type: "input_text", text }] }],
       name: "eyeball",
       schema: {
