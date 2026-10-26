@@ -55,7 +55,7 @@ export class MetaError extends Error {
   }
 }
 
-async function metaFetch(path: string, init: RequestInit & { timeoutMs?: number }, tries = 3): Promise<Response> {
+async function metaFetch(path: string, init: RequestInit & { timeoutMs?: number }, tries = 4): Promise<Response> {
   let last: unknown;
   for (let i = 0; i < tries; i++) {
     try {
@@ -68,6 +68,15 @@ async function metaFetch(path: string, init: RequestInit & { timeoutMs?: number 
         last = new MetaError(`Meta API ${r.status}`, r.status, (await r.text()).slice(0, 400));
         await new Promise((res) => setTimeout(res, 1200 * (i + 1) + Math.random() * 600));
         continue;
+      }
+      // measured on Oct 27: the API sometimes answers a valid request with 404 model_not_found, then 200 on retry
+      if (r.status === 404 && i < tries - 1) {
+        const body = await r.clone().text();
+        if (body.includes("model_not_found")) {
+          last = new MetaError(`Meta API 404 model_not_found`, 404, body.slice(0, 400));
+          await new Promise((res) => setTimeout(res, 1500 * (i + 1) + Math.random() * 800));
+          continue;
+        }
       }
       return r;
     } catch (e) {
@@ -162,9 +171,33 @@ export async function respondJson<T>(
   ledger: Ledger | null,
   purpose: string,
 ): Promise<{ value: T; raw: ResponseJson }> {
-  const raw = await respond(
+  let raw: ResponseJson;
+  try {
+    raw = await respondOnce(args, args.model, ledger, purpose);
+  } catch (e) {
+    // a model that keeps answering "not found" falls back to its sibling for this call only
+    const fallback = FALLBACK[args.model];
+    if (!(e instanceof MetaError) || e.status !== 404 || !fallback) throw e;
+    raw = await respondOnce(args, fallback, ledger, `${purpose} (on ${fallback})`);
+  }
+  const parsed = parseJsonLoose<T>(outputText(raw));
+  if (parsed !== undefined) return { value: parsed, raw };
+  // With a tool enabled the model sometimes answers in prose; ask again without tools, decoder-constrained.
+  if (args.tools?.length) return respondJson<T>({ ...args, tools: undefined }, ledger, `${purpose} (retry)`);
+  throw new Error(`${purpose}: the model did not return JSON (${raw.incomplete_details?.reason ?? raw.status ?? "unknown"})`);
+}
+
+const FALLBACK: Record<string, string> = { "muse-spark-1.3": "muse-spark-1.2", "muse-wonder-1.0": "muse-spark-1.3" };
+
+function respondOnce(
+  args: { model: string; input: unknown; schema: Record<string, unknown>; name: string; effort?: string; maxOutput?: number; tools?: unknown[]; instructions?: string },
+  model: string,
+  ledger: Ledger | null,
+  purpose: string,
+) {
+  return respond(
     {
-      model: args.model,
+      model,
       input: args.input,
       ...(args.instructions ? { instructions: args.instructions } : {}),
       reasoning: { effort: args.effort ?? "low" },
@@ -175,11 +208,6 @@ export async function respondJson<T>(
     ledger,
     purpose,
   );
-  const parsed = parseJsonLoose<T>(outputText(raw));
-  if (parsed !== undefined) return { value: parsed, raw };
-  // With a tool enabled the model sometimes answers in prose; ask again without tools, decoder-constrained.
-  if (args.tools?.length) return respondJson<T>({ ...args, tools: undefined }, ledger, `${purpose} (retry)`);
-  throw new Error(`${purpose}: the model did not return JSON (${raw.incomplete_details?.reason ?? raw.status ?? "unknown"})`);
 }
 
 export function parseJsonLoose<T>(text: string): T | undefined {

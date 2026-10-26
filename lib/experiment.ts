@@ -9,7 +9,7 @@ import { trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
 import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
 import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
 import { controls } from "./physics/library";
-import { critique, eyeball, fromWire, hypothesise, MODELS, observe, type Critique, type Eyeball, type Observation } from "./scientist";
+import { critique, eyeball, hypothesise, MODELS, observe, revise, type Critique, type Eyeball, type Observation } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
 export { toPixels };
@@ -48,6 +48,8 @@ export type Experiment = {
   candidates: Candidate[];
   winner: string;
   critique: Critique | null;
+  /** at most a dozen plain words; no numbers */
+  headline: string;
   finding: string;
   comparisons: Comparison[];
   eyeball: (Eyeball & { model: string }) | null;
@@ -154,7 +156,7 @@ export type RunInput = {
   narrationWav?: Uint8Array | null;
   narrationText?: string;
   source?: Experiment["source"];
-  hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number } };
+  hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side" } };
   skipEyeball?: boolean;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
   onPrepared?: (video: Uint8Array) => Promise<string | void>;
@@ -197,7 +199,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     if (wav?.length) {
       const tr = await step("listen", () => transcribe(wav, ledger, { keywords: ["pendulum", "metre", "centimetre", "slow motion", "fps", "drop", "bounce"] }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
       narration = { transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) };
-    } else if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };
+    } else {
+      if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };
+      emit({ step: "listen", state: "done", detail: input.narrationText ? "typed notes used; the clip has no sound" : "the clip has no sound", at: Date.now() - t0 });
+    }
     const narr = narration?.transcript ?? "";
 
     // 3. observe
@@ -205,6 +210,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "set by the person filming" };
     if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "set by the person filming" }];
     if (input.hints?.window) obs.window = input.hints.window;
+    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "set by the person filming" };
 
     // 4. track: cut the motion window (+0.4 s each side), then SAM follows the subject (and the ruler) through every frame
     const subjectNoun = obs.subjects[0]?.noun_phrase || "ball";
@@ -325,7 +331,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
       rankCandidates(list, noiseFloor);
       return list;
-    }, (r) => `${r.length} laws fitted; best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to ${fmtErr(r[0].fit.testRms, m.calibration)}`);
+    }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`);
 
     // 8. referee (and one revision), with the eyeball baseline in parallel
     const board = cands.map((c) => ({
@@ -351,11 +357,12 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       : winnerFirst.law.params.some((p) => !p.fixed && p.name !== "cal") === false
         ? Promise.resolve(null)
         : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
+    const winnerAtReferee = cands[0].law.id;
     const crit = await step("referee", async () => {
       const c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
-      if (c?.verdict === "revise" && c.revised_law) {
+      if (c?.verdict === "revise" && c.revision_idea) {
         try {
-          const law = fromWire(c.revised_law);
+          const law = await revise(obs, { units: dig.units, given, candidates: board }, c.revision_idea, ledger);
           compileLaw(law);
           if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
           const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
@@ -367,7 +374,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         }
       }
       return c;
-    }, (c) => (c ? (c.verdict === "revise" ? "asked for one more law and tested it" : "accepted the result") : "referee unavailable; ranking stands"));
+    }, (c) => (c ? (c.verdict === "revise" ? `asked for one more law (${c.revision_idea.split(/[.;]/)[0].slice(0, 90)}); Muse Wonder wrote it and it was tested` : "accepted the result") : "referee unavailable; ranking stands"));
     const eye = await eyePromise;
 
     // 9. report
@@ -406,7 +413,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× Earth's gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
         }
       }
-      return { comps, finding, whatIf, clock };
+      const sameWinner = !crit || cands[0].law.id === winnerAtReferee;
+      const headline = crit?.headline && sameWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
+      return { comps, finding, whatIf, clock, headline };
     }, (r) => r.finding);
 
     // strobe frames: ~16 evenly spaced masks across the window
@@ -437,6 +446,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       candidates: cands.map((c) => ({ ...c, fit: { ...c.fit } })),
       winner: win.law.id,
       critique: crit,
+      headline: rep.headline,
       finding: rep.finding,
       comparisons: rep.comps,
       eyeball: eye ? { ...eye, model: MODELS.eyeball } : null,
@@ -505,8 +515,9 @@ function altNouns(noun: string, obs: Observation): string[] {
   return [...out].slice(0, 3);
 }
 
-function fmtErr(v: number, cal: Calibration) {
+function fmtErr(v: number, cal: Calibration, angle = false) {
   if (!Number.isFinite(v)) return "—";
+  if (angle) return `${((v * 180) / Math.PI).toFixed(2)}°`;
   if (cal.kind === "none") return `${v.toFixed(1)} px`;
   return v < 0.01 ? `${(v * 1000).toFixed(1)} mm` : `${(v * 100).toFixed(1)} cm`;
 }

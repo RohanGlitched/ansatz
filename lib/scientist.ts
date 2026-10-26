@@ -9,7 +9,8 @@ import type { Law } from "./physics/law";
 export const MODELS = {
   observe: process.env.ANSATZ_OBSERVE_MODEL ?? "muse-spark-1.3",
   hypothesise: process.env.ANSATZ_HYPOTHESISE_MODEL ?? "muse-spark-1.3",
-  critique: process.env.ANSATZ_CRITIQUE_MODEL ?? "muse-wonder-1.0",
+  critique: process.env.ANSATZ_CRITIQUE_MODEL ?? "muse-spark-1.3",
+  revise: process.env.ANSATZ_REVISE_MODEL ?? "muse-wonder-1.0",
   eyeball: process.env.ANSATZ_EYEBALL_MODEL ?? "muse-spark-1.3",
 };
 
@@ -246,23 +247,26 @@ export async function hypothesise(obs: Observation, digest: unknown, given: stri
 
 export type Critique = {
   verdict: "accept" | "revise";
+  headline: string; // at most a dozen plain words, no numbers
   finding: string; // plain words, numbers as {param} placeholders
   why_it_won: string;
   caveats: string[];
-  revised_law: WireLaw | null;
+  revision_idea: string;
+  revised_law?: WireLaw | null;
   what_if: { label: string; param: string; factor: number }[];
 };
 
 const CRITIQUE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["verdict", "finding", "why_it_won", "caveats", "revised_law", "what_if"],
+  required: ["verdict", "headline", "finding", "why_it_won", "caveats", "revision_idea", "what_if"],
   properties: {
-    verdict: { type: "string", enum: ["accept", "revise"], description: "revise only if the residuals show a pattern none of the candidates can explain and you can write a law that would." },
+    verdict: { type: "string", enum: ["accept", "revise"], description: "revise only if the winner's residuals drift systematically in time and a specific physical effect would explain the drift." },
+    headline: { type: "string", description: "The discovery as a headline of at most 12 plain words, no numbers, about the object (e.g. 'The ball falls freely; the air barely touches it.')." },
     finding: { type: "string", description: "What the WINNING law says about this object, in at most two short sentences a 15-year-old understands, like a science teacher announcing a result. Name the winning law's fitted parameters only as placeholders in braces, e.g. 'falls with g = {g}' or 'loses {e} of its speed'. Never type digits. Do not mention ranks, RMS, BIC or code. If even the winner predicts the unseen frames badly, say plainly that no candidate law captured the motion." },
     why_it_won: { type: "string", description: "One plain sentence on what the winner gets right that the runner-up misses, without digits." },
     caveats: { type: "array", items: { type: "string" }, maxItems: 4 },
-    revised_law: { anyOf: [LAW_SCHEMA, { type: "null" }] },
+    revision_idea: { type: "string", description: "If revise: the one physical effect to add and why the residuals point to it, in two sentences. Empty if accept." },
     what_if: {
       type: "array",
       maxItems: 3,
@@ -285,6 +289,23 @@ export async function critique(obs: Observation, board: unknown, ledger: Ledger,
     "referee the fits",
   );
   return value;
+}
+
+/** Muse Wonder writes the one extra law the referee asked for: the hardest reasoning step in the loop. */
+export async function revise(obs: Observation, board: unknown, idea: string, ledger: Ledger, model = MODELS.revise): Promise<Law> {
+  const text = [
+    "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion and asked to predict the last 30%. The referee thinks the winner misses a physical effect. Write ONE new law that adds that effect to the winner, and nothing else.",
+    `Referee's note: ${idea}`,
+    `Experiment: ${obs.phenomenon}. ${obs.what_happens}`,
+    `Scoreboard and residuals:\n${JSON.stringify(board, null, 1)}`,
+    METHOD,
+  ].join("\n\n");
+  const { value } = await respondJson<WireLaw>(
+    { model, effort: "medium", input: [{ role: "user", content: [{ type: "input_text", text }] }], schema: LAW_SCHEMA, name: "revised_law", maxOutput: 16000 },
+    ledger,
+    "write a revised law",
+  );
+  return fromWire(value);
 }
 
 /* ─────────────────────── baseline: the eye alone ─────────────────────── */

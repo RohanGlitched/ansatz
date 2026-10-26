@@ -227,7 +227,7 @@ export function measure(args: {
   }
   const repeated = samples.length - dedup.length;
   if (repeated > samples.length * 0.3) samples = dedup;
-  if (args.kind !== "swing" && args.kind !== "oscillation" && samples.length >= 12) {
+  if ((args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
     const fw = flightWindow(samples.map((s) => T(s.f)), samples.map((s) => s.cy));
     if (fw) samples = samples.slice(fw.a, fw.b + 1);
   }

@@ -397,3 +397,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+.detailFinding {
+  font-size: clamp(18px, 1.7vw, 22px);
+  font-weight: 500;
+  max-width: 60ch;
+  margin-bottom: 12px;
+  color: var(--ink);
+}

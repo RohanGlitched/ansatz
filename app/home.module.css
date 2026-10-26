@@ -1,0 +1,222 @@
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+  padding-block: clamp(36px, 6vw, 80px);
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.heroText h1 {
+  margin-bottom: 20px;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.heroPlate {
+  min-width: 0;
+}
+
+.heroLaw {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--law);
+  border-radius: var(--radius);
+}
+
+.heroLaw .eqn,
+.heroLaw :global(.eqn) {
+  display: grid;
+  gap: 4px;
+  font-size: 17px;
+}
+
+.heroLaw p {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.h2 {
+  max-width: 26ch;
+}
+
+.method {
+  list-style: none;
+  padding: 0;
+  margin: 36px 0 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--ink);
+}
+
+.method li {
+  padding: 18px 18px 8px 0;
+  min-width: 0;
+  position: relative;
+}
+
+.method li + li {
+  padding-left: 18px;
+  border-left: 1px solid var(--rule);
+}
+
+.method h3 {
+  margin: 8px 0 8px;
+}
+
+.method p {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.step {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--law);
+}
+
+.model {
+  margin-top: 12px;
+  font-size: 13px !important;
+  color: var(--ink-3) !important;
+}
+
+.band {
+  background: var(--paper-2);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 22px;
+  margin-top: 32px;
+}
+
+.card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.card:hover {
+  border-color: var(--ink);
+  color: inherit;
+}
+
+.cardBody {
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.cardEq {
+  overflow-x: auto;
+  font-size: 15px;
+}
+
+.cardFinding {
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+
+.two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(24px, 4vw, 56px);
+}
+
+.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.points li {
+  padding-left: 18px;
+  border-left: 2px solid var(--law);
+  color: var(--ink-2);
+}
+
+.points strong {
+  color: var(--ink);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.dark {
+  background: var(--plate);
+  color: var(--plate-ink);
+  border-top: 0;
+}
+
+.dark :global(.lede) {
+  color: #b8bec6;
+}
+
+.dark :global(.btn) {
+  background: var(--plate-ink);
+  color: var(--plate);
+  border-color: var(--plate-ink);
+}
+
+.dark :global(.btn.ghost) {
+  background: transparent;
+  color: var(--plate-ink);
+}
+
+@media (max-width: 1080px) {
+  .method {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .method li,
+  .method li + li {
+    padding: 18px 16px 12px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .two {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .method {
+    grid-template-columns: 1fr;
+  }
+  .heroLaw {
+    grid-template-columns: 1fr;
+  }
+}

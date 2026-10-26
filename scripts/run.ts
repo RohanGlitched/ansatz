@@ -8,7 +8,7 @@ const file = args[0];
 const opt = (k: string) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
 const t = Date.now();
 const exp = await runExperiment(
-  { video: readFileSync(file), filename: basename(file), onPrepared: async (v) => { mkdirSync(".probe/runs", { recursive: true }); writeFileSync(`.probe/runs/${basename(file).replace(/\.\w+$/, "")}.mp4`, v); return `${basename(file).replace(/\.\w+$/, "")}.mp4`; }, narrationText: opt("--narration"), hints: { slowMotion: opt("--slow") ? +opt("--slow")! : undefined, noun: opt("--noun") }, skipEyeball: args.includes("--no-eye") },
+  { video: readFileSync(file), filename: basename(file), onPrepared: async (v) => { mkdirSync(".probe/runs", { recursive: true }); writeFileSync(`.probe/runs/${basename(file).replace(/\.\w+$/, "")}.mp4`, v); return `${basename(file).replace(/\.\w+$/, "")}.mp4`; }, narrationText: opt("--narration"), hints: { slowMotion: opt("--slow") ? +opt("--slow")! : undefined, noun: opt("--noun"), ruler: opt("--ruler") ? { noun: opt("--ruler")!.split("=")[0], metres: +opt("--ruler")!.split("=")[1] } : undefined }, skipEyeball: args.includes("--no-eye") },
   (p) => console.log(`[${(p.at / 1000).toFixed(1)}s] ${p.step} ${p.state}${p.detail ? ": " + p.detail : ""}`),
 );
 mkdirSync(".probe/runs", { recursive: true });

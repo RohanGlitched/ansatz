@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const e = await getExperiment(id);
   if (!e) return { title: "Experiment not found" };
-  return { title: `${e.title}: ${strip(e.finding).slice(0, 80)}`, description: strip(e.finding) };
+  return { title: `${e.title}: ${strip(e.headline ?? e.finding).slice(0, 80)}`, description: strip(e.finding) };
 }
 
 export default async function ExperimentPage({ params }: Params) {
@@ -42,7 +42,8 @@ export default async function ExperimentPage({ params }: Params) {
         <p className={styles.kicker}>
           Experiment <span className="num">{e.id}</span>, {e.observation.phenomenon}
         </p>
-        <h1 className={styles.finding}>{e.finding}</h1>
+        <h1 className={styles.finding}>{e.headline ?? e.finding}</h1>
+        {e.headline && <p className={styles.detailFinding}>{e.finding}</p>}
         <p className="lede">{e.observation.what_happens}</p>
       </header>
 
