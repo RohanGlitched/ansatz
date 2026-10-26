@@ -8,11 +8,12 @@ import { clipData, getExperiment, plateData, winnerOf } from "@/lib/experiments"
 import { lawLatex, paramLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
 import { prettyUnit, secondPower } from "@/lib/units";
+import { LANGUAGES, translation } from "@/lib/translate";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ id: string }> };
+type Params = { params: Promise<{ id: string }>; searchParams?: Promise<{ lang?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
@@ -21,10 +22,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return { title: `${e.title}: ${strip(e.headline ?? e.finding).slice(0, 80)}`, description: strip(e.finding) };
 }
 
-export default async function ExperimentPage({ params }: Params) {
+export default async function ExperimentPage({ params, searchParams }: Params) {
   const { id } = await params;
+  const lang = (await searchParams)?.lang;
   const e = await getExperiment(id);
   if (!e) notFound();
+  const tr = lang && LANGUAGES[lang] ? await translation(e, lang).catch(() => null) : null;
   const win = winnerOf(e);
   const plate = plateData(e);
   const lengthUnit = e.measured.calibration.kind === "none" ? "px" : "m";
@@ -44,9 +47,18 @@ export default async function ExperimentPage({ params }: Params) {
           {e.observation.phenomenon.charAt(0).toUpperCase() + e.observation.phenomenon.slice(1)}
           {e.source.kind === "showcase" && e.source.credit ? `, ${e.source.credit.split(" (")[0].split(",")[0]}` : `, run ${new Date(e.createdAt).toUTCString().slice(5, 16)}`}
         </p>
-        <h1 className={styles.finding}>{e.headline ?? e.finding}</h1>
-        {e.headline && <p className={styles.detailFinding}>{e.finding}</p>}
-        <p className="lede">{e.observation.what_happens}</p>
+        <nav className={styles.langs} aria-label="Language">
+          <a href={`/x/${e.id}`} aria-current={!tr ? "page" : undefined}>English</a>
+          {Object.entries(LANGUAGES).map(([code, name]) => (
+            <a key={code} href={`/x/${e.id}?lang=${code}`} lang={code} aria-current={tr && lang === code ? "page" : undefined}>
+              {name}
+            </a>
+          ))}
+        </nav>
+        {lang && LANGUAGES[lang] && !tr && <p className="small">That translation would have changed a number, so it isn’t shown. Here is the English.</p>}
+        <h1 className={styles.finding} lang={tr ? lang : undefined}>{tr?.headline ?? e.headline ?? e.finding}</h1>
+        {(tr || e.headline) && <p className={styles.detailFinding} lang={tr ? lang : undefined}>{tr?.finding ?? e.finding}</p>}
+        <p className="lede" lang={tr ? lang : undefined}>{tr?.what_happens ?? e.observation.what_happens}</p>
       </header>
 
       <section className={`wrap ${styles.main}`}>

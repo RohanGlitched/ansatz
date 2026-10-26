@@ -428,3 +428,22 @@
   display: grid;
   gap: 4px;
 }
+
+.langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.langs a {
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.langs a[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+}
