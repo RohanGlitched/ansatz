@@ -411,3 +411,20 @@
   margin-bottom: 12px;
   color: var(--ink);
 }
+
+.wonder {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--law);
+  border-radius: var(--radius);
+  background: var(--paper);
+  max-width: 90ch;
+}
+
+.wonder ol {
+  margin: 8px 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 4px;
+}

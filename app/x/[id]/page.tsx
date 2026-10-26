@@ -163,6 +163,21 @@ export default async function ExperimentPage({ params }: Params) {
               </li>
             ))}
           </ol>
+          {e.wonder && (
+            <div className={styles.wonder}>
+              <p>
+                <strong>Muse Wonder’s notebook.</strong> Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one. It never saw the held-out frames.
+              </p>
+              <ol>
+                {e.wonder.attempts.map((a, i) => (
+                  <li key={i}>
+                    {a.title} <span className="small num">{a.ok && a.trainRms !== undefined ? `misses the fitted frames by ${fmtLen(a.trainRms, lengthUnit, channels)}` : a.error ?? "could not be fitted"}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="small">Submitted: {e.wonder.submitted ?? "nothing"}{(() => { const c = e.candidates.find((x) => x.origin === "revision"); return c ? `, which ranked ${c.rank} of ${e.candidates.length} on the unseen frames.` : "."; })()}</p>
+            </div>
+          )}
           {e.critique?.why_it_won && (
             <p className={styles.referee}>
               <strong>Referee ({e.ledger.calls.find((c) => c.purpose.startsWith("referee"))?.model ?? e.models.critique}):</strong> {e.critique.why_it_won}

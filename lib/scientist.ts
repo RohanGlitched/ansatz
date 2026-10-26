@@ -3,7 +3,7 @@
  * (hypothesise), and reads the scoreboard to explain it or revise once (critique). The model never decides
  * which law wins and never writes a number into the report: code fits, code scores, code fills the numbers.
  */
-import { citations, Ledger, respondJson } from "./meta/client";
+import { citations, Ledger, outputText, parseJsonLoose, respond, respondJson } from "./meta/client";
 import type { Law } from "./physics/law";
 
 export const MODELS = {
@@ -308,6 +308,73 @@ export async function revise(obs: Observation, board: unknown, idea: string, led
     "write a revised law",
   );
   return fromWire(value);
+}
+
+export type WonderAttempt = { title: string; ok: boolean; trainRms?: number; error?: string };
+
+/**
+ * Muse Wonder as an agentic theorist: it can try laws with a fit_law tool (fitted to the fitted frames only;
+ * the held-out errors are never returned) and iterate before it submits one. The submitted law then competes
+ * on the frames nobody has seen, like every other candidate.
+ */
+export async function reviseAgentic(
+  obs: Observation,
+  board: unknown,
+  idea: string,
+  fit: (law: Law) => Record<string, unknown>,
+  ledger: Ledger,
+  model = MODELS.revise,
+  maxTurns = 6,
+): Promise<{ law: Law | null; attempts: WonderAttempt[] }> {
+  const text = [
+    "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion; the rest is held back to test them and you will not see it. The referee thinks the winner misses a physical effect.",
+    `Referee's note: ${idea}`,
+    `Experiment: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body}.`,
+    `Scoreboard (fitted frames only):\n${JSON.stringify(board, null, 1)}`,
+    METHOD,
+    "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs will lose on the held-out frames. Then call submit_law with the one law to test.",
+  ].join("\n\n");
+  const tools = [
+    { type: "function", name: "fit_law", description: "Fit a candidate law to the fitted frames and report how well it explains them.", parameters: LAW_SCHEMA },
+    { type: "function", name: "submit_law", description: "Submit the one law to be tested on the held-out frames.", parameters: LAW_SCHEMA },
+  ];
+  const attempts: WonderAttempt[] = [];
+  let prev: string | undefined;
+  let input: unknown = [{ role: "user", content: [{ type: "input_text", text }] }];
+  for (let turn = 0; turn < maxTurns; turn++) {
+    const raw = await respond(
+      { model, reasoning: { effort: "medium" }, max_output_tokens: 16000, tools, input, ...(prev ? { previous_response_id: prev } : {}) },
+      ledger,
+      `theorist turn ${turn + 1}`,
+    );
+    prev = raw.id;
+    const calls = (raw.output ?? []).filter((o) => (o as { type: string }).type === "function_call") as unknown as { name: string; arguments: string; call_id: string }[];
+    if (!calls.length) {
+      const loose = parseJsonLoose<WireLaw>(outputText(raw));
+      return { law: loose && loose.state ? fromWire(loose) : null, attempts };
+    }
+    const outputs: unknown[] = [];
+    for (const c of calls) {
+      let wire: WireLaw | null = null;
+      try {
+        wire = JSON.parse(c.arguments) as WireLaw;
+      } catch {
+        outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify({ error: "arguments were not valid JSON" }) });
+        continue;
+      }
+      if (c.name === "submit_law") return { law: fromWire(wire), attempts };
+      let result: Record<string, unknown>;
+      try {
+        result = fit(fromWire(wire));
+      } catch (e) {
+        result = { ok: false, error: (e as Error).message };
+      }
+      attempts.push({ title: wire.title, ok: !!result.ok, trainRms: typeof result.train_rms === "number" ? result.train_rms : undefined, error: typeof result.error === "string" ? result.error : undefined });
+      outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify(result) });
+    }
+    input = outputs;
+  }
+  return { law: null, attempts };
 }
 
 /* ─────────────────────── baseline: the eye alone ─────────────────────── */

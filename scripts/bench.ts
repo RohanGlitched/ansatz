@@ -1,6 +1,8 @@
 // Runs every benchmark clip through the full pipeline, fully automatic (no hints), and saves each record.
 // usage: tsx scripts/bench.ts [--suite synth] [--only prefix,prefix] [--concurrency 3] [--force]
 import "./env";
+process.env.EYEBALL_GRACE_MS ??= "180000";
+process.env.RUN_BUDGET_MS ??= "600000";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { runExperiment } from "../lib/experiment";

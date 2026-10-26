@@ -1,5 +1,7 @@
 // usage: tsx scripts/run.ts <video.mp4> [--narration "text"] [--slow 10] [--noun "ball"] [--out file.json] [--no-eye]
 import "./env";
+process.env.EYEBALL_GRACE_MS ??= "180000";
+process.env.RUN_BUDGET_MS ??= "600000";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { basename } from "node:path";
 import { runExperiment } from "../lib/experiment";

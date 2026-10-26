@@ -9,7 +9,7 @@ import { trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
 import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
 import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
 import { controls } from "./physics/library";
-import { critique, eyeball, hypothesise, MODELS, observe, revise, type Critique, type Eyeball, type Observation } from "./scientist";
+import { critique, eyeball, hypothesise, MODELS, observe, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit } from "./units";
@@ -60,6 +60,8 @@ export type Experiment = {
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
+  /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
+  wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
   extras?: { robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
@@ -399,11 +401,35 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         ? Promise.resolve(null)
         : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
     const winnerAtReferee = cands[0].law.id;
+    let wonder: Experiment["wonder"] = null;
     const crit = await step("referee", async () => {
       const c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
-      if (c?.verdict === "revise" && c.revision_idea) {
+      // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
+      // was fitted to by more than three times the measurement noise (judged on fitted frames only)
+      const lead = cands[0];
+      const poorFit = lead.fit.ok && lead.fit.trainRms > 3 * noiseFloor;
+      const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
+      // a run must finish inside the 300 s function limit: Muse Wonder only gets the floor with 90 s to spare
+      const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 270_000) - (Date.now() - t0);
+      if (idea && budgetLeft > 90_000) {
         try {
-          const law = await revise(obs, { units: dig.units, given, candidates: board }, c.revision_idea, ledger);
+          const tryLaw = (law: Law) => {
+            const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
+            if (gUsed !== null) for (const p of l2.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+            const wrapped = gUsed !== null ? withScaleCorrection(l2) : l2;
+            const f = fitLaw(wrapped, m.series, { trainFrac: TRAIN });
+            return {
+              ok: f.ok,
+              error: f.why,
+              train_rms: f.trainRms,
+              fitted: Object.fromEntries(Object.keys(f.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(f.theta[k])} ± ${fmtNum(f.sigma[k], 2)}${atBound(l2, k, f.theta[k]) ? " (stuck at its bound)" : ""}`])),
+              residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
+            };
+          };
+          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, budgetLeft > 150_000 ? 6 : 3);
+          wonder = { idea, attempts, submitted: revised?.title ?? null };
+          if (!revised) throw new Error("no law submitted");
+          const law = revised;
           compileLaw(law);
           if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
           const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
@@ -416,9 +442,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         }
       }
       return c;
-    }, (c) => (c ? (c.verdict === "revise" ? `asked for one more law (${c.revision_idea.split(/[.;]/)[0].slice(0, 90)}); Muse Wonder wrote it and it was tested` : "accepted the result") : "referee unavailable; ranking stands"));
+    }, (c) => (wonder ? `Muse Wonder tried ${wonder.attempts.length} law${wonder.attempts.length === 1 ? "" : "s"} on the fitted frames and submitted “${wonder.submitted ?? "none"}”` : c ? "accepted the result" : "referee unavailable; ranking stands"));
     // the baseline is a comparison, not part of the result: it gets a short grace period after the referee
-    const eye = await Promise.race([eyePromise, new Promise<null>((res) => setTimeout(() => res(null), 25_000))]);
+    const eye = await Promise.race([eyePromise, new Promise<null>((res) => setTimeout(() => res(null), Number(process.env.EYEBALL_GRACE_MS ?? 25_000)))]);
 
     // 9. report
     const win = cands[0];
@@ -486,6 +512,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       eyeball: eye ? { ...eye, model: MODELS.eyeball } : null,
       whatIf: rep.whatIf,
       clock: rep.clock,
+      wonder,
       strobe,
       trainFrac: TRAIN,
       ledger: { calls: ledger.calls, usd: ledger.usd, tokens: ledger.tokens, ms: Date.now() - t0 },
