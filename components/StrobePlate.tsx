@@ -144,7 +144,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
           )}
         </svg>
         {splitPt && !compact && (
-          <div className={styles.splitTag} style={{ left: `${(splitPt.x / W) * 100}%`, top: `${(splitPt.y / H) * 100}%` }}>
+          <div className={styles.splitTag} style={{ left: `${Math.min(76, Math.max(24, (splitPt.x / W) * 100))}%`, top: `${Math.max(14, (splitPt.y / H) * 100)}%` }}>
             <span className={styles.fitted}>fitted</span>
             <span className={styles.predicted}>predicted, never seen</span>
           </div>

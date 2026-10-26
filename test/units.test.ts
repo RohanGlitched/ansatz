@@ -13,3 +13,11 @@ test("metre powers", () => {
   assert.equal(metrePower(""), 0);
   assert.equal(metrePower("mm"), 0);
 });
+import { secondPower } from "../lib/units";
+test("second powers", () => {
+  assert.equal(secondPower("m/s^2"), -2);
+  assert.equal(secondPower("1/s"), -1);
+  assert.equal(secondPower("rad/s"), -1);
+  assert.equal(secondPower("s"), 1);
+  assert.equal(secondPower("m"), 0);
+});

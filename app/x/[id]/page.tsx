@@ -7,7 +7,7 @@ import Tex from "@/components/Tex";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
-import { prettyUnit } from "@/lib/units";
+import { prettyUnit, secondPower } from "@/lib/units";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +112,22 @@ export default async function ExperimentPage({ params }: Params) {
               </ul>
             </>
           )}
-          {e.clock && <p className={styles.clock}>{e.clock.note}</p>}
+          {e.clock && (
+            <div className={styles.clock}>
+              <p>{e.clock.note}</p>
+              <p style={{ marginTop: 8 }}>
+                Time rescales every constant by its power of seconds, so no new run is needed to see what a slow-motion clip would mean:
+              </p>
+              <ul>
+                {[2, 4, 8].filter((f) => Math.abs(Math.log(f / e.clock!.factor)) < 0.9).map((f) => (
+                  <li key={f}>
+                    At {f}× slow motion:{" "}
+                    {freeParams.map((p) => `${p.name} = ${fmt(win.fit.theta[p.name] * Math.pow(f, -secondPower(p.unit)))} ${prettyUnit(p.unit)}`).join(", ")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </aside>
       </section>
 
