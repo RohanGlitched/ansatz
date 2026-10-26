@@ -12,9 +12,9 @@ Built for the Meta Global AI Developer Hackathon (Indie track), themes *Push the
 
 | | Ansatz | Truth |
 |---|---|---|
-| The Moon’s gravity, from John Young’s jump salute (Apollo 16 TV, 352×240, 1972) | **1.63 ± 0.10 m/s²** | 1.625 m/s² |
-| 20 constants in rendered clips with known physics (g, string length, drag, restitution, damping, frequency) | **median error 0.12%** | exact |
-| The same constants read off the clips by Muse Spark alone | median error 49% | exact |
+| The Moon’s gravity, from John Young’s jump salute (Apollo 16 TV, 352×240, 1972) | **1.74 ± 0.12 m/s²** | 1.625 m/s² |
+| 37 constants in rendered clips with known physics (g, string length, drag, restitution, damping, frequency, camera scale) | **median error 0.11%**, 36 of 37 within 5% | exact |
+| The same constants read off the clips by Muse Spark alone | median error 26% | exact |
 | A pendulum filmed in slow motion (no caption says so) | flagged: **4.2× slower than real life** | uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).

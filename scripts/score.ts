@@ -80,7 +80,7 @@ function constants(e: Experiment, t: Truth, c: Candidate): Check[] {
   const law = c.law, fit = c.fit, eye = e.eyeball;
   const out: (Check | null)[] = [];
   const ph = t.phenomenon;
-  out.push(check("g", tv(t, "g"), paramMatches(law, fit, (p) => /^g$/i.test(p.name)), eye));
+  if (e.measured.calibration.kind !== "none") out.push(check("g", tv(t, "g"), paramMatches(law, fit, (p) => /^g$/i.test(p.name)), eye));
   if (ph === "pendulum") {
     out.push(check("L", tv(t, "L"), paramMatches(law, fit, (p) => /^l$/i.test(p.name) || (/length/i.test(p.meaning ?? "") && p.unit === "m")), eye));
     out.push(check("damping", tv(t, "linear_damping_c"), paramMatches(law, fit, (p) => /1\/s|s\^-1/.test(p.unit ?? "") && /damp|viscous|friction|drag/i.test(p.meaning ?? "")), eye));

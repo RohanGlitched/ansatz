@@ -320,7 +320,9 @@ export function measure(args: {
   let cal: Calibration;
   if (args.metresPerPixel) cal = { kind: args.metresPerPixel.kind, metresPerPixel: args.metresPerPixel.value, note: args.metresPerPixel.note };
   else {
-    const pg = args.noGravityRuler ? null : pixelGravity(t, ys);
+    // a body on a straight track (a ramp) accelerates at less than g, so its fall can't be the ruler; a curved path can
+    const straight = args.kind === "along a path" && fitLine(samples.map((s) => ({ x: s.cx, y: s.cy }))).rmsOffPx < 3;
+    const pg = args.noGravityRuler || straight ? null : pixelGravity(t, ys);
     const g = args.gravity ?? 9.80665;
     // gravity as the ruler only when the result is physically plausible: the object must come out between 5 mm and 3 m
     const sizePx = [...samples.map((s) => s.minor)].sort((a, b) => a - b)[samples.length >> 1] ?? 0;

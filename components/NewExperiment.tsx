@@ -29,6 +29,8 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
   const [noun, setNoun] = useState("");
   const [narration, setNarration] = useState("");
   const [slow, setSlow] = useState("1");
+  const [ruler, setRuler] = useState("");
+  const [rulerLen, setRulerLen] = useState("");
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [steps, setSteps] = useState<Record<string, StepState>>({});
@@ -119,7 +121,13 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
       const r = await fetch("/api/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ key: uj.key, noun: noun || undefined, narration: narration || undefined, slowMotion: Number(slow) > 1 ? Number(slow) : undefined }),
+        body: JSON.stringify({
+          key: uj.key,
+          noun: noun || undefined,
+          narration: narration || undefined,
+          slowMotion: Number(slow) > 1 ? Number(slow) : undefined,
+          ruler: ruler && Number(rulerLen) > 0 ? { noun: ruler, metres: Number(rulerLen) } : undefined,
+        }),
       });
       if (!r.ok || !r.body) {
         const j = await r.json().catch(() => ({}));
@@ -292,6 +300,27 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
           <textarea value={narration} onChange={(e) => setNarration(e.target.value)} rows={3} placeholder="e.g. the string is 50 cm long; dropped from about one metre" disabled={busy} maxLength={2000} />
           <small>Anything you say in the clip is transcribed too, in English, Hindi or both.</small>
         </label>
+        <div className={styles.field}>
+          <span>Something of known size in view? (optional)</span>
+          <select
+            value={ruler ? `${ruler}|${rulerLen}` : ""}
+            onChange={(e) => {
+              const [n, l] = e.target.value.split("|");
+              setRuler(n ?? "");
+              setRulerLen(l ?? "");
+            }}
+            disabled={busy}
+            aria-label="Object of known size"
+          >
+            <option value="">No, or Muse Spark should look for one</option>
+            <option value="white A4 sheet of paper|0.297">An A4 sheet on the wall (29.7 cm)</option>
+            <option value="credit card|0.0856">A bank card (8.56 cm)</option>
+            <option value="tennis ball|0.067">The moving thing is a tennis ball (6.7 cm)</option>
+            <option value="cricket ball|0.072">The moving thing is a cricket ball (7.2 cm)</option>
+            <option value="metre stick|1.0">A metre stick (1 m)</option>
+          </select>
+          <small>A ruler in the same plane as the motion lets Ansatz measure g instead of assuming it.</small>
+        </div>
         <label className={styles.field}>
           <span>Does it play in slow motion?</span>
           <select value={slow} onChange={(e) => setSlow(e.target.value)} disabled={busy}>
