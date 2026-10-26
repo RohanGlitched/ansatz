@@ -142,6 +142,13 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
 
 function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>): Comparison[] {
   const out: Comparison[] = [];
+  // a pendulum written with an angular frequency w0 = sqrt(g/L): with L known, g = w0² L is a measurement too
+  const w = law.params.find((p) => !p.fixed && (/^(w0|w|omega0|omega)$/i.test(p.name) || /angular frequency/i.test(p.meaning ?? "")));
+  if (w && stated.l !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
+    const v = fit.theta[w.name] ** 2 * stated.l, s = 2 * fit.theta[w.name] * stated.l * (fit.sigma[w.name] || 0);
+    const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
+    if (Number.isFinite(v)) out.push({ param: "g", measured: v, sigma: s, reference: ref, label: `${obs.body === "earth" ? "standard gravity on Earth" : `gravity on the ${obs.body}`} (g = ω₀²L)`, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
+  }
   for (const p of law.params) {
     if (p.fixed || p.name === "cal") continue;
     const v = fit.theta[p.name], s = fit.sigma[p.name];
@@ -424,7 +431,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than three times the measurement noise (judged on fitted frames only)
       const lead = cands[0];
-      const poorFit = lead.fit.ok && lead.fit.trainRms > 3 * noiseFloor;
+      const poorFit = lead.fit.ok && lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor;
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
       // a run must finish inside the 300 s function limit: Muse Wonder only gets the floor with 90 s to spare
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
@@ -443,7 +450,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
             };
           };
-          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, budgetLeft > 170_000 ? 6 : 3);
+          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : 2));
           wonder = { idea, attempts, submitted: revised?.title ?? null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
