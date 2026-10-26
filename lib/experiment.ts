@@ -427,8 +427,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const poorFit = lead.fit.ok && lead.fit.trainRms > 3 * noiseFloor;
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
       // a run must finish inside the 300 s function limit: Muse Wonder only gets the floor with 90 s to spare
-      const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 270_000) - (Date.now() - t0);
-      if (idea && budgetLeft > 90_000) {
+      const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
+      if (idea && budgetLeft > 110_000) {
         try {
           const tryLaw = (law: Law) => {
             const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
@@ -443,7 +443,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
             };
           };
-          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, budgetLeft > 150_000 ? 6 : 3);
+          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, budgetLeft > 170_000 ? 6 : 3);
           wonder = { idea, attempts, submitted: revised?.title ?? null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;

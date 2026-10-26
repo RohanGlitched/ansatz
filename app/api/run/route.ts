@@ -34,6 +34,20 @@ export async function POST(req: Request) {
       const send = (event: string, data: unknown) => ctrl.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       const ping = setInterval(() => ctrl.enqueue(enc.encode(": keep-alive\n\n")), 10_000);
       send("started", { id });
+      // the function is stopped at 300 s; record a readable failure first so a waiting page can say what happened
+      let finished = false;
+      const watchdog = setTimeout(async () => {
+        if (finished) return;
+        const failure = { message: "This experiment ran out of time on the server (5 minutes). Try a shorter clip, or name the moving object yourself.", step: "report" };
+        await putObject(`errors/${id}.json`, JSON.stringify(failure), "application/json").catch(() => {});
+        try {
+          send("error", failure);
+          ctrl.close();
+        } catch {
+          /* already closed */
+        }
+      }, 285_000);
+      const log: Progress[] = [];
       try {
         const exp = await runExperiment(
           {
@@ -51,7 +65,12 @@ export async function POST(req: Request) {
               return `/api/clip/${id}`;
             },
           },
-          (p: Progress) => send("progress", p),
+          (p: Progress) => {
+            send("progress", p);
+            // keep the progress server-side too, so a page whose live feed drops can pick it up again
+            log.push(p);
+            if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
+          },
         );
         await putObject(`experiments/${id}.json`, JSON.stringify(exp), "application/json");
         send("done", { id });
@@ -60,8 +79,14 @@ export async function POST(req: Request) {
         await putObject(`errors/${id}.json`, JSON.stringify(failure), "application/json").catch(() => {});
         send("error", failure);
       } finally {
+        finished = true;
+        clearTimeout(watchdog);
         clearInterval(ping);
-        ctrl.close();
+        try {
+          ctrl.close();
+        } catch {
+          /* closed by the watchdog */
+        }
       }
     },
   });

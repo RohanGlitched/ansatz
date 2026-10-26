@@ -192,6 +192,14 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
         return;
       }
       if (s?.state === "failed") throw new Error(s.message ?? "The experiment failed.");
+      for (const d of (s?.progress ?? []) as { step: string; state: string; detail?: string; at: number; data?: unknown }[]) {
+        if (d.state === "done" && d.data) {
+          if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data as LiveData["measure"] }));
+          if (d.step === "hypothesise") setLive((l) => ({ ...l, laws: (d.data as { laws: LiveData["laws"] }).laws }));
+          if (d.step === "fit") setLive((l) => ({ ...l, board: (d.data as { board: LiveData["board"] }).board }));
+        }
+        setSteps((st) => ({ ...st, [d.step]: { state: d.state === "start" ? "run" : (d.state as StepState["state"]), detail: d.detail ?? st[d.step]?.detail, at: d.at, started: st[d.step]?.started } }));
+      }
     }
     throw new Error("The experiment is taking too long. Open it later from its link: /x/" + id);
   }

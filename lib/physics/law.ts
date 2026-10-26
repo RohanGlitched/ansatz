@@ -286,7 +286,7 @@ function invert(A: number[][]): number[][] | null {
  * by that channel's measured noise, so pixels-to-metres scale doesn't decide which channel matters.
  */
 export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number } = {}): Fit {
-  const starts = opts.starts ?? 6;
+  const starts = opts.starts ?? Number(process.env.FIT_STARTS ?? 6);
   let best = fitOnce(law, data, opts);
   const nFree = law.params.filter((p) => !p.fixed).length;
   if (!nFree || opts.theta0) return best;

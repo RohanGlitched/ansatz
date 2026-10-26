@@ -10,5 +10,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (await getObject(`experiments/${id}.json`).catch(() => null)) return Response.json({ state: "done" });
   const err = await getObject(`errors/${id}.json`).catch(() => null);
   if (err) return Response.json({ state: "failed", ...JSON.parse(new TextDecoder().decode(err)) });
-  return Response.json({ state: "running" });
+  const prog = await getObject(`progress/${id}.json`).catch(() => null);
+  return Response.json({ state: "running", progress: prog ? JSON.parse(new TextDecoder().decode(prog)) : [] });
 }
