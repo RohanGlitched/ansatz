@@ -1,0 +1,454 @@
+/**
+ * One experiment, end to end: observe → measure → hypothesise → fit and falsify → referee → report.
+ * Each step emits progress so the page can show the method as it happens, and the finished record keeps
+ * everything a reader needs to check it: the tracked pixels, every candidate's fit and prediction error,
+ * the model calls and their cost.
+ */
+import { deleteFile, Ledger, transcribe, uploadFile, type Call } from "./meta/client";
+import { trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
+import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
+import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
+import { controls } from "./physics/library";
+import { critique, eyeball, fromWire, hypothesise, MODELS, observe, type Critique, type Eyeball, type Observation } from "./scientist";
+import { readVideoInfo, type VideoInfo } from "./video";
+import { cut, prepare } from "./transcode";
+
+export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
+
+export type Progress = { step: Step; state: "start" | "done" | "fail"; detail?: string; at: number; data?: unknown };
+
+export type Candidate = {
+  law: Law;
+  fit: Fit;
+  origin: "muse" | "control" | "revision";
+  ifItWins?: string;
+  rank: number;
+};
+
+export type Comparison = { param: string; measured: number; sigma: number; reference: number; label: string; errorPct: number; withinSigma: number };
+
+export type Experiment = {
+  id: string;
+  createdAt: string;
+  title: string;
+  source: { kind: "upload" | "showcase"; video: string; credit?: string; license?: string; page?: string };
+  video: Pick<VideoInfo, "width" | "height" | "fps" | "duration" | "codec" | "rotation"> & { frames: number; jitter: number };
+  narration?: { transcript: string; turns: { startMs: number; endMs: number; transcript: string }[] };
+  observation: Observation;
+  observationSources: { url: string; title: string }[];
+  tracking: { noun: string; tracks: number; framesSeen: number; meanConfidence: number };
+  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin"> & { series: Measured["series"]; px: Measured["px"] };
+  given: string[];
+  reasoning: string;
+  candidates: Candidate[];
+  winner: string;
+  critique: Critique | null;
+  finding: string;
+  comparisons: Comparison[];
+  eyeball: (Eyeball & { model: string }) | null;
+  whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
+  strobe: { f: number; t: number; rle: Sample["rle"] }[];
+  trainFrac: number;
+  ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
+  models: typeof MODELS;
+};
+
+const TRAIN = 0.7;
+
+export class ExperimentError extends Error {
+  constructor(message: string, readonly step: Step) {
+    super(message);
+  }
+}
+
+function newId() {
+  const a = "abcdefghjkmnpqrstuvwxyz23456789";
+  let s = "";
+  for (let i = 0; i < 10; i++) s += a[Math.floor(Math.random() * a.length)];
+  return s;
+}
+
+const fmtNum = (v: number, sig = 3) => (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(2) : (+v.toPrecision(sig)).toString());
+
+/** Writes "g = {g}" as "g = 9.79 ± 0.04 m/s²" using the fitted values, never the model's numbers. */
+export function fillPlaceholders(text: string, fit: Fit, law: Law) {
+  return text.replace(/\{([A-Za-z_][A-Za-z_0-9]*)\}/g, (m, name) => {
+    if (!(name in fit.theta)) return m;
+    const p = law.params.find((q) => q.name === name);
+    const v = fit.theta[name], s = fit.sigma[name];
+    const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${p.unit}` : "";
+    return s && Number.isFinite(s) && !p?.fixed ? `${fmtNum(v)} ± ${fmtNum(s, 2)}${unit}` : `${fmtNum(v)}${unit}`;
+  });
+}
+
+/** Residual pattern the referee reads: mean residual in eight time bins per channel, train and test. */
+function residualPattern(fit: Fit, m: Measured) {
+  const out: Record<string, number[]> = {};
+  const n = m.series.t.length;
+  for (const [ch, pred] of Object.entries(fit.predicted)) {
+    const ob = m.series.ch[ch];
+    if (!ob) continue;
+    const bins = new Array(8).fill(0), cnt = new Array(8).fill(0);
+    for (let i = 0; i < n; i++) {
+      if (!Number.isFinite(ob[i]) || !Number.isFinite(pred[i])) continue;
+      const b = Math.min(7, Math.floor((i / n) * 8));
+      bins[b] += pred[i] - ob[i];
+      cnt[b]++;
+    }
+    out[ch] = bins.map((s, i) => +(cnt[i] ? s / cnt[i] : 0).toPrecision(3));
+  }
+  return out;
+}
+
+function rankCandidates(cands: Candidate[]) {
+  cands.sort((a, b) => {
+    const fa = a.fit.ok ? a.fit.testRms : Infinity, fb = b.fit.ok ? b.fit.testRms : Infinity;
+    // within 3% on prediction, the simpler-by-BIC law wins
+    if (Number.isFinite(fa) && Number.isFinite(fb) && Math.abs(fa - fb) / Math.max(fa, fb) < 0.03) return a.fit.bic - b.fit.bic;
+    return fa - fb;
+  });
+  cands.forEach((c, i) => (c.rank = i + 1));
+}
+
+/** Map a law's predicted channels back to pixels for overlays. */
+export function toPixels(pred: Record<string, number[]>, m: Pick<Measured, "calibration" | "origin" | "pivot" | "line">): { x: number; y: number }[] {
+  const k = m.calibration.metresPerPixel;
+  const n = Math.max(...Object.values(pred).map((v) => v.length), 0);
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    if (pred.x && pred.y) out.push({ x: m.origin.x + pred.x[i] / k, y: m.origin.y - pred.y[i] / k });
+    else if (pred.theta && m.pivot) {
+      const r = pred.r?.[i] !== undefined ? pred.r[i] / k : m.pivot.r;
+      out.push({ x: m.pivot.x + r * Math.sin(pred.theta[i]), y: m.pivot.y + r * Math.cos(pred.theta[i]) });
+    } else if (pred.s && m.line) out.push({ x: m.line.x0 + (pred.s[i] / k) * m.line.ux, y: m.line.y0 + (pred.s[i] / k) * m.line.uy });
+    else if (pred.y) out.push({ x: m.origin.x, y: m.origin.y - pred.y[i] / k });
+    else if (pred.x) out.push({ x: m.origin.x + pred.x[i] / k, y: m.origin.y });
+  }
+  return out;
+}
+
+function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>): Comparison[] {
+  const out: Comparison[] = [];
+  for (const p of law.params) {
+    if (p.fixed) continue;
+    const v = fit.theta[p.name], s = fit.sigma[p.name];
+    let ref: number | undefined, label = "";
+    const nm = p.name.toLowerCase();
+    if ((nm === "g" || /gravit/.test(p.meaning ?? "")) && gUsed === null) {
+      ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
+      label = obs.body === "earth" ? (obs.location.latitude_deg !== null ? `normal gravity at ${obs.location.latitude_deg.toFixed(1)}° latitude` : "standard gravity on Earth") : `surface gravity of the ${obs.body === "moon" ? "Moon" : obs.body === "mars" ? "planet Mars" : obs.body}`;
+    } else if (stated[nm] !== undefined) {
+      ref = stated[nm];
+      label = "what the narrator said";
+    }
+    if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: s, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
+  }
+  return out;
+}
+
+export type RunInput = {
+  video: Uint8Array;
+  filename: string;
+  narrationWav?: Uint8Array | null;
+  narrationText?: string;
+  source?: Experiment["source"];
+  hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number } };
+  skipEyeball?: boolean;
+  /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
+  onPrepared?: (video: Uint8Array) => Promise<string | void>;
+};
+
+export async function runExperiment(input: RunInput, emit: (p: Progress) => void = () => {}): Promise<Experiment> {
+  const t0 = Date.now();
+  const ledger = new Ledger();
+  const step = async <T>(s: Step, fn: () => Promise<T>, detail?: (r: T) => string, data?: (r: T) => unknown): Promise<T> => {
+    emit({ step: s, state: "start", at: Date.now() - t0 });
+    try {
+      const r = await fn();
+      emit({ step: s, state: "done", detail: detail?.(r), at: Date.now() - t0, data: data?.(r) });
+      return r;
+    } catch (e) {
+      const msg = (e as Error).message;
+      emit({ step: s, state: "fail", detail: msg, at: Date.now() - t0 });
+      throw e instanceof ExperimentError ? e : new ExperimentError(msg, s);
+    }
+  };
+
+  // 1. the clip and its clock: normalise (H.264 ≤1280 px, original frame times, narration as WAV)
+  const info = await step("upload", async () => {
+    const raw = readVideoInfo(input.video);
+    if (raw.duration > 60) throw new ExperimentError("Clips longer than 60 seconds aren't supported yet. Trim it to the motion.", "upload");
+    const prep = await prepare(input.video, { maxSeconds: 60 });
+    const vi = readVideoInfo(prep.video);
+    if (vi.times.length < 12) throw new ExperimentError("That clip has too few frames to measure.", "upload");
+    const fileId = await uploadFile(prep.video, "clip.mp4", "video/mp4");
+    const stored = input.onPrepared ? await input.onPrepared(prep.video) : undefined;
+    return { vi, fileId, prep, stored: stored || undefined, rawInfo: raw };
+  }, (r) => `${r.vi.times.length} frames at ${r.vi.fps.toFixed(r.vi.fps % 1 ? 2 : 0)} fps (${r.rawInfo.codec}, ${r.rawInfo.width}×${r.rawInfo.height}), clock read from the file${r.prep.hadAudio ? ", narration found" : ""}`);
+  const { vi, fileId, prep } = info;
+  const extraFiles: string[] = [];
+
+  try {
+    // 2. narration
+    let narration: Experiment["narration"];
+    const wav = input.narrationWav?.length ? input.narrationWav : prep.wav;
+    if (wav?.length) {
+      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: ["pendulum", "metre", "centimetre", "slow motion", "fps", "drop", "bounce"] }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
+      narration = { transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) };
+    } else if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };
+    const narr = narration?.transcript ?? "";
+
+    // 3. observe
+    const { obs, sources } = await step("observe", () => observe(fileId, narr, ledger, vi.duration), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
+    if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "set by the person filming" };
+    if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "set by the person filming" }];
+    if (input.hints?.window) obs.window = input.hints.window;
+
+    // 4. track: cut the motion window (+0.4 s each side), then SAM follows the subject (and the ruler) through every frame
+    const subjectNoun = obs.subjects[0]?.noun_phrase || "ball";
+    const padS = 0.4;
+    const w0 = Math.max(0, Math.min(obs.window.start_s, vi.duration) - padS);
+    const w1 = Math.min(vi.duration, (obs.window.end_s > obs.window.start_s ? obs.window.end_s : vi.duration) + padS);
+    const useCut = w1 - w0 < vi.duration * 0.8 && w1 - w0 > 0.5;
+    const [subj, ref, frameMap] = await step("track", async () => {
+      let trackFile = fileId;
+      let map = (f: number) => f;
+      let frames = vi.times.length;
+      if (useCut) {
+        const clip = await cut(prep.video, w0, w1);
+        const ci = readVideoInfo(clip);
+        const offIdx = vi.times.findIndex((t) => t >= w0 - 1e-4);
+        const offset = vi.times[Math.max(0, offIdx)];
+        // cut frame k sits at offset + ci.times[k] in the full clip: map to the nearest full frame
+        map = (k: number) => {
+          const target = offset + (ci.times[k] ?? 0);
+          let j = Math.max(0, offIdx);
+          while (j < vi.times.length - 1 && Math.abs(vi.times[j + 1] - target) < Math.abs(vi.times[j] - target)) j++;
+          return j;
+        };
+        trackFile = await uploadFile(clip, "window.mp4", "video/mp4");
+        extraFiles.push(trackFile);
+        frames = ci.times.length;
+      }
+      const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
+      jobs.push(obs.reference.present && obs.reference.noun_phrase ? trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null) : Promise.resolve(null));
+      let [s, r] = await Promise.all(jobs);
+      const moving = (res: SamResult | null) => !!res && res.tracks.some((t) => pathPx(t) > 20);
+      if (!moving(s)) {
+        // a shorter or plainer phrase often finds what a precise one misses
+        for (const alt of altNouns(subjectNoun, obs)) {
+          const s2 = await trackNoun(trackFile, alt, ledger, frames);
+          if (moving(s2)) { s = s2; break; }
+        }
+      }
+      if (!s || !moving(s)) throw new ExperimentError(`SAM 3.1 couldn't find a moving “${subjectNoun}” in the clip. Name the moving object yourself and run it again.`, "track");
+      for (const res of [s, r]) if (res) for (const t of res.tracks) for (const smp of t.samples) smp.f = map(smp.f);
+      return [s, r, frames] as const;
+    }, ([s, , n]) => `${s.tracks.length} object${s.tracks.length > 1 ? "s" : ""} named “${s.tracks[0].noun}”, ${Math.max(...s.tracks.map((t) => t.samples.length))} of ${n} frames with a mask${useCut ? ` (window ${w0.toFixed(1)}–${w1.toFixed(1)} s)` : ""}`);
+    void frameMap;
+
+    // 5. measure
+    const slow = obs.slow_motion.factor > 1 ? obs.slow_motion.factor : 1;
+    const winT = { t0: Math.max(0, obs.window.start_s), t1: Math.min(vi.duration, obs.window.end_s > obs.window.start_s ? obs.window.end_s : vi.duration) };
+    const fOf = (t: number) => { let i = 0; while (i < vi.times.length - 1 && vi.times[i] < t) i++; return i; };
+    const track = mainTrack(subj.tracks, fOf(winT.t0), fOf(winT.t1));
+    if (!track) throw new ExperimentError("No track inside the motion window.", "measure");
+    const gBody = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
+    let scale: { value: number; kind: "reference" | "stated"; note: string } | null = null;
+    if (ref && ref.tracks.length && obs.reference.real_length_m > 0) {
+      const rt = mainTrack(ref.tracks)!;
+      const lens = rt.samples.map((s) => (obs.reference.dimension === "shortest side" ? s.minor : s.major)).sort((a, b) => a - b);
+      const px = lens[lens.length >> 1];
+      if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
+    }
+    const m = await step("measure", async () => {
+      const first = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind });
+      return obs.motion_kind === "flight" ? first : trimStatic(first, track, vi, winT, slow, scale, gBody, obs.motion_kind);
+    }, (r) => `${r.series.t.length} points over ${(r.series.t[r.series.t.length - 1]).toFixed(2)} s · ${r.calibration.note}${r.pivot ? " · swings about a pivot" : ""}`);
+
+    // what is given, not measured
+    const given: string[] = [];
+    const stated: Record<string, number> = {};
+    if (m.calibration.kind === "gravity") given.push(`g = ${m.calibration.g.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}); it set the scale, so treat g as known and fixed`);
+    if (m.calibration.kind === "reference") given.push(`scale: ${m.calibration.note}`);
+    if (slow > 1) given.push(`the clip plays ${slow}× slower than real life (${obs.slow_motion.evidence}); times are already corrected to real seconds`);
+    for (const f of obs.stated_facts) {
+      given.push(`${f.quantity} = ${f.value} ${f.unit} (“${f.said}”)`);
+      const q = f.quantity.toLowerCase();
+      if (/length|string|rope/.test(q) && /^m|metre|meter|cm/.test(f.unit.toLowerCase())) stated.l = /cm/.test(f.unit) ? f.value / 100 : f.value;
+    }
+    const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
+
+    // 6. hypothesise
+    const dig = digest(m);
+    const hyp = await step("hypothesise", () => hypothesise(obs, dig, given, ledger), (r) => r.laws.map((l) => l.title).join(" · "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary })) }));
+
+    // 7. fit every candidate on the first 70%, predict the rest
+    const channels = Object.keys(m.series.ch);
+    const cands: Candidate[] = await step("fit", async () => {
+      const list: Candidate[] = [];
+      const seen = new Set<string>();
+      const add = (law: Law, origin: Candidate["origin"], ifItWins?: string) => {
+        let id = law.id;
+        while (seen.has(id)) id += "-2";
+        seen.add(id);
+        const l = { ...law, id };
+        if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+        list.push({ law: l, fit: fitLaw(l, m.series, { trainFrac: TRAIN }), origin, ifItWins, rank: 0 });
+      };
+      for (const l of hyp.laws) add(l, "muse", hyp.ifItWins[l.id]);
+      for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
+      rankCandidates(list);
+      return list;
+    }, (r) => `${r.length} laws fitted; best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to ${fmtErr(r[0].fit.testRms, m.calibration)}`);
+
+    // 8. referee (and one revision), with the eyeball baseline in parallel
+    const board = cands.map((c) => ({
+      id: c.law.id,
+      title: c.law.title,
+      origin: c.origin,
+      rank: c.rank,
+      equations: c.law.derivatives,
+      observes: c.law.observe,
+      events: c.law.events ?? [],
+      fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0")).map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}`])),
+      train_rms: c.fit.trainRms,
+      unseen_rms: c.fit.testRms,
+      unseen_worst: c.fit.testMax,
+      bic: c.fit.bic,
+      ok: c.fit.ok,
+      error: c.fit.why,
+      residual_by_time_bin: residualPattern(c.fit, m),
+    }));
+    const winnerFirst = cands[0];
+    const eyePromise: Promise<Eyeball | null> = input.skipEyeball
+      ? Promise.resolve(null)
+      : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed).map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
+    const crit = await step("referee", async () => {
+      const c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
+      if (c?.verdict === "revise" && c.revised_law) {
+        try {
+          const law = fromWire(c.revised_law);
+          compileLaw(law);
+          if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+          cands.push({ law: { ...law, id: `${law.id}-rev` }, fit: fitLaw({ ...law, id: `${law.id}-rev` }, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
+          rankCandidates(cands);
+        } catch {
+          /* an unusable revision simply doesn't compete */
+        }
+      }
+      return c;
+    }, (c) => (c ? (c.verdict === "revise" ? "asked for one more law and tested it" : "accepted the result") : "referee unavailable; ranking stands"));
+    const eye = await eyePromise;
+
+    // 9. report
+    const win = cands[0];
+    const rep = await step("report", async () => {
+      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated);
+      const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
+      const finding = crit?.finding && !typed ? fillPlaceholders(crit.finding, win.fit, win.law) : defaultFinding(win.law, win.fit);
+      // counterfactuals: re-run the winner with one parameter scaled, over the same span ×1.4
+      const cl = compileLaw(win.law);
+      const span = m.series.t;
+      const T = span[span.length - 1];
+      const dt = T / Math.max(30, span.length);
+      const times = Array.from({ length: Math.ceil((T * 1.4) / dt) }, (_, i) => i * dt);
+      const whatIf = (crit?.what_if ?? []).flatMap((w) => {
+        const free = cl.free;
+        const idx = free.indexOf(w.param);
+        const theta = Float64Array.from(free.map((f) => win.fit.theta[f]));
+        const fixedParam = win.law.params.find((p) => p.name === w.param && p.fixed);
+        if (idx < 0 && !fixedParam) return [];
+        if (idx >= 0) theta[idx] *= w.factor;
+        const law2 = fixedParam ? { ...win.law, params: win.law.params.map((p) => (p.name === w.param ? { ...p, guess: p.guess * w.factor } : p)) } : win.law;
+        const run = (fixedParam ? compileLaw(law2) : cl).run(theta, times);
+        return run.ok ? [{ label: w.label, param: w.param, factor: w.factor, px: toPixels(run.obs, m) }] : [];
+      });
+      return { comps, finding, whatIf };
+    }, (r) => r.finding);
+
+    // strobe frames: ~16 evenly spaced masks across the window
+    const inWin = track.samples.filter((s) => s.f >= m.window.f0 && s.f <= m.window.f1);
+    const every = Math.max(1, Math.round(inWin.length / 16));
+    const strobe = inWin.filter((_, i) => i % every === 0).map((s) => ({ f: s.f, t: vi.times[s.f] ?? 0, rle: s.rle }));
+
+    return {
+      id: newId(),
+      createdAt: new Date().toISOString(),
+      title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
+      source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },
+      video: { width: vi.width, height: vi.height, fps: vi.fps, duration: vi.duration, codec: vi.codec, rotation: vi.rotation, frames: vi.times.length, jitter: vi.jitter },
+      narration,
+      observation: obs,
+      observationSources: sources,
+      tracking: { noun: subj.tracks[0]?.noun ?? subjectNoun, tracks: subj.tracks.length, framesSeen: track.samples.length, meanConfidence: track.samples.reduce((s, x) => s + (x.conf ?? 0), 0) / track.samples.length },
+      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin },
+      given,
+      reasoning: hyp.reasoning,
+      candidates: cands.map((c) => ({ ...c, fit: { ...c.fit } })),
+      winner: win.law.id,
+      critique: crit,
+      finding: rep.finding,
+      comparisons: rep.comps,
+      eyeball: eye ? { ...eye, model: MODELS.eyeball } : null,
+      whatIf: rep.whatIf,
+      strobe,
+      trainFrac: TRAIN,
+      ledger: { calls: ledger.calls, usd: ledger.usd, tokens: ledger.tokens, ms: Date.now() - t0 },
+      models: MODELS,
+    };
+  } finally {
+    void deleteFile(fileId);
+    for (const f of extraFiles) void deleteFile(f);
+  }
+}
+
+/** The finding written by code when the referee is missing or typed its own numbers. */
+function defaultFinding(law: Law, fit: Fit) {
+  const ps = law.params.filter((p) => !p.fixed && Number.isFinite(fit.theta[p.name]));
+  const parts = ps.slice(0, 3).map((p) => `${p.meaning ?? p.name} ${fillPlaceholders(`{${p.name}}`, fit, law)}`);
+  return `${law.summary}${parts.length ? ` Measured: ${parts.join("; ")}.` : ""}`;
+}
+
+function pathPx(t: Track) {
+  let L = 0;
+  for (let i = 1; i < t.samples.length; i++) L += Math.hypot(t.samples[i].cx - t.samples[i - 1].cx, t.samples[i].cy - t.samples[i - 1].cy);
+  return L;
+}
+
+/** Fallback phrases for SAM: the last word ("ball"), then the observer's description's last two words. */
+function altNouns(noun: string, obs: Observation): string[] {
+  const words = noun.toLowerCase().split(/\s+/).filter(Boolean);
+  const out = new Set<string>(obs.subjects[0]?.alternatives ?? []);
+  if (words.length > 1) out.add(words.slice(-1)[0]);
+  if (words.length > 2) out.add(words.slice(-2).join(" "));
+  const d = obs.subjects[0]?.description?.toLowerCase().match(/\b(ball|bob|weight|bottle|stone|block|cube|bag|puck|car|disc|coin|toy|fruit|apple|orange|egg|balloon|shuttlecock)\b/);
+  if (d) out.add(d[1]);
+  out.delete(noun.toLowerCase());
+  return [...out].slice(0, 3);
+}
+
+function fmtErr(v: number, cal: Calibration) {
+  if (!Number.isFinite(v)) return "—";
+  if (cal.kind === "none") return `${v.toFixed(1)} px`;
+  return v < 0.01 ? `${(v * 1000).toFixed(1)} mm` : `${(v * 100).toFixed(1)} cm`;
+}
+
+/** Drops the frames at either end where the body sits still (held in a hand, resting on the floor). */
+function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number; t1: number }, slow: number, scale: { value: number; kind: "reference" | "stated"; note: string } | null, g: number, kind: Observation["motion_kind"]): Measured {
+  const px = m.px;
+  if (px.length < 12) return m;
+  const sp = px.map((p, i) => (i ? Math.hypot(p.x - px[i - 1].x, p.y - px[i - 1].y) : 0));
+  const max = [...sp].sort((a, b) => a - b)[Math.floor(sp.length * 0.9)];
+  const moving = (i: number) => sp[i] > Math.max(0.6, max * 0.08);
+  let a = 1, b = px.length - 1;
+  while (a < b && !moving(a)) a++;
+  while (b > a && !moving(b)) b--;
+  a = Math.max(0, a - 1);
+  if (b - a < 10 || (a < 2 && b > px.length - 3)) return m;
+  const fa = px[a].f, fb = px[b].f;
+  const T = (f: number) => vi.times[f] ?? 0;
+  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind });
+}
+
+export type { Pivot };
