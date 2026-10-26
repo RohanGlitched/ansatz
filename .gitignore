@@ -13,3 +13,4 @@ next-env.d.ts
 
 # benchmark run records keep JSON only
 bench/runs/**/*.mp4
+bench/runs/synth-v*/

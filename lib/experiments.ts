@@ -67,3 +67,18 @@ export function plateData(e: Experiment, opts: { caption?: string } = {}): Plate
     caption: opts.caption,
   };
 }
+
+export function clipData(e: Experiment) {
+  const m = e.measured;
+  const win = winnerOf(e);
+  const law = toPixels(win.fit.predicted, m);
+  const slow = m.slowMotion || 1;
+  return {
+    video: videoUrl(e),
+    width: e.video.width,
+    height: e.video.height,
+    samples: m.px.map((p, i) => ({ vt: (m.window.t0 + (m.series.t[i] ?? 0)) * slow, x: p.x, y: p.y })),
+    law,
+    split: Math.min(m.px.length - 1, Math.max(1, Math.round(m.px.length * e.trainFrac))),
+  };
+}

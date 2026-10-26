@@ -1,0 +1,26 @@
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.tabs button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.tabs button:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.tabs button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}

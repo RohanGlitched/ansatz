@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import PlateWithControls from "@/components/PlateWithControls";
+import ExperimentVisual from "@/components/ExperimentVisual";
 import SeriesChart from "@/components/SeriesChart";
 import Tex from "@/components/Tex";
-import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
+import { clipData, getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
 import { prettyUnit, secondPower } from "@/lib/units";
@@ -51,7 +51,7 @@ export default async function ExperimentPage({ params }: Params) {
 
       <section className={`wrap ${styles.main}`}>
         <div className={styles.plateCol}>
-          <PlateWithControls data={plate} priority />
+          <ExperimentVisual plate={plate} clip={clipData(e)} />
           <p className={styles.plateNote}>
             A stroboscopic print made from the clip: SAM 3.1’s masks cut the {e.tracking.noun} out of {e.strobe.length} frames and lay them on one darkened frame. The law was fitted to the filled dots only. The rings are the {unseenFrames} frames it never saw ({fmtS(unseenSeconds)} of motion), and its line had to find them.
           </p>
@@ -113,6 +113,11 @@ export default async function ExperimentPage({ params }: Params) {
               </ul>
             </>
           )}
+          <p style={{ marginTop: 18 }}>
+            <a className="btn ghost" href={`/x/${e.id}/report`}>
+              Lab report (print or PDF)
+            </a>
+          </p>
           {e.clock && (
             <div className={styles.clock}>
               <p>{e.clock.note}</p>

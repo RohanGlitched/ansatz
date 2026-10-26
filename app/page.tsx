@@ -95,6 +95,26 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="section">
+        <div className="wrap">
+          <h2 className={styles.h2}>Who it’s for</h2>
+          <div className={styles.who}>
+            <div>
+              <h3>A student with a phone</h3>
+              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in Hindi or English, and get g, the law, the error against the textbook value and a lab report to hand in.</p>
+            </div>
+            <div>
+              <h3>A teacher with one phone for forty students</h3>
+              <p>One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. Each run costs about 15–30 cents of model calls and takes under two minutes.</p>
+            </div>
+            <div>
+              <h3>Anyone who needs a number from a video</h3>
+              <p>A coach measuring a jump, a maker measuring a drag coefficient, a researcher digitising footage that used to take an hour of clicking frame by frame in tracking software. Ansatz gives the constants with error bars and keeps the model honest: it proposes, the data decides.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className={`section ${styles.band}`} id="experiments">
         <div className="wrap">
           <h2 className={styles.h2}>Experiments</h2>
