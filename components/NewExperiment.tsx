@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import LiveRun, { type LiveData } from "./LiveRun";
 import styles from "./NewExperiment.module.css";
 
 type StepId = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
@@ -31,6 +32,7 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [steps, setSteps] = useState<Record<string, StepState>>({});
+  const [live, setLive] = useState<LiveData>({});
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -107,6 +109,7 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
     setBusy(true);
     setError(null);
     setSteps({ upload: { state: "run", started: 0 } });
+    setLive({});
     t0.current = performance.now();
     try {
       const u = await fetch("/api/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: file.type || "video/mp4", size: file.size }) });
@@ -149,6 +152,11 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
           if (ev === "started") {
             runId = d.id;
           } else if (ev === "progress") {
+            if (d.state === "done" && d.data) {
+              if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data }));
+              if (d.step === "hypothesise") setLive((l) => ({ ...l, laws: d.data.laws }));
+              if (d.step === "fit") setLive((l) => ({ ...l, board: d.data.board }));
+            }
             setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : d.state, detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
           } else if (ev === "done") {
             router.push(`/x/${d.id}`);
@@ -241,6 +249,17 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
             )}
           </>
         ) : (
+          <LiveRun src={preview} live={live} />
+        )}
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+
+      <div className={styles.right}>
+        {busy ? (
           <ol className={styles.steps} aria-live="polite">
             {STEPS.map((s) => {
               const st = steps[s.id];
@@ -261,15 +280,8 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
               );
             })}
           </ol>
-        )}
-        {error && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-
-      <div className={styles.right}>
+        ) : (
+        <>
         <label className={styles.field}>
           <span>What moves? (optional)</span>
           <input value={noun} onChange={(e) => setNoun(e.target.value)} placeholder="e.g. orange ball, the keys on the string" disabled={busy} maxLength={60} />
@@ -291,6 +303,8 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
             ))}
           </select>
         </label>
+        </>
+        )}
         <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
           {busy ? `Running… ${elapsed.toFixed(0)} s` : "Run the experiment"}
         </button>

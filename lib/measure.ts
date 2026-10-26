@@ -287,7 +287,9 @@ export function measure(args: {
     const fw = flightWindow(ts, ysPx);
     // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
     const ps = parabolicSegment(ts, ysPx);
-    const pick = ps && (!fw || ps.b - ps.a > fw.b - fw.a) ? ps : fw;
+    // the global search only overrides the local one when that clearly failed; it is trimmed by a frame at
+    // each end, where a take-off or a landing bends the path
+    const pick = ps && (!fw || ps.b - ps.a > 1.4 * (fw.b - fw.a)) ? { a: ps.a + 1, b: ps.b - 1 } : fw;
     if (pick) samples = samples.slice(pick.a, pick.b + 1);
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);

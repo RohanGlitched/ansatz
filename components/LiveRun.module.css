@@ -1,0 +1,127 @@
+.live {
+  min-width: 0;
+}
+
+.frame {
+  position: relative;
+  width: 100%;
+  background: var(--plate);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  filter: grayscale(0.6) brightness(0.7);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.wait {
+  position: absolute;
+  inset: auto 0 12px 0;
+  text-align: center;
+  color: #b8bec6;
+  font-size: 14px;
+}
+
+.dot {
+  opacity: 0;
+  animation: appear 0.3s ease-out forwards;
+}
+
+.draw {
+  stroke-dasharray: 4000;
+  stroke-dashoffset: 4000;
+  animation: draw 1.6s ease-out forwards;
+}
+
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.laws {
+  margin-top: 16px;
+}
+
+.h {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+
+.laws ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.laws li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 14.5px;
+}
+
+.laws li.win {
+  box-shadow: inset 3px 0 0 var(--law);
+  padding-left: 10px;
+}
+
+.title em {
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-left: 4px;
+}
+
+.eq {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  font-size: 14px;
+}
+
+.miss {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.win .miss {
+  color: var(--law);
+}
+
+@media (max-width: 640px) {
+  .laws li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .eq {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

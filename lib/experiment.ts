@@ -13,6 +13,7 @@ import { critique, eyeball, hypothesise, MODELS, observe, revise, type Critique,
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit } from "./units";
+import { lawLatex } from "./latex";
 export { toPixels };
 import { cut, prepare } from "./transcode";
 
@@ -301,7 +302,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         mm = { ...mm, calibration: { kind: "none", metresPerPixel: 1, note: "no ruler needed: the swing is measured as an angle" }, series: { t: mm.series.t, ch: { theta: mm.series.ch.theta } }, noise: { theta: mm.noise.theta } };
       }
       return mm;
-    }, (r) => `${r.series.t.length} points over ${(r.series.t[r.series.t.length - 1]).toFixed(2)} s · ${r.calibration.note}${r.pivot ? " · swings about a pivot" : ""}`);
+    }, (r) => `${r.series.t.length} points over ${(r.series.t[r.series.t.length - 1]).toFixed(2)} s; ${r.calibration.note}${r.pivot ? "; swings about a pivot" : ""}`, (r) => {
+      const step = Math.max(1, Math.ceil(r.px.length / 160));
+      return { width: vi.width, height: vi.height, px: r.px.filter((_, i) => i % step === 0).map((p) => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10]), pivot: r.pivot ? [r.pivot.x, r.pivot.y] : null };
+    });
 
     // what is given, not measured
     const given: string[] = [];
@@ -326,7 +330,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
     // 6. hypothesise
     const dig = digest(m);
-    const hyp = await step("hypothesise", () => hypothesise(obs, dig, given, ledger), (r) => r.laws.map((l) => l.title).join(" · "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary })) }));
+    const hyp = await step("hypothesise", () => hypothesise(obs, dig, given, ledger), (r) => r.laws.map((l) => l.title).join("; "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary, latex: safeLatex(l) })) }));
 
     // 7. fit every candidate on the first 70%, predict the rest
     const channels = Object.keys(m.series.ch);
@@ -348,7 +352,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
       rankCandidates(list, noiseFloor);
       return list;
-    }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`);
+    }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`, (r) => ({
+      board: r.map((c) => ({ id: c.law.id, title: c.law.title, origin: c.origin, rank: c.rank, miss: fmtErr(c.fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta), rel: c.fit.testRms, latex: safeLatex(c.law), path: toPixels(c.fit.predicted, m).filter((_, i, a) => i % Math.max(1, Math.ceil(a.length / 160)) === 0).map((p) => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10]) })),
+    }));
 
     // the ruler's own uncertainty moves every length-carrying constant: add it to the fit's statistical error
     const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : 0;
@@ -539,6 +545,14 @@ export function pickStrobe(samples: Sample[], f0: number, f1: number, times: num
   }
   const thin = Math.max(1, Math.ceil(picked.length / 28));
   return picked.filter((_, i) => i % thin === 0).map((s) => ({ f: s.f, t: times[s.f] ?? 0, box: s.box, rle: s.rle }));
+}
+
+function safeLatex(l: Law) {
+  try {
+    return lawLatex(l);
+  } catch {
+    return [];
+  }
 }
 
 function pathPx(t: Track) {
