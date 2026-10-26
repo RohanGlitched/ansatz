@@ -197,6 +197,8 @@ export type Fit = {
   testRms: number;
   /** worst prediction error on held-out frames */
   testMax: number;
+  /** RMS held-out error in units of each channel's measurement noise: comparable between laws that observe different channels */
+  testZ?: number;
   bic: number;
   n: number;
   k: number;
@@ -402,13 +404,13 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
   for (const p of law.params) if (p.fixed) { theta2[p.name] = p.guess; sigma[p.name] = 0; }
 
   const full = c.run(theta, data.t);
-  let trainSq = 0, trainN = 0, testSq = 0, testN = 0, testMax = 0;
+  let trainSq = 0, trainN = 0, testSq = 0, testN = 0, testMax = 0, testZ2 = 0;
   for (const kch of chans) {
     const ob = data.ch[kch], pr = full.obs[kch];
     for (let i = 0; i < N; i++) {
       if (!Number.isFinite(ob[i]) || !Number.isFinite(pr[i])) continue;
       const e = pr[i] - ob[i];
-      if (i < split) { trainSq += e * e; trainN++; } else { testSq += e * e; testN++; testMax = Math.max(testMax, Math.abs(e)); }
+      if (i < split) { trainSq += e * e; trainN++; } else { testSq += e * e; testN++; testMax = Math.max(testMax, Math.abs(e)); testZ2 += (e * w[kch]) ** 2; }
     }
   }
   return {
@@ -420,6 +422,7 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
     trainRms: Math.sqrt(trainSq / Math.max(1, trainN)),
     testRms: testN ? Math.sqrt(testSq / testN) : NaN,
     testMax,
+    testZ: testN ? Math.sqrt(testZ2 / testN) : NaN,
     bic: n * Math.log(cost / n) + k * Math.log(n),
     n,
     k,

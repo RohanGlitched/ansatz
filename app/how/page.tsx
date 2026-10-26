@@ -84,6 +84,22 @@ export default function HowPage() {
       <section className="section">
         <div className={`wrap ${styles.two}`}>
           <div>
+            <h2>What it can’t do</h2>
+          </div>
+          <ul className={styles.list}>
+            <li>
+              Measure what it can’t see. We tried the most famous experiment ever filmed on the Moon, David Scott’s hammer and feather on Apollo 15. In every surviving copy the hammer is a rod 3 to 4 pixels wide that vanishes against his white suit, and SAM 3.1 settled on the suit instead. Ansatz reported a man standing still, which is what it could measure.
+            </li>
+            <li>Find a scale from nothing. Without a ruler, a stated length or a fall it can trust, lengths stay in pixels and the report says so.</li>
+            <li>Tell slow motion from another planet. If gravity comes out wrong, it says both are possible and names the speed-up that would fix it.</li>
+            <li>Follow motion toward the camera. Depth isn’t measured; the motion should cross the frame.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section className={`section ${styles.band}`}>
+        <div className={`wrap ${styles.two}`}>
+          <div>
             <h2>Film it well</h2>
           </div>
           <ul className={styles.list}>

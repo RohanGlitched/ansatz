@@ -83,7 +83,8 @@ export function newId() {
   return s;
 }
 
-const fmtNum = (v: number, sig = 3) => (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(2) : (+v.toPrecision(sig)).toString());
+// plain decimals down to a millionth (0.00037, not 3.70e-4); exponents only for the very large or very small
+const fmtNum = (v: number, sig = 3) => (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-6 && v !== 0) ? v.toExponential(2) : (+v.toPrecision(sig)).toString());
 
 /** Writes "g = {g}" as "g = 9.79 ± 0.04 m/s²" using the fitted values, never the model's numbers. */
 export function fillPlaceholders(text: string, fit: Fit, law: Law) {
@@ -120,23 +121,35 @@ function residualPattern(fit: Fit, m: Measured, frac = 1) {
  * measurement noise (or 3%) are a tie, and a tie goes to the simpler law (lower BIC): Occam, measured.
  */
 export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
-  const tie = (fa: number, fb: number) => Math.abs(fa - fb) < Math.max(0.03 * Math.max(fa, fb), 1.5 * noiseFloor);
+  // one yardstick for every law: held-out error in units of measurement noise (laws may observe different channels)
+  const score = (c: Candidate) => (!c.fit.ok ? Infinity : Number.isFinite(c.fit.testZ) ? c.fit.testZ! : noiseFloor > 0 ? c.fit.testRms / noiseFloor : c.fit.testRms);
+  // a perfect law misses by about 1 (pure noise): two laws that both predict within the noise are equally good, and
+  // otherwise half a noise unit or 10% apart is too close to call
+  const tie = (fa: number, fb: number) => Math.max(fa, fb) < 1.5 || Math.abs(fa - fb) < Math.max(0.1 * Math.max(fa, fb), 0.5);
   // a law whose fitted parameter is pressed against its bound was limited, not measured: it ranks after every
   // law whose parameters all landed inside their ranges
   const pinned = (c: Candidate) => c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]));
-  cands.sort((a, b) => {
-    const pa = pinned(a) ? 1 : 0, pb = pinned(b) ? 1 : 0;
-    if (pa !== pb && a.fit.ok && b.fit.ok) return pa - pb;
-    const fa = a.fit.ok ? a.fit.testRms : Infinity, fb = b.fit.ok ? b.fit.testRms : Infinity;
-    if (Number.isFinite(fa) && Number.isFinite(fb) && tie(fa, fb)) {
-      const byBic = Math.abs(a.fit.bic - b.fit.bic) > 2 ? a.fit.bic - b.fit.bic : 0;
-      // equal evidence: the law written in physical quantities (Muse's) reads better than a textbook stand-in
-      const byOrigin = (a.origin === "control" ? 1 : 0) - (b.origin === "control" ? 1 : 0);
-      return a.fit.k - b.fit.k || byBic || byOrigin || fa - fb;
+  // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC, then the
+  // law written in physical quantities (Muse's) over a textbook stand-in, then the smaller error
+  const simpler = (a: Candidate, b: Candidate) => {
+    const byBic = Math.abs(a.fit.bic - b.fit.bic) > 2 ? a.fit.bic - b.fit.bic : 0;
+    const byOrigin = (a.origin === "control" ? 1 : 0) - (b.origin === "control" ? 1 : 0);
+    return a.fit.k - b.fit.k || byBic || byOrigin || score(a) - score(b) || a.law.id.localeCompare(b.law.id);
+  };
+  // rank by repeated selection, so the result doesn't depend on the order the laws arrived in: each place goes to
+  // the simplest law among those tied with the best remaining error
+  const out: Candidate[] = [];
+  for (const group of [cands.filter((c) => c.fit.ok && !pinned(c)), cands.filter((c) => c.fit.ok && pinned(c)), cands.filter((c) => !c.fit.ok)]) {
+    const left = [...group];
+    while (left.length) {
+      const best = Math.min(...left.map(score));
+      const pool = Number.isFinite(best) ? left.filter((c) => tie(score(c), best)) : left;
+      const pick = pool.sort(simpler)[0];
+      out.push(pick);
+      left.splice(left.indexOf(pick), 1);
     }
-    return fa - fb;
-  });
-  // the sort above is not transitive near ties; settle by walking: a later law only overtakes when clearly better
+  }
+  cands.splice(0, cands.length, ...out);
   cands.forEach((c, i) => (c.rank = i + 1));
 }
 
@@ -399,8 +412,11 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       board: r.map((c) => ({ id: c.law.id, title: c.law.title, origin: c.origin, rank: c.rank, miss: fmtErr(c.fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta), rel: c.fit.testRms, latex: safeLatex(c.law), path: toPixels(c.fit.predicted, m).filter((_, i, a) => i % Math.max(1, Math.ceil(a.length / 160)) === 0).map((p) => [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10]) })),
     }));
 
-    // the ruler's own uncertainty moves every length-carrying constant: add it to the fit's statistical error
-    const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : 0;
+    // the ruler's own uncertainty moves every length-carrying constant: add it to the fit's statistical error. When
+    // gravity is the ruler (a given g, or a fall that sets the scale), the ruler is good to the spread of g over
+    // Earth's surface (9.78 to 9.83, ±0.26%), or ±0.05% where the latitude is known
+    const gRel = obs.location.latitude_deg != null ? 0.0005 : 0.0026;
+    const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : obs.body === "earth" && (m.calibration.kind === "gravity" || gUsed !== null) ? gRel : 0;
     const inflate = (c: Candidate) => {
       if (!rulerRel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
       for (const p of c.law.params) {
@@ -491,7 +507,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const namesOne = !winnerFree.length || winnerFree.some((n) => crit?.finding?.includes(`{${n}}`));
       const filled = crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : null;
       // a placeholder code couldn't fill (a state, not a fitted parameter) means the sentence can't be trusted
-      const finding = filled && !/\{[^}]*\}/.test(filled) ? filled : defaultFinding(win.law, win.fit);
+      let finding = filled && !/\{[^}]*\}/.test(filled) ? filled : defaultFinding(win.law, win.fit);
       // counterfactuals: re-run the winner with one parameter scaled, over the same span ×1.4
       const cl = compileLaw(win.law);
       const span = m.series.t;
@@ -519,6 +535,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
         }
       }
+      // a number the clock casts doubt on is never left standing on its own
+      if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body)}`;
       const sameWinner = !crit || cands[0].law.id === winnerAtReferee;
       const headline = crit?.headline && sameWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
       return { comps, finding, whatIf, clock, headline };
@@ -559,6 +577,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     void deleteFile(fileId);
     for (const f of extraFiles) void deleteFile(f);
   }
+}
+
+/** One sentence for the finding when the measured gravity says the clip's clock isn't real time. */
+export function clockSentence(r: number, factor: number, body: string) {
+  const world = body === "earth" ? "Earth’s" : body === "moon" ? "the Moon’s" : `${body}’s`;
+  return r < 1
+    ? `That is ${fmtNum(1 / r, 2)}× weaker than ${world} gravity, so the clip most likely plays about ${fmtNum(factor, 2)}× slower than real life.`
+    : `That is ${fmtNum(r, 2)}× stronger than ${world} gravity, so the clip most likely plays about ${fmtNum(1 / factor, 2)}× faster than real life.`;
 }
 
 /** The finding written by code when the referee is missing or typed its own numbers. */
