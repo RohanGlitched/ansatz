@@ -1,0 +1,219 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+
+.left,
+.right {
+  min-width: 0;
+}
+
+.drop {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--plate);
+  border-radius: 6px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  outline: 2px dashed transparent;
+  outline-offset: -10px;
+  transition: outline-color 0.15s;
+}
+
+.dragging {
+  outline-color: var(--law);
+}
+
+.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.empty {
+  text-align: center;
+  color: var(--plate-ink);
+  padding: 24px;
+}
+
+.empty :global(.small) {
+  color: #9aa0a8;
+  max-width: 40ch;
+  margin: 8px auto 0;
+}
+
+.emptyTitle {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.samples {
+  margin-top: 26px;
+}
+
+.sampleRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sample {
+  text-align: left;
+  border: 1px solid var(--rule);
+  background: transparent;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.sample:hover {
+  border-color: var(--ink);
+}
+
+.sample span {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.field > span {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.field input,
+.field textarea,
+.field select {
+  font: inherit;
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.field small {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.go {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink);
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 56px;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 7px;
+  border: 2px solid var(--rule);
+}
+
+.run .dot {
+  border-color: var(--law);
+  background: var(--law);
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.done .dot {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+.fail .dot {
+  border-color: var(--measured);
+  background: var(--measured);
+}
+
+.wait {
+  color: var(--ink-3);
+}
+
+.stepLabel {
+  font-weight: 600;
+}
+
+.wait .stepLabel {
+  font-weight: 400;
+}
+
+.who {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-3);
+  margin-left: 6px;
+}
+
+.detail {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+
+.secs {
+  text-align: right;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.error {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--measured);
+  background: #fff1ea;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

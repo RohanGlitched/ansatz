@@ -62,8 +62,8 @@ const OBS_SCHEMA = {
       additionalProperties: false,
       required: ["present", "noun_phrase", "real_length_m", "dimension", "basis"],
       properties: {
-        present: { type: "boolean", description: "True only if a rigid object of well-known size is visible, roughly in the same plane as the motion and facing the camera." },
-        noun_phrase: { type: "string" },
+        present: { type: "boolean", description: "True if an object of well-known size is visible in the plane of the motion: a sheet of A4 paper (0.297 m long side), a metre stick, a credit card (0.0856 m), a door (≈2.0 m) — or the moving object itself when it has a standard size (tennis ball 0.067 m, cricket ball 0.072 m, table-tennis ball 0.040 m, football 0.22 m, basketball 0.24 m)." },
+        noun_phrase: { type: "string", description: "Its segmentation name; use exactly the subject's noun_phrase when the moving object is itself the ruler." },
         real_length_m: { type: "number", description: "Its real length in metres along `dimension` (0 if not present)." },
         dimension: { type: "string", enum: ["longest side", "shortest side"] },
         basis: { type: "string", description: "Why that length: a standard (A4 is 0.297 m), a label in view, or what the narrator said." },
@@ -235,7 +235,7 @@ export async function hypothesise(obs: Observation, digest: unknown, given: stri
     METHOD,
   ].join("\n\n");
   const { value } = await respondJson<{ reasoning: string; laws: WireLaw[] }>(
-    { model, effort: "high", input: [{ role: "user", content: [{ type: "input_text", text }] }], schema: LAWS_SCHEMA, name: "hypotheses", maxOutput: 24000 },
+    { model, effort: process.env.ANSATZ_HYPOTHESISE_EFFORT ?? "medium", input: [{ role: "user", content: [{ type: "input_text", text }] }], schema: LAWS_SCHEMA, name: "hypotheses", maxOutput: 20000 },
     ledger,
     "propose laws",
   );

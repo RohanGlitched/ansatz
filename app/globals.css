@@ -1,0 +1,204 @@
+:root {
+  --paper: #f2f3f0;
+  --paper-2: #e7e9e4;
+  --ink: #15171a;
+  --ink-2: #44484f;
+  --ink-3: #6b7078;
+  --rule: #c9cdd1;
+  --plate: #0e1012;
+  --plate-ink: #e9ebe6;
+  --measured: #ff5a1f; /* what SAM saw */
+  --law: #2d4bff; /* what the law predicts */
+  --law-soft: #dfe4ff;
+  --ok: #1f7a4d;
+  --warn: #b25a00;
+  --radius: 4px;
+  --max: 1240px;
+  --font: var(--font-host), ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.55;
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--law);
+}
+
+:focus-visible {
+  outline: 2px solid var(--law);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+img,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(34px, 5.2vw, 60px);
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+}
+
+h2 {
+  font-size: clamp(24px, 2.6vw, 32px);
+}
+
+h3 {
+  font-size: 19px;
+}
+
+p {
+  margin: 0;
+}
+
+.wrap {
+  width: min(var(--max), 100% - 32px);
+  margin-inline: auto;
+}
+
+.lede {
+  font-size: clamp(18px, 1.6vw, 21px);
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.small {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn:hover {
+  background: var(--law);
+  border-color: var(--law);
+  color: #fff;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn.ghost:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.key i {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.key i.m {
+  background: var(--measured);
+  height: 8px;
+  width: 8px;
+  border-radius: 50%;
+}
+
+.key i.l {
+  background: var(--law);
+}
+
+.section {
+  padding-block: clamp(56px, 8vw, 104px);
+  border-top: 1px solid var(--rule);
+}
+
+.eqn .katex {
+  font-size: 1.18em;
+}
+
+.katex-display {
+  margin: 0.4em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

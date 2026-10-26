@@ -175,10 +175,29 @@ export async function respondJson<T>(
     ledger,
     purpose,
   );
-  const txt = outputText(raw).trim();
-  if (!txt) throw new Error(`${purpose}: the model returned no text (${raw.incomplete_details?.reason ?? raw.status ?? "unknown"})`);
-  const cleaned = txt.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
-  return { value: JSON.parse(cleaned) as T, raw };
+  const parsed = parseJsonLoose<T>(outputText(raw));
+  if (parsed !== undefined) return { value: parsed, raw };
+  // With a tool enabled the model sometimes answers in prose; ask again without tools, decoder-constrained.
+  if (args.tools?.length) return respondJson<T>({ ...args, tools: undefined }, ledger, `${purpose} (retry)`);
+  throw new Error(`${purpose}: the model did not return JSON (${raw.incomplete_details?.reason ?? raw.status ?? "unknown"})`);
+}
+
+export function parseJsonLoose<T>(text: string): T | undefined {
+  const txt = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  if (!txt) return undefined;
+  try {
+    return JSON.parse(txt) as T;
+  } catch {
+    const a = txt.indexOf("{"), b = txt.lastIndexOf("}");
+    if (a >= 0 && b > a) {
+      try {
+        return JSON.parse(txt.slice(a, b + 1)) as T;
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
 }
 
 /** POST /v1/responses with stream: true; returns the concatenated output_text (SAM's wire lines). */

@@ -1,0 +1,47 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  margin-top: 12px;
+}
+
+.whatIf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.wiLabel {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.chip.on {
+  background: var(--plate);
+  border-color: var(--plate);
+  color: var(--plate-ink);
+}
+
+@media (max-width: 640px) {
+  .whatIf {
+    margin-left: 0;
+  }
+}

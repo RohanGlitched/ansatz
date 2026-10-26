@@ -189,6 +189,8 @@ export type Fit = {
   why?: string;
   theta: Record<string, number>;
   sigma: Record<string, number>;
+  /** weighted sum of squared residuals the optimiser minimised */
+  trainCost: number;
   /** RMS residual on the frames the law was fitted to, metres or radians per channel (weighted mean) */
   trainRms: number;
   /** RMS error predicting frames it never saw */
@@ -283,8 +285,27 @@ function invert(A: number[][]): number[][] | null {
  * Fits a law to the first `trainFrac` of the clip and predicts the rest. Residuals are weighted per channel
  * by that channel's measured noise, so pixels-to-metres scale doesn't decide which channel matters.
  */
-export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array } = {}): Fit {
-  const fail = (why: string): Fit => ({ lawId: law.id, ok: false, why, theta: {}, sigma: {}, trainRms: Infinity, testRms: Infinity, testMax: Infinity, bic: Infinity, n: 0, k: 0, iterations: 0, events: [], predicted: {} });
+export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number } = {}): Fit {
+  const starts = opts.starts ?? 6;
+  let best = fitOnce(law, data, opts);
+  const nFree = law.params.filter((p) => !p.fixed).length;
+  if (!nFree || opts.theta0) return best;
+  // deterministic multi-start: each extra start scales every free parameter's guess by a log-spaced factor
+  const factors = [0.35, 2.5, 0.6, 1.6, 0.15, 6];
+  for (let k = 0; k < starts - 1 && k < factors.length; k++) {
+    const law2: Law = { ...law, params: law.params.map((p, i) => (p.fixed ? p : { ...p, guess: clampTo(p, p.guess === 0 ? (p.max !== undefined && Number.isFinite(p.max) ? p.max * 0.1 * factors[(k + i) % factors.length] : factors[(k + i) % factors.length] - 1) : p.guess * factors[(k + i) % factors.length]) })) };
+    const f = fitOnce(law2, data, opts);
+    if (f.ok && (!best.ok || f.trainCost < best.trainCost)) best = f;
+  }
+  return best;
+}
+
+function clampTo(p: ParamSpec, v: number) {
+  return Math.min(p.max ?? Infinity, Math.max(p.min ?? -Infinity, v));
+}
+
+function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array } = {}): Fit {
+  const fail = (why: string): Fit => ({ lawId: law.id, ok: false, why, theta: {}, sigma: {}, trainCost: Infinity, trainRms: Infinity, testRms: Infinity, testMax: Infinity, bic: Infinity, n: 0, k: 0, iterations: 0, events: [], predicted: {} });
   let c: CompiledLaw;
   try {
     c = compileLaw(law);
@@ -383,6 +404,7 @@ export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIt
     ok: full.ok,
     theta: theta2,
     sigma,
+    trainCost: cost,
     trainRms: Math.sqrt(trainSq / Math.max(1, trainN)),
     testRms: testN ? Math.sqrt(testSq / testN) : NaN,
     testMax,

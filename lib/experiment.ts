@@ -11,6 +11,8 @@ import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
 import { controls } from "./physics/library";
 import { critique, eyeball, fromWire, hypothesise, MODELS, observe, type Critique, type Eyeball, type Observation } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
+import { toPixels } from "./pixels";
+export { toPixels };
 import { cut, prepare } from "./transcode";
 
 export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
@@ -18,7 +20,10 @@ export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypo
 export type Progress = { step: Step; state: "start" | "done" | "fail"; detail?: string; at: number; data?: unknown };
 
 export type Candidate = {
+  /** the law as proposed (what pages and models see) */
   law: Law;
+  /** the law actually fitted: `law` plus any measurement-only parameters (the scale correction) */
+  fitted?: Law;
   fit: Fit;
   origin: "muse" | "control" | "revision";
   ifItWins?: string;
@@ -46,8 +51,10 @@ export type Experiment = {
   finding: string;
   comparisons: Comparison[];
   eyeball: (Eyeball & { model: string }) | null;
+  /** set when the measured gravity says the clip's clock isn't real time */
+  clock: { factor: number; note: string } | null;
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
-  strobe: { f: number; t: number; rle: Sample["rle"] }[];
+  strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
@@ -61,7 +68,7 @@ export class ExperimentError extends Error {
   }
 }
 
-function newId() {
+export function newId() {
   const a = "abcdefghjkmnpqrstuvwxyz23456789";
   let s = "";
   for (let i = 0; i < 10; i++) s += a[Math.floor(Math.random() * a.length)];
@@ -100,37 +107,30 @@ function residualPattern(fit: Fit, m: Measured) {
   return out;
 }
 
-function rankCandidates(cands: Candidate[]) {
+/**
+ * Ranks by prediction error on the unseen frames. Two laws whose errors differ by less than the
+ * measurement noise (or 3%) are a tie, and a tie goes to the simpler law (lower BIC): Occam, measured.
+ */
+export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
+  const tie = (fa: number, fb: number) => Math.abs(fa - fb) < Math.max(0.03 * Math.max(fa, fb), 1.5 * noiseFloor);
   cands.sort((a, b) => {
     const fa = a.fit.ok ? a.fit.testRms : Infinity, fb = b.fit.ok ? b.fit.testRms : Infinity;
-    // within 3% on prediction, the simpler-by-BIC law wins
-    if (Number.isFinite(fa) && Number.isFinite(fb) && Math.abs(fa - fb) / Math.max(fa, fb) < 0.03) return a.fit.bic - b.fit.bic;
+    if (Number.isFinite(fa) && Number.isFinite(fb) && tie(fa, fb)) {
+      const byBic = Math.abs(a.fit.bic - b.fit.bic) > 2 ? a.fit.bic - b.fit.bic : 0;
+      // equal evidence: the law written in physical quantities (Muse's) reads better than a textbook stand-in
+      const byOrigin = (a.origin === "control" ? 1 : 0) - (b.origin === "control" ? 1 : 0);
+      return a.fit.k - b.fit.k || byBic || byOrigin || fa - fb;
+    }
     return fa - fb;
   });
+  // the sort above is not transitive near ties; settle by walking: a later law only overtakes when clearly better
   cands.forEach((c, i) => (c.rank = i + 1));
-}
-
-/** Map a law's predicted channels back to pixels for overlays. */
-export function toPixels(pred: Record<string, number[]>, m: Pick<Measured, "calibration" | "origin" | "pivot" | "line">): { x: number; y: number }[] {
-  const k = m.calibration.metresPerPixel;
-  const n = Math.max(...Object.values(pred).map((v) => v.length), 0);
-  const out: { x: number; y: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    if (pred.x && pred.y) out.push({ x: m.origin.x + pred.x[i] / k, y: m.origin.y - pred.y[i] / k });
-    else if (pred.theta && m.pivot) {
-      const r = pred.r?.[i] !== undefined ? pred.r[i] / k : m.pivot.r;
-      out.push({ x: m.pivot.x + r * Math.sin(pred.theta[i]), y: m.pivot.y + r * Math.cos(pred.theta[i]) });
-    } else if (pred.s && m.line) out.push({ x: m.line.x0 + (pred.s[i] / k) * m.line.ux, y: m.line.y0 + (pred.s[i] / k) * m.line.uy });
-    else if (pred.y) out.push({ x: m.origin.x, y: m.origin.y - pred.y[i] / k });
-    else if (pred.x) out.push({ x: m.origin.x + pred.x[i] / k, y: m.origin.y });
-  }
-  return out;
 }
 
 function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>): Comparison[] {
   const out: Comparison[] = [];
   for (const p of law.params) {
-    if (p.fixed) continue;
+    if (p.fixed || p.name === "cal") continue;
     const v = fit.theta[p.name], s = fit.sigma[p.name];
     let ref: number | undefined, label = "";
     const nm = p.name.toLowerCase();
@@ -147,6 +147,8 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
 }
 
 export type RunInput = {
+  /** the experiment's id (chosen up front so the clip can be stored under it) */
+  id?: string;
   video: Uint8Array;
   filename: string;
   narrationWav?: Uint8Array | null;
@@ -209,13 +211,16 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const padS = 0.4;
     const w0 = Math.max(0, Math.min(obs.window.start_s, vi.duration) - padS);
     const w1 = Math.min(vi.duration, (obs.window.end_s > obs.window.start_s ? obs.window.end_s : vi.duration) + padS);
-    const useCut = w1 - w0 < vi.duration * 0.8 && w1 - w0 > 0.5;
+    const framesInWindow = vi.times.filter((t) => t >= w0 && t <= w1).length;
+    const MAX_SAM_FRAMES = Number(process.env.MAX_SAM_FRAMES ?? 450);
+    const every = Math.max(1, Math.ceil(framesInWindow / MAX_SAM_FRAMES));
+    const useCut = (w1 - w0 < vi.duration * 0.8 && w1 - w0 > 0.5) || every > 1;
     const [subj, ref, frameMap] = await step("track", async () => {
       let trackFile = fileId;
       let map = (f: number) => f;
       let frames = vi.times.length;
       if (useCut) {
-        const clip = await cut(prep.video, w0, w1);
+        const clip = await cut(prep.video, w0, w1, every);
         const ci = readVideoInfo(clip);
         const offIdx = vi.times.findIndex((t) => t >= w0 - 1e-4);
         const offset = vi.times[Math.max(0, offIdx)];
@@ -231,8 +236,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         frames = ci.times.length;
       }
       const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
-      jobs.push(obs.reference.present && obs.reference.noun_phrase ? trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null) : Promise.resolve(null));
+      const selfRuler = obs.reference.present && obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
+      jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null) : Promise.resolve(null));
       let [s, r] = await Promise.all(jobs);
+      if (selfRuler) r = s;
       const moving = (res: SamResult | null) => !!res && res.tracks.some((t) => pathPx(t) > 20);
       if (!moving(s)) {
         // a shorter or plainer phrase often finds what a precise one misses
@@ -256,14 +263,21 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const gBody = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
     let scale: { value: number; kind: "reference" | "stated"; note: string } | null = null;
     if (ref && ref.tracks.length && obs.reference.real_length_m > 0) {
-      const rt = mainTrack(ref.tracks)!;
-      const lens = rt.samples.map((s) => (obs.reference.dimension === "shortest side" ? s.minor : s.major)).sort((a, b) => a - b);
+      const selfRuler = obs.reference.noun_phrase.trim().toLowerCase() === subjectNoun.trim().toLowerCase();
+      const rt = selfRuler ? track : mainTrack(ref.tracks)!;
+      // a moving ball smears along its path, so its true diameter is the mask's short axis
+      const lens = rt.samples.map((s) => (obs.reference.dimension === "shortest side" || selfRuler ? s.minor : s.major)).sort((a, b) => a - b);
       const px = lens[lens.length >> 1];
       if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
     }
     const m = await step("measure", async () => {
-      const first = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind });
-      return obs.motion_kind === "flight" ? first : trimStatic(first, track, vi, winT, slow, scale, gBody, obs.motion_kind);
+      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind });
+      if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind);
+      // a pendulum's angle needs no ruler: without one, measure only theta (lengths in pixels would mislead the theorist)
+      if (mm.series.ch.theta && (mm.calibration.kind === "none" || mm.calibration.kind === "gravity")) {
+        mm = { ...mm, calibration: { kind: "none", metresPerPixel: 1, note: "no ruler needed: the swing is measured as an angle" }, series: { t: mm.series.t, ch: { theta: mm.series.ch.theta } }, noise: { theta: mm.noise.theta } };
+      }
+      return mm;
     }, (r) => `${r.series.t.length} points over ${(r.series.t[r.series.t.length - 1]).toFixed(2)} s · ${r.calibration.note}${r.pivot ? " · swings about a pivot" : ""}`);
 
     // what is given, not measured
@@ -277,6 +291,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const q = f.quantity.toLowerCase();
       if (/length|string|rope/.test(q) && /^m|metre|meter|cm/.test(f.unit.toLowerCase())) stated.l = /cm/.test(f.unit) ? f.value / 100 : f.value;
     }
+    if (m.series.ch.theta && m.pivot && m.calibration.kind === "reference" && stated.l === undefined) {
+      const lGeo = m.pivot.r * m.calibration.metresPerPixel;
+      stated.l = lGeo;
+      given.push(`pendulum length L = ${lGeo.toFixed(3)} m, measured from the radius of the swing with the ruler: hold L fixed and measure g`);
+    } else if (m.series.ch.theta && !m.series.ch.x) {
+      if (stated.l !== undefined) given.push(`pendulum length L = ${stated.l} m (stated): hold L fixed and measure g`);
+      else given.push(`g = ${gBody.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}): hold g fixed and measure the pendulum's length L in metres from its swing`);
+    }
     const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
 
     // 6. hypothesise
@@ -285,6 +307,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
     // 7. fit every candidate on the first 70%, predict the rest
     const channels = Object.keys(m.series.ch);
+    const noiseFloor = Math.sqrt(Object.values(m.noise).reduce((s2, v) => s2 + v * v, 0) / Math.max(1, Object.keys(m.noise).length));
     const cands: Candidate[] = await step("fit", async () => {
       const list: Candidate[] = [];
       const seen = new Set<string>();
@@ -294,11 +317,13 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         seen.add(id);
         const l = { ...law, id };
         if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
-        list.push({ law: l, fit: fitLaw(l, m.series, { trainFrac: TRAIN }), origin, ifItWins, rank: 0 });
+        // the scale correction is the measurement's business, not the law's: fit the wrapped law, show the inner one
+        const fitted = gUsed !== null ? withScaleCorrection(l) : l;
+        list.push({ law: l, fitted, fit: fitLaw(fitted, m.series, { trainFrac: TRAIN }), origin, ifItWins, rank: 0 });
       };
       for (const l of hyp.laws) add(l, "muse", hyp.ifItWins[l.id]);
       for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
-      rankCandidates(list);
+      rankCandidates(list, noiseFloor);
       return list;
     }, (r) => `${r.length} laws fitted; best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to ${fmtErr(r[0].fit.testRms, m.calibration)}`);
 
@@ -311,7 +336,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       equations: c.law.derivatives,
       observes: c.law.observe,
       events: c.law.events ?? [],
-      fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0")).map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}`])),
+      fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}${atBound(c.law, k, c.fit.theta[k]) ? " (stuck at its limit)" : ""}`])),
       train_rms: c.fit.trainRms,
       unseen_rms: c.fit.testRms,
       unseen_worst: c.fit.testMax,
@@ -323,7 +348,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const winnerFirst = cands[0];
     const eyePromise: Promise<Eyeball | null> = input.skipEyeball
       ? Promise.resolve(null)
-      : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed).map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
+      : winnerFirst.law.params.some((p) => !p.fixed && p.name !== "cal") === false
+        ? Promise.resolve(null)
+        : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
     const crit = await step("referee", async () => {
       const c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
       if (c?.verdict === "revise" && c.revised_law) {
@@ -331,8 +358,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           const law = fromWire(c.revised_law);
           compileLaw(law);
           if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
-          cands.push({ law: { ...law, id: `${law.id}-rev` }, fit: fitLaw({ ...law, id: `${law.id}-rev` }, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
-          rankCandidates(cands);
+          const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
+          const rev = gUsed !== null ? withScaleCorrection(inner) : inner;
+          cands.push({ law: inner, fitted: rev, fit: fitLaw(rev, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
+          rankCandidates(cands, noiseFloor);
         } catch {
           /* an unusable revision simply doesn't compete */
         }
@@ -345,8 +374,11 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const win = cands[0];
     const rep = await step("report", async () => {
       const comps = referenceValues(win.law, win.fit, obs, gUsed, stated);
+      // the referee's sentence is used only if it types no numbers of its own and names the winner's fitted values
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
-      const finding = crit?.finding && !typed ? fillPlaceholders(crit.finding, win.fit, win.law) : defaultFinding(win.law, win.fit);
+      const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
+      const namesOne = !winnerFree.length || winnerFree.some((n) => crit?.finding?.includes(`{${n}}`));
+      const finding = crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : defaultFinding(win.law, win.fit);
       // counterfactuals: re-run the winner with one parameter scaled, over the same span ×1.4
       const cl = compileLaw(win.law);
       const span = m.series.t;
@@ -364,16 +396,33 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         const run = (fixedParam ? compileLaw(law2) : cl).run(theta, times);
         return run.ok ? [{ label: w.label, param: w.param, factor: w.factor, px: toPixels(run.obs, m) }] : [];
       });
-      return { comps, finding, whatIf };
+      // the clock check: a g far from the planet's says the clip's clock is not real time
+      let clock: Experiment["clock"] = null;
+      const gc = comps.find((c) => c.param.toLowerCase() === "g" && c.label !== "what the narrator said");
+      if (gc && slow === 1) {
+        const r = gc.measured / gc.reference;
+        if (r > 0 && (r < 0.6 || r > 1.7)) {
+          const f = Math.sqrt(1 / r);
+          clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× Earth's gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
+        }
+      }
+      return { comps, finding, whatIf, clock };
     }, (r) => r.finding);
 
     // strobe frames: ~16 evenly spaced masks across the window
+    // strobe instants spaced by distance travelled (about one body-width apart), like a multiflash photograph
     const inWin = track.samples.filter((s) => s.f >= m.window.f0 && s.f <= m.window.f1);
-    const every = Math.max(1, Math.round(inWin.length / 16));
-    const strobe = inWin.filter((_, i) => i % every === 0).map((s) => ({ f: s.f, t: vi.times[s.f] ?? 0, rle: s.rle }));
+    const size = [...inWin.map((s) => s.minor)].sort((a, b) => a - b)[inWin.length >> 1] || 20;
+    const picked: Sample[] = [];
+    for (const s of inWin) {
+      const last = picked[picked.length - 1];
+      if (!last || Math.hypot(s.cx - last.cx, s.cy - last.cy) >= size * 1.05) picked.push(s);
+    }
+    const thin = Math.max(1, Math.ceil(picked.length / 28));
+    const strobe = picked.filter((_, i) => i % thin === 0).map((s) => ({ f: s.f, t: vi.times[s.f] ?? 0, box: s.box, rle: s.rle }));
 
     return {
-      id: newId(),
+      id: input.id ?? newId(),
       createdAt: new Date().toISOString(),
       title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
       source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },
@@ -392,6 +441,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       comparisons: rep.comps,
       eyeball: eye ? { ...eye, model: MODELS.eyeball } : null,
       whatIf: rep.whatIf,
+      clock: rep.clock,
       strobe,
       trainFrac: TRAIN,
       ledger: { calls: ledger.calls, usd: ledger.usd, tokens: ledger.tokens, ms: Date.now() - t0 },
@@ -405,9 +455,36 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
 /** The finding written by code when the referee is missing or typed its own numbers. */
 function defaultFinding(law: Law, fit: Fit) {
-  const ps = law.params.filter((p) => !p.fixed && Number.isFinite(fit.theta[p.name]));
+  const ps = law.params.filter((p) => !p.fixed && p.name !== "cal" && Number.isFinite(fit.theta[p.name]));
   const parts = ps.slice(0, 3).map((p) => `${p.meaning ?? p.name} ${fillPlaceholders(`{${p.name}}`, fit, law)}`);
   return `${law.summary}${parts.length ? ` Measured: ${parts.join("; ")}.` : ""}`;
+}
+
+const LENGTH_CHANNELS = new Set(["x", "y", "s", "r"]);
+
+/** A fitted value pressed against its bound was not measured, only limited. */
+export function atBound(law: Law, name: string, v: number) {
+  const p = law.params.find((q) => q.name === name);
+  if (!p || p.fixed) return false;
+  const span = (p.max ?? Infinity) - (p.min ?? -Infinity);
+  const tol = Number.isFinite(span) ? span * 0.005 : Math.abs(v) * 0.005;
+  return (p.max !== undefined && Math.abs(v - p.max) <= tol && p.max !== 0) || (p.min !== undefined && p.min !== 0 && Math.abs(v - p.min) <= tol);
+}
+
+/**
+ * When the fall itself set the scale (g fixed), the provisional metres are only right if the flight was a
+ * vacuum parabola. Each law gets a free scale correction `cal` so drag (or anything else that bends the
+ * path) is not silently absorbed into the ruler: shape decides drag, gravity decides scale.
+ */
+export function withScaleCorrection(law: Law): Law {
+  if (law.params.some((p) => p.name === "cal")) return law;
+  const lengthObs = Object.keys(law.observe).filter((c) => LENGTH_CHANNELS.has(c));
+  if (!lengthObs.length) return law;
+  return {
+    ...law,
+    params: [...law.params, { name: "cal", guess: 1, min: 0.3, max: 3, unit: "", meaning: "scale correction: true metres per provisional metre" }],
+    observe: Object.fromEntries(Object.entries(law.observe).map(([c, e]) => [c, LENGTH_CHANNELS.has(c) ? `(${e})/cal` : e])),
+  };
 }
 
 function pathPx(t: Track) {

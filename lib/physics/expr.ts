@@ -188,8 +188,9 @@ export function compile(src: string, vars: string[]): Compiled {
 /** Renders a parsed expression as LaTeX for the report (dots become derivatives at the call site). */
 export function toLatex(src: string, rename: Record<string, string> = {}): string {
   const tree = parse(src);
-  const prec = (n: Node) => (n.k === "bin" ? { "+": 1, "-": 1, "*": 2, "/": 2, "^": 4 }[n.op] : n.k === "neg" ? 3 : 5);
-  const sym = (name: string) => rename[name] ?? (GREEK.has(name) ? `\\${name}` : name.length > 1 ? `${name[0]}_{${name.slice(1)}}` : name);
+  // a fraction renders as \frac, which is already grouped, so it never needs parentheses
+  const prec = (n: Node) => (n.k === "bin" ? { "+": 1, "-": 1, "*": 2, "/": 5, "^": 4 }[n.op] : n.k === "neg" ? 3 : 5);
+  const sym = (name: string) => rename[name] ?? (GREEK.has(name) ? `\\${name}` : name.length > 1 ? `\\mathit{${name}}` : name);
   function go(n: Node): string {
     switch (n.k) {
       case "num": return fmtNum(n.v);
@@ -198,6 +199,7 @@ export function toLatex(src: string, rename: Record<string, string> = {}): strin
       case "call": {
         if (n.fn === "sqrt") return `\\sqrt{${go(n.args[0])}}`;
         if (n.fn === "abs") return `\\left|${go(n.args[0])}\\right|`;
+        if (n.fn === "hypot") return `\\sqrt{${n.args.map((a) => `${wrap(a, 5)}^{2}`).join(" + ")}}`;
         const known = ["sin", "cos", "tan", "exp", "log", "sinh", "cosh", "tanh"].includes(n.fn);
         return `${known ? `\\${n.fn}` : `\\operatorname{${n.fn}}`}\\left(${n.args.map(go).join(", ")}\\right)`;
       }

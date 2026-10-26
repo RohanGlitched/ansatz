@@ -39,6 +39,8 @@ export async function prepare(input: Uint8Array, opts: { maxSeconds?: number; ma
     const out = path.join(dir, "out.mp4");
     const wav = path.join(dir, "narration.wav");
     await writeFile(src, input);
+    const probe = await new Promise<string>((resolve) => execFile(bin, ["-hide_banner", "-i", src], { windowsHide: true }, (_e, _o, err) => resolve(String(err))));
+    const hasAudio = /Stream #\S+.*Audio:/.test(probe);
     const W = opts.maxWidth ?? 1280;
     const args = [
       "-hide_banner", "-y", "-i", src,
@@ -47,12 +49,12 @@ export async function prepare(input: Uint8Array, opts: { maxSeconds?: number; ma
       "-vf", `scale='if(gt(iw,ih),min(${W},iw),-2)':'if(gt(iw,ih),-2,min(${W},ih))'`,
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
       "-fps_mode", "passthrough", "-movflags", "+faststart", out,
-      "-map", "0:a:0?", "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", String(opts.maxSeconds ?? 60), wav,
+      ...(hasAudio ? ["-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", String(opts.maxSeconds ?? 60), wav] : []),
     ];
     await run(bin, args, 180_000);
     const video = new Uint8Array(await readFile(out));
     let w: Uint8Array | null = null;
-    try {
+    if (hasAudio) try {
       const s = await stat(wav);
       if (s.size > 4000) w = new Uint8Array(await readFile(wav));
     } catch {
@@ -64,15 +66,20 @@ export async function prepare(input: Uint8Array, opts: { maxSeconds?: number; ma
   }
 }
 
-/** Cuts [t0, t1] (video seconds) out of a prepared clip, re-encoding so the cut is frame-exact. */
-export async function cut(input: Uint8Array, t0: number, t1: number): Promise<Uint8Array> {
+/**
+ * Cuts [t0, t1] (video seconds) out of a prepared clip, re-encoding so the cut is frame-exact. With
+ * `every` > 1 it keeps one frame in `every` (original timestamps kept), so SAM bills fewer frames.
+ */
+export async function cut(input: Uint8Array, t0: number, t1: number, every = 1): Promise<Uint8Array> {
   const bin = await ffmpeg();
   const dir = await mkdtemp(path.join(tmpdir(), "ansatz-cut-"));
   try {
     const src = path.join(dir, "in.mp4");
     const out = path.join(dir, "cut.mp4");
     await writeFile(src, input);
-    await run(bin, ["-hide_banner", "-y", "-ss", t0.toFixed(4), "-i", src, "-t", (t1 - t0).toFixed(4), "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-fps_mode", "passthrough", "-movflags", "+faststart", out]);
+    // keep one frame in `every`; the comma inside the expression is escaped for ffmpeg's filter parser
+    const vf = every > 1 ? ["-vf", `select='not(mod(n\\,${every}))'`] : [];
+    await run(bin, ["-hide_banner", "-y", "-ss", t0.toFixed(4), "-i", src, "-t", (t1 - t0).toFixed(4), "-an", ...vf, "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-fps_mode", "passthrough", "-movflags", "+faststart", out]);
     return new Uint8Array(await readFile(out));
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
