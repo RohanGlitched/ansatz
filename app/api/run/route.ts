@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     async start(ctrl) {
       const send = (event: string, data: unknown) => ctrl.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       const ping = setInterval(() => ctrl.enqueue(enc.encode(": keep-alive\n\n")), 10_000);
+      send("started", { id });
       try {
         const exp = await runExperiment(
           {
@@ -54,7 +55,9 @@ export async function POST(req: Request) {
         await putObject(`experiments/${id}.json`, JSON.stringify(exp), "application/json");
         send("done", { id });
       } catch (e) {
-        send("error", { message: (e as Error).message, step: (e as { step?: string }).step });
+        const failure = { message: (e as Error).message, step: (e as { step?: string }).step };
+        await putObject(`errors/${id}.json`, JSON.stringify(failure), "application/json").catch(() => {});
+        send("error", failure);
       } finally {
         clearInterval(ping);
         ctrl.close();

@@ -15,7 +15,7 @@ const STEPS: { id: StepId; label: string; who: string }[] = [
   { id: "measure", label: "Turn pixels into a trajectory", who: "code" },
   { id: "hypothesise", label: "Propose laws of motion", who: "Muse Spark 1.3" },
   { id: "fit", label: "Fit each law, predict the frames it never saw", who: "code" },
-  { id: "referee", label: "Referee the result", who: "Muse Wonder 1.0" },
+  { id: "referee", label: "Referee the result; write one more law if the misses demand it", who: "Muse Spark 1.3, then Muse Wonder 1.0" },
   { id: "report", label: "Write it up", who: "code" },
 ];
 
@@ -125,8 +125,17 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
       const reader = r.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
+      let runId: string | null = null;
       for (;;) {
-        const { value, done } = await reader.read();
+        let chunkRead: ReadableStreamReadResult<Uint8Array>;
+        try {
+          chunkRead = await reader.read();
+        } catch {
+          // the stream can drop on a flaky connection while the experiment keeps running on the server
+          if (runId) return await pollUntilDone(runId);
+          throw new Error("The connection dropped before the experiment started. Try again.");
+        }
+        const { value, done } = chunkRead;
         if (done) break;
         buf += dec.decode(value, { stream: true });
         let i;
@@ -137,7 +146,9 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
           const data = /^data: (.*)$/m.exec(chunk)?.[1];
           if (!ev || !data) continue;
           const d = JSON.parse(data);
-          if (ev === "progress") {
+          if (ev === "started") {
+            runId = d.id;
+          } else if (ev === "progress") {
             setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : d.state, detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
           } else if (ev === "done") {
             router.push(`/x/${d.id}`);
@@ -147,11 +158,26 @@ export default function NewExperiment({ samples }: { samples: Sample[] }) {
           }
         }
       }
+      if (runId) return await pollUntilDone(runId);
       throw new Error("The connection closed before the experiment finished. Try again.");
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);
     }
+  }
+
+  async function pollUntilDone(id: string) {
+    setSteps((s) => ({ ...s, report: { state: "run", detail: "The live feed dropped; the experiment is still running on the server. Waiting for it…", started: s.report?.started } }));
+    for (let i = 0; i < 100; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const s = await fetch(`/api/status/${id}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      if (s?.state === "done") {
+        router.push(`/x/${id}`);
+        return;
+      }
+      if (s?.state === "failed") throw new Error(s.message ?? "The experiment failed.");
+    }
+    throw new Error("The experiment is taking too long. Open it later from its link: /x/" + id);
   }
 
   const elapsed = busy ? (performance.now() - t0.current) / 1000 : 0;
