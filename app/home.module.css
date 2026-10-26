@@ -314,3 +314,36 @@
     border-top: 1px solid var(--rule);
   }
 }
+
+.recent {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 10px;
+}
+
+.recent a {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  text-decoration: none;
+  height: 100%;
+}
+
+.recent a:hover {
+  border-color: var(--ink);
+  color: inherit;
+}
+
+.recent span {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.recent em {
+  font-style: normal;
+}

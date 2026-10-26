@@ -3,7 +3,7 @@ import PlateWithControls from "@/components/PlateWithControls";
 import StrobePlate from "@/components/StrobePlate";
 import Tex from "@/components/Tex";
 import MoonHero from "@/components/MoonHero";
-import { getExperiment, plateData, showcaseIds, winnerOf } from "@/lib/experiments";
+import { getExperiment, plateData, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
@@ -16,6 +16,7 @@ export default async function Home() {
   const hero = exps.find((e) => e.id === (process.env.HERO_ID ?? "beach-ball-drag")) ?? exps[0];
   const heroWin = hero ? winnerOf(hero) : null;
   const moon = exps.find((e) => e.id === "moon-jump");
+  const recent = await recentExperiments().catch(() => []);
   const moonG = moon?.comparisons.find((c) => c.param === "g");
 
   return (
@@ -141,6 +142,28 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {recent.length > 0 && (
+        <section className="section">
+          <div className="wrap">
+            <h2 className={styles.h2}>Run by visitors</h2>
+            <p className="lede" style={{ marginTop: 12 }}>
+              The latest experiments people ran on this site, each with its full record.
+            </p>
+            <ul className={styles.recent}>
+              {recent.map((r) => (
+                <li key={r.id}>
+                  <Link href={`/x/${r.id}`}>
+                    <strong>{r.title}</strong>
+                    <span>{r.headline}</span>
+                    <em className="small">{new Date(r.createdAt).toUTCString().slice(5, 22)} UTC</em>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className={`wrap ${styles.two}`}>

@@ -82,3 +82,18 @@ export function clipData(e: Experiment) {
     split: Math.min(m.px.length - 1, Math.max(1, Math.round(m.px.length * e.trainFrac))),
   };
 }
+
+let recentCache: { at: number; items: { id: string; title: string; headline: string; createdAt: string }[] } | null = null;
+
+/** The latest experiments visitors ran on the live site (cached a minute). */
+export async function recentExperiments(limit = 6) {
+  if (recentCache && Date.now() - recentCache.at < 60_000) return recentCache.items;
+  const ids = await recentIds(40).catch(() => []);
+  const items = (await Promise.all(ids.map((id) => getExperiment(id).catch(() => null))))
+    .filter((e): e is Experiment => !!e)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, limit)
+    .map((e) => ({ id: e.id, title: e.title, headline: e.headline ?? e.finding, createdAt: e.createdAt }));
+  recentCache = { at: Date.now(), items };
+  return items;
+}
