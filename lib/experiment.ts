@@ -63,7 +63,7 @@ export type Experiment = {
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
   wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
-  extras?: { robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string };
+  extras?: { robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; clock: string; href?: string }[] } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
 };
@@ -140,8 +140,15 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   cands.forEach((c, i) => (c.rank = i + 1));
 }
 
-function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>): Comparison[] {
+function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"]): Comparison[] {
   const out: Comparison[] = [];
+  // a free flight written as uniform acceleration along a vertical path: |a| is the gravity it measured
+  const a = law.params.find((p) => !p.fixed && /^a$/i.test(p.name) && /m\/s/.test(p.unit ?? ""));
+  if (a && gUsed === null && obs.motion_kind === "flight" && line && Math.abs(line.uy) > 0.95 && !law.params.some((p) => p.name === "g" && !p.fixed)) {
+    const v = Math.abs(fit.theta[a.name]), s = fit.sigma[a.name] || 0;
+    const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
+    if (Number.isFinite(v)) out.push({ param: a.name, measured: v, sigma: s, reference: ref, label: `${obs.body === "earth" ? "standard gravity on Earth" : `surface gravity of the ${obs.body === "moon" ? "Moon" : obs.body}`} (a fall straight down accelerates at g)`, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
+  }
   // a pendulum written with an angular frequency w0 = sqrt(g/L): with L known, g = w0² L is a measurement too
   const w = law.params.find((p) => !p.fixed && (/^(w0|w|omega0|omega)$/i.test(p.name) || /angular frequency/i.test(p.meaning ?? "")));
   if (w && stated.l !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
@@ -473,7 +480,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 9. report
     const win = cands[0];
     const rep = await step("report", async () => {
-      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated);
+      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line);
       // the referee's sentence is used only if it types no numbers of its own and names the winner's fitted values
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
       const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
@@ -500,12 +507,12 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       });
       // the clock check: a g far from the planet's says the clip's clock is not real time
       let clock: Experiment["clock"] = null;
-      const gc = comps.find((c) => c.param.toLowerCase() === "g" && c.label !== "what the narrator said");
+      const gc = comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g/.test(c.label)) && c.label !== "what the narrator said");
       if (gc && slow === 1) {
         const r = gc.measured / gc.reference;
         if (r > 0 && (r < 0.6 || r > 1.7)) {
           const f = Math.sqrt(1 / r);
-          clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× Earth's gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
+          clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
         }
       }
       const sameWinner = !crit || cands[0].law.id === winnerAtReferee;

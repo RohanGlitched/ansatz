@@ -50,7 +50,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
         <nav className={styles.langs} aria-label="Language">
           <a href={`/x/${e.id}`} aria-current={!tr ? "page" : undefined}>English</a>
           {Object.entries(LANGUAGES).map(([code, name]) => (
-            <a key={code} href={`/x/${e.id}?lang=${code}`} lang={code} aria-current={tr && lang === code ? "page" : undefined}>
+            <a key={code} href={`/x/${e.id}?lang=${code}`} lang={code} rel="nofollow" aria-current={tr && lang === code ? "page" : undefined}>
               {name}
             </a>
           ))}
@@ -97,7 +97,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     {Number.isFinite(s) && s > 0 ? <span> ± {fmt(s, 2)}</span> : <span className={styles.nd}> (not pinned down)</span>} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
                     {cmp && (
                       <span className={styles.ref}>
-                        {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.
+                        {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
                       </span>
                     )}
                   </dd>
@@ -257,6 +257,40 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             </table>
             {e.extras.crossCheck && <p style={{ marginTop: 16, maxWidth: "75ch" }}>{e.extras.crossCheck}</p>}
             {e.extras.ruler && <p className="small" style={{ marginTop: 8 }}>Ruler: {e.extras.ruler}</p>}
+          </div>
+        </section>
+      )}
+
+      {e.extras?.memoryTest && (
+        <section className={`section ${styles.band}`}>
+          <div className="wrap">
+            <h2>Memory or measurement?</h2>
+            <p className="lede" style={{ marginTop: 12 }}>{e.extras.memoryTest.note}</p>
+            <table className={styles.vs}>
+              <thead>
+                <tr>
+                  <th>Clip</th>
+                  <th>Muse Spark by eye</th>
+                  <th>Ansatz measured</th>
+                  <th>Ansatz’s clock check</th>
+                </tr>
+              </thead>
+              <tbody>
+                {e.extras.memoryTest.rows.map((r) => (
+                  <tr key={r.clip}>
+                    <td>{r.href && r.href !== `/x/${e.id}` ? <Link href={r.href}>{r.clip}</Link> : r.clip}</td>
+                    <td className="num">{r.eye != null ? `${fmt(r.eye)} m/s²` : "—"}</td>
+                    <td className="num">
+                      <strong>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)} m/s²
+                    </td>
+                    <td>{r.clock}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ marginTop: 16, maxWidth: "75ch" }}>
+              The language model gives the same answer to both, because it recognises the footage and recalls the textbook. Ansatz’s answer moves with the pixels, by the factor the slowdown predicts (2.25× would give {(e.extras.memoryTest.rows[0].g / 2.25).toFixed(2)}), and its clock check says why.
+            </p>
           </div>
         </section>
       )}

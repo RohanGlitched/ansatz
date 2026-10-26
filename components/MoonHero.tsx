@@ -61,6 +61,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
               <span className={styles.ref}>The Moon: {g.reference} m/s². Earth: 9.81.</span>
             </p>
           )}
+          {g && <GravityLine g={g.measured} sigma={g.sigma} />}
           <div className={styles.cta}>
             <Link className="btn" href="/new">
               Run an experiment
@@ -112,5 +113,36 @@ export default function MoonHero({ e }: { e: Experiment }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Where the measurement falls among the worlds it could have been: one glance rules out Earth and Mars. */
+function GravityLine({ g, sigma }: { g: number; sigma: number }) {
+  const W = 420, L = 8, R = 12, max = 10.5;
+  const X = (v: number) => L + (v / max) * (W - L - R);
+  const worlds = [
+    { name: "Moon", v: 1.62 },
+    { name: "Mars", v: 3.71 },
+    { name: "Earth", v: 9.81 },
+  ];
+  return (
+    <svg className={styles.line} viewBox={`0 0 ${W} 64`} role="img" aria-label={`The measurement, ${g.toFixed(2)} plus or minus ${sigma.toFixed(2)} metres per second squared, on a line from 0 to 10 with the Moon, Mars and Earth marked`}>
+      <line x1={L} x2={W - R} y1={30} y2={30} stroke="#3a3f46" strokeWidth="2" />
+      {[0, 2, 4, 6, 8, 10].map((v) => (
+        <text key={v} x={X(v)} y={60} fontSize="12" textAnchor="middle" fill="#8b929b">
+          {v}
+        </text>
+      ))}
+      {worlds.map((w) => (
+        <g key={w.name}>
+          <line x1={X(w.v)} x2={X(w.v)} y1={22} y2={38} stroke="#b8bec6" strokeWidth="1.5" />
+          <text x={X(w.v)} y={14} fontSize="13" textAnchor={w.name === "Moon" ? "start" : "middle"} fill="#b8bec6">
+            {w.name}
+          </text>
+        </g>
+      ))}
+      <rect x={X(g - sigma)} y={25} width={Math.max(2, X(g + sigma) - X(g - sigma))} height={10} rx={3} fill="#8fa0ff" opacity="0.45" />
+      <circle cx={X(g)} cy={30} r={5} fill="#8fa0ff" />
+    </svg>
   );
 }

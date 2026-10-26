@@ -1,5 +1,6 @@
-import "server-only";
 import { Ledger, respondJson } from "./meta/client";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { getObject, putObject } from "./store";
 import type { Experiment } from "./experiment";
 
@@ -16,7 +17,11 @@ const NAMES: Record<string, string> = { hi: "Hindi", ta: "Tamil", bn: "Bengali",
 
 export type Translation = { headline: string; finding: string; what_happens: string; summary: string };
 
-const numbers = (s: string): string[] => [...(s.match(/\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? [])].sort();
+// Devanagari, Bengali, Tamil and Telugu digits count as the same numbers as 0–9
+const DIGITS = ["०१२३४५६७८९", "০১২৩৪৫৬৭৮৯", "௦௧௨௩௪௫௬௭௮௯", "౦౧౨౩౪౫౬౭౮౯"];
+const ascii = (s: string) => s.replace(/[०-९০-৯௦-௯౦-౯]/g, (d) => String(DIGITS.find((set) => set.includes(d))!.indexOf(d)));
+const numbers = (s: string): string[] => [...(ascii(s).match(/\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? [])].sort();
+const inflight = new Map<string, Promise<Translation | null>>();
 
 /**
  * The experiment's words in another language, written by Muse Spark and checked by code: every number in the
@@ -24,9 +29,23 @@ const numbers = (s: string): string[] => [...(s.match(/\d+(?:\.\d+)?(?:e-?\d+)?/
  */
 export async function translation(e: Experiment, lang: string): Promise<Translation | null> {
   if (!NAMES[lang]) return null;
+  // showcases ship with their translations, so reading them costs nothing
+  if (e.source?.kind === "showcase") {
+    const raw = await readFile(join(process.cwd(), "data", "showcase", "translations", `${e.id}.${lang}.json`), "utf8").catch(() => null);
+    if (raw) return (JSON.parse(raw) as { refused?: boolean } & Translation).refused ? null : (JSON.parse(raw) as Translation);
+  }
   const key = `translations/${e.id}.${lang}.json`;
   const cached = await getObject(key).catch(() => null);
-  if (cached) return JSON.parse(new TextDecoder().decode(cached)) as Translation;
+  // a refusal is remembered too, so a page view never pays for the same translation twice
+  if (cached) {
+    const v = JSON.parse(new TextDecoder().decode(cached)) as { refused?: boolean } & Translation;
+    return v.refused ? null : v;
+  }
+  if (!inflight.has(key)) inflight.set(key, translate(e, lang, key).finally(() => inflight.delete(key)));
+  return inflight.get(key)!;
+}
+
+export async function translate(e: Experiment, lang: string, key?: string): Promise<Translation | null> {
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const source: Translation = { headline: e.headline ?? e.finding, finding: e.finding, what_happens: e.observation.what_happens, summary: win.law.summary };
   const ledger = new Ledger();
@@ -59,8 +78,11 @@ export async function translation(e: Experiment, lang: string): Promise<Translat
   );
   for (const k of Object.keys(source) as (keyof Translation)[]) {
     const want = numbers(source[k]), got = numbers(value[k] ?? "");
-    if (want.some((n) => !got.includes(n))) return null;
+    if (want.some((n) => !got.includes(n))) {
+      if (key) await putObject(key, JSON.stringify({ refused: true }), "application/json").catch(() => {});
+      return null;
+    }
   }
-  await putObject(key, JSON.stringify(value), "application/json").catch(() => {});
+  if (key) await putObject(key, JSON.stringify(value), "application/json").catch(() => {});
   return value;
 }

@@ -43,6 +43,14 @@
   font-size: 16px;
 }
 
+.line {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin-top: 14px;
+}
+
 .cta {
   display: flex;
   flex-wrap: wrap;

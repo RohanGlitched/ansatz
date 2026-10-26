@@ -4,4 +4,4 @@
 node_modules
 .next
 test/fixtures
-bench
+/bench

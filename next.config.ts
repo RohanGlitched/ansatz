@@ -9,7 +9,10 @@ const config: NextConfig = {
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: {
     "/api/run": ["./node_modules/ffmpeg-static/ffmpeg*"],
-    "/api/health": ["./node_modules/ffmpeg-static/ffmpeg*"],
+    "/api/health": ["./node_modules/ffmpeg-static/ffmpeg*", "./data/showcase/**"],
+    "/x/[id]": ["./data/showcase/**"],
+    "/x/[id]/report": ["./data/showcase/**"],
+    "/proof": ["./data/bench/**"],
   },
   async headers() {
     return [
