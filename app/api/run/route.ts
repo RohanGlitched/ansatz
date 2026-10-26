@@ -31,8 +31,16 @@ export async function POST(req: Request) {
   const enc = new TextEncoder();
   const stream = new ReadableStream({
     async start(ctrl) {
-      const send = (event: string, data: unknown) => ctrl.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-      const ping = setInterval(() => ctrl.enqueue(enc.encode(": keep-alive\n\n")), 10_000);
+      // writes after the stream closed (the watchdog, or a dropped client) are ignored: the run carries on and is saved
+      const write = (chunk: string) => {
+        try {
+          ctrl.enqueue(enc.encode(chunk));
+        } catch {
+          /* closed */
+        }
+      };
+      const send = (event: string, data: unknown) => write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      const ping = setInterval(() => write(": keep-alive\n\n"), 10_000);
       send("started", { id });
       // the function is stopped at 300 s; record a readable failure first so a waiting page can say what happened
       let finished = false;
