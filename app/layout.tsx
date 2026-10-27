@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import type { Metadata, Viewport } from "next";
 import { Host_Grotesk } from "next/font/google";
 import Link from "next/link";
@@ -20,9 +21,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#f2f3f0", width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // set by middleware.ts on experiment pages read in another language
+  const lang = (await headers()).get("x-lang") ?? "en";
   return (
-    <html lang="en" className={host.variable}>
+    <html lang={lang} className={host.variable}>
       <body>
         <header className={styles.top}>
           <div className={`wrap ${styles.bar}`}>
