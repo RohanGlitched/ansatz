@@ -69,10 +69,12 @@
   background: #000;
 }
 
-.still img {
+.still img,
+.still video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .still i {
@@ -366,4 +368,96 @@
 
 .line text {
   font-family: var(--font);
+}
+
+/* the scan: each strip develops left to right at its clip's own playback speed, so the slowed copy, 1.5x longer,
+   finishes 1.5x later; every measured point lands as the scan line passes its frame */
+.develop {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 100% 0 0);
+  animation: develop var(--dur) linear both paused;
+}
+
+.scanLine {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 0;
+  width: 2px;
+  background: var(--measured);
+  box-shadow: 0 0 12px 2px rgba(255, 90, 31, 0.65);
+  animation: scanMove var(--dur) linear both paused;
+  pointer-events: none;
+}
+
+.develop .dot {
+  animation: dotIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) var(--d) both paused;
+}
+
+.develop .jumpTag {
+  animation: tagIn 0.4s ease-out var(--d) both paused;
+}
+
+.scan[data-playing] .develop,
+.scan[data-playing] .scanLine,
+.scan[data-playing] .develop .dot,
+.scan[data-playing] .develop .jumpTag {
+  animation-play-state: running;
+}
+
+@keyframes develop {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes scanMove {
+  0% {
+    left: 0;
+    opacity: 1;
+  }
+  97% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 2px);
+    opacity: 0;
+  }
+}
+
+@keyframes dotIn {
+  from {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes tagIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.replay {
+  margin-top: 10px;
+  font-family: var(--font);
+  font-size: 13.5px;
+  color: #c9d1ff;
+  background: transparent;
+  border: 1px solid #3a3f46;
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.replay:hover {
+  border-color: #8fa0ff;
+  color: #fff;
 }

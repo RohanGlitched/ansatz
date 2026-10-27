@@ -1,6 +1,7 @@
 import type { Experiment } from "@/lib/experiment";
 import { toPixels } from "@/lib/pixels";
 import slits from "@/data/slits.json";
+import ReplayScope from "./ReplayScope";
 import styles from "./PhotoFinish.module.css";
 
 type Slit = {
@@ -39,6 +40,8 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
   const split = m.px[Math.min(m.px.length - 1, Math.max(1, Math.round(m.px.length * e.trainFrac)))];
   const seconds = Array.from({ length: Math.floor(meta.duration) + 1 }, (_, s) => s);
   const every = Math.max(1, Math.ceil(m.px.length / 220));
+  // marks land when the scan reaches their frame, at the clip's own playback speed
+  const at = (f: number) => `${(((f + 0.5) / meta.frames) * meta.duration).toFixed(3)}s`;
   return (
     <figure className={styles.finish}>
       <div className={styles.ruler} aria-hidden="true">
@@ -48,7 +51,9 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
           </span>
         ))}
       </div>
-      <div className={styles.strip}>
+      <ReplayScope className={styles.scan} buttonClassName={styles.replay} label="Scan the clip again">
+      <div className={styles.strip} style={{ ["--dur" as string]: `${meta.duration}s` }}>
+        <span className={styles.develop}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/slits/${e.id}.webp`} alt={`Photo-finish of the clip: one slice per frame through the ${e.tracking.noun}, ${meta.frames} frames over ${meta.duration.toFixed(1)} seconds`} />
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
@@ -57,15 +62,18 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
           <path d={lawPath} className={styles.law} vectorEffect="non-scaling-stroke" />
         </svg>
         {m.px.map((p, i) =>
-          i % every === 0 ? <i key={i} className={styles.dot} style={{ left: `${(X(p.f) / W) * 100}%`, top: `${(Y(p) / H) * 100}%` }} /> : null,
+          i % every === 0 ? <i key={i} className={styles.dot} style={{ left: `${(X(p.f) / W) * 100}%`, top: `${(Y(p) / H) * 100}%`, ["--d" as string]: at(p.f) }} /> : null,
         )}
         {split && (
-          <span className={styles.tag} style={{ left: `${(X(split.f) / W) * 100}%` }}>
+          <span className={styles.tag} style={{ left: `${(X(split.f) / W) * 100}%`, ["--d" as string]: at(split.f) }}>
             <b>fitted</b>
             <b>predicted, never seen</b>
           </span>
         )}
+        </span>
+        <b className={styles.scanLine} aria-hidden="true" />
       </div>
+      </ReplayScope>
       <figcaption>
         {axis === "arc"
           ? `Photo-finish: a ${meta.slice}-pixel band bent along the circle the ${e.tracking.noun} swings on, cut from each of the clip’s ${meta.frames} frames, unrolled and laid side by side, so the swing draws its own graph against time (up is a swing to the right).`

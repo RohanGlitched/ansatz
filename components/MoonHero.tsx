@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Experiment } from "@/lib/experiment";
 import { toPixels } from "@/lib/pixels";
 import slits from "@/data/slits.json";
+import ReplayScope from "./ReplayScope";
 import styles from "./MoonHero.module.css";
 
 type Slit = { slice: number; x: number; frames: number; height: number; fps: number; duration: number };
@@ -46,6 +47,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
       </div>
 
       <figure className={`wrap ${styles.plate}`}>
+        <ReplayScope className={styles.scan} buttonClassName={styles.replay} label="Play both clips again">
         <div className={styles.ruler} aria-hidden="true">
           {Array.from({ length: Math.floor(maxS) + 1 }, (_, s) => (
             <span key={s} style={{ left: `${(s / maxS) * 100}%` }}>
@@ -59,7 +61,9 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
           const W = meta.frames * meta.slice, H = meta.height;
           const win = s.e.candidates.find((c) => c.law.id === s.e.winner) ?? s.e.candidates[0];
           const law = toPixels(win.fit.predicted, m);
-          const pos = (f: number, y: number) => ({ left: `${((f + 0.5) * meta.slice / W) * 100}%`, top: `${(y / H) * 100}%` });
+          // each mark appears when the scan reaches its frame, at the clip's own playback speed
+          const at = (f: number) => `${(((f + 0.5) / meta.frames) * meta.duration).toFixed(3)}s`;
+          const pos = (f: number, y: number) => ({ left: `${((f + 0.5) * meta.slice / W) * 100}%`, top: `${(y / H) * 100}%`, ["--d" as string]: at(f) });
           const jumps = jumpsOf(s.id).filter((j) => j.px.px?.length);
           const X = (f: number) => ((f + 0.5) * meta.slice).toFixed(1);
           const dots = jumps.length ? jumps.flatMap((j) => j.px.px!.map(([f, y]) => ({ f, y }))) : m.px.map((p) => ({ f: p.f, y: p.y }));
@@ -68,16 +72,17 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
             : [m.px.map((p, i) => (law[i] ? `${i ? "L" : "M"}${X(p.f)} ${law[i].y.toFixed(1)}` : "")).join("")];
           const apexes = jumps.map((j) => {
             const top = j.px.px!.reduce((a, b) => (b[2] < a[2] ? b : a));
-            return { n: j.n, left: `${(((top[0] + 0.5) * meta.slice) / W) * 100}%`, top: `${(top[2] / H) * 100}%` };
+            const last = j.px.px![j.px.px!.length - 1][0];
+            return { n: j.n, left: `${(((top[0] + 0.5) * meta.slice) / W) * 100}%`, top: `${(top[2] / H) * 100}%`, d: at(last) };
           });
           return (
             <div key={s.id} className={styles.stripRow}>
               <div className={styles.still} aria-hidden="true">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/slits/${s.id}-still.webp`} alt="" />
+                <video src={s.e.source.video} poster={`/slits/${s.id}-still.webp`} muted playsInline preload="auto" />
                 <i style={{ left: `${((meta.x + meta.slice / 2) / s.e.video.width) * 100}%` }} />
               </div>
-              <Link href={`/x/${s.id}`} className={styles.strip} style={{ width: `${(meta.duration / maxS) * 100}%` }} aria-label={`${s.title}: slit-scan of every frame`}>
+              <Link href={`/x/${s.id}`} className={styles.strip} style={{ width: `${(meta.duration / maxS) * 100}%`, ["--dur" as string]: `${meta.duration}s` }} aria-label={`${s.title}: slit-scan of every frame`}>
+                <span className={styles.develop}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/slits/${s.id}.webp`} alt="" />
                 {dots.map((p, i) => (
@@ -92,10 +97,12 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                   ))}
                 </svg>
                 {apexes.map((a) => (
-                  <span key={a.n} className={styles.jumpTag} style={{ left: a.left, top: a.top }}>
+                  <span key={a.n} className={styles.jumpTag} style={{ left: a.left, top: a.top, ["--d" as string]: a.d }}>
                     jump {a.n}
                   </span>
                 ))}
+                </span>
+                <b className={styles.scanLine} aria-hidden="true" />
               </Link>
               <figcaption className={styles.cap}>
                 <strong>{s.title}</strong>
@@ -116,6 +123,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
             <i className={styles.kLaw} /> the fitted fall
           </span>
         </p>
+        </ReplayScope>
       </figure>
 
       {mt && (
