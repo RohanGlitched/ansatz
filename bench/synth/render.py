@@ -694,11 +694,12 @@ def build_pend(cid, L, th0, c, g, R, col, W, H, fps, dur, bgk, ref, lead, seed, 
                 ref_t, ev, exp, [], lead, 1, seed)
 
 
-def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11):
+def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0):
     rng = np.random.default_rng(seed)
     # ell = distance of block centre below the fixed anchor (down positive):  ell'' = g - (k/m)(ell - l0) - b ell'
-    f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - b * y[1]]
+    # a hardening spring adds - (k3/m)(ell - ell_eq)^3 about the equilibrium (Duffing)
     ell_eq = l0 + g * m / k
+    f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - b * y[1]]
     T, Y, _ = integrate(f, [ell_eq + A, 0.0], dur - lead)
     traj = Traj(T, Y, lead)
     ymax_ell = max(Y[:, 0]) + bh_m / 2
@@ -747,10 +748,13 @@ def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, r
               "damping_b": P(b, "1/s (y'' = -(k/m)(y - y_eq) - b y')"), "g": P(g, "m/s^2"),
               "natural_length_to_block_centre": P(l0, "m"), "equilibrium_extension_below_anchor_y_eq": P(ell_eq, "m (= l0 + g m / k)"),
               "initial_displacement_below_equilibrium": P(A, "m (released from rest)"), "equilibrium_pixel_row": P(round(ppx_eq, 3), "px")}
+    if k3:
+        params["k3"] = P(k3, "N/m^3 (hardening: y'' = -(k/m)(y - y_eq) - (k3/m)(y - y_eq)^3 - b y')")
+        params["k3_over_m"] = P(k3 / m, "1/(m^2 s^2)")
     ev = {"release_time_s": lead, "equilibrium_crossing_times_s": [round(lead + float(x), 5) for x in tz[:40]]}
     exp = {"period_damped_numeric_s": per[:12], "period_mean_damped_numeric_s": float(np.mean(per)) if per else None,
            "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."}
-    return Case(cid, "spring_mass", "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
+    return Case(cid, "spring_mass", "hardening_vertical" if k3 else "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
 
 
 def build_bounce(cid, g, e, h0, vx, R, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, capture_fps=None, floor="wood", bgkw=None,
@@ -974,6 +978,10 @@ CASES = [
     ("sp03_k8_m0.50_b0.12_soft", build_spring, dict(k=8.0, m=0.50, b=0.12, l0=0.40, A=0.25, g=9.81, bw_m=0.11, bh_m=0.075, col=COL["red"], W=1280, H=720, fps=30, dur=8.0,
         bgk="board", ref="a4", lead=0.6, seed=603, noun="red weight",
         desc="Soft spring (k = 8 N/m, m = 0.50 kg, 0.64 Hz), 25 cm release, at 30 fps in front of a blackboard; A4 sheet on the board.")),
+    # a hardening spring: its swing speeds up the further it is stretched, so the rhythm drifts as the swing dies away
+    ("sx01_hardening_k12_k3_800", build_spring, dict(k=12.0, m=0.20, b=0.45, l0=0.30, A=0.13, g=9.81, bw_m=0.09, bh_m=0.06, col=COL["orange"], W=1280, H=720, fps=60, dur=7.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="stick_h", lead=0.5, seed=611, noun="orange weight", k3=800.0,
+        desc="Orange block on a hardening spring (k = 12 N/m, k3 = 800 N/m^3, m = 0.20 kg, b = 0.45 1/s); pulled down 13 cm and released; metre stick below.")),
     # ---- bouncing ball
     ("bb01_e0.72_orange", build_bounce, dict(g=9.81, e=0.72, h0=1.5, vx=0.30, R=0.06, col=COL["orange"], W=1280, H=720, fps=60, dur=4.0,
         bgk="wall", bgkw=B["wall_blue"], ref="stick_h", lead=0.4, seed=701, noun="orange ball",

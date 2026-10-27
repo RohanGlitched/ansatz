@@ -5,7 +5,7 @@ import pendulumReplay from "@/data/replays/pendulum.json";
 export const metadata: Metadata = { title: "Run an experiment" };
 
 const SAMPLES: Sample[] = [
-  { file: "/samples/pendulum.mp4", label: "A pendulum", hint: "tennis ball on a string, 8 s. Is it real time? Ansatz checks", noun: "yellow tennis ball" },
+  { file: "/samples/pendulum.mp4", label: "A pendulum", hint: "a blocked pendulum (MikeRun, Wikimedia Commons, CC BY-SA 4.0). Is it real time? Ansatz checks", noun: "yellow tennis ball" },
   { file: "/samples/paper-bag.mp4", label: "A paper bag, thrown", hint: "air drag, filmed at 20× slow motion", noun: "white paper bag", slowMotion: 20 },
 ];
 

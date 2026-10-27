@@ -125,7 +125,7 @@ export default async function ReportPage({ params }: Params) {
       <h2>Sources of error</h2>
       <ul>
         <li>Scale: {m.calibration.note}.</li>
-        {[...e.observation.caveats, ...(e.critique?.caveats ?? [])].slice(0, 5).map((c, i) => (
+        {[...e.observation.caveats, ...(e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique.caveats : [])].slice(0, 5).map((c, i) => (
           <li key={i}>{c}</li>
         ))}
         <li>Given rather than measured: {e.given.length ? e.given.join("; ") : "nothing"}.</li>

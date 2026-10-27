@@ -256,6 +256,8 @@ export type Critique = {
   revision_idea: string;
   revised_law?: WireLaw | null;
   what_if: { label: string; param: string; factor: number }[];
+  /** the law that led when the referee wrote this; its words are shown only while that law still leads */
+  winnerId?: string;
 };
 
 const CRITIQUE_SCHEMA = {
@@ -325,7 +327,7 @@ export async function reviseAgentic(
   ledger: Ledger,
   model = MODELS.revise,
   maxTurns = 6,
-): Promise<{ law: Law | null; attempts: WonderAttempt[] }> {
+): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean }> {
   const text = [
     "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion; the rest is held back to test them and you will not see it. The referee thinks the winner misses a physical effect.",
     `Referee's note: ${idea}`,
@@ -339,6 +341,9 @@ export async function reviseAgentic(
     { type: "function", name: "submit_law", description: "Submit the one law to be tested on the held-out frames.", parameters: LAW_SCHEMA },
   ];
   const attempts: WonderAttempt[] = [];
+  // the best law it tried, by its fit to the seen frames: submitted for it if the turns run out first
+  let best: { law: Law; rms: number } | null = null;
+  const fallback = () => ({ law: best?.law ?? null, attempts, auto: !!best });
   let prev: string | undefined;
   let input: unknown = [{ role: "user", content: [{ type: "input_text", text }] }];
   for (let turn = 0; turn < maxTurns; turn++) {
@@ -351,7 +356,7 @@ export async function reviseAgentic(
     const calls = (raw.output ?? []).filter((o) => (o as { type: string }).type === "function_call") as unknown as { name: string; arguments: string; call_id: string }[];
     if (!calls.length) {
       const loose = parseJsonLoose<WireLaw>(outputText(raw));
-      return { law: loose && loose.state ? fromWire(loose) : null, attempts };
+      return loose && loose.state ? { law: fromWire(loose), attempts } : fallback();
     }
     const outputs: unknown[] = [];
     for (const c of calls) {
@@ -371,10 +376,20 @@ export async function reviseAgentic(
       }
       attempts.push({ title: wire.title, ok: !!result.ok, trainRms: typeof result.train_rms === "number" ? result.train_rms : undefined, error: typeof result.error === "string" ? result.error : undefined });
       outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify(result) });
+      const rms = typeof result.train_rms === "number" ? result.train_rms : Infinity;
+      if (result.ok && Number.isFinite(rms) && (!best || rms < best.rms)) {
+        try {
+          best = { law: fromWire(wire), rms };
+        } catch {
+          /* not a law the fitter can run */
+        }
+      }
     }
+    // say so before the last turn, so the theorist chooses rather than runs out
+    if (turn === maxTurns - 2) outputs.push({ role: "user", content: [{ type: "input_text", text: "Your next turn is the last: call submit_law with the one law to test." }] });
     input = outputs;
   }
-  return { law: null, attempts };
+  return fallback();
 }
 
 /* ─────────────────────── baseline: the eye alone ─────────────────────── */
@@ -413,8 +428,8 @@ export async function eyeball(fileId: string, narration: string, quantities: { n
 }
 
 /** Muse Spark points at the object in one frame (pixel box), so SAM 3.1 can follow it when a noun phrase finds nothing. */
-export async function point(png: Uint8Array, size: { width: number; height: number }, noun: string, description: string, ledger: Ledger): Promise<{ left: number; top: number; right: number; bottom: number } | null> {
-  const text = `This frame is ${size.width}×${size.height} pixels. Find the ${noun} (${description}) that is about to move. Return its tight bounding box in pixel coordinates of this frame (origin top-left, x to the right, y down). If it isn't visible, set found to false.`;
+export async function point(png: Uint8Array, size: { width: number; height: number }, noun: string, description: string, ledger: Ledger, still = false): Promise<{ left: number; top: number; right: number; bottom: number } | null> {
+  const text = `This frame is ${size.width}×${size.height} pixels. Find the ${noun} (${description})${still ? "" : " that is about to move"}. Return its tight bounding box in pixel coordinates of this frame (origin top-left, x to the right, y down). If it isn't visible, set found to false.`;
   const { value } = await respondJson<{ found: boolean; left: number; top: number; right: number; bottom: number }>(
     {
       model: MODELS.observe,

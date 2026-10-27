@@ -29,6 +29,8 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   if (!e) notFound();
   const tr = lang && LANGUAGES[lang] ? await translation(e, lang).catch(() => null) : null;
   const win = winnerOf(e);
+  // the referee's words are shown only while the law it wrote about still leads
+  const ref = e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique : null;
   const plate = plateData(e);
   const lengthUnit = e.measured.calibration.kind === "none" ? "px" : "m";
   const unseenFrames = e.measured.px.length - plate.split;
@@ -198,17 +200,19 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
               <p className="small">Submitted: {e.wonder.submitted ?? "nothing"}{(() => { const c = e.candidates.find((x) => x.origin === "revision"); return c ? `, which ranked ${c.rank} of ${e.candidates.length} on the unseen frames.` : "."; })()}</p>
             </div>
           )}
-          {e.critique?.why_it_won && (
+          {ref?.why_it_won ? (
             <p className={styles.referee}>
-              <strong>Referee ({e.ledger.calls.find((c) => c.purpose.startsWith("referee"))?.model ?? e.models.critique}):</strong> {e.critique.why_it_won}
-              {e.critique.verdict === "revise" && e.critique.revision_idea && (
+              <strong>Referee ({e.ledger.calls.find((c) => c.purpose.startsWith("referee"))?.model ?? e.models.critique}):</strong> {ref.why_it_won}
+              {ref.verdict === "revise" && ref.revision_idea && (
                 <>
                   {" "}
-                  It asked for one more law ({e.critique.revision_idea}), which {e.ledger.calls.find((c) => c.purpose.startsWith("write a revised law"))?.model ?? "Muse Wonder"} wrote and which competed above.
+                  It asked for one more law ({ref.revision_idea}), which {e.ledger.calls.find((c) => c.purpose.startsWith("write a revised law"))?.model ?? "Muse Wonder"} wrote and which competed above.
                 </>
               )}
             </p>
-          )}
+          ) : e.critique ? (
+            <p className={styles.referee}>The ranking changed after the referee wrote its comment, so the comment is withheld.</p>
+          ) : null}
         </div>
       </section>
 
@@ -234,6 +238,39 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
           </p>
         </div>
       </section>
+
+      {e.extras?.truth && (
+        <section className={`section ${styles.band}`}>
+          <div className="wrap">
+            <h2>Against the known answer</h2>
+            <p className="lede" style={{ marginTop: 12 }}>{e.extras.truth.note}</p>
+            <table className={styles.vs}>
+              <thead>
+                <tr>
+                  <th>Constant</th>
+                  <th>Measured</th>
+                  <th>True value</th>
+                  <th>Off by</th>
+                </tr>
+              </thead>
+              <tbody>
+                {e.extras.truth.rows.map((r) => (
+                  <tr key={r.label}>
+                    <td>{r.label}</td>
+                    <td className="num">
+                      <strong>{fmt(r.measured)}</strong> ± {fmt(r.sigma, 2)} {r.unit}
+                    </td>
+                    <td className="num">
+                      {fmt(r.truth)} {r.unit}
+                    </td>
+                    <td className="num">{fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {e.extras?.robustness && (
         <section className={`section ${styles.band}`}>
@@ -400,7 +437,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                   <dt>Caveats</dt>
                   <dd>
                     <ul>
-                      {[...e.observation.caveats, ...(e.critique?.caveats ?? [])].slice(0, 6).map((c, i) => (
+                      {[...e.observation.caveats, ...(ref?.caveats ?? [])].slice(0, 6).map((c, i) => (
                         <li key={i}>{c}</li>
                       ))}
                     </ul>
@@ -456,7 +493,7 @@ function strip(s: string) {
 function fmt(v: number | undefined, sig = 3) {
   if (v === undefined || !Number.isFinite(v)) return "—";
   const a = Math.abs(v);
-  if (a !== 0 && (a >= 1e5 || a < 1e-3)) return v.toExponential(sig - 1);
+  if (a !== 0 && (a >= 1e5 || a < 1e-6)) return v.toExponential(sig - 1);
   return String(+v.toPrecision(sig));
 }
 

@@ -1,4 +1,4 @@
-// usage: tsx scripts/promote.ts <run-name> <showcase-id> [--credit "..."] [--license "..."] [--page url]
+// usage: tsx scripts/promote.ts <run-name> <showcase-id> [--credit "..."] [--license "..."] [--page url] [--clip path.mp4] [--force]
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 const [name, id] = process.argv.slice(2);
 const opt = (k: string) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : undefined; };
@@ -26,7 +26,8 @@ e.source = { kind: "showcase", video: `/showcase/${id}.mp4`, credit: opt("--cred
 mkdirSync("data/showcase", { recursive: true });
 mkdirSync("public/showcase", { recursive: true });
 writeFileSync(`data/showcase/${id}.json`, JSON.stringify(e));
-copyFileSync(`${base}.mp4`, `public/showcase/${id}.mp4`);
+// the run keeps its prepared clip under the input's name; --clip says where when --out renamed the record
+copyFileSync(opt("--clip") ?? `${base}.mp4`, `public/showcase/${id}.mp4`);
 const orderF = "data/showcase/order.json";
 const order: string[] = existsSync(orderF) ? JSON.parse(readFileSync(orderF, "utf8")) : [];
 if (!order.includes(id)) order.push(id);

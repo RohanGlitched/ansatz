@@ -63,10 +63,16 @@ export type Experiment = {
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
   wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
-  extras?: { robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; clock: string; href?: string }[] } };
+  extras?: { truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; clock: string; href?: string }[] } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
+  /** which version of the method produced this record, and whether the clip was one of the site's own samples */
+  pipeline?: string;
+  sample?: boolean;
 };
+
+/** Bumped when the method changes in a way that changes results; older visitor runs stop being listed. */
+export const PIPELINE = "2026-10-27c";
 
 const TRAIN = 0.7;
 
@@ -98,7 +104,7 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
 }
 
 /** Residual pattern the referee reads: mean residual in eight time bins per channel, over the fitted frames only. */
-function residualPattern(fit: Fit, m: Measured, frac = 1) {
+export function residualPattern(fit: Fit, m: Measured, frac = 1) {
   const out: Record<string, number[]> = {};
   const n = Math.max(3, Math.round(m.series.t.length * frac));
   for (const [ch, pred] of Object.entries(fit.predicted)) {
@@ -121,8 +127,14 @@ function residualPattern(fit: Fit, m: Measured, frac = 1) {
  * measurement noise (or 3%) are a tie, and a tie goes to the simpler law (lower BIC): Occam, measured.
  */
 export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
-  // one yardstick for every law: held-out error in units of measurement noise (laws may observe different channels)
-  const score = (c: Candidate) => (!c.fit.ok ? Infinity : Number.isFinite(c.fit.testZ) ? c.fit.testZ! : noiseFloor > 0 ? c.fit.testRms / noiseFloor : c.fit.testRms);
+  // one yardstick for every law: error in units of measurement noise (laws may observe different channels), on the
+  // worse of its two halves. Predicting the unseen frames is the test; but a law that can't describe the frames it
+  // was fitted to hasn't explained the motion, even if a quiet ending happens to suit it
+  const score = (c: Candidate) => {
+    if (!c.fit.ok) return Infinity;
+    if (Number.isFinite(c.fit.testZ)) return Math.max(c.fit.testZ!, Number.isFinite(c.fit.trainZ) ? c.fit.trainZ! : 0);
+    return noiseFloor > 0 ? c.fit.testRms / noiseFloor : c.fit.testRms;
+  };
   // a perfect law misses by about 1 (pure noise): two laws that both predict within the noise are equally good, and
   // otherwise half a noise unit or 10% apart is too close to call
   const tie = (fa: number, fb: number) => Math.max(fa, fb) < 1.5 || Math.abs(fa - fb) < Math.max(0.1 * Math.max(fa, fb), 0.5);
@@ -130,12 +142,12 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   // law whose parameters all landed inside their ranges
   const pinned = (c: Candidate) => c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]));
   // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC, then the
-  // law written in physical quantities (Muse's) over a textbook stand-in, then the smaller error
-  const simpler = (a: Candidate, b: Candidate) => {
-    const byBic = Math.abs(a.fit.bic - b.fit.bic) > 2 ? a.fit.bic - b.fit.bic : 0;
-    const byOrigin = (a.origin === "control" ? 1 : 0) - (b.origin === "control" ? 1 : 0);
-    return a.fit.k - b.fit.k || byBic || byOrigin || score(a) - score(b) || a.law.id.localeCompare(b.law.id);
-  };
+  // smaller error
+  // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"). Two
+  // laws that are the same equation fit identically; then the one written in physical quantities (g, not a) leads
+  const origin = (c: Candidate) => (c.origin === "control" ? 1 : 0);
+  const simpler = (a: Candidate, b: Candidate) =>
+    a.fit.k - b.fit.k || Math.round(a.fit.bic / 2) - Math.round(b.fit.bic / 2) || Math.round((score(a) - score(b)) * 1e3) || origin(a) - origin(b) || a.law.id.localeCompare(b.law.id);
   // rank by repeated selection, so the result doesn't depend on the order the laws arrived in: each place goes to
   // the simplest law among those tied with the best remaining error
   const out: Candidate[] = [];
@@ -198,6 +210,8 @@ export type RunInput = {
   narrationWav?: Uint8Array | null;
   narrationText?: string;
   source?: Experiment["source"];
+  /** the clip is one of the site's bundled samples */
+  sample?: boolean;
   hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
@@ -289,7 +303,20 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       }
       const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
       const selfRuler = obs.reference.present && sameThing(obs.reference.noun_phrase, subjectNoun);
-      jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null) : Promise.resolve(null));
+      // the ruler, found by name; failing that, Muse Spark points at it and SAM 3.1 follows the box (in parallel
+      // with the subject, so the run doesn't wait twice)
+      const findRuler = async (): Promise<SamResult | null> => {
+        const byName = await trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null);
+        if (byName?.tracks.length) return byName;
+        const png = await frameAt(trackBytes, trackTimes[0] ?? 0);
+        const box = await pointAt(png, { width: vi.width, height: vi.height }, obs.reference.noun_phrase, `a reference object of known size, ${obs.reference.real_length_m} m along its ${obs.reference.dimension}; it does not move`, ledger, true).catch(() => null);
+        if (!box) return byName;
+        const r2 = await trackBoxes(trackFile, { width: vi.width, height: vi.height }, [{ id: 1, frame: 0, box }], ledger, frames).catch(() => null);
+        if (!r2?.tracks.length) return byName;
+        for (const t of r2.tracks) t.noun = `${obs.reference.noun_phrase} (pointed out by Muse Spark)`;
+        return r2;
+      };
+      jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? findRuler() : Promise.resolve(null));
       let [s, r] = await Promise.all(jobs);
       if (selfRuler) r = s;
       const moving = (res: SamResult | null) => !!res && res.tracks.some((t) => pathPx(t) > 20);
@@ -401,8 +428,30 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         const l = { ...law, id };
         if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
         // the scale correction is the measurement's business, not the law's: fit the wrapped law, show the inner one
-        const fitted = gUsed !== null ? withScaleCorrection(l) : l;
-        list.push({ law: l, fitted, fit: fitLaw(fitted, m.series, { trainFrac: TRAIN }), origin, ifItWins, rank: 0 });
+        const wrap = (x: Law) => (gUsed !== null ? withScaleCorrection(x) : x);
+        let fitted = wrap(l), fit = fitLaw(fitted, m.series, { trainFrac: TRAIN });
+        let law2: Law = l;
+        // a theorist's bounds are guesses: a fit pressed against one gets ten times the room (twice at most), and
+        // keeps it if it fits the seen frames better
+        for (let round = 0; round < 2 && fit.ok; round++) {
+          const stuck = law2.params.filter((p) => !p.fixed && p.name !== "cal" && atBound(law2, p.name, fit.theta[p.name]));
+          if (!stuck.length) break;
+          const wider: Law = {
+            ...law2,
+            params: law2.params.map((p) => {
+              if (!stuck.includes(p)) return p;
+              const v = fit.theta[p.name];
+              const atMax = p.max !== undefined && (p.min === undefined || Math.abs(v - p.max) < Math.abs(v - p.min));
+              return atMax ? { ...p, max: p.max! > 0 ? p.max! * 10 : p.max! / 10 } : { ...p, min: p.min! < 0 ? p.min! * 10 : p.min! / 10 };
+            }),
+          };
+          const fitted2 = wrap(wider), fit2 = fitLaw(fitted2, m.series, { trainFrac: TRAIN });
+          if (!fit2.ok || !(fit2.trainCost < fit.trainCost)) break;
+          law2 = wider;
+          fitted = fitted2;
+          fit = fit2;
+        }
+        list.push({ law: law2, fitted, fit, origin, ifItWins, rank: 0 });
       };
       for (const l of hyp.laws) add(l, "muse", hyp.ifItWins[l.id]);
       for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
@@ -430,7 +479,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     cands.forEach(inflate);
 
     // 8. referee (and one revision), with the eyeball baseline in parallel
-    const board = cands.map((c) => ({
+    const boardOf = () => cands.map((c) => ({
       id: c.law.id,
       title: c.law.title,
       origin: c.origin,
@@ -445,6 +494,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       error: c.fit.why,
       residual_by_time_bin_on_fitted_frames: residualPattern(c.fit, m, TRAIN),
     }));
+    const board = boardOf();
     const winnerFirst = cands[0];
     const eyePromise: Promise<Eyeball | null> = input.skipEyeball
       ? Promise.resolve(null)
@@ -454,15 +504,17 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
     const crit = await step("referee", async () => {
-      const c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
+      let c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
+      if (c) c.winnerId = cands[0].law.id;
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than three times the measurement noise (judged on fitted frames only)
       const lead = cands[0];
       const poorFit = lead.fit.ok && lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor;
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
-      // a run must finish inside the 300 s function limit: Muse Wonder only gets the floor with 90 s to spare
+      // a run must finish inside the 300 s function limit (the watchdog fires at 285 s)
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
-      if (idea && budgetLeft > 110_000) {
+      // two theorist turns take about a minute; more turns only when there's room
+      if (idea && budgetLeft > 75_000) {
         try {
           const tryLaw = (law: Law) => {
             const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
@@ -477,8 +529,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
             };
           };
-          const { law: revised, attempts } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : 2));
-          wonder = { idea, attempts, submitted: revised?.title ?? null };
+          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : budgetLeft > 110_000 ? 3 : 2));
+          wonder = { idea, attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
           compileLaw(law);
@@ -490,6 +542,12 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           rankCandidates(cands, noiseFloor);
         } catch {
           /* an unusable revision simply doesn't compete */
+        }
+        // the revision won: the referee's words were about a law that no longer leads, so it writes up the new winner
+        const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
+        if (cands[0].law.id !== winnerAtReferee && left > 25_000) {
+          const c2 = await critique(obs, { units: dig.units, given, candidates: boardOf() }, ledger).catch(() => null);
+          if (c2) c = { ...c2, verdict: "accept", revision_idea: c?.revision_idea ?? "", winnerId: cands[0].law.id };
         }
       }
       return c;
@@ -505,7 +563,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
       const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
       const namesOne = !winnerFree.length || winnerFree.some((n) => crit?.finding?.includes(`{${n}}`));
-      const filled = crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : null;
+      const refereedWinner = !crit || cands[0].law.id === (crit.winnerId ?? winnerAtReferee);
+      const filled = refereedWinner && crit?.finding && !typed && namesOne && crit.finding.length < 320 ? fillPlaceholders(crit.finding, win.fit, win.law) : null;
       // a placeholder code couldn't fill (a state, not a fitted parameter) means the sentence can't be trusted
       let finding = filled && !/\{[^}]*\}/.test(filled) ? filled : defaultFinding(win.law, win.fit);
       // counterfactuals: re-run the winner with one parameter scaled, over the same span ×1.4
@@ -537,8 +596,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       }
       // a number the clock casts doubt on is never left standing on its own
       if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body)}`;
-      const sameWinner = !crit || cands[0].law.id === winnerAtReferee;
-      const headline = crit?.headline && sameWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
+      const headline = crit?.headline && refereedWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
       return { comps, finding, whatIf, clock, headline };
     }, (r) => r.finding);
 
@@ -548,6 +606,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     return {
       id: input.id ?? newId(),
       createdAt: new Date().toISOString(),
+      pipeline: PIPELINE,
+      sample: input.sample || undefined,
       title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
       source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },
       video: { width: vi.width, height: vi.height, fps: vi.fps, duration: vi.duration, codec: vi.codec, rotation: vi.rotation, frames: vi.times.length, jitter: vi.jitter },

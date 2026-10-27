@@ -6,7 +6,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.3fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
   gap: clamp(28px, 4vw, 56px);
   align-items: center;
 }
@@ -18,7 +18,7 @@
 .text h1 {
   color: var(--plate-ink);
   margin-bottom: 18px;
-  font-size: clamp(32px, 4vw, 52px);
+  font-size: clamp(30px, 3.4vw, 46px);
 }
 
 .text :global(.lede) {
@@ -39,8 +39,49 @@
 }
 
 .ref {
+  color: #8b929b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.memory {
+  margin-top: 24px;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 460px;
+  font-size: 15px;
+}
+
+.memory th,
+.memory td {
+  text-align: left;
+  white-space: nowrap;
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid #2a2e34;
+  vertical-align: baseline;
+}
+
+.memory thead th {
+  color: #8b929b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.memory tbody th {
+  font-weight: 500;
   color: #b8bec6;
-  font-size: 16px;
+  white-space: normal;
+}
+
+.memory .num {
+  font-size: clamp(22px, 2.4vw, 30px);
+}
+
+.flag {
+  display: block;
+  font-size: 13px;
+  color: #ff5a1f;
+  margin-top: 2px;
 }
 
 .line {

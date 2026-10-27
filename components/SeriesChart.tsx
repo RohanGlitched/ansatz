@@ -74,6 +74,6 @@ function niceTicks(lo: number, hi: number, n: number) {
 function fmt(v: number) {
   const a = Math.abs(v);
   if (a === 0) return "0";
-  if (a >= 1000 || a < 0.01) return v.toExponential(1);
+  if (a >= 1e5 || a < 1e-5) return v.toExponential(1);
   return String(+v.toPrecision(3));
 }

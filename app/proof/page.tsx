@@ -75,7 +75,7 @@ export default async function ProofPage() {
   const b = await bench();
   const moon = await getExperiment("moon-jump");
   const moonG = moon?.comparisons.find((c) => c.param === "g");
-  const slow = await getExperiment("slowmo-pendulum");
+  const slow = await getExperiment("sample-pendulum");
   const s = b?.summary;
   const pct = (v: number, d = 1) => `${v.toFixed(d)}%`;
   return (
@@ -125,7 +125,7 @@ export default async function ProofPage() {
               </Link>
             )}
             {slow?.clock && (
-              <Link href="/x/slowmo-pendulum" className={styles.realCard}>
+              <Link href="/x/sample-pendulum" className={styles.realCard}>
                 <p className={styles.realBig}>{slow.clock.factor.toFixed(1)}× slow motion</p>
                 <p>
                   <strong>A clip that hides its slow motion, caught.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
@@ -244,6 +244,6 @@ export default async function ProofPage() {
 function fmt(v: number) {
   if (!Number.isFinite(v)) return "—";
   const a = Math.abs(v);
-  if (a !== 0 && (a < 1e-3 || a >= 1e4)) return v.toExponential(2);
+  if (a !== 0 && (a < 1e-6 || a >= 1e5)) return v.toExponential(2);
   return String(+v.toPrecision(4));
 }

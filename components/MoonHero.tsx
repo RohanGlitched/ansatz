@@ -24,6 +24,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
   const sol = [0, 1, 2].map((j) => det(M.map((row, i) => row.map((v, c) => (c === j ? Y[i] : v)))) / D);
   const [a, b, c] = sol;
   const g = e.comparisons.find((x) => x.param === "g");
+  const mt = e.extras?.memoryTest;
   const tEnd = Math.max(...pts.map((p) => p.t)) * 1.05;
   const hMax = Math.max(0.05, ...pts.map((p) => p.h)) * 1.25;
   const W = 640, H = 380, L = 46, R = 16, T = 18, B = 34;
@@ -51,17 +52,41 @@ export default function MoonHero({ e }: { e: Experiment }) {
         <div className={styles.text}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
           <p className="lede">
-            Here it measured the Moon’s gravity from 1972 television. SAM 3.1 followed John Young through every frame of his jump, Muse Spark proposed the laws, and the winning law had to predict frames it never saw.
+            Ask a language model for the Moon’s gravity from this 1972 clip and it recites the textbook, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark.
           </p>
-          {g && (
-            <p className={styles.result}>
-              <span className={styles.num}>
-                g = {g.measured.toFixed(2)} ± {g.sigma.toFixed(2)} m/s²
-              </span>
-              <span className={styles.ref}>The Moon: {g.reference} m/s². Earth: 9.81.</span>
-            </p>
+          {mt ? (
+            <table className={styles.memory}>
+              <thead>
+                <tr>
+                  <th />
+                  <th>Muse Spark, by eye</th>
+                  <th>Ansatz, measured</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mt.rows.map((r, i) => (
+                  <tr key={r.clip}>
+                    <th scope="row">{i === 0 ? "Apollo 16, 1972" : "Same clip, secretly slowed 1.5×"}</th>
+                    <td className="num">{r.eye != null ? r.eye.toFixed(1) : "—"}</td>
+                    <td className="num">
+                      <strong className={i === 0 ? styles.num : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
+                      {i > 0 && <span className={styles.flag}>flags slow motion</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            g && (
+              <p className={styles.result}>
+                <span className={styles.num}>
+                  g = {g.measured.toFixed(2)} ± {g.sigma.toFixed(2)} m/s²
+                </span>
+              </p>
+            )
           )}
-          {g && <GravityLine g={g.measured} sigma={g.sigma} />}
+          {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt?.rows[1]} />}
+          <p className={styles.ref}>Gravity in m/s². The Moon’s is {g?.reference ?? 1.625}; Earth’s is 9.81.</p>
           <div className={styles.cta}>
             <Link className="btn" href="/new">
               Run an experiment
@@ -117,7 +142,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
 }
 
 /** Where the measurement falls among the worlds it could have been: one glance rules out Earth and Mars. */
-function GravityLine({ g, sigma }: { g: number; sigma: number }) {
+function GravityLine({ g, sigma, slowed }: { g: number; sigma: number; slowed?: { g: number; sigma: number } }) {
   const W = 420, L = 8, R = 12, max = 10.5;
   const X = (v: number) => L + (v / max) * (W - L - R);
   const worlds = [
@@ -141,6 +166,12 @@ function GravityLine({ g, sigma }: { g: number; sigma: number }) {
           </text>
         </g>
       ))}
+      {slowed && (
+        <g>
+          <rect x={X(slowed.g - slowed.sigma)} y={25} width={Math.max(2, X(slowed.g + slowed.sigma) - X(slowed.g - slowed.sigma))} height={10} rx={3} fill="#ff5a1f" opacity="0.35" />
+          <circle cx={X(slowed.g)} cy={30} r={4.5} fill="none" stroke="#ff5a1f" strokeWidth="2" />
+        </g>
+      )}
       <rect x={X(g - sigma)} y={25} width={Math.max(2, X(g + sigma) - X(g - sigma))} height={10} rx={3} fill="#8fa0ff" opacity="0.45" />
       <circle cx={X(g)} cy={30} r={5} fill="#8fa0ff" />
     </svg>

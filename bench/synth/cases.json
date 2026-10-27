@@ -1,7 +1,7 @@
 {
  "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
  "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
- "n_cases": 26,
+ "n_cases": 27,
  "cases": [
   {
    "case_id": "ff01_earth_orange_ball",
@@ -2177,6 +2177,173 @@
    "encoding": "H.264, yuv420p, CRF 20, +faststart",
    "integration": "RK4, step 0.0001 s, bisection events",
    "truth_file": "clips/sp03_k8_m0.50_b0.12_soft.json"
+  },
+  {
+   "case_id": "sx01_hardening_k12_k3_800",
+   "phenomenon": "spring_mass",
+   "variant": "hardening_vertical",
+   "description": "Orange block on a hardening spring (k = 12 N/m, k3 = 800 N/m^3, m = 0.20 kg, b = 0.45 1/s); pulled down 13 cm and released; metre stick below.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 12.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.2,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 60.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 7.745966692414834,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.45,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.3,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.4635,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.13,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 482.538,
+     "unit": "px"
+    },
+    "k3": {
+     "value": 800.0,
+     "unit": "N/m^3 (hardening: y'' = -(k/m)(y - y_eq) - (k3/m)(y - y_eq)^3 - b y')"
+    },
+    "k3_over_m": {
+     "value": 4000.0,
+     "unit": "1/(m^2 s^2)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00132,
+   "pixels_per_metre": 757.5757575757576,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     131.402
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "orange weight",
+     "kind": "block on spring",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "size_m": [
+      0.09,
+      0.06
+     ],
+     "size_px": [
+      68.18,
+      45.45
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 757.576,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      261.21,
+      649.2
+     ],
+     [
+      1018.79,
+      649.2
+     ]
+    ],
+    "thickness_px": 26.52,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "equilibrium_crossing_times_s": [
+     0.6523,
+     0.95983,
+     1.27485,
+     1.59726,
+     1.92691,
+     2.2636,
+     2.60707,
+     2.95701,
+     3.31305,
+     3.67482,
+     4.04187,
+     4.41377,
+     4.79008,
+     5.17035,
+     5.55416,
+     5.94109,
+     6.33076,
+     6.72283
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.62254940079714,
+     0.6374275047820077,
+     0.652063290387724,
+     0.6663452878382592,
+     0.6801621586866524,
+     0.6934072557786617,
+     0.705983390535458,
+     0.7178073341818583,
+     0.728813587154471,
+     0.738956995030696,
+     0.7482139323458754,
+     0.7565819865710353
+    ],
+    "period_mean_damped_numeric_s": 0.7150917705592009,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sx01_hardening_k12_k3_800.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sx01_hardening_k12_k3_800.json"
   },
   {
    "case_id": "bb01_e0.72_orange",

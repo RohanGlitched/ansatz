@@ -1,7 +1,7 @@
 import "server-only";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import type { Experiment } from "./experiment";
+import { PIPELINE, type Experiment } from "./experiment";
 import { toPixels } from "./pixels";
 import type { PlateData } from "@/components/StrobePlate";
 import { getObject, listKeys } from "./store";
@@ -90,7 +90,8 @@ export async function recentExperiments(limit = 6) {
   if (recentCache && Date.now() - recentCache.at < 60_000) return recentCache.items;
   const ids = await recentIds(40).catch(() => []);
   const items = (await Promise.all(ids.map((id) => getExperiment(id).catch(() => null))))
-    .filter((e): e is Experiment => !!e)
+    // only visitors' own clips, measured by the current method
+    .filter((e): e is Experiment => !!e && !e.sample && e.pipeline === PIPELINE)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, limit)
     .map((e) => ({ id: e.id, title: e.title, headline: e.headline ?? e.finding, createdAt: e.createdAt }));

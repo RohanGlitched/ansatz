@@ -42,6 +42,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [drag, setDrag] = useState(false);
+  const [fromSample, setFromSample] = useState(false);
   const recRef = useRef<MediaRecorder | null>(null);
   const liveRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -68,6 +69,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
     if (!f) return;
     if (!f.type.startsWith("video/") && !/\.(mp4|mov|m4v|webm)$/i.test(f.name)) return setError("That isn’t a video. Choose an MP4, MOV or WebM clip.");
     if (f.size > 200 * 1024 * 1024) return setError("That clip is over 200 MB. Trim it to the few seconds where the thing moves.");
+    setFromSample(false);
     setFile(f);
     setPreview((old) => {
       if (old) URL.revokeObjectURL(old);
@@ -80,6 +82,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
     const r = await fetch(s.file);
     const b = await r.blob();
     pick(new File([b], s.file.split("/").pop() ?? "sample.mp4", { type: "video/mp4" }));
+    setFromSample(true);
     setNoun(s.noun ?? "");
     setSlow(String(s.slowMotion ?? 1));
     setNarration(s.narration ?? "");
@@ -162,6 +165,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
           narration: narration || undefined,
           slowMotion: Number(slow) > 1 ? Number(slow) : undefined,
           ruler: ruler && Number(rulerLen) > 0 ? { noun: ruler, metres: Number(rulerLen) } : undefined,
+          sample: fromSample || undefined,
         }),
       });
       if (!r.ok || !r.body) {
