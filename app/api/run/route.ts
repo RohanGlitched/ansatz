@@ -11,7 +11,7 @@ const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spa
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; student?: string };
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
             if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
           },
         );
-        await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode } : exp), "application/json");
+        await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode, student: typeof body.student === "string" ? body.student.trim().slice(0, 40) || undefined : undefined } : exp), "application/json");
         if (classCode) await addClassRun(classCode, id).catch(() => {});
         send("done", { id });
       } catch (e) {

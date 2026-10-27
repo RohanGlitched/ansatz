@@ -80,8 +80,9 @@ export type Experiment = {
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
   pipeline?: string;
   sample?: boolean;
-  /** the class link it was run with */
+  /** the class link it was run with, and the name or roll number the student gave */
   class?: string;
+  student?: string;
 };
 
 /** Bumped when the method changes in a way that changes results; older visitor runs stop being listed. */

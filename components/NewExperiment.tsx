@@ -34,6 +34,7 @@ export default function NewExperiment({ samples, replays = [], classCode }: { sa
   const [narration, setNarration] = useState("");
   const [slow, setSlow] = useState("1");
   const [language, setLanguage] = useState("");
+  const [student, setStudent] = useState("");
   const [ruler, setRuler] = useState("");
   const [rulerLen, setRulerLen] = useState("");
   const [busy, setBusy] = useState(false);
@@ -173,6 +174,7 @@ export default function NewExperiment({ samples, replays = [], classCode }: { sa
           sample: fromSample || undefined,
           language: language || undefined,
           class: classCode || undefined,
+          student: classCode && student ? student : undefined,
         }),
       });
       if (!r.ok || !r.body) {
@@ -354,6 +356,12 @@ export default function NewExperiment({ samples, replays = [], classCode }: { sa
           </ol>
         ) : (
         <>
+        {classCode && (
+          <label className={styles.field}>
+            <span>Your name or roll number (for your teacher)</span>
+            <input value={student} onChange={(e) => setStudent(e.target.value)} placeholder="e.g. Asha, roll 14" disabled={busy} maxLength={40} />
+          </label>
+        )}
         <label className={styles.field}>
           <span>What moves? (optional)</span>
           <input value={noun} onChange={(e) => setNoun(e.target.value)} placeholder="e.g. orange ball, the keys on the string" disabled={busy} maxLength={60} />

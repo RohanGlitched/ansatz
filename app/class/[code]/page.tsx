@@ -2,73 +2,114 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getClass } from "@/lib/classes";
-import { getExperiment } from "@/lib/experiments";
+import { classRows } from "@/lib/classrows";
+import { fmtPair } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Class results", robots: { index: false } };
 
-/** Every experiment a class ran, and every measurement of g it made, side by side. */
+/** A class's results as a teacher marks them: one row per run, every measurement of g on one line, and a CSV. */
 export default async function ClassPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const cls = await getClass(code);
   if (!cls) notFound();
-  const runs = (await Promise.all(cls.runs.map((id) => getExperiment(id).catch(() => null)))).filter((e) => !!e);
-  const gs = runs.flatMap((e) => e.comparisons.filter((c) => c.param === "g" || /accelerates at g|gravity/i.test(c.label)).map((c) => ({ id: e.id, g: c.measured, s: c.sigma })));
-  const W = 640, L = 16, R = 16, max = Math.max(12, ...gs.map((x) => x.g + x.s));
+  const rows = await classRows(cls);
+  // the class's g on Earth: runs flagged for their clock sit on a lane of their own, and don't enter the mean
+  const earth = rows.filter((r) => r.g !== undefined && r.offPct !== undefined && !r.warn?.startsWith("clock"));
+  const flagged = rows.filter((r) => r.g !== undefined && !earth.includes(r));
+  const w = earth.map((r) => 1 / Math.max(1e-6, r.sigma ?? 1) ** 2);
+  const mean = earth.length ? earth.reduce((a, r, i) => a + r.g! * w[i], 0) / w.reduce((a, b) => a + b, 0) : NaN;
+  const spread = earth.length > 1 ? Math.sqrt(earth.reduce((a, r) => a + (r.g! - mean) ** 2, 0) / (earth.length - 1)) : NaN;
+  const W = 640, L = 16, R = 16, max = Math.max(12, ...rows.filter((r) => r.g !== undefined).map((r) => r.g! + (r.sigma ?? 0)));
   const X = (v: number) => L + (v / max) * (W - L - R);
   return (
     <div className="wrap" style={{ paddingBlock: "clamp(32px, 5vw, 64px)", display: "grid", gap: 24 }}>
       <h1 style={{ fontSize: "clamp(28px, 3.6vw, 42px)" }}>{cls.name}</h1>
       {cls.demo && (
         <p className="small">
-          A demo: what a teacher sees once students have run their clips (these are the site’s own experiments). <Link href="/class/new">Make a class link</Link> for your class.
+          A demo: what a teacher sees once students have run their clips (these are the site’s own experiments, given student labels). <Link href="/class/new">Make a class link</Link> for your class.
         </p>
       )}
       <p className="lede">
-        {runs.length} experiment{runs.length === 1 ? "" : "s"} so far
+        {rows.length} experiment{rows.length === 1 ? "" : "s"} so far
         {cls.demo ? (
           "."
         ) : (
           <>
-            ; {cls.quota - cls.used} runs left until {new Date(cls.expiresAt).toDateString()}. Students run theirs at{" "}
+            ; up to {cls.quota - cls.used} more until {new Date(cls.expiresAt).toDateString()} (during the hackathon, all classes share 40 runs a day). Students run theirs at{" "}
             <Link href={`/new?class=${cls.code}`}>/new?class={cls.code}</Link>.
           </>
         )}
       </p>
-      {gs.length > 0 && (
+      {earth.length > 0 && (
         <figure>
-          <svg viewBox={`0 0 ${W} 70`} style={{ width: "100%", maxWidth: W }} role="img" aria-label="Every measurement of g the class made, with error bars, against Earth's 9.81">
+          <svg viewBox={`0 0 ${W} 96`} style={{ width: "100%", maxWidth: W }} role="img" aria-label={`Every measurement of g the class made on Earth, with error bars; class mean ${mean.toFixed(2)}`}>
             <line x1={L} x2={W - R} y1={36} y2={36} stroke="var(--rule)" strokeWidth="2" />
-            <line x1={X(9.81)} x2={X(9.81)} y1={20} y2={52} stroke="var(--ink-3)" />
-            <text x={X(9.81)} y={14} fontSize="12" textAnchor="middle" fill="var(--ink-3)">
+            <line x1={X(9.81)} x2={X(9.81)} y1={18} y2={54} stroke="var(--ink-3)" />
+            <text x={X(9.81)} y={12} fontSize="12" textAnchor="middle" fill="var(--ink-3)">
               Earth 9.81
             </text>
-            {gs.map((x, i) => (
-              <g key={x.id + i}>
-                <rect x={X(x.g - x.s)} y={31} width={Math.max(2, X(x.g + x.s) - X(x.g - x.s))} height={10} fill="var(--law)" opacity="0.2" />
-                <circle cx={X(x.g)} cy={36} r={4} fill="var(--law)" />
+            {Number.isFinite(mean) && <line x1={X(mean)} x2={X(mean)} y1={24} y2={48} stroke="var(--law)" strokeWidth="2" strokeDasharray="3 3" />}
+            {earth.map((r) => (
+              <g key={r.id}>
+                <title>{`${r.student}: ${fmtPair(r.g!, r.sigma ?? NaN)}`}</title>
+                <rect x={X(r.g! - (r.sigma ?? 0))} y={31} width={Math.max(2, X(r.g! + (r.sigma ?? 0)) - X(r.g! - (r.sigma ?? 0)))} height={10} fill="var(--law)" opacity="0.2" />
+                <circle cx={X(r.g!)} cy={36} r={4} fill="var(--law)" />
               </g>
             ))}
-            {[0, 2, 4, 6, 8, 10, 12].filter((v) => v <= max).map((v) => (
-              <text key={v} x={X(v)} y={66} fontSize="11" textAnchor="middle" fill="var(--ink-3)">
-                {v}
-              </text>
+            {flagged.map((r) => (
+              <g key={r.id}>
+                <title>{`${r.student}: ${fmtPair(r.g!, r.sigma ?? NaN)} (${r.warn ?? "not on Earth"})`}</title>
+                <circle cx={X(r.g!)} cy={70} r={4} fill="none" stroke="var(--warn)" strokeWidth="2" />
+              </g>
             ))}
+            {flagged.length > 0 && (
+              <text x={L} y={90} fontSize="11" fill="var(--warn)">
+                flagged runs (clock or another world), left out of the mean
+              </text>
+            )}
           </svg>
-          <figcaption className="small">Every measurement of g in m/s², each with its error bar.</figcaption>
+          <figcaption className="small">
+            Every measurement of g in m/s², each with its error bar. Class mean {fmtPair(mean, Number.isFinite(spread) ? spread / Math.sqrt(earth.length) : NaN)} (dashed), spread between students ±{Number.isFinite(spread) ? spread.toFixed(2) : "—"}.
+          </figcaption>
         </figure>
       )}
-      <ol style={{ display: "grid", gap: 12, paddingLeft: 20 }}>
-        {runs.map((e) => (
-          <li key={e.id}>
-            <Link href={`/x/${e.id}`}>
-              <strong>{e.title}</strong>
-            </Link>
-            : {e.headline ?? e.finding} <span className="small">({new Date(e.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })})</span>
-          </li>
-        ))}
-      </ol>
-      {runs.length === 0 && <p>No experiments yet. Share the link above with your students.</p>}
+      <div style={{ overflowX: "auto" }}>
+        <table className="num" style={{ borderCollapse: "collapse", width: "100%", minWidth: 640 }}>
+          <thead>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--ink)" }}>
+              <th style={{ padding: 6 }}>Student</th>
+              <th style={{ padding: 6 }}>Experiment</th>
+              <th style={{ padding: 6 }}>g (m/s²)</th>
+              <th style={{ padding: 6 }}>Off 9.81</th>
+              <th style={{ padding: 6 }}>Law that won</th>
+              <th style={{ padding: 6 }}>Check</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} style={{ borderBottom: "1px solid var(--rule)" }}>
+                <td style={{ padding: 6 }}>{r.student}</td>
+                <td style={{ padding: 6 }}>
+                  <Link href={`/x/${r.id}`}>{r.experiment}</Link>
+                </td>
+                <td style={{ padding: 6 }}>{r.g !== undefined ? fmtPair(r.g, r.sigma ?? NaN) : "—"}</td>
+                <td style={{ padding: 6 }}>{r.offPct !== undefined ? `${r.offPct >= 0 ? "+" : ""}${r.offPct.toFixed(1)}%` : "—"}</td>
+                <td style={{ padding: 6 }}>{r.law}</td>
+                <td style={{ padding: 6, color: r.warn ? "var(--warn)" : undefined }}>{r.warn ?? "ok"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length === 0 && <p>No experiments yet. Share the link above with your students.</p>}
+      {rows.length > 0 && (
+        <p>
+          <a className="btn ghost" href={`/class/${cls.code}/data.csv`} download>
+            Download the results (CSV)
+          </a>
+        </p>
+      )}
     </div>
   );
 }

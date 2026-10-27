@@ -5,7 +5,7 @@ import { getObject, putObject, updateJson } from "./store";
  * Class links: a teacher makes a code, and every run made with it counts against the class's own quota instead of
  * the school's one shared IP address. The class page gathers every student's result in one place.
  */
-export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[]; demo?: boolean };
+export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[]; demo?: boolean; students?: Record<string, string> };
 
 /** The demo class ships with the app: what a teacher's page looks like, filled with the showcase experiments. */
 const DEMO: ClassRecord = {
@@ -16,7 +16,8 @@ const DEMO: ClassRecord = {
   quota: 0,
   used: 0,
   demo: true,
-  runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing", "bouncing-ball", "beach-ball-drag", "moon-jump", "sample-pendulum"],
+  runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing", "bouncing-ball", "beach-ball-drag"],
+  students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F", "bouncing-ball": "Student G", "beach-ball-drag": "Student H" },
 };
 
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);
