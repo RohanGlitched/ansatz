@@ -15,7 +15,7 @@ We slowed the 1972 Apollo 16 jump by 1.5× with motion-interpolated frames at an
 | Clip | Muse Spark, one clip at a time | Ansatz, one clip at a time |
 |---|---|---|
 | Apollo 16, real speed | 0.4 m/s² as played, "slowed 2×" | **1.72 ± 0.11 m/s²**: real speed (the Moon: 1.625) |
-| The same clip, slowed 1.5× in secret | 0.4 m/s² as played, "slowed 2×" | **0.72 ± 0.05 m/s²**: slowed, **1.55 ± 0.04×** against the first (truth: 1.5×) |
+| The same clip, slowed 1.5× in secret | 0.4 m/s² as played, "slowed 2×" | **0.72 ± 0.05 m/s²**: slowed; measured jump for jump against the broadcast, **1.494 ± 0.015×** (truth: 1.5×) |
 | Three new renders, slowed 2×, 4×, 8× | g 9.8, 0.15, 9.8 | all three flagged by the clock check |
 
 One clip at a time, the model gives both clips the same answer. Side by side it can count frames and say B is about 1.5× slower, which is impressive; given Ansatz's measurements as tools it answers 1.55 ± 0.04×, from a ratio that needs no reference value. Ansatz needs no second clip.
