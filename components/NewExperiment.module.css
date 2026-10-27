@@ -225,3 +225,24 @@
   color: var(--ink-2);
   font-size: 14px;
 }
+
+/* a phone gets the camera button; a desktop gets the webcam recorder and the drop zone */
+.touchOnly {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .touchOnly {
+    display: inline-flex;
+    font-size: 17px;
+    padding: 14px 22px;
+  }
+
+  .pointerOnly {
+    display: none;
+  }
+
+  .drop {
+    aspect-ratio: 16 / 7;
+  }
+}

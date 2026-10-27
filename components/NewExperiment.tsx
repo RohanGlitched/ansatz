@@ -274,18 +274,23 @@ export default function NewExperiment({ samples, replays = [], classCode, series
                 <video src={preview} className={styles.preview} controls muted playsInline />
               ) : (
                 <div className={styles.empty}>
-                  <p className={styles.emptyTitle}>Drop a clip here</p>
+                  <p className={styles.emptyTitle}>Film, choose or drop a clip</p>
                   <p className="small">3–20 seconds of something moving, filmed from a phone that stays still. MP4, MOV or WebM.</p>
                 </div>
               )}
             </div>
             <div className={styles.actions}>
+              {/* on a phone, the camera app itself: its own frame rate and slow-motion modes, saved as a real video file */}
+              <label className={`btn ${styles.touchOnly}`}>
+                Film now
+                <input type="file" accept="video/*" capture="environment" hidden onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+              </label>
               <label className="btn ghost">
                 Choose a clip
                 <input type="file" accept="video/*" hidden onChange={(e) => pick(e.target.files?.[0] ?? null)} />
               </label>
               {!recording ? (
-                <button type="button" className="btn ghost" onClick={startRecording}>
+                <button type="button" className={`btn ghost ${styles.pointerOnly}`} onClick={startRecording}>
                   Film with this device
                 </button>
               ) : (
