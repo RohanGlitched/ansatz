@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { getExperiment, winnerOf } from "@/lib/experiments";
+import { getSeries as series } from "@/lib/series";
 
-type Series = { id: string; title: string; note: string; truth?: { g: number; lengths: number[] }; ids: string[] };
-
-async function series(id: string): Promise<Series | null> {
-  if (!/^[a-z0-9-]{3,40}$/.test(id)) return null;
-  return readFile(path.join(process.cwd(), "data", "series", `${id}.json`), "utf8").then((s) => JSON.parse(s) as Series, () => null);
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const s = await series((await params).id);
@@ -24,7 +18,11 @@ export default async function SeriesPage({ params }: { params: Promise<{ id: str
   const runs = (await Promise.all(s.ids.map((id) => getExperiment(id).catch(() => null)))).filter((e) => !!e);
   const pts = runs.flatMap((e) => {
     const w = winnerOf(e);
-    const L = w.fit.theta.L, g = w.fit.theta.g;
+    // L as the run measured or was told it; T from g and L, or straight from the angular frequency of a law written with ω₀
+    const givenL = Number(/pendulum length L = ([\d.]+) m/.exec(e.given.join(" "))?.[1]);
+    const L = w.fit.theta.L > 0 ? w.fit.theta.L : givenL;
+    const w0 = w.fit.theta.w0 ?? w.fit.theta.omega0 ?? w.fit.theta.omega;
+    const g = w.fit.theta.g > 0 ? w.fit.theta.g : w0 > 0 && L > 0 ? w0 ** 2 * L : NaN;
     if (!(L > 0) || !(g > 0)) return [];
     // the period is a time measurement: its precision is g's statistical part only (the ruler's share is in L)
     const rel = e.observation.reference.relative_uncertainty ?? 0.03;
@@ -36,6 +34,20 @@ export default async function SeriesPage({ params }: { params: Promise<{ id: str
   const sxx = pts.reduce((a, p) => a + p.T ** 4, 0), sxy = pts.reduce((a, p) => a + p.L * p.T ** 2, 0);
   const k = sxy / sxx;
   const s2 = pts.length > 1 ? pts.reduce((a, p) => a + (p.L - k * p.T ** 2) ** 2, 0) / (pts.length - 1) : NaN;
+  if (pts.length < 2)
+    return (
+      <article className="wrap" style={{ paddingBlock: "clamp(32px, 5vw, 64px)", display: "grid", gap: 20, maxWidth: 820 }}>
+        <h1 style={{ fontSize: "clamp(28px, 3.6vw, 42px)" }}>{s.title}</h1>
+        <p className="lede">
+          {pts.length} pendulum length{pts.length === 1 ? "" : "s"} so far. A series needs at least two, ideally four (say 40, 60, 80 and 100 cm): film the same pendulum at each length, with a paper sheet on the wall, from this link.
+        </p>
+        <p>
+          <Link className="btn" href={`/new?series=${s.id}`}>
+            Add a length
+          </Link>
+        </p>
+      </article>
+    );
   const g = 4 * Math.PI ** 2 * k, sg = 4 * Math.PI ** 2 * Math.sqrt(s2 / sxx);
   // what every run shares (the same kind of ruler, its true size uncertain) does not average out: a separate term
   const relShared = Math.min(...runs.map((e) => e.observation.reference.relative_uncertainty ?? 0.03));

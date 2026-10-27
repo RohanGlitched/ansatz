@@ -1,5 +1,6 @@
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
 import { addClassRun, useClassRun } from "@/lib/classes";
+import { addSeriesRun } from "@/lib/series";
 import { addSpend, checkAndCount, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
 import { getObject, objectSize, putObject, updateJson } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
@@ -11,7 +12,7 @@ const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spa
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; student?: string };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; student?: string; series?: string };
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
         await addSpend(exp.ledger.usd).catch(() => {});
         await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode, student: typeof body.student === "string" ? body.student.trim().slice(0, 40) || undefined : undefined } : exp), "application/json");
         if (classCode) await addClassRun(classCode, id).catch(() => {});
+        if (typeof body.series === "string") await addSeriesRun(body.series, id).catch(() => {});
         send("done", { id });
       } catch (e) {
         const failure = { message: (e as Error).message, step: (e as { step?: string }).step };

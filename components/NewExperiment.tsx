@@ -26,7 +26,7 @@ type Event = { step: string; state: string; detail?: string; at: number; data?: 
 export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[] };
 const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples, replays = [], classCode }: { samples: Sample[]; replays?: Replay[]; classCode?: string }) {
+export default function NewExperiment({ samples, replays = [], classCode, seriesId }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -174,6 +174,7 @@ export default function NewExperiment({ samples, replays = [], classCode }: { sa
           sample: fromSample || undefined,
           language: language || undefined,
           class: classCode || undefined,
+          series: seriesId || undefined,
           student: classCode && student ? student : undefined,
         }),
       });
@@ -293,6 +294,21 @@ export default function NewExperiment({ samples, replays = [], classCode }: { sa
                 </button>
               )}
             </div>
+            {!seriesId && (
+              <div className={styles.samples}>
+                <p className="small">Doing the pendulum practical? Film the same pendulum at three or four string lengths: a series fits them together and gives g from the slope of L against T².</p>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={async () => {
+                    const r = await fetch("/api/series", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "My pendulum series" }) }).then((x) => x.json()).catch(() => null);
+                    if (r?.id) router.push(`/new?series=${r.id}${classCode ? `&class=${classCode}` : ""}`);
+                  }}
+                >
+                  Start a series
+                </button>
+              </div>
+            )}
             {replays.length > 0 && (
               <div className={styles.samples}>
                 <p className="small">Just want to see a run? These replay real ones, recorded on {replays[0].recorded}, at {REPLAY_SPEED}× speed, SAM’s masks included. No model is called.</p>
