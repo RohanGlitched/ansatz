@@ -359,6 +359,18 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     <td>{r.clock}</td>
                   </tr>
                 ))}
+                {e.extras.memoryTest.renders && (
+                  <tr>
+                    <td>
+                      <Link href="/proof">{e.extras.memoryTest.renders.note}</Link>
+                    </td>
+                    <td className="num">{e.extras.memoryTest.renders.eye.map((v) => `${+v.toPrecision(2)} m/s²`).join(", ")}</td>
+                    <td className="num">measured as filmed (see /proof)</td>
+                    <td>
+                      flags all {e.extras.memoryTest.renders.slows.length}: {e.extras.memoryTest.renders.clocks.map((v, i) => `${v.toFixed(1)}× (truth ${e.extras!.memoryTest!.renders!.slows[i]}×)`).join(", ")}; the 8× clip’s 15 cm ruler was read as a metre stick
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
             {(() => {

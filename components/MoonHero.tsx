@@ -77,6 +77,21 @@ export default function MoonHero({ e }: { e: Experiment }) {
                     </td>
                   </tr>
                 ))}
+                {mt.renders && (
+                  <tr>
+                    <th scope="row">
+                      <Link href="/proof">3 new renders, slowed {mt.renders.slows.join("×, ")}× in secret</Link>
+                    </th>
+                    <td className="num">
+                      {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
+                      <span className={styles.note}>recalled, or guessed</span>
+                    </td>
+                    <td className="num">
+                      all {mt.renders.slows.length} flagged
+                      <span className={styles.flag}>at {mt.renders.clocks.map((v) => v.toFixed(1)).join("×, ")}× (one ruler misread)</span>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           ) : (
