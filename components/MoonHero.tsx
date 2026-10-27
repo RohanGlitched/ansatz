@@ -68,16 +68,16 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
       <div className={`wrap ${styles.head}`}>
         <p className={styles.tagline}>Film anything that moves. Ansatz finds the law that moves it.</p>
         <h1>
-          From 1972 television, SAM 3.1 and Muse Spark measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)}\u00a0±\u00a0${g.sigma.toFixed(2)}\u00a0m/s²` : ""}.
+          From 1972 television, SAM 3.1 tracked every frame and Ansatz measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)}\u00a0±\u00a0${g.sigma.toFixed(2)}\u00a0m/s²` : ""}.
         </h1>
         <div className={styles.intro}>
-          <p className={styles.lead}>Is this footage real time? Muse Spark, watching alone, can’t tell. Muse Spark with SAM 3.1 measuring every frame can.</p>
+          <p className={styles.lead}>Is this footage real time? Muse Spark, watching alone, can’t tell. With SAM 3.1 measuring every frame, the clips come apart.</p>
           <p className={styles.lede}>
             {g ? `The true value is ${g.reference}. ` : ""}Below, every frame of John Young’s jump cut to one thin slice and laid side by side, so his two jumps draw their own arches; under it, the same clip slowed {truth ? `${truth}× ` : ""}in secret.{" "}
             {repB && rp
               ? `Asked ${word(rp.n)} times about the slowed copy alone, Muse Spark called it real speed ${wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}. `
               : "Shown one clip at a time, a language model gives both the same answer. "}
-            SAM 3.1 times every fall, code fits the laws Muse Spark proposes, and the two clips come apart by exactly the slowdown.
+            SAM 3.1 times every fall, Muse Spark recognises the Moon and proposes the laws, code fits them with the astronaut’s height (1.88 m, given by us) as the ruler, and the two clips come apart by exactly the slowdown.
           </p>
           <div className={styles.cta}>
             <Link className="btn" href="/new">

@@ -125,7 +125,7 @@ export default async function JudgesPage() {
       weight: 20,
       claim: "The model proposes; the data decides; code computes every measured number.",
       points: [
-        <>Each law is integrated with RK4 (bounces located inside the step), fitted by Levenberg–Marquardt to the first 70% of the motion and ranked on the 30% no model ever saw, in units of the measured noise.</>,
+        <>Each law is integrated with RK4 (bounces located inside the step), fitted by Levenberg–Marquardt to the first 70% of the motion and ranked on the last 30%, which no law was fitted to and from which no number reaches any model, in units of the measured noise.</>,
         <>
           Checked against {s?.cases ?? "28"} clips rendered with exactly known physics: {physWithin} of {phys.length} physical constants within 5%, median error {physMedian.toFixed(2)}%. Muse Spark reading the same numbers by eye: {s?.medianEyeballErrPct.toFixed(0)}%. SAM centroids land a median {s?.medianTrackingErrPx.toFixed(2)} px from the true centre. All on <Link href="/proof">Proof</Link>.
         </>,
@@ -160,7 +160,7 @@ export default async function JudgesPage() {
 
   const novel = [
     { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, asked about each clip on its own: ${rep ? `it called the secretly slowed copy real speed ${rep.n - rep.b.calledSlowed} times out of ${rep.n}, answering ${rep.b.answers[0].playback_accel} m/s², the textbook value; it called the real broadcast slowed ${rep.a.calledSlowed} of ${rep.n} times` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
-    { title: "Laws judged on motion no model was given", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
+    { title: "Laws judged on motion they weren’t fitted to", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
     { title: "A clock check from physics", body: "Gravity scales with the square of time. When a ruler makes gravity a measurement, a value far from the planet’s says the clip isn’t real time, and by how much.", href: "/x/sample-pendulum" },
     { title: "An agent that does science with a tool", body: "Muse Wonder doesn’t answer; it experiments. It fits laws to the seen frames, reads the residuals, revises, and submits one law to a trial it can’t see.", href: "/x/dry-friction-spring" },
     { title: "The video as its own chart", body: "Every frame cut to one slice through the moving object and laid side by side, a race-finish camera for physics. The motion draws its own graph in real pixels, and the measurement sits on top.", href: `/x/${Object.keys(slits)[0]}` },
@@ -200,7 +200,7 @@ export default async function JudgesPage() {
           <div>
             <h1>For judges</h1>
             <p className="lede" style={{ marginTop: 16 }}>
-              Ansatz turns any video of something moving into a physics experiment: SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose laws of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to and no model was given, wins. Here it is against your four criteria. Every number on this page is read from the stored runs, and every claim links to where you can check it.
+              Ansatz turns any video of something moving into a physics experiment: SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose laws of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to and from which no measurement reaches any model, wins. Here it is against your four criteria. Every number on this page is read from the stored runs, and every claim links to where you can check it.
             </p>
             <p className={styles.headCta}>
               <Link className="btn" href={`/new?class=${JUDGES_CODE}`}>
