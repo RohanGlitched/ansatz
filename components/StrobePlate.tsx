@@ -19,6 +19,8 @@ export type PlateData = {
   caption?: string;
   /** where to fetch `strobe` from when the page shipped without it (keeps listing pages light) */
   strobeSrc?: string;
+  /** the same print rendered ahead of time (scripts/prints.ts): shown at once on listing pages */
+  poster?: string;
 };
 
 type Props = { data: PlateData; showWhatIf?: number | null; compact?: boolean; priority?: boolean };
@@ -34,6 +36,8 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
   const [drawn, setDrawn] = useState(0);
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(priority);
+  // a ready-made print is used where it exists; if it fails to load, the print is developed from the clip as usual
+  const [usePoster, setUsePoster] = useState(compact && !!data.poster);
   const { width: W, height: H } = data;
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
   }, [visible]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || usePoster) return;
     let cancelled = false;
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d", { willReadFrequently: false })!;
@@ -114,7 +118,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
       video.removeAttribute("src");
       video.load();
     };
-  }, [visible, data, W, H]);
+  }, [visible, usePoster, data, W, H]);
 
   const r = Math.max(2.5, W / 260);
   const lawTrain = useMemo(() => pathOf(data.law.slice(0, data.split + 1)), [data]);
@@ -126,8 +130,13 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
     <figure className={`${styles.plate} ${compact ? styles.compact : ""}`} ref={holderRef}>
       <div className={compact ? styles.box : undefined}>
       <div className={styles.frame} style={{ aspectRatio: `${W} / ${H}` }}>
-        <canvas ref={canvasRef} width={W} height={H} className={styles.canvas} aria-hidden="true" />
-        {drawn === 0 && !failed && <div className={styles.loading}>Developing the print…</div>}
+        {usePoster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={data.poster} alt="" width={W} height={H} className={styles.canvas} loading="lazy" decoding="async" onError={() => setUsePoster(false)} />
+        ) : (
+          <canvas ref={canvasRef} width={W} height={H} className={styles.canvas} aria-hidden="true" />
+        )}
+        {!usePoster && drawn === 0 && !failed && <div className={styles.loading}>Developing the print…</div>}
         <svg className={styles.overlay} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={data.caption ?? "Stroboscopic print with the fitted law"}>
           {data.pivot && <circle cx={data.pivot.x} cy={data.pivot.y} r={r * 1.4} fill="none" stroke="#e9ebe6" strokeWidth={r * 0.5} />}
           {wi && <path d={pathOf(wi.px)} fill="none" stroke="#e9ebe6" strokeWidth={r * 0.7} strokeDasharray={`${r * 2} ${r * 2}`} opacity={0.9} />}

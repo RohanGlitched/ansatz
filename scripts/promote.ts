@@ -32,4 +32,5 @@ const orderF = "data/showcase/order.json";
 const order: string[] = existsSync(orderF) ? JSON.parse(readFileSync(orderF, "utf8")) : [];
 if (!order.includes(id)) order.push(id);
 writeFileSync(orderF, JSON.stringify(order, null, 1));
+console.log("now run: npx tsx scripts/prints.ts", id, "and scripts/translate-showcase.ts", id);
 console.log("promoted", id, (readFileSync(`data/showcase/${id}.json`).length / 1024).toFixed(0) + " KB");

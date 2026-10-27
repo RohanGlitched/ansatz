@@ -70,6 +70,7 @@ export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: 
     baseT,
     strobe: opts.lazyStrobe ? [] : strobeOf(e),
     strobeSrc: opts.lazyStrobe ? `/x/${e.id}/strobe.json` : undefined,
+    poster: e.source.kind === "showcase" ? `/prints/${e.id}.webp` : undefined,
     measured: every(m.px).map(r1),
     split: Math.round(split / k),
     // the law's path is index-aligned with the measurements (split marks the unseen part)
