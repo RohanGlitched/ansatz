@@ -47,6 +47,9 @@ type Bench = {
     medianPredictionRelByFit: number;
     totalUsd: number;
     medianSeconds: number;
+    slowClips?: number;
+    slowFlagged?: number;
+    slowFactorErrPct?: number[];
   };
   rows: Row[];
 };
@@ -112,6 +115,16 @@ export default async function ProofPage() {
             </p>
             <p>clips where the winning law had the right physics: drag where there was air drag, none where there wasn’t, sin θ for big swings, an impact for bounces</p>
           </div>
+          {s.slowClips ? (
+            <div>
+              <p className={styles.big}>
+                {s.slowFlagged}/{s.slowClips}
+              </p>
+              <p>
+                clips rendered in slow motion (2×, 4×, 8×) and not declared so, flagged by the clock check from a ruler in view; the factor came out within 2% on {(s.slowFactorErrPct ?? []).filter((x) => Math.abs(x) <= 2).length}, and off where the ruler was misread (a 15 cm ruler taken for a metre stick)
+              </p>
+            </div>
+          ) : null}
           <div>
             <p className={styles.big}>{s.medianTrackingErrPx.toFixed(2)} px</p>
             <p>median distance between SAM 3.1’s mask centroid and the object’s true centre, over every measured frame</p>

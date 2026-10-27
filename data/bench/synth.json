@@ -1,21 +1,28 @@
 {
- "generatedAt": "2026-10-26T22:32:42.134Z",
+ "generatedAt": "2026-10-27T01:26:51.893Z",
  "summary": {
-  "cases": 26,
-  "lawCorrect": 22,
-  "lawJudged": 24,
-  "lawCorrectIfChosenByFit": 22,
+  "cases": 28,
+  "lawCorrect": 24,
+  "lawJudged": 26,
+  "lawCorrectIfChosenByFit": 24,
   "medianTrackingErrPx": 0.5086934236239643,
-  "medianConstErrPct": 0.11433336895283475,
-  "constantsWithin5pct": 36,
-  "constantsChecked": 37,
-  "medianEyeballErrPct": 26,
-  "eyeballChecked": 21,
+  "medianConstErrPct": 0.14238681585574245,
+  "constantsWithin5pct": 42,
+  "constantsChecked": 44,
+  "medianEyeballErrPct": 37.5,
+  "eyeballChecked": 26,
   "medianPredictionRel": 0.0005590440498210049,
-  "medianPredictionRelControl": 0.04118532884353841,
+  "medianPredictionRelControl": 0.04757684762013033,
   "medianPredictionRelByFit": 0.0005656877735665053,
-  "totalUsd": 2.5747676499999996,
-  "medianSeconds": 87.356
+  "slowClips": 3,
+  "slowFlagged": 3,
+  "slowFactorErrPct": [
+   -61.1,
+   1.7,
+   0.3
+  ],
+  "totalUsd": 3.041609249999999,
+  "medianSeconds": 87.572
  },
  "rows": [
   {
@@ -846,6 +853,66 @@
    "slowMotion": 8,
    "winner": {
     "id": "vacuum-bounce",
+    "title": "Bouncing ball in vacuum",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.33115585213702975,
+   "point": 197,
+   "predictionRel": 0.00018928479577499179,
+   "predictionRelByFit": 0.0003205589352609732,
+   "predictionRelControl": 0.04757684762013033,
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 0.15328125,
+     "measured": 1.014005155044388,
+     "sigma": 0.30420244178151523,
+     "errPct": 561.5324151156047,
+     "withinSigma": 2.82944443181879,
+     "eyeball": 9.8,
+     "eyeballErrPct": 6293.476044852192
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.85,
+     "measured": 0.8497718891093129,
+     "sigma": 0.00019869705656150316,
+     "errPct": -0.02683657537495097,
+     "withinSigma": 1.1480335674548634,
+     "eyeball": 0.8,
+     "eyeballErrPct": -5.882352941176463
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00043,
+     "measured": 0.0028489955628157476,
+     "sigma": null,
+     "errPct": 562.5571076315692,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "reference",
+   "clock": {
+    "factor": 3.109855832404605,
+    "note": "Gravity came out 9.7× too weak. Either this happened somewhere with 0.1× Earth’s gravity, or the clip plays about 3.1× slower than real life (slow motion). Run it again with the slow-motion factor set."
+   },
+   "usd": 0.19404225000000003,
+   "seconds": 117.32
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.78",
+   "fps": 30,
+   "slowMotion": 4,
+   "winner": {
+    "id": "vacuum-bounce",
     "title": "Gravity only with bouncy floor",
     "origin": "muse"
    },
@@ -855,35 +922,108 @@
    },
    "familyIfChosenByFit": true,
    "winnerIsByFit": true,
-   "trackingErrPx": 0.33706858424708347,
-   "point": 197,
-   "predictionRel": 0.00019478847494224408,
-   "predictionRelByFit": 0.00019478847494224408,
-   "predictionRelControl": 0.7739103695289076,
+   "trackingErrPx": 0.420467029133535,
+   "point": 150,
+   "predictionRel": 0.0005572672355325496,
+   "predictionRelByFit": 0.0005572672355325496,
+   "predictionRelControl": 0.14141046733591733,
    "checks": [
     {
-     "quantity": "restitution e",
-     "truth": 0.85,
-     "measured": 0.8497601939275901,
-     "sigma": 0.00019729233883547526,
-     "errPct": -0.02821247910704947,
-     "withinSigma": 1.2154859830107139,
-     "eyeball": 0.8,
-     "eyeballErrPct": -5.882352941176463
+     "quantity": "g as filmed",
+     "truth": 0.613125,
+     "measured": 0.5929450100451703,
+     "sigma": 0.0355799030087709,
+     "errPct": -3.2913337337133086,
+     "withinSigma": 0.5671738326508394,
+     "eyeball": 0.15,
+     "eyeballErrPct": -75.53516819571865
     },
     {
-     "quantity": "scale (from the fall)",
-     "truth": 0.00043,
-     "measured": 0.027554470980103673,
+     "quantity": "restitution e",
+     "truth": 0.78,
+     "measured": 0.7801525503434571,
+     "sigma": 0.00028938968815916954,
+     "errPct": 0.019557736340649952,
+     "withinSigma": 0.5271450562991872,
+     "eyeball": 0.65,
+     "eyeballErrPct": -16.666666666666664
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.0018,
+     "measured": 0.0017417113740410338,
      "sigma": null,
-     "errPct": 6308.016507000854,
+     "errPct": -3.238256997720343,
      "withinSigma": null
     }
    ],
-   "calibration": "gravity",
-   "clock": null,
-   "usd": 0.10189045,
-   "seconds": 118.625
+   "calibration": "reference",
+   "clock": {
+    "factor": 4.066802936681674,
+    "note": "Gravity came out 17× too weak. Either this happened somewhere with 0.06× Earth’s gravity, or the clip plays about 4.1× slower than real life (slow motion). Run it again with the slow-motion factor set."
+   },
+   "usd": 0.20706555,
+   "seconds": 153.458
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.7",
+   "fps": 30,
+   "slowMotion": 2,
+   "winner": {
+    "id": "bounce-vacuum",
+    "title": "Gravity bounce with no air",
+    "origin": "muse"
+   },
+   "family": {
+    "ok": true,
+    "expect": "bounces (an impact event)"
+   },
+   "familyIfChosenByFit": true,
+   "winnerIsByFit": false,
+   "trackingErrPx": 0.6406527265906377,
+   "point": 137,
+   "predictionRel": 0.0006739945318770747,
+   "predictionRelByFit": 0.0006552190114488354,
+   "predictionRelControl": 0.16889260435408385,
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 2.4525,
+     "measured": 2.4393659223233404,
+     "sigma": 0.024973313588553925,
+     "errPct": -0.5355383354397452,
+     "withinSigma": 0.525924508579411,
+     "eyeball": 9.8,
+     "eyeballErrPct": 299.59225280326194
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.7,
+     "measured": 0.6995841094080006,
+     "sigma": 0.0005610616316814587,
+     "errPct": -0.05941294171418754,
+     "withinSigma": 0.7412565189191792,
+     "eyeball": 0.8,
+     "eyeballErrPct": 14.285714285714299
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00209,
+     "measured": 0.0020833134373992217,
+     "sigma": null,
+     "errPct": -0.31993122491761417,
+     "withinSigma": null
+    }
+   ],
+   "calibration": "reference",
+   "clock": {
+    "factor": 2.0050345542965378,
+    "note": "Gravity came out 4× too weak. Either this happened somewhere with 0.25× Earth’s gravity, or the clip plays about 2× slower than real life (slow motion). Run it again with the slow-motion factor set."
+   },
+   "usd": 0.16762425,
+   "seconds": 280.54
   },
   {
    "id": "sp01_k25_m0.20_b0.35",

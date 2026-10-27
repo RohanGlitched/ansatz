@@ -80,7 +80,10 @@ function constants(e: Experiment, t: Truth, c: Candidate): Check[] {
   const law = c.law, fit = c.fit, eye = e.eyeball;
   const out: (Check | null)[] = [];
   const ph = t.phenomenon;
-  if (e.measured.calibration.kind !== "none") out.push(check("g", tv(t, "g"), paramMatches(law, fit, (p) => /^g$/i.test(p.name)), eye));
+  // footage slowed s× (and not declared so) really shows gravity g/s²: that is what a measurement of the clip as filmed
+  // should find, and the clock check then names the factor (scored separately)
+  const slowUnknown = (t.slow_motion_factor ?? 1) > 1 && (e.measured.slowMotion ?? 1) === 1 ? t.slow_motion_factor : 1;
+  if (e.measured.calibration.kind !== "none") out.push(check(slowUnknown > 1 ? "g as filmed" : "g", tv(t, "g") === undefined ? undefined : tv(t, "g")! / slowUnknown ** 2, paramMatches(law, fit, (p) => /^g$/i.test(p.name)), eye));
   if (ph === "pendulum") {
     out.push(check("L", tv(t, "L"), paramMatches(law, fit, (p) => /^l$/i.test(p.name) || (/length/i.test(p.meaning ?? "") && p.unit === "m")), eye));
     out.push(check("damping", tv(t, "linear_damping_c"), paramMatches(law, fit, (p) => /1\/s|s\^-1/.test(p.unit ?? "") && /damp|viscous|friction|drag/i.test(p.meaning ?? "")), eye));
@@ -190,6 +193,10 @@ const summary = {
   medianPredictionRel: med(R.map((r) => r.predictionRel)),
   medianPredictionRelControl: med(R.map((r) => r.predictionRelControl ?? NaN)),
   medianPredictionRelByFit: med(R.map((r) => r.predictionRelByFit ?? NaN)),
+  // the clock check, scored on the clips rendered in slow motion: was it flagged, and how close was the factor?
+  slowClips: (rows as { slowMotion: number }[]).filter((r) => r.slowMotion > 1).length,
+  slowFlagged: (rows as { slowMotion: number; clock: { factor: number } | null }[]).filter((r) => r.slowMotion > 1 && r.clock).length,
+  slowFactorErrPct: (rows as { slowMotion: number; clock: { factor: number } | null }[]).filter((r) => r.slowMotion > 1 && r.clock).map((r) => +(((r.clock!.factor - r.slowMotion) / r.slowMotion) * 100).toFixed(1)),
   totalUsd: R.reduce((s, r) => s + r.usd, 0),
   medianSeconds: med(R.map((r) => r.seconds)),
 };
