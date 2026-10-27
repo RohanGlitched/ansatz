@@ -107,7 +107,7 @@ export default async function Home() {
             <div>
               <h3>A teacher with a class of forty</h3>
               <p>
-                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g. A run costs 10–40 cents of model calls and takes about 90 seconds.
+                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g (<Link href="/class/demo23">see a demo</Link>). A run costs 10–40 cents of model calls and takes about 90 seconds.
               </p>
             </div>
             <div>

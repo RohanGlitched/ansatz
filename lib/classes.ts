@@ -5,7 +5,19 @@ import { getObject, putObject, updateJson } from "./store";
  * Class links: a teacher makes a code, and every run made with it counts against the class's own quota instead of
  * the school's one shared IP address. The class page gathers every student's result in one place.
  */
-export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[] };
+export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[]; demo?: boolean };
+
+/** The demo class ships with the app: what a teacher's page looks like, filled with the showcase experiments. */
+const DEMO: ClassRecord = {
+  code: "demo23",
+  name: "Demo: Class 11 Physics",
+  createdAt: "2026-10-27T00:00:00Z",
+  expiresAt: "2026-12-31T00:00:00Z",
+  quota: 0,
+  used: 0,
+  demo: true,
+  runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing", "bouncing-ball", "beach-ball-drag", "moon-jump", "sample-pendulum"],
+};
 
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);
 const DAYS = 7;
@@ -19,6 +31,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export async function getClass(code: string): Promise<ClassRecord | null> {
   if (!/^[a-z2-9]{6}$/.test(code)) return null;
+  if (code === DEMO.code) return DEMO;
   const raw = await getObject(key(code)).catch(() => null);
   return raw ? (JSON.parse(new TextDecoder().decode(raw)) as ClassRecord) : null;
 }
@@ -45,6 +58,7 @@ export async function createClass(name: string, visitor: string): Promise<{ ok: 
 export async function useClassRun(code: string): Promise<{ ok: true; cls: ClassRecord } | { ok: false; why: string }> {
   const cls = await getClass(code);
   if (!cls) return { ok: false, why: "That class link isn't valid. Ask your teacher for the link again." };
+  if (cls.demo) return { ok: false, why: "That's the demo class page; it doesn't run experiments. Make your own class link at /class/new." };
   if (Date.now() > Date.parse(cls.expiresAt)) return { ok: false, why: "That class link has expired (they last a week). Ask your teacher for a new one." };
   const day = await updateJson<{ total: number }>(`classes/runs-${today()}.json`, { total: 0 }, (d) => (d.total >= CLASS_RUNS_PER_DAY ? null : { total: d.total + 1 })).catch(() => null);
   if (!day) return { ok: false, why: `Class links have used today's ${CLASS_RUNS_PER_DAY} runs. The limit resets at midnight UTC.` };

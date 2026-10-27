@@ -19,9 +19,21 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
   return (
     <div className="wrap" style={{ paddingBlock: "clamp(32px, 5vw, 64px)", display: "grid", gap: 24 }}>
       <h1 style={{ fontSize: "clamp(28px, 3.6vw, 42px)" }}>{cls.name}</h1>
+      {cls.demo && (
+        <p className="small">
+          A demo: what a teacher sees once students have run their clips (these are the site’s own experiments). <Link href="/class/new">Make a class link</Link> for your class.
+        </p>
+      )}
       <p className="lede">
-        {runs.length} experiment{runs.length === 1 ? "" : "s"} so far; {cls.quota - cls.used} runs left until {new Date(cls.expiresAt).toDateString()}. Students run theirs at{" "}
-        <Link href={`/new?class=${cls.code}`}>/new?class={cls.code}</Link>.
+        {runs.length} experiment{runs.length === 1 ? "" : "s"} so far
+        {cls.demo ? (
+          "."
+        ) : (
+          <>
+            ; {cls.quota - cls.used} runs left until {new Date(cls.expiresAt).toDateString()}. Students run theirs at{" "}
+            <Link href={`/new?class=${cls.code}`}>/new?class={cls.code}</Link>.
+          </>
+        )}
       </p>
       {gs.length > 0 && (
         <figure>

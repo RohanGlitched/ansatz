@@ -10,6 +10,9 @@ export default function NewClassPage() {
       <p className="lede" style={{ maxWidth: "65ch" }}>
         A school’s students usually share one internet connection, and Ansatz limits runs per connection. A class link gives your class its own 45 runs for a week. Students film a drop, a swing or a bounce at home or in the lab, and you see every result, and every measurement of g, on one page.
       </p>
+      <p className="small">
+        See what the class page looks like: <a href="/class/demo23">a demo class</a>.
+      </p>
       <ClassMaker />
     </div>
   );
