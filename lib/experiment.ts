@@ -382,8 +382,9 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
     const v = fit.theta[p.name], s = fit.sigma[p.name];
     let ref: number | undefined, label = "";
     const nm = p.name.toLowerCase();
-    // only an acceleration in real units can be compared with a world's gravity (a rest position "set by gravity" can't)
-    const accel = metrePower(p.unit) === 1 && secondPower(p.unit) === -2 && m?.calibration.kind !== "none";
+    // only an acceleration in real units can be compared with a world's gravity (a rest position "set by gravity" can't):
+    // metres come from a ruler, or from a length the person stated (a pendulum measured as an angle, its L said aloud)
+    const accel = metrePower(p.unit) === 1 && secondPower(p.unit) === -2 && (m?.calibration.kind !== "none" || stated.l !== undefined);
     if ((nm === "g" || /gravit/.test(p.meaning ?? "")) && accel && gUsed === null) {
       ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
       label = obs.body === "earth" ? (obs.location.latitude_deg !== null ? `normal gravity at ${obs.location.latitude_deg.toFixed(1)}° latitude` : "standard gravity on Earth") : `surface gravity of the ${obs.body === "moon" ? "Moon" : obs.body === "mars" ? "planet Mars" : obs.body}`;
@@ -391,7 +392,9 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
       ref = stated[nm];
       label = "what the narrator said";
     }
-    if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: s, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
+    // a g fitted against a stated length carries that length's rounding too (g ∝ L)
+    const sd = ref !== undefined && label !== "what the narrator said" && m?.calibration.kind === "none" && stated.l !== undefined ? Math.hypot(s || 0, v * STATED_REL) : s;
+    if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: sd, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: sd ? Math.abs(v - ref) / sd : NaN });
   }
   return out;
 }
