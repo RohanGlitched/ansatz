@@ -57,7 +57,7 @@ export type Experiment = {
   comparisons: Comparison[];
   eyeball: (Eyeball & { model: string; seen?: { fps: number; frames: number } }) | null;
   /** set when the measured gravity says the clip's clock isn't real time */
-  clock: { factor: number; note: string } | null;
+  clock: { factor: number; sigma?: number; note: string } | null;
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
@@ -598,9 +598,12 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const gc = comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g|gravity/i.test(c.label)) && c.label !== "what the narrator said");
       if (gc && slow === 1) {
         const r = gc.measured / gc.reference;
-        if (r > 0 && (r < 0.6 || r > 1.7)) {
+        // flag only a miss that is both significant (over 3σ, the ruler's share included) and large (over 15%, beyond
+        // what an off-plane ruler or lens can do); the factor carries half gravity's relative error (g ∝ 1/time²)
+        const sr = gc.sigma > 0 ? gc.sigma / gc.reference : 0;
+        if (r > 0 && Math.abs(r - 1) > Math.max(0.15, 3 * sr)) {
           const f = Math.sqrt(1 / r);
-          clock = { factor: f, note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
+          clock = { factor: f, sigma: 0.5 * f * (gc.sigma > 0 ? gc.sigma / gc.measured : 0), note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
         }
       }
       // a number the clock casts doubt on is never left standing on its own
