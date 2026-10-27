@@ -6,7 +6,7 @@ import SeriesChart from "@/components/SeriesChart";
 import Tex from "@/components/Tex";
 import { clipData, getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
-import type { Experiment } from "@/lib/experiment";
+import { atBound, type Experiment } from "@/lib/experiment";
 import { prettyUnit, secondPower } from "@/lib/units";
 import { LANGUAGES, translation } from "@/lib/translate";
 import styles from "./page.module.css";
@@ -29,6 +29,17 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   if (!e) notFound();
   const tr = lang && LANGUAGES[lang] ? await translation(e, lang).catch(() => null) : null;
   const win = winnerOf(e);
+  // the ranking's own score (the worse of the fitted and unseen misses, in noise units), and why a law sits where it does
+  const scoreOf = (c: (typeof e.candidates)[number]) => (Number.isFinite(c.fit.testZ) ? Math.max(c.fit.testZ!, Number.isFinite(c.fit.trainZ) ? c.fit.trainZ! : 0) : c.fit.testRms);
+  const maxScore = Math.max(1e-9, ...e.candidates.filter((c) => c.fit.ok && Number.isFinite(scoreOf(c))).map(scoreOf));
+  const reasonFor = (c: (typeof e.candidates)[number]) => {
+    if (!c.fit.ok || c.rank === 1) return null;
+    const above = e.candidates.filter((x) => x.rank < c.rank && x.fit.ok);
+    if (!above.some((x) => x.fit.testRms > c.fit.testRms)) return null;
+    if (c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]))) return "A parameter is pressed against its limit, so it ranks after laws whose values settled freely.";
+    if (Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ) && c.fit.trainZ! > c.fit.testZ!) return `Its unseen miss is small, but it misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}× the noise.`;
+    return "Tied within the noise with a law above it; the simpler law ranks first.";
+  };
   // the referee's words are shown only while the law it wrote about still leads
   const ref = e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique : null;
   const plate = plateData(e);
@@ -39,7 +50,6 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   const runnerUp = e.candidates.find((c) => c.law.id !== win.law.id && c.fit.ok);
   const freeParams = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
   const fixedParams = win.law.params.filter((p) => p.fixed);
-  const maxErr = Math.max(...e.candidates.filter((c) => Number.isFinite(c.fit.testRms)).map((c) => c.fit.testRms), 1e-9);
   const channels = Object.keys(win.fit.predicted).filter((c) => e.measured.series.ch[c]);
 
   return (
@@ -166,8 +176,14 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
         <div className="wrap">
           <h2>The trial</h2>
           <p className="lede" style={{ marginTop: 12 }}>
-            Every candidate law was fitted to the first {Math.round(e.trainFrac * 100)}% of the motion, then asked to predict the rest. Lower is better. When two laws miss by less than the measurement noise, the simpler one wins.
+            Every candidate law was fitted to the first {Math.round(e.trainFrac * 100)}% of the motion, then asked to predict the rest. Each is ranked by the worse of the two, in units of the measurement noise (1 means it misses by no more than the noise). When two laws are equally good, the simpler one wins.
           </p>
+          {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5 && (
+            <p className={styles.caution}>
+              Even the winner misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the measurement noise, so something none of these laws include matters there
+              {e.observation.caveats[0] ? ` (the observer noted: ${e.observation.caveats[0]})` : ""}. Read its constants as the best available description, not a closed case.
+            </p>
+          )}
           <ol className={styles.trial}>
             {e.candidates.map((c) => (
               <li key={c.law.id} className={c.law.id === win.law.id ? styles.winner : ""}>
@@ -185,9 +201,18 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 </div>
                 <div className={styles.err}>
                   <div className={styles.bar} aria-hidden="true">
-                    <span style={{ width: `${Number.isFinite(c.fit.testRms) ? Math.max(2, (c.fit.testRms / maxErr) * 100) : 100}%` }} />
+                    <span style={{ width: `${c.fit.ok ? Math.max(2, (Math.log1p(scoreOf(c)) / Math.log1p(maxScore)) * 100) : 100}%` }} />
                   </div>
-                  <p className="num">{c.fit.ok ? fmtLen(c.fit.testRms, lengthUnit, channels) : "failed"}</p>
+                  {c.fit.ok ? (
+                    <p className="num small">
+                      seen {fmtLen(c.fit.trainRms, lengthUnit, channels)}
+                      {Number.isFinite(c.fit.trainZ) ? ` (${fmt(c.fit.trainZ!, 2)}×)` : ""} · unseen <strong>{fmtLen(c.fit.testRms, lengthUnit, channels)}</strong>
+                      {Number.isFinite(c.fit.testZ) ? ` (${fmt(c.fit.testZ!, 2)}×)` : ""}
+                    </p>
+                  ) : (
+                    <p className="num">failed</p>
+                  )}
+                  {reasonFor(c) && <p className={styles.reason}>{reasonFor(c)}</p>}
                   {!c.fit.ok && c.fit.why && <p className="small">{c.fit.why}</p>}
                 </div>
               </li>

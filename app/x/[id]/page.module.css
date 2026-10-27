@@ -447,3 +447,18 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.reason {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-3);
+  max-width: 34ch;
+}
+
+.caution {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--warn);
+  background: var(--paper-2);
+  max-width: 75ch;
+}
