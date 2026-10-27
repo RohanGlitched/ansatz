@@ -8,15 +8,17 @@ Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the mo
 
 Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab).
 
-## Memory or measurement
+## Can a language model tell the speed?
 
-Show Muse Spark every frame of the 1972 Apollo 16 clip and ask for the Moon’s gravity: it says 1.63. Slow the clip down 1.5× in secret and it still says 1.60: it recognises the footage and recalls the textbook. On the real clip the recalled value is closer to the truth; only the measurement responds to the slowdown. Ansatz measures:
+We slowed the 1972 Apollo 16 jump by 1.5× with motion-interpolated frames at an ordinary 29.97 fps, told no one, and asked Muse Spark about each clip on its own (up to 300 frames each, with the astronaut's height as a ruler): how fast does the astronaut fall as the video plays, and does it play at real speed?
 
-| Clip | Muse Spark, by eye | Ansatz, measured |
+| Clip | Muse Spark, one clip at a time | Ansatz, one clip at a time |
 |---|---|---|
-| Apollo 16, John Young’s jump salute | 1.63 m/s² | **1.72 ± 0.11 m/s²** (the Moon: 1.625) |
-| The same clip, slowed 1.5× in secret (motion-interpolated, 29.97 fps) | 1.60 m/s² | **0.72 ± 0.05 m/s²**, so the clip runs **1.55 ± 0.04× slow** (truth: 1.5×) |
-| The slowed clip again, Muse Spark given Ansatz as a function tool | calls `measure_motion`, then answers **0.74 as filmed, and the clip runs about 1.48× slow** | |
+| Apollo 16, real speed | 0.4 m/s² as played, "slowed 2×" | **1.72 ± 0.11 m/s²**: real speed (the Moon: 1.625) |
+| The same clip, slowed 1.5× in secret | 0.4 m/s² as played, "slowed 2×" | **0.72 ± 0.05 m/s²**: slowed, **1.55 ± 0.04×** against the first (truth: 1.5×) |
+| Three new renders, slowed 2×, 4×, 8× | g 9.8, 0.15, 9.8 | all three flagged by the clock check |
+
+One clip at a time, the model gives both clips the same answer. Side by side it can count frames and say B is about 1.5× slower, which is impressive; given Ansatz's measurements as tools it answers 1.55 ± 0.04×, from a ratio that needs no reference value. Ansatz needs no second clip.
 
 ## What it measured
 

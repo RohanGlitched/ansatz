@@ -399,6 +399,62 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
         </section>
       )}
 
+      {e.extras?.speedTest && (
+        <section className={`section ${styles.band}`} id="speed-test">
+          <div className="wrap">
+            <h2>Can it tell the speed?</h2>
+            <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>
+              The fair version of the test: we asked Muse Spark about the playback itself, not the Moon. It saw up to 300 frames of each clip and was told the astronaut’s height. Clip B is clip A slowed 1.5× with interpolated frames.
+            </p>
+            <table className={styles.vs}>
+              <thead>
+                <tr>
+                  <th>Asked</th>
+                  <th>Muse Spark answered</th>
+                  <th>Ansatz measured</th>
+                </tr>
+              </thead>
+              <tbody>
+                {e.extras.speedTest.single.map((x, i) => (
+                  <tr key={x.clip}>
+                    <td>Clip {x.clip} alone: the acceleration as it plays, and is it real speed?</td>
+                    <td>
+                      {x.playback_accel} m/s²; {x.real_speed ? "real speed" : `slowed ${x.factor}×`}
+                      <p className="small">{x.reasoning}</p>
+                    </td>
+                    <td className="num">
+                      {e.extras!.memoryTest ? `${e.extras!.memoryTest.rows[i].g.toFixed(2)} ± ${e.extras!.memoryTest.rows[i].sigma.toFixed(2)} m/s²` : "—"}; {i === 0 ? "real speed" : "slowed about 1.5×"}
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td>Both clips side by side: is either slower, and by what factor?</td>
+                  <td>
+                    {e.extras.speedTest.pair.slower === "neither" ? "neither" : `${e.extras.speedTest.pair.slower} is slower, by ${e.extras.speedTest.pair.factor}×`}
+                    <p className="small">{e.extras.speedTest.pair.reasoning}</p>
+                  </td>
+                  <td className="num">B by {e.extras.memoryTest ? fmtPair(Math.sqrt(e.extras.memoryTest.rows[0].g / e.extras.memoryTest.rows[1].g), 0.5 * Math.sqrt(e.extras.memoryTest.rows[0].g / e.extras.memoryTest.rows[1].g) * Math.hypot((e.extras.memoryTest.rows[0].sigmaStat ?? e.extras.memoryTest.rows[0].sigma) / e.extras.memoryTest.rows[0].g, (e.extras.memoryTest.rows[1].sigmaStat ?? e.extras.memoryTest.rows[1].sigma) / e.extras.memoryTest.rows[1].g)) : "—"}×</td>
+                </tr>
+              </tbody>
+            </table>
+            <p style={{ marginTop: 16, maxWidth: "75ch" }}>
+              One clip at a time, the model gives both clips the same answer, and calls the real-speed one slowed too. Side by side it can count frames and see that B is slower, which is impressive. Ansatz needs no second clip: each one’s measured fall says how fast it plays.
+            </p>
+            <div className={styles.toolTest}>
+              <p>
+                <strong>With Ansatz’s measurements as tools</strong> (measure_motion for each clip, and compare_clips, a ratio that needs no reference value), Muse Spark made these calls:
+              </p>
+              <pre>{e.extras.speedTest.withTools.calls.map((c) => `${c.name} → ${JSON.stringify(c.result)}`).join("\n")}</pre>
+              <p>
+                <strong>Its answer:</strong>
+              </p>
+              <div style={{ whiteSpace: "pre-line" }}>{mathText(e.extras.speedTest.withTools.answer)}</div>
+              <p hidden></p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {e.extras?.toolTest && (
         <section className={`section ${styles.band}`}>
           <div className="wrap">
@@ -593,4 +649,18 @@ function fmtLen(v: number, unit: string, channels: string[]) {
   if (channels.length === 1 && channels[0] === "theta") return `${((v * 180) / Math.PI).toFixed(2)}°`;
   if (unit === "px") return `${v.toFixed(1)} px`;
   return v < 0.01 ? `${(v * 1000).toFixed(1)} mm` : `${(v * 100).toFixed(1)} cm`;
+}
+
+/** A model's answer with its inline ($…$) and display ($$…$$) LaTeX typeset. */
+function mathText(text: string) {
+  const out: React.ReactNode[] = [];
+  const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+  let last = 0, k = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    if (m.index > last) out.push(text.slice(last, m.index).replace(/^> ?/gm, ""));
+    out.push(m[1] ? <Tex key={k++} display>{m[1]}</Tex> : <Tex key={k++}>{m[2]}</Tex>);
+    last = m.index + m[0].length;
+  }
+  out.push(text.slice(last).replace(/^> ?/gm, ""));
+  return out;
 }

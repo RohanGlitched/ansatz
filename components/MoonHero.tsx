@@ -25,6 +25,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
   const [a, b, c] = sol;
   const g = e.comparisons.find((x) => x.param === "g");
   const mt = e.extras?.memoryTest;
+  const st = e.extras?.speedTest;
   const tEnd = Math.max(...pts.map((p) => p.t)) * 1.05;
   const hMax = Math.max(0.05, ...pts.map((p) => p.h)) * 1.25;
   const W = 640, H = 380, L = 46, R = 16, T = 18, B = 34;
@@ -52,15 +53,15 @@ export default function MoonHero({ e }: { e: Experiment }) {
         <div className={styles.text}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
           <p className="lede">
-            Show a language model up to 300 frames of this 1972 clip and it recites the Moon’s textbook gravity, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark, and only the measurement notices.
+            We slowed this 1972 clip by 1.5× and told no one. Shown one clip at a time, a language model gives both the same answer. Ansatz measures each clip frame by frame with SAM 3.1 and Muse Spark, and tells them apart.
           </p>
           {mt ? (
             <table className={styles.memory}>
               <thead>
                 <tr>
                   <th />
-                  <th>Muse Spark, by eye</th>
-                  <th>Ansatz, measured</th>
+                  <th>Muse Spark, one clip at a time</th>
+                  <th>Ansatz, one clip at a time</th>
                 </tr>
               </thead>
               <tbody>
@@ -68,12 +69,12 @@ export default function MoonHero({ e }: { e: Experiment }) {
                   <tr key={r.clip}>
                     <th scope="row">{i === 0 ? "Apollo 16, 1972" : "Same clip, secretly slowed 1.5×"}</th>
                     <td className="num">
-                      {r.eye != null ? r.eye.toFixed(2) : "—"}
-                      <span className={styles.note}>{i === 0 ? "the textbook, recalled" : "the textbook again"}</span>
+                      {st ? `${st.single[i].playback_accel} as played` : r.eye != null ? r.eye.toFixed(2) : "—"}
+                      <span className={styles.note}>{st ? (st.single[i].real_speed ? "“real speed”" : `“slowed ${st.single[i].factor}×”`) : "recalled"}</span>
                     </td>
                     <td className="num">
                       <strong className={i === 0 ? styles.num : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
-                      {i > 0 && <span className={styles.flag}>so the clip runs {Math.sqrt(mt.rows[0].g / r.g).toFixed(2)}× slow (it does: 1.5×)</span>}
+                      {i === 0 ? <span className={styles.note}>real speed: the Moon is 1.625</span> : <span className={styles.flag}>so the clip runs {Math.sqrt(mt.rows[0].g / r.g).toFixed(2)}× slow (it does: 1.5×)</span>}
                     </td>
                   </tr>
                 ))}
@@ -83,8 +84,8 @@ export default function MoonHero({ e }: { e: Experiment }) {
                       <Link href="/proof">3 new renders, slowed {mt.renders.slows.join("×, ")}× in secret</Link>
                     </th>
                     <td className="num">
-                      {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
-                      <span className={styles.note}>recalled, or guessed</span>
+                      g {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
+                      <span className={styles.note}>Earth’s 9.8, mostly</span>
                     </td>
                     <td className="num">
                       all {mt.renders.slows.length} flagged
@@ -103,9 +104,9 @@ export default function MoonHero({ e }: { e: Experiment }) {
               </p>
             )
           )}
-          {mt?.tool && (
+          {st && (
             <p className={styles.ref}>
-              Give Muse Spark Ansatz as a tool and it answers <Link href={mt.tool.href}>{mt.tool.answer}</Link>.
+              Shown both clips side by side, Muse Spark can tell B is about {st.pair.factor}× slower by counting frames. Given Ansatz’s measurements as tools, it answers <Link href="/x/moon-jump#speed-test">B is {mt?.rows ? Math.sqrt(mt.rows[0].g / mt.rows[1].g).toFixed(2) : "1.55"}× slower</Link>, from a ratio that needs no reference value.
             </p>
           )}
           {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt?.rows[1]} />}
