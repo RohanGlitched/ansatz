@@ -16,6 +16,7 @@ Show Muse Spark every frame of the 1972 Apollo 16 clip and ask for the Moon’s 
 |---|---|---|
 | Apollo 16, John Young’s jump salute | 1.63 m/s² | **1.72 ± 0.11 m/s²** (the Moon: 1.625) |
 | The same clip, slowed 1.5× in secret (motion-interpolated, 29.97 fps) | 1.60 m/s² | **0.72 ± 0.05 m/s²**, so the clip runs **1.55 ± 0.04× slow** (truth: 1.5×) |
+| The slowed clip again, Muse Spark given Ansatz as a function tool | calls `measure_motion`, then answers **0.74 as filmed, and the clip runs about 1.48× slow** | |
 
 ## What it measured
 
