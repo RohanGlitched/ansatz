@@ -1,0 +1,45 @@
+.ask {
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.examples button {
+  font: inherit;
+  font-size: 13.5px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.answer {
+  padding: 14px 16px;
+  border-left: 3px solid var(--law);
+  background: var(--paper-2);
+  display: grid;
+  gap: 8px;
+}

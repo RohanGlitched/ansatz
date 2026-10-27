@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import AskRun from "@/components/AskRun";
 import ExperimentVisual from "@/components/ExperimentVisual";
 import SeriesChart from "@/components/SeriesChart";
 import Tex from "@/components/Tex";
@@ -518,6 +519,16 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
           </div>
         </section>
       )}
+
+      <section className={`section ${styles.band}`}>
+        <div className="wrap">
+          <h2>Ask Muse Spark about this run</h2>
+          <p className="lede" style={{ marginTop: 12, marginBottom: 18, maxWidth: "75ch" }}>
+            It answers from this experiment’s record (the laws, the trial, every constant), and code checks every number it quotes against that record.
+          </p>
+          <AskRun id={e.id} examples={["Why did this law win?", "How sure is this measurement?", e.clock ? "Is this clip in slow motion?" : "What would change on the Moon?"]} />
+        </div>
+      </section>
 
       <section className="section">
         <div className={`wrap ${styles.notebook}`}>
