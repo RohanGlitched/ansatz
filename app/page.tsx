@@ -5,6 +5,7 @@ import Tex from "@/components/Tex";
 import MoonHero from "@/components/MoonHero";
 import { getExperiment, plateData, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
+import { costText, headline, timeText } from "@/lib/headline";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
@@ -13,6 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   const ids = await showcaseIds();
   const exps = (await Promise.all(ids.map(getExperiment))).filter((e): e is Experiment => !!e);
+  const hl = await headline();
   const hero = exps.find((e) => e.id === (process.env.HERO_ID ?? "beach-ball-drag")) ?? exps[0];
   const heroWin = hero ? winnerOf(hero) : null;
   const moon = exps.find((e) => e.id === "moon-jump");
@@ -110,7 +112,7 @@ export default async function Home() {
             <li>
               <span className={styles.step}>Falsify</span>
               <h3>Predict the unseen</h3>
-              <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%. The model never picks the winner and never writes a number into the report.</p>
+              <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%. The model never picks the winner, and every measured number in the report comes from the fit.</p>
               <p className={styles.model}>Code: RK4 integration and Levenberg–Marquardt fitting</p>
               {spec && (
                 <div className={styles.specimen}>
@@ -154,7 +156,7 @@ export default async function Home() {
             <div>
               <h3>A teacher with a class of forty</h3>
               <p>
-                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g (<Link href="/class/demo23">see a demo</Link>). A run costs 10–40 cents of model calls and takes about 90 seconds.
+                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g (<Link href="/class/demo23">see a demo</Link>). A run costs {costText(hl)} and takes {timeText(hl)}.
               </p>
             </div>
             <div>
@@ -164,7 +166,7 @@ export default async function Home() {
             <div>
               <h3>Anyone asking whether a clip is real time</h3>
               <p>
-                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> (1.50×, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where a language model watching the same frames answered from memory.
+                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where a language model watching the same frames answered from memory.
               </p>
             </div>
           </div>

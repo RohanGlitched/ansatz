@@ -1,14 +1,7 @@
-import { toLatex } from "./physics/expr";
+import { symbolLatex, toLatex } from "./physics/expr";
 import type { Law } from "./physics/law";
 
-const GREEK = new Set(["alpha", "beta", "gamma", "delta", "theta", "omega", "mu", "lambda", "phi", "zeta", "tau", "rho", "sigma", "kappa", "eta", "psi"]);
-
-function sym(name: string): string {
-  if (GREEK.has(name)) return `\\${name}`;
-  const m = /^([A-Za-z]+)_?(\d+|[A-Za-z]+)?$/.exec(name);
-  if (m && m[2]) return `${GREEK.has(m[1]) ? `\\${m[1]}` : m[1]}_{\\mathrm{${m[2]}}}`;
-  return name.length > 1 ? `\\mathit{${name}}` : name;
-}
+const sym = symbolLatex;
 
 /**
  * Writes a law as a textbook would: a state whose derivative is another state becomes a second

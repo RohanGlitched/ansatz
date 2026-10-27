@@ -94,7 +94,7 @@ export default async function HowPage() {
         </Step>
         <Step n="2" spec={spec?.watch} title="Watch and listen" who="Muse Spark 1.3, Muse Voice Transcribe">
           <p>
-            Muse Spark watches the whole clip, with Voice Transcribe’s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema; search grounding is available for the size of an object it recognises.
+            Muse Spark watches the whole clip, with Voice Transcribe’s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema, so every field arrives where code expects it.
           </p>
         </Step>
         <Step n="3" spec={spec?.measure} title="Measure every frame" who="SAM 3.1">
@@ -139,7 +139,7 @@ export default async function HowPage() {
             <h2>Why it can be trusted</h2>
           </div>
           <ul className={styles.list}>
-            <li>The model never decides the winner and never writes a number into the report.</li>
+            <li>The model never decides the winner, and every measured number in a report comes from the fit. The two things Muse Spark supplies, the size of the ruler it picked and which world the clip is on, are listed under “Given, not measured”.</li>
             <li>Every report separates what was given (a ruler, a stated length, Earth’s gravity) from what was measured, with an uncertainty on every measured value.</li>
             <li>Every model call is listed on the experiment with its purpose, time and cost.</li>
             <li>

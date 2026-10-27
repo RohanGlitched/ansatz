@@ -122,9 +122,28 @@
   margin-bottom: 4px;
 }
 
+/* on phones the section links move to a second row that scrolls sideways */
+.mnav {
+  display: none;
+}
+
 @media (max-width: 820px) {
   .nav a:not(.cta) {
     display: none;
+  }
+  .mnav {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 0 16px 10px;
+    font-family: var(--font);
+    font-size: 14px;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .mnav a {
+    color: var(--ink-2);
+    text-decoration: none;
   }
   .footGrid {
     grid-template-columns: 1fr 1fr;

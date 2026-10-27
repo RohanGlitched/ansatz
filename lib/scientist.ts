@@ -1,7 +1,9 @@
 /**
- * The model's part of the method. Muse Spark watches and listens (observe), Muse proposes laws as equations
- * (hypothesise), and reads the scoreboard to explain it or revise once (critique). The model never decides
- * which law wins and never writes a number into the report: code fits, code scores, code fills the numbers.
+ * The model's part of the method. Muse Spark watches and listens (observe), proposes laws as equations
+ * (hypothesise), and reads the scoreboard to explain it (critique). When the referee sees drift the winner
+ * can't explain, Muse Wonder works as a theorist with a fit_law tool and submits one more law (reviseAgentic).
+ * A by-eye baseline (eyeball) answers the same questions from the video alone. The model never decides which
+ * law wins and never writes a number into the report: code fits, code scores, code fills the numbers.
  */
 import { citations, Ledger, outputText, parseJsonLoose, respond, respondJson } from "./meta/client";
 import type { Law } from "./physics/law";
@@ -320,22 +322,11 @@ export async function critique(obs: Observation, board: unknown, ledger: Ledger,
   return value;
 }
 
-/** Muse Wonder writes the one extra law the referee asked for: the hardest reasoning step in the loop. */
-export async function revise(obs: Observation, board: unknown, idea: string, ledger: Ledger, model = MODELS.revise): Promise<Law> {
-  const text = [
-    "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion and asked to predict the last 30%. The referee thinks the winner misses a physical effect. Write ONE new law that adds that effect to the winner, and nothing else.",
-    `Referee's note: ${idea}`,
-    `Experiment: ${obs.phenomenon}. ${obs.what_happens}`,
-    `Scoreboard and residuals:\n${JSON.stringify(board, null, 1)}`,
-    METHOD,
-  ].join("\n\n");
-  const { value } = await respondJson<WireLaw>(
-    { model, effort: "medium", input: [{ role: "user", content: [{ type: "input_text", text }] }], schema: LAW_SCHEMA, name: "revised_law", maxOutput: 16000 },
-    ledger,
-    "write a revised law",
-  );
-  return fromWire(value);
-}
+/** The theorist's two tools, strict so the arguments always parse as a law. */
+export const WONDER_TOOLS = [
+  { type: "function", name: "fit_law", description: "Fit a candidate law to the fitted frames and report how well it explains them.", strict: true, parameters: LAW_SCHEMA },
+  { type: "function", name: "submit_law", description: "Submit the one law to be tested on the held-out frames.", strict: true, parameters: LAW_SCHEMA },
+];
 
 export type WonderAttempt = { title: string; ok: boolean; trainRms?: number; error?: string };
 
@@ -362,10 +353,7 @@ export async function reviseAgentic(
     METHOD,
     "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test.",
   ].join("\n\n");
-  const tools = [
-    { type: "function", name: "fit_law", description: "Fit a candidate law to the fitted frames and report how well it explains them.", parameters: LAW_SCHEMA },
-    { type: "function", name: "submit_law", description: "Submit the one law to be tested on the held-out frames.", parameters: LAW_SCHEMA },
-  ];
+  const tools = WONDER_TOOLS;
   const attempts: WonderAttempt[] = [];
   // the best law it tried, by its fit to the seen frames: submitted for it if the turns run out first
   let best: { law: Law; rms: number } | null = null;
@@ -376,7 +364,7 @@ export async function reviseAgentic(
     // out of time: the best law tried so far goes forward rather than the run overrunning
     if (Date.now() > deadline) break;
     const raw = await respond(
-      { model, reasoning: { effort: process.env.WONDER_EFFORT ?? "low" }, max_output_tokens: 16000, tools, input, ...(prev ? { previous_response_id: prev } : {}) },
+      { model, reasoning: { effort: process.env.WONDER_EFFORT ?? "low" }, max_output_tokens: 16000, tools, parallel_tool_calls: false, input, ...(prev ? { previous_response_id: prev } : {}) },
       ledger,
       `theorist turn ${turn + 1}`,
     );
@@ -422,6 +410,17 @@ export async function reviseAgentic(
 
 /* ─────────────────────── baseline: the eye alone ─────────────────────── */
 
+export const EYEBALL_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["estimates", "law_in_words", "confidence"],
+  properties: {
+    estimates: { type: "array", items: { type: "object", additionalProperties: false, required: ["quantity", "value", "unit"], properties: { quantity: { type: "string" }, value: { type: "number" }, unit: { type: "string" } } } },
+    law_in_words: { type: "string" },
+    confidence: { type: "string" },
+  },
+};
+
 export type Eyeball = { estimates: { quantity: string; value: number; unit: string }[]; law_in_words: string; confidence: string };
 
 export async function eyeball(
@@ -443,26 +442,24 @@ export async function eyeball(
   const { value } = await respondJson<Eyeball>(
     {
       model: MODELS.eyeball,
-      effort: "medium",
+      effort: "low",
       input: [{ role: "user", content: [vid.part, { type: "input_text", text }] }],
       name: "eyeball",
-      schema: {
-        type: "object",
-        additionalProperties: false,
-        required: ["estimates", "law_in_words", "confidence"],
-        properties: {
-          estimates: { type: "array", items: { type: "object", additionalProperties: false, required: ["quantity", "value", "unit"], properties: { quantity: { type: "string" }, value: { type: "number" }, unit: { type: "string" } } } },
-          law_in_words: { type: "string" },
-          confidence: { type: "string" },
-        },
-      },
-      maxOutput: 16000,
+      schema: EYEBALL_SCHEMA,
+      maxOutput: 3000,
     },
     ledger,
     `eyeball baseline (${vid.frames} frames at ${vid.fps.toFixed(1)} fps)`,
   );
   return { ...value, seen: { fps: vid.fps, frames: vid.frames } };
 }
+
+export const POINT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["found", "left", "top", "right", "bottom"],
+  properties: { found: { type: "boolean" }, left: { type: "number" }, top: { type: "number" }, right: { type: "number" }, bottom: { type: "number" } },
+};
 
 /** Muse Spark points at the object in one frame (pixel box), so SAM 3.1 can follow it when a noun phrase finds nothing. */
 export async function point(png: Uint8Array, size: { width: number; height: number }, noun: string, description: string, ledger: Ledger, still = false): Promise<{ left: number; top: number; right: number; bottom: number } | null> {
@@ -473,12 +470,7 @@ export async function point(png: Uint8Array, size: { width: number; height: numb
       effort: "medium",
       input: [{ role: "user", content: [{ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(png).toString("base64")}` }, { type: "input_text", text }] }],
       name: "point",
-      schema: {
-        type: "object",
-        additionalProperties: false,
-        required: ["found", "left", "top", "right", "bottom"],
-        properties: { found: { type: "boolean" }, left: { type: "number" }, top: { type: "number" }, right: { type: "number" }, bottom: { type: "number" } },
-      },
+      schema: POINT_SCHEMA,
       maxOutput: 6000,
     },
     ledger,

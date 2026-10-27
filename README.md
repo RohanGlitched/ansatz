@@ -51,7 +51,7 @@ flowchart LR
   J --> K[Report: strobe print, law, constants ± σ, clock check]
 ```
 
-- **The model never decides the winner and never writes a number into the report.** Fitted values enter the referee’s text as placeholders that code fills; a finding that types its own digits is replaced.
+- **The model never decides the winner, and every measured number comes from the fit.** Fitted values enter the referee’s text as placeholders that code fills; a finding that types its own digits is replaced.
 - **Laws are data, not code.** Muse writes equations in a small expression language that Ansatz parses and compiles; unknown symbols are rejected before anything runs ([`lib/physics/expr.ts`](lib/physics/expr.ts)).
 - **The clock comes from the file.** Frame times are read from the MP4 sample table, not assumed from a frame rate ([`lib/video.ts`](lib/video.ts)).
 - **Given is separated from measured.** Every report lists what was assumed (a ruler, a stated length, Earth’s gravity) apart from what was measured; a ruler’s own uncertainty is carried into each constant by its power of metres.

@@ -239,13 +239,15 @@ export type RunInput = {
   language?: string;
   hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
+  /** the caller's ledger, so what a run spent can be counted even when it throws */
+  ledger?: Ledger;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
   onPrepared?: (video: Uint8Array) => Promise<string | void>;
 };
 
 export async function runExperiment(input: RunInput, emit: (p: Progress) => void = () => {}): Promise<Experiment> {
   const t0 = Date.now();
-  const ledger = new Ledger();
+  const ledger = input.ledger ?? new Ledger();
   const step = async <T>(s: Step, fn: () => Promise<T>, detail?: (r: T) => string, data?: (r: T) => unknown): Promise<T> => {
     emit({ step: s, state: "start", at: Date.now() - t0 });
     try {

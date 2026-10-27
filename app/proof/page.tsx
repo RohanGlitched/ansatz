@@ -95,6 +95,10 @@ export default async function ProofPage() {
     return { n: cs.length, within: e.filter((x) => x <= 5).length, median: e.length ? e[(e.length - 1) >> 1] * 0.5 + e[e.length >> 1] * 0.5 : NaN };
   };
   const split = { phys: group(all.filter((c) => !c.quantity.startsWith("scale"))), scale: group(all.filter((c) => c.quantity.startsWith("scale"))) };
+  // how much each kind of constant leans on a length scale: times and ratios need none; drag and string length need
+  // the scale that assuming g gives; g itself needs a ruler in view, which is the hardest case
+  const kind = (q: string) => (/^(restitution|damping|omega)/.test(q) ? "free" : /^g/.test(q) ? "ruler" : "assumed");
+  const byKind = { free: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "free")), assumed: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "assumed")), ruler: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "ruler")) };
   const pct = (v: number, d = 1) => `${v.toFixed(d)}%`;
   // the winner's miss on the unseen frames as a share of how far the object moved (same units, so no scale is needed)
   const relMiss = (e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>) => {
@@ -154,7 +158,7 @@ export default async function ProofPage() {
           <div>
             <p className={styles.big}>{pct(split.phys.median, 2)}</p>
             <p>
-              median error on the {split.phys.n} physical constants Ansatz measured (g, string length, drag, restitution, damping, frequency); {split.phys.within} within 5%. Separately, the {split.scale.n} camera scales it worked out (metres per pixel, from a fall or a ruler): median {pct(split.scale.median, 2)}, {split.scale.within} within 5%.
+              median error on the {split.phys.n} physical constants Ansatz measured (g, string length, drag, restitution, damping, frequency); {split.phys.within} within 5%. By what they lean on: {byKind.free.n} that need no length scale (restitution, damping, frequency), median {pct(byKind.free.median, 2)}; {byKind.assumed.n} that use the scale from assuming g (drag, string length), median {pct(byKind.assumed.median, 2)}; and {byKind.ruler.n} values of g measured against a ruler in view, the hardest case, median {pct(byKind.ruler.median, 1)}, {byKind.ruler.within} within 5%. Separately, the {split.scale.n} camera scales it worked out (metres per pixel, from a fall or a ruler): median {pct(split.scale.median, 2)}, {split.scale.within} within 5%.
             </p>
           </div>
           <div>
@@ -195,15 +199,15 @@ export default async function ProofPage() {
                   {moonG.measured.toFixed(2)} ± {moonG.sigma.toFixed(2)} m/s²
                 </p>
                 <p>
-                  <strong>The Moon’s gravity from 1972 television, measured blind.</strong> John Young’s jump salute, Apollo 16. No narration: the only inputs were the clip, the word “astronaut” for SAM 3.1 and the ruler. SAM 3.1 tracked him, the airborne frames came from his boots leaving the ground, and a plain ballistic law won. The Moon’s surface gravity is {moonG.reference} m/s². The error bar is mostly the ruler: his suited height, taken as 1.88 m ± 5%. With that ruler his boots rose 0.40 m on average; the Apollo Lunar Surface Journal says about 0.42 m.
+                  <strong>The Moon’s gravity from 1972 television, measured from the pixels.</strong> John Young’s jump salute, Apollo 16. No narration: the only inputs were the clip, the word “astronaut” for SAM 3.1 and the ruler. SAM 3.1 tracked him, the airborne frames came from his boots leaving the ground, and a plain ballistic law won. The Moon’s surface gravity is {moonG.reference} m/s². The error bar is mostly the ruler: his suited height, taken as 1.88 m ± 5%. With that ruler his boots rose 0.40 m on average; the Apollo Lunar Surface Journal says about 0.42 m.
                 </p>
               </Link>
             )}
             {slow?.clock && (
               <Link href="/x/sample-pendulum" className={styles.realCard}>
-                <p className={styles.realBig}>{slow.clock.factor.toFixed(1)}× slow motion</p>
+                <p className={styles.realBig}>about 4 to 4.5× slow</p>
                 <p>
-                  <strong>A clip that hides its slow motion, flagged.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
+                  <strong>A clip that may hide its slow motion, flagged.</strong> A pendulum posted online. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays slower than life: about 4 to 4.5×, unconfirmed, because the capture rate isn’t published and the clamp isn’t modelled. Nothing in the frames says so; only its uploader’s title says “slow motion”.
                 </p>
               </Link>
             )}

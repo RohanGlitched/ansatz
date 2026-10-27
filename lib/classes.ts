@@ -16,8 +16,9 @@ const DEMO: ClassRecord = {
   quota: 0,
   used: 0,
   demo: true,
-  runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing", "bouncing-ball", "beach-ball-drag"],
-  students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F", "bouncing-ball": "Student G", "beach-ball-drag": "Student H" },
+  // every row measures g on Earth, so the grading columns are filled for each
+  runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing"],
+  students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F" },
 };
 
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);

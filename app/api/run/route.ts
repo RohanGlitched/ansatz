@@ -1,7 +1,9 @@
+import { crossOrigin, sameOrigin } from "@/lib/origin";
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
 import { addClassRun, useClassRun } from "@/lib/classes";
 import { addSeriesRun } from "@/lib/series";
 import { addSpend, checkAndCount, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
+import { Ledger } from "@/lib/meta/client";
 import { getObject, objectSize, putObject, updateJson } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
 
@@ -16,8 +18,7 @@ type Body = { key?: string; narration?: string; noun?: string; slowMotion?: numb
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
-  const origin = req.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(req.url).host) return Response.json({ error: "Cross-origin requests are not accepted." }, { status: 403 });
+  if (!sameOrigin(req)) return crossOrigin();
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -26,20 +27,24 @@ export async function POST(req: Request) {
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
   const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
-  // each upload runs once: a replayed key can't spend the day's runs
-  const claimed = await updateJson<{ at: string } | null>(`claims/${body.key.replace(/^uploads\//, "")}.json`, null, (c) => (c ? null : { at: new Date().toISOString() })).catch(() => null);
-  if (!claimed) return Response.json({ error: "That upload has already been run. Upload the clip again to run it again." }, { status: 409 });
-  // and a ceiling on what a day can spend, whatever the counts say
+  const claimKey = `claims/${body.key.replace(/^uploads\//, "")}.json`;
+  const already = () => Response.json({ error: "That upload has already been run. Upload the clip again to run it again." }, { status: 409 });
+  // each upload runs once: a replayed key can't spend the day's runs. Looked at first without taking it, so a refused run
+  // (below) leaves the upload to be tried again
+  if (await getObject(claimKey).catch(() => null)) return already();
+  // a ceiling on what a day can spend, whatever the counts say
   if (!admin && (await spentToday()) >= DAILY_USD) return Response.json({ error: "Ansatz has spent today's allowance of Meta credits. The limit resets at midnight UTC; the showcase experiments are always open." }, { status: 429 });
-  // a class link spends the class's own quota; everyone else is limited per visitor and per day
-  const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
-  const gate = classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
-  if (!gate.ok) return Response.json({ error: gate.why }, { status: 429 });
-
   // look at the size before downloading anything
   const size = await objectSize(body.key).catch(() => null);
   if (size === null) return Response.json({ error: "The upload didn't arrive. Try again." }, { status: 404 });
   if (!(size <= 200 * 1024 * 1024)) return Response.json({ error: "That clip is over 200 MB. Trim it to the motion." }, { status: 413 });
+  // a class link spends the class's own quota; everyone else is limited per visitor and per day
+  const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
+  const gate = classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
+  if (!gate.ok) return Response.json({ error: gate.why }, { status: 429 });
+  // the claim is taken only once the gates have passed, in one conditional write
+  const claimed = await updateJson<{ at: string } | null>(claimKey, null, (c) => (c ? null : { at: new Date().toISOString() })).catch(() => null);
+  if (!claimed) return already();
   const video = await getObject(body.key);
   if (!video) return Response.json({ error: "The upload didn't arrive. Try again." }, { status: 404 });
 
@@ -72,6 +77,8 @@ export async function POST(req: Request) {
         }
       }, 285_000);
       const log: Progress[] = [];
+      // kept here so what the run spent is counted even when it throws
+      const ledger = new Ledger();
       try {
         const exp = await runExperiment(
           {
@@ -80,6 +87,7 @@ export async function POST(req: Request) {
             filename: body.key!.split("/").pop()!,
             narrationText: body.narration?.slice(0, 2000) || undefined,
             sample: body.sample === true,
+            ledger,
             language: LANGS.includes(String(body.language)) ? String(body.language) : undefined,
             hints: {
               noun: body.noun?.trim().slice(0, 60) || undefined,
@@ -100,7 +108,6 @@ export async function POST(req: Request) {
             if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
           },
         );
-        await addSpend(exp.ledger.usd).catch(() => {});
         await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode, student: typeof body.student === "string" ? body.student.trim().slice(0, 40) || undefined : undefined } : exp), "application/json");
         if (classCode) await addClassRun(classCode, id).catch(() => {});
         if (typeof body.series === "string") await addSeriesRun(body.series, id).catch(() => {});
@@ -118,6 +125,8 @@ export async function POST(req: Request) {
         } catch {
           /* closed by the watchdog */
         }
+        // whatever the run spent counts against the day, whether it finished or threw
+        await addSpend(ledger.usd).catch(() => {});
       }
     },
   });

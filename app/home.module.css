@@ -85,12 +85,14 @@
 }
 
 .step {
+  font-family: var(--font);
   font-size: 13px;
   font-weight: 600;
   color: var(--law);
 }
 
 .model {
+  font-family: var(--font);
   margin-top: 12px;
   font-size: 13px !important;
   color: var(--ink-3) !important;

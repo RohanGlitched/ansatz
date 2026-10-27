@@ -38,5 +38,56 @@
   "height": 720,
   "fps": 60.00000000000021,
   "duration": 5
+ },
+ "beach-ball-drag": {
+  "slice": 4,
+  "frames": 180,
+  "fps": 60.00000000000021,
+  "duration": 3,
+  "axis": "follow",
+  "x": 882,
+  "height": 720
+ },
+ "hindi-pendulum": {
+  "slice": 4,
+  "frames": 420,
+  "fps": 60.00000000000021,
+  "duration": 7,
+  "axis": "arc",
+  "x": 641,
+  "height": 210,
+  "top": 0.32475782946285636,
+  "step": 0.0030798331698545824
+ },
+ "big-swing": {
+  "slice": 4,
+  "frames": 420,
+  "fps": 60.00000000000021,
+  "duration": 7,
+  "axis": "arc",
+  "x": 653,
+  "height": 1119,
+  "top": 1.3580186249669741,
+  "step": 0.0023984348543020896
+ },
+ "bouncing-ball": {
+  "slice": 4,
+  "frames": 240,
+  "fps": 60.00000000000021,
+  "duration": 4,
+  "axis": "follow",
+  "x": 631,
+  "height": 720
+ },
+ "sample-pendulum": {
+  "slice": 4,
+  "frames": 240,
+  "fps": 30.000000000000107,
+  "duration": 8,
+  "axis": "arc",
+  "x": 770,
+  "height": 658,
+  "top": 0.9159672633156559,
+  "step": 0.0027118241948424584
  }
 }

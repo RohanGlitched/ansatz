@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { compile, parse, toLatex, ExprError } from "../lib/physics/expr";
-import { compileLaw, fitLaw, type Law, type Series } from "../lib/physics/law";
+import { compileLaw, fitLaw, LawError, type Law, type Series } from "../lib/physics/law";
 
 // deterministic noise
 function rng(seed: number) {
@@ -163,4 +163,16 @@ test("projectile with quadratic drag: drag law predicts held-out flight better t
 test("compileLaw rejects symbols the law never defined", () => {
   assert.throws(() => compileLaw({ ...freeFall, derivatives: { y: "vy", vy: "-g*mass" } }), /unknown symbol "mass"/);
   assert.throws(() => compileLaw({ ...freeFall, derivatives: { y: "vy" } }), /no derivative/);
+});
+
+test("laws: a bare e is not Euler's number; restitution must be declared", () => {
+  const bounce = (params: Law["params"]): Law => ({
+    id: "bounce", title: "Bounce", summary: "", state: ["y", "vy"], derivatives: { y: "vy", vy: "-9.81" },
+    params: [{ name: "floor", guess: 0, min: -1, max: 1 }, ...params], observe: { y: "y" },
+    events: [{ name: "bounce", when: "y - floor", then: { vy: "-e*vy" } }],
+  });
+  assert.throws(() => compileLaw(bounce([])), (err: Error) => err instanceof LawError && /`e` is not defined; name the restitution parameter e, or use exp\(1\)/.test(err.message));
+  assert.doesNotThrow(() => compileLaw(bounce([{ name: "e", guess: 0.7, min: 0.05, max: 1 }])));
+  // exp(1) and pi still work
+  assert.doesNotThrow(() => compileLaw({ ...bounce([]), events: [{ name: "b", when: "y - floor", then: { vy: "-vy*exp(1)/pi" } }] }));
 });

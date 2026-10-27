@@ -6,6 +6,7 @@ import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
 import type { Experiment } from "@/lib/experiment";
 import { LANGUAGES } from "@/lib/translate";
 import slits from "@/data/slits.json";
+import { costText, headline, timeText } from "@/lib/headline";
 import styles from "./judges.module.css";
 
 export const metadata: Metadata = {
@@ -61,6 +62,7 @@ export default async function JudgesPage() {
   const physErr = phys.map((c) => Math.abs(c.errPct)).sort((a, b) => a - b);
   const physMedian = physErr.length ? (physErr[(physErr.length - 1) >> 1] + physErr[physErr.length >> 1]) / 2 : NaN;
   const physWithin = physErr.filter((x) => x <= 5).length;
+  const gRuler = phys.filter((c) => /^g/.test(c.quantity)).map((c) => Math.abs(c.errPct));
 
   // what each Meta model did across the published runs, from their own ledgers
   const usage = MODELS.map((m) => {
@@ -71,6 +73,7 @@ export default async function JudgesPage() {
   const secs = exps.map((e) => e.ledger.ms / 1000).sort((a, b) => a - b);
   const median = (v: number[]) => (v.length ? (v[(v.length - 1) >> 1] + v[v.length >> 1]) / 2 : NaN);
   const langs = Object.keys(LANGUAGES).length + 1;
+  const hl = await headline();
 
   const criteria = [
     {
@@ -83,9 +86,9 @@ export default async function JudgesPage() {
           Teachers get a class code, a grading sheet with every student’s run and a CSV: <Link href="/class/demo23">a sample class</Link>. The pendulum practical becomes a series: several string lengths fitted together, g from the slope of L against T² (<Link href="/series/pendulum-lengths">an example</Link>).
         </>,
         <>
-          A run costs a median ${median(costs).toFixed(2)} in Meta credits and takes about {Math.round(median(secs) / 10) * 10} seconds. Each lab report prints with student fields, or exports as a PDF.
+          A run costs {costText(hl)} in Meta credits and takes {timeText(hl)}. Each lab report prints with student fields, or exports as a PDF.
         </>,
-        <>Beyond the classroom: it is system identification from any video, with a model kept honest. It flagged a pendulum clip online as about {slowPendulum?.clock ? slowPendulum.clock.factor.toFixed(1) : "4"}× slow motion, because gravity came out far too weak, though nothing in the video says so.</>,
+        <>Beyond the classroom: it is system identification from any video, with a model kept honest. A pendulum clip posted online as “slow motion” came out with gravity about 18× too weak, which Ansatz reads as footage running about 4 to 4.5× slower than life (unconfirmed: the capture rate isn’t published).</>,
       ],
     },
     {
@@ -94,7 +97,7 @@ export default async function JudgesPage() {
       claim: "Four Meta models, each doing a job the others can’t, and each checked by code rather than trusted.",
       points: [
         <>SAM 3.1 is the instrument, Muse Spark the observer, theorist and referee, Muse Wonder an agent with a fitting tool, Muse Voice Transcribe the ears. Their jobs and their spend across the published runs are in the table below.</>,
-        <>Structured output with strict JSON schemas, video input at the clip’s own frame rate, search grounding for object sizes, function tools for Muse Wonder, streamed SAM masks drawn live during a run.</>,
+        <>Structured output with strict JSON schemas, video input at the clip’s own frame rate, function tools for Muse Wonder, streamed SAM masks drawn live during a run.</>,
         <>
           Muse Wonder earned its place: on {wonderWins.length} of the published runs it found the law Muse Spark missed. On the stiffening spring its law predicts the unseen motion {Number.isFinite(springGain) ? `${Math.round(springGain)}×` : "far"} better than Muse Spark’s best{springTruth ? `, and recovers the hidden stiffening k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} against a true ${+springTruth.truth.toPrecision(4)}` : ""}.
         </>,
@@ -104,13 +107,13 @@ export default async function JudgesPage() {
     {
       name: "Technical execution",
       weight: 20,
-      claim: "The model proposes; the data decides; code writes every number.",
+      claim: "The model proposes; the data decides; code computes every measured number.",
       points: [
         <>Each law is integrated with RK4 (bounces located inside the step), fitted by Levenberg–Marquardt to the first 70% of the motion and ranked on the 30% no model ever saw, in units of the measured noise.</>,
         <>
           Checked against {s?.cases ?? "28"} clips rendered with exactly known physics: {physWithin} of {phys.length} physical constants within 5%, median error {physMedian.toFixed(2)}%. Muse Spark reading the same numbers by eye: {s?.medianEyeballErrPct.toFixed(0)}%. SAM centroids land a median {s?.medianTrackingErrPx.toFixed(2)} px from the true centre. All on <Link href="/proof">Proof</Link>.
         </>,
-        <>Times come from the video file’s own sample table, not an assumed frame rate. Laws are written in a small equation language that Ansatz parses and compiles; nothing a model writes is ever run as code. The referee writes the finding with placeholders, and code fills in the numbers.</>,
+        <>Times come from the video file’s own sample table, not an assumed frame rate. Laws are written in a small equation language that Ansatz parses and compiles; nothing a model writes is ever run as code. The referee writes the finding with placeholders, and code fills in the numbers. Two inputs do come from Muse Spark, and every report lists them under “Given, not measured”: the size of the ruler it picked, and which world the clip is on.</>,
         <>
           Honest about its own method: against a library of 12 textbook laws, Muse Spark’s proposals tie on {ablation?.summary.tied ?? 25} of {ablation?.summary.clips ?? 28} clips, win {ablation?.summary.sparkBetter ?? 2} and lose {ablation?.summary.libraryBetter ?? 1}. The model matters where the textbook runs out, which is where Muse Wonder comes in.
         </>,
@@ -126,26 +129,26 @@ export default async function JudgesPage() {
           <Link href="/new">Run an experiment</Link> replays recorded runs, SAM masks included, with no model called. Or film something: a phone propped on books is enough.
         </>,
         <>Every experiment has an ask box: Muse Spark answers from the run’s record, and code checks each number it quotes against that record.</>,
-        <>Every published experiment opens on its own photo-finish strip, with the fitted part and the predicted part split by a dashed line.</>,
+        <>The flagship experiments open on their own photo-finish strip, with the fitted part and the predicted part split by a dashed line.</>,
       ],
     },
   ];
 
   const tour = [
     { t: "0:00", title: "The first screen", body: "Two strips of the same Moon jump, one slowed in secret. Muse Spark gave both the same answer; Ansatz’s two measurements differ by the slowdown.", href: "/", go: "Home" },
-    { t: "0:30", title: "The Moon experiment", body: `Gravity measured blind from 1972 television: ${g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)}` : "1.72"} m/s² against the Moon’s 1.625. Scroll to “Can it tell the speed?” for the fair test.`, href: "/x/moon-jump", go: "Open it" },
-    { t: "1:15", title: "A law no one proposed", body: "The stiffening spring: Muse Spark’s laws miss, Muse Wonder’s notebook shows four attempts, and the cubic law it submitted wins on frames it never saw.", href: "/x/hardening-spring", go: "Open it" },
+    { t: "0:30", title: "The Moon experiment", body: `Gravity measured from the pixels of 1972 television, with a ruler we chose (Young’s suited height, 1.88 m ± 5%): ${g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)}` : "1.72"} m/s² against the Moon’s 1.625, with a further ±0.2 depending on which point of the body is followed. Scroll to “Can it tell the speed?” for the fair test.`, href: "/x/moon-jump", go: "Open it" },
+    { t: "1:15", title: "A law Muse Spark didn’t propose", body: "A spring we rendered to stiffen as it stretches: Muse Spark’s laws miss, Muse Wonder’s notebook shows four attempts, and the cubic law it submitted wins on frames it never saw.", href: "/x/hardening-spring", go: "Open it" },
     { t: "2:00", title: "The scoreboard", body: "Every number Ansatz reported on clips with known answers, beside Muse Spark’s guess by eye.", href: "/proof", go: "Proof" },
     { t: "2:30", title: "Watch a run", body: "Replay a recorded run, with SAM’s masks arriving frame by frame and the laws competing. No model is called.", href: "/new", go: "Run page" },
   ];
 
   const novel = [
-    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, one clip at a time: ${st ? `“${st.single[0].playback_accel} m/s², slowed ${st.single[0].factor}×” for both` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(2)} ± ${mt.sameJump.combined.sigma.toFixed(2)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
-    { title: "Laws judged on frames no model saw", body: "The last 30% of the motion is sealed from every model, Muse Wonder included. A law wins by predicting it, not by sounding right.", href: "/how" },
+    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, one clip at a time: ${st ? `“${st.single[0].playback_accel} m/s², slowed ${st.single[0].factor}×” for both` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
+    { title: "Laws judged on frames no model saw", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
     { title: "A clock check from physics", body: "Gravity scales with the square of time. When a ruler makes gravity a measurement, a value far from the planet’s says the clip isn’t real time, and by how much.", href: "/x/sample-pendulum" },
     { title: "An agent that does science with a tool", body: "Muse Wonder doesn’t answer; it experiments. It fits laws to the seen frames, reads the residuals, revises, and submits one law to a trial it can’t see.", href: "/x/dry-friction-spring" },
     { title: "The video as its own chart", body: "Every frame cut to one slice through the moving object and laid side by side, a race-finish camera for physics. The motion draws its own graph in real pixels, and the measurement sits on top.", href: `/x/${Object.keys(slits)[0]}` },
-    { title: "Numbers no model typed", body: "Every value in a report comes from the fit. The referee writes with placeholders; an answer from the ask box that quotes a number not in the record is flagged on screen.", href: "/x/moon-jump" },
+    { title: "Numbers no model typed", body: "Every measured value in a report comes from the fit; the two things Muse Spark supplies (a ruler’s size, which world) are listed as given. The referee writes with placeholders; an answer from the ask box that quotes a number not in the record is flagged on screen.", href: "/x/moon-jump" },
   ];
 
   const breakIt = [
@@ -162,8 +165,9 @@ export default async function JudgesPage() {
     ...(mt?.sameJump ? [{ what: "Slowdown measured jump for jump (truth 1.5×)", value: `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring" }] : []),
     { what: "Physical constants within 5% on rendered clips", value: `${physWithin} of ${phys.length}, median ${physMedian.toFixed(2)}%`, href: "/proof" },
+    ...(gRuler.length ? [{ what: "Of those, g measured against a ruler in view (the hardest case)", value: `${gRuler.filter((x) => x <= 5).length} of ${gRuler.length}, median ${median(gRuler).toFixed(1)}%`, href: "/proof" }] : []),
     ...(s ? [{ what: "Muse Spark reading the same constants by eye", value: `median ${s.medianEyeballErrPct.toFixed(0)}% off`, href: "/proof" }] : []),
-    ...(s?.slowClips ? [{ what: "Clips rendered in slow motion that were flagged", value: `${s.slowFlagged} of ${s.slowClips}`, href: "/proof" }] : []),
+    ...(s?.slowClips ? [{ what: "Clips rendered in slow motion, not declared, that were flagged", value: `${s.slowFlagged} of ${s.slowClips}; factor within 2% on 2 (2.0×, 4.1×); the 8× clip read as 3.1× after a 15 cm ruler was taken for a metre stick`, href: "/proof" }] : []),
     ...(s ? [{ what: "SAM 3.1 centroid against the true centre", value: `median ${s.medianTrackingErrPx.toFixed(2)} px`, href: "/proof" }] : []),
     { what: "Cost of a run, median of the published ones", value: `$${median(costs).toFixed(2)} (from $${costs[0]?.toFixed(2)} to $${costs.at(-1)?.toFixed(2)})`, href: "/x/hardening-spring" },
   ];
@@ -182,13 +186,38 @@ export default async function JudgesPage() {
             {criteria.map((c) => (
               <li key={c.name}>
                 <a href={`#${c.name.toLowerCase().replace(/ /g, "-")}`}>
-                  <span className={styles.boardName}>{c.name}</span>
-                  <span className={styles.boardWeight}>{c.weight}</span>
+                  <span className={styles.boardName}>
+                    {c.name} <span className={styles.boardWeight}>weight {c.weight}%</span>
+                  </span>
                   <span className={styles.boardClaim}>{c.claim}</span>
                 </a>
               </li>
             ))}
           </ol>
+        </div>
+        <div className={`wrap ${styles.proofRow}`}>
+          {hl.moon && (
+            <Link href="/x/moon-jump">
+              <b>
+                {hl.moon.g.toFixed(2)} ± {hl.moon.sigma.toFixed(2)} m/s²
+              </b>
+              <span>the Moon’s gravity, measured from 1972 television (true {hl.moon.reference})</span>
+            </Link>
+          )}
+          {hl.jumpForJump && (
+            <Link href="/x/moon-jump#same-jump">
+              <b>
+                {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}×
+              </b>
+              <span>how much slower the secretly slowed copy runs, measured jump for jump (true 1.5×); Muse Spark, one clip at a time, gave both the same answer</span>
+            </Link>
+          )}
+          <Link href="/proof">
+            <b>
+              {physWithin} of {phys.length}
+            </b>
+            <span>constants within 5% on clips with known physics, median {physMedian.toFixed(2)}%; Muse Spark by eye: {s?.medianEyeballErrPct.toFixed(0)}%</span>
+          </Link>
         </div>
       </header>
 
@@ -290,6 +319,25 @@ export default async function JudgesPage() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className={`wrap ${styles.two}`}>
+          <div>
+            <h2>What we have not shown yet</h2>
+            <p className="lede" style={{ marginTop: 12 }}>
+              The gaps, in our own words, before you find them.
+            </p>
+          </div>
+          <ul className={styles.gaps}>
+            <li>Every clip here was filmed or rendered by us, or found online. No outside student or teacher has run it yet.</li>
+            <li>Muse Wonder’s two wins are on renders we built to need a law outside the textbook. It has not yet been run as a challenger across the whole benchmark.</li>
+            <li>The benchmark clips are rendered, so the physics is clean. Real footage adds motion blur, rolling shutter and lens distortion that the renders only partly imitate.</li>
+            <li>One object at a time: two bodies colliding, or anything moving toward the camera, isn’t measured.</li>
+            <li>When the only ruler is misread, the clock check is wrong too: on the 8× slowed render a 15 cm ruler was taken for a metre stick and the factor came out 3.1×.</li>
+            <li>Without a ruler, a slowed clip and a weaker world look the same: the report says both are possible.</li>
+          </ul>
         </div>
       </section>
 

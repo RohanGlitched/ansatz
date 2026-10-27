@@ -26,7 +26,7 @@ type Event = { step: string; state: string; detail?: string; at: number; data?: 
 export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[] };
 const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples, replays = [], classCode, seriesId }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string }) {
+export default function NewExperiment({ samples, replays = [], classCode, seriesId, runNote }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string; runNote?: string }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -441,7 +441,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
         <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
           {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : "Run the experiment"}
         </button>
-        <p className="small">{!file && !busy ? "Choose or film a clip first." : "About 90 seconds, up to 3 minutes when Muse Wonder steps in. Each run calls up to four Meta models and costs about 10–40 cents, which we pay."}</p>
+        <p className="small">{!file && !busy ? "Choose or film a clip first." : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for."}</p>
       </div>
     </div>
   );

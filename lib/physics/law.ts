@@ -65,7 +65,11 @@ export function validate(law: Law) {
   if (dup) throw new LawError(`"${dup}" is defined twice`);
   for (const s of state) if (!(s in law.derivatives)) throw new LawError(`no derivative for "${s}"`);
   const check = (src: string, where: string) => {
-    for (const n of names(parse(src))) if (!known.has(n) && n !== "pi" && n !== "e") throw new LawError(`${where} uses unknown symbol "${n}"`);
+    for (const n of names(parse(src))) {
+      // `e` is the restitution in a bounce, not Euler's number: it needs declaring, and exp(1) is how to write 2.718…
+      if (n === "e" && !known.has("e")) throw new LawError(`${where}: \`e\` is not defined; name the restitution parameter e, or use exp(1)`);
+      if (!known.has(n) && n !== "pi") throw new LawError(`${where} uses unknown symbol "${n}"`);
+    }
   };
   for (const [s, d] of Object.entries(law.derivatives)) {
     if (!state.includes(s)) throw new LawError(`derivative for unknown state "${s}"`);

@@ -27,7 +27,7 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
       <h1 style={{ fontSize: "clamp(28px, 3.6vw, 42px)" }}>{cls.name}</h1>
       {cls.demo && (
         <p className="small">
-          A demo: what a teacher sees once students have run their clips (these are the site’s own experiments, given student labels). <Link href="/class/new">Make a class link</Link> for your class.
+          A demo of what a teacher sees once students have run their clips. These rows are the site’s own experiments with student labels: A to D are one rendered pendulum at four string lengths, E is narrated in Hindi by a synthetic voice, and F swings through 70°. No real class has used Ansatz yet. <Link href="/class/new">Make a class link</Link> for your class.
         </p>
       )}
       <p className="lede">

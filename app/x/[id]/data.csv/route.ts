@@ -1,10 +1,10 @@
+import { csvNum, csvText } from "@/lib/csv";
 import { getExperiment, winnerOf } from "@/lib/experiments";
 
 export const runtime = "nodejs";
 
-const q = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
-// a comment line never spans two lines, whatever a title or a meaning contains
-const one = (s: string) => s.replace(/[\r\n]+/g, " ");
+// a comment line never spans two lines, whatever a title or a meaning contains, and no field after a comma opens as a formula
+const one = (s: string) => s.replace(/[\r\n]+/g, " ").replace(/,(\s*)([=+\-@\t])/g, ",$1'$2");
 const sig2 = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(2)) : "");
 
 /** The experiment's data as CSV: every measured frame, the winning law's prediction, and which frames it was fitted on. */
@@ -25,11 +25,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
   lines.push(`# scale: ${e.measured.calibration.metresPerPixel} m per pixel (${e.measured.calibration.kind})`);
   lines.push(`# fitted on the first ${nFit} of ${s.t.length} frames; the rest were predicted unseen`);
-  lines.push(["t_s", "x_px", "y_px", ...chans.map((c) => `${c}_measured`), ...chans.map((c) => `${c}_law`), "split"].join(","));
+  lines.push(["t_s", "x_px", "y_px", ...chans.map((c) => `${c}_measured`), ...chans.map((c) => `${c}_law`), "split"].map(csvText).join(","));
   for (let i = 0; i < s.t.length; i++) {
     const px = e.measured.px[i];
     const cell = (v: number | undefined) => (v != null && Number.isFinite(v) ? String(+v.toPrecision(7)) : "");
-    lines.push([cell(s.t[i]), cell(px?.x), cell(px?.y), ...chans.map((c) => cell(s.ch[c][i])), ...chans.map((c) => cell(win.fit.predicted[c]?.[i])), i < nFit ? "fitted" : "unseen"].map((v) => q(v)).join(","));
+    lines.push([cell(s.t[i]), cell(px?.x), cell(px?.y), ...chans.map((c) => cell(s.ch[c][i])), ...chans.map((c) => cell(win.fit.predicted[c]?.[i])), i < nFit ? "fitted" : "unseen"].map(csvNum).join(","));
   }
   return new Response(lines.join("\n") + "\n", {
     headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="ansatz-${e.id}.csv"`, "cache-control": "public, max-age=300" },

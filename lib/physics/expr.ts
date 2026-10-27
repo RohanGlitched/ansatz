@@ -188,14 +188,45 @@ export function compile(src: string, vars: string[]): Compiled {
 /** Renders a parsed expression as LaTeX for the report (dots become derivatives at the call site). */
 export function toLatex(src: string, rename: Record<string, string> = {}): string {
   const tree = parse(src);
-  // a fraction renders as \frac, which is already grouped, so it never needs parentheses
-  const prec = (n: Node) => (n.k === "bin" ? { "+": 1, "-": 1, "*": 2, "/": 5, "^": 4 }[n.op] : n.k === "neg" ? 3 : 5);
-  const sym = (name: string) => rename[name] ?? (GREEK.has(name) ? `\\${name}` : name.length > 1 ? `\\mathit{${name}}` : name);
+  // a fraction renders as \frac, which is already grouped, so it never needs parentheses; anything that comes out
+  // with a leading minus binds like a negation
+  const prec = (n: Node): number => {
+    if (n.k === "neg" || (n.k === "bin" && n.op === "*")) return product(n).neg ? 3 : 2;
+    if (n.k === "bin" && n.op === "/") return product(n.a).neg ? 3 : 5;
+    return n.k === "bin" ? { "+": 1, "-": 1, "*": 2, "/": 5, "^": 4 }[n.op] : 5;
+  };
+  const sym = (name: string) => rename[name] ?? symbolLatex(name);
+  // a chain of * and unary - read as one product: signs pulled out front, numbers merged into one coefficient,
+  // repeated factors collapsed into powers (omega*omega -> omega^2, (s - seq)^2*(s - seq) -> (s - seq)^3)
+  function product(n: Node): { neg: boolean; str: string } {
+    let neg = false;
+    let coef = 1;
+    const groups = new Map<string, { base: Node; exp: number }>();
+    const walk = (m: Node) => {
+      if (m.k === "bin" && m.op === "*") { walk(m.a); walk(m.b); return; }
+      if (m.k === "neg") { neg = !neg; walk(m.a); return; }
+      if (m.k === "num") { if (m.v < 0) neg = !neg; coef *= Math.abs(m.v); return; }
+      // a fraction with a negative top lends its sign to the whole product
+      if (m.k === "bin" && m.op === "/" && product(m.a).neg) { neg = !neg; m = { ...m, a: { k: "neg", a: m.a } }; }
+      const [base, exp] = m.k === "bin" && m.op === "^" && m.b.k === "num" ? [m.a, m.b.v] : [m, 1];
+      const key = JSON.stringify(base);
+      const g = groups.get(key);
+      if (g) g.exp += exp;
+      else groups.set(key, { base, exp });
+    };
+    walk(n);
+    const parts = [...groups.values()].filter((g) => g.exp !== 0).map((g) => (g.exp === 1 ? wrap(g.base, 2) : `${wrap(g.base, 5)}^{${fmtNum(g.exp)}}`));
+    if (coef !== 1 || !parts.length) parts.unshift(fmtNum(coef));
+    return { neg: neg && coef !== 0, str: parts.join("\\,") };
+  }
   function go(n: Node): string {
     switch (n.k) {
       case "num": return fmtNum(n.v);
       case "var": return sym(n.name);
-      case "neg": return `-${wrap(n.a, 3)}`;
+      case "neg": {
+        const p = product(n);
+        return `${p.neg ? "-" : ""}${p.str}`;
+      }
       case "call": {
         if (n.fn === "sqrt") return `\\sqrt{${go(n.args[0])}}`;
         if (n.fn === "abs") return `\\left|${go(n.args[0])}\\right|`;
@@ -204,10 +235,20 @@ export function toLatex(src: string, rename: Record<string, string> = {}): strin
         return `${known ? `\\${n.fn}` : `\\operatorname{${n.fn}}`}\\left(${n.args.map(go).join(", ")}\\right)`;
       }
       case "bin": {
-        if (n.op === "/") return `\\frac{${go(n.a)}}{${go(n.b)}}`;
+        if (n.op === "/") {
+          const top = product(n.a);
+          return `${top.neg ? "-" : ""}\\frac{${top.str}}{${go(n.b)}}`;
+        }
         if (n.op === "^") return `${wrap(n.a, 5)}^{${go(n.b)}}`;
-        if (n.op === "*") return `${wrap(n.a, 2)}\\,${wrap(n.b, 2)}`;
-        return `${go(n.a)} ${n.op} ${wrap(n.b, n.op === "-" ? 2 : 1)}`;
+        if (n.op === "*") {
+          const p = product(n);
+          return `${p.neg ? "-" : ""}${p.str}`;
+        }
+        // a + -b reads a - b, and a - -b reads a + b
+        let op: string = n.op;
+        let right = wrap(n.b, n.op === "-" ? 2 : 1);
+        if (right.startsWith("-")) { op = op === "+" ? "-" : "+"; right = right.slice(1); }
+        return `${go(n.a)} ${op} ${right}`;
       }
     }
   }
@@ -217,7 +258,43 @@ export function toLatex(src: string, rename: Record<string, string> = {}): strin
   return go(tree);
 }
 
-const GREEK = new Set(["alpha", "beta", "gamma", "delta", "theta", "omega", "mu", "lambda", "phi", "zeta", "tau", "rho", "sigma", "kappa", "eta", "psi"]);
+const GREEK = new Set(["alpha", "beta", "gamma", "delta", "epsilon", "theta", "omega", "mu", "nu", "lambda", "phi", "zeta", "tau", "rho", "sigma", "kappa", "eta", "psi", "chi", "xi", "pi"]);
+
+// names that mean something else than their letters suggest
+const ALIAS: Record<string, string> = {
+  w: "\\omega",
+  w0: "\\omega_{0}",
+  vsm: "v_{s}",
+  pi: "\\pi",
+};
+
+// word subscripts a name may end with (seq -> s_eq, vmax -> v_max)
+const SUFFIX = ["eq", "max", "min", "floor", "pin", "short", "long", "eff", "rel", "tot", "air"];
+
+const sub = (s: string) => (/^\d+$/.test(s) || s.length === 1 ? s : `\\mathrm{${s}}`);
+const head = (s: string) => (GREEK.has(s) ? `\\${s}` : s.length === 1 ? s : `\\mathrm{${s}}`);
+
+/**
+ * A parameter or state name as a textbook symbol: theta -> θ, omega0 -> ω₀, s_eq / seq -> s_eq, cq -> c_q. A longer name
+ * that fits no pattern is set upright as a word, never as a run of italic letters that reads like a product.
+ */
+export function symbolLatex(name: string): string {
+  if (Object.hasOwn(ALIAS, name)) return ALIAS[name];
+  if (GREEK.has(name) || name.length === 1) return head(name);
+  let m = /^([A-Za-z]+)_([A-Za-z0-9]+)$/.exec(name);
+  if (m) return `${head(m[1])}_{${sub(m[2])}}`;
+  m = /^([A-Za-z]+?)(\d+)$/.exec(name);
+  if (m && (m[1].length === 1 || GREEK.has(m[1]))) return `${head(m[1])}_{${m[2]}}`;
+  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) return `\\mathrm{${name.replace(/_/g, "\\_")}}`;
+  // a Greek stem only claims a short name when what follows is clearly a subscript (gammaq, omegaeq; not pin)
+  const greek = [...GREEK].find((g) => g.length > 2 && name.startsWith(g) && name.length > g.length);
+  const rest = greek ? name.slice(greek.length) : "";
+  if (greek && (rest.length === 1 || SUFFIX.includes(rest))) return `\\${greek}_{${sub(rest)}}`;
+  if (name.length === 2) return `${name[0]}_{${name[1]}}`;
+  const tail = name.slice(1);
+  if (SUFFIX.includes(tail)) return `${name[0]}_{\\mathrm{${tail}}}`;
+  return `\\mathrm{${name}}`;
+}
 
 function fmtNum(v: number) {
   if (Number.isInteger(v)) return String(v);

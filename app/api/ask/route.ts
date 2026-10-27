@@ -1,3 +1,4 @@
+import { crossOrigin, sameOrigin } from "@/lib/origin";
 import { getExperiment, winnerOf } from "@/lib/experiments";
 import { addSpend, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
 import { Ledger, outputText, respond } from "@/lib/meta/client";
@@ -11,8 +12,7 @@ const nums = (s: string) => [...s.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Numbe
 
 /** Muse Spark answers a question about one experiment from its stored record; numbers it quotes are checked against it. */
 export async function POST(req: Request) {
-  const origin = req.headers.get("origin");
-  if (origin && new URL(origin).host !== new URL(req.url).host) return Response.json({ error: "Cross-origin requests are not accepted." }, { status: 403 });
+  if (!sameOrigin(req)) return crossOrigin();
   const { id = "", question = "" } = (await req.json().catch(() => ({}))) as { id?: string; question?: string };
   const q = String(question).trim().slice(0, 400);
   if (!q) return Response.json({ error: "Ask a question." }, { status: 400 });

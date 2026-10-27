@@ -56,6 +56,30 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   const freeParams = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
   const fixedParams = win.law.params.filter((p) => p.fixed);
   const channels = Object.keys(win.fit.predicted).filter((c) => e.measured.series.ch[c]);
+  // the readout leads with what was measured against what it should be; the prediction test follows
+  // when even the winner misses the unseen frames by far more than the noise, a precise ± would overclaim
+  const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  const lead = (() => {
+    if (e.clock) {
+      return {
+        label: "How much slower than life the clip plays",
+        value: rough ? `about ${e.clock.factor.toFixed(1)}×` : `${e.clock.factor.toFixed(2)}${e.clock.sigma ? ` ± ${e.clock.sigma.toFixed(2)}` : ""}×`,
+        against: rough
+          ? `Unconfirmed: found from gravity coming out too weak against the world’s known value, and the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so something it leaves out matters.`
+          : "Found from gravity coming out too weak against the world’s known value, so it assumes the world.",
+      };
+    }
+    const cmp = e.comparisons.find((c) => freeParams.some((p) => p.name === c.param));
+    if (!cmp) return null;
+    const p = freeParams.find((q) => q.name === cmp.param)!;
+    const v = /accelerates at g|gravity/i.test(cmp.label) ? Math.abs(cmp.measured) : cmp.measured;
+    const unit = p.unit && p.unit !== "1" ? ` ${prettyUnit(p.unit)}` : "";
+    return {
+      label: cmp.label.charAt(0).toUpperCase() + cmp.label.slice(1),
+      value: rough ? `about ${fmt(v, 2)}${unit}` : `${fmtPair(v, cmp.sigma)}${unit}`,
+      against: `Known value ${+cmp.reference.toPrecision(4)}${unit}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.`,
+    };
+  })();
 
   return (
     <article>
@@ -79,16 +103,29 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
         {(tr || e.headline) && <p className={styles.detailFinding} lang={tr ? lang : undefined}>{tr?.finding ?? e.finding}</p>}
         </div>
         <div className={styles.readout}>
-          <p className={styles.readLabel}>Average miss on the {unseenFrames} frames no law saw</p>
-          <p className={styles.bigNum}>{fmtLen(win.fit.testRms, lengthUnit, channels)}</p>
+          {lead ? (
+            <>
+              <p className={styles.readLabel}>{lead.label}</p>
+              <p className={styles.bigNum}>{lead.value}</p>
+              <p className={styles.readSub}>{lead.against}</p>
+            </>
+          ) : (
+            <>
+              <p className={styles.readLabel}>Average miss on the {unseenFrames} frames no law saw</p>
+              <p className={styles.bigNum}>{fmtLen(win.fit.testRms, lengthUnit, channels)}</p>
+            </>
+          )}
           <dl className={styles.readRows}>
             <div>
               <dt>Winner</dt>
               <dd>{win.law.title}</dd>
             </div>
             <div>
-              <dt>Worst frame</dt>
-              <dd>{fmtLen(win.fit.testMax, lengthUnit, channels)}</dd>
+              <dt>Unseen frames</dt>
+              <dd>
+                {unseenFrames} frames missed by {fmtLen(win.fit.testRms, lengthUnit, channels)} on average
+                {Number.isFinite(win.fit.testZ) ? `, ${fmt(win.fit.testZ!, 2)}× the measurement noise` : ""}
+              </dd>
             </div>
             {runnerUp && (
               <div>

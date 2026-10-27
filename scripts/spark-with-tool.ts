@@ -22,6 +22,7 @@ const tools = [
     type: "function",
     name: "measure_motion",
     description: "Measures the motion in this clip: SAM 3.1 tracks the moving object in every frame, candidate laws of motion are fitted to the first 70% and judged on predicting the rest, and the winner's constants come back with uncertainties, plus a check of whether the clip's clock runs at real time.",
+    strict: true,
     parameters: { type: "object", additionalProperties: false, required: ["object"], properties: { object: { type: "string", description: "what moves, e.g. 'astronaut'" } } },
   },
 ];
@@ -31,7 +32,7 @@ let prev: string | undefined;
 let answer = "";
 let calledWith = "";
 for (let turn = 0; turn < 3; turn++) {
-  const r = await respond({ model: "muse-spark-1.3", reasoning: { effort: "medium" }, max_output_tokens: 6000, tools, input, ...(prev ? { previous_response_id: prev } : {}) }, ledger, `Spark with a tool, turn ${turn + 1}`);
+  const r = await respond({ model: "muse-spark-1.3", reasoning: { effort: "medium" }, max_output_tokens: 6000, tools, parallel_tool_calls: false, input, ...(prev ? { previous_response_id: prev } : {}) }, ledger, `Spark with a tool, turn ${turn + 1}`);
   prev = r.id;
   const calls = (r.output ?? []).filter((o) => (o as { type: string }).type === "function_call") as unknown as { name: string; arguments: string; call_id: string }[];
   if (!calls.length) {

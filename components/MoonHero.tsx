@@ -19,15 +19,20 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
   const maxS = Math.max(...Object.values(slits as Record<string, Slit>).map((s) => s.duration));
   const strips = [
     { id: "moon-jump", e, title: "Apollo 16, as broadcast", verdict: g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²: real speed` : "" },
-    ...(slowed ? [{ id: "moon-jump-slowed", e: slowed, title: "The same clip, slowed 1.5× in secret", verdict: mt ? `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²: runs ${ratio.toFixed(2)}× slow` : "" }] : []),
+    ...(slowed ? [{ id: "moon-jump-slowed", e: slowed, title: "The same clip, slowed 1.5× in secret", verdict: mt?.sameJump ? `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²; jump for jump it runs ${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}× slow` : mt ? `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²: runs ${ratio.toFixed(2)}× slow` : "" }] : []),
   ];
+  // both jumps, measured the same way in both clips: helmet-top pixels and the fitted parabola, frame by frame
+  const jumpsOf = (id: string) => mt?.sameJump?.jumps.map((j) => ({ n: j.jump, ratio: j.ratio, px: (id === "moon-jump" ? j.real : j.slowed) as unknown as { px?: [number, number, number][] } })) ?? [];
   return (
     <section className={styles.hero}>
       <div className={`wrap ${styles.head}`}>
-        <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
+        <h1>
+          From 1972 television, Ansatz measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²` : ""}.
+        </h1>
         <div className={styles.intro}>
+          <p className={styles.tagline}>Film anything that moves. Ansatz finds the law that moves it.</p>
           <p className={styles.lede}>
-            Below, every frame of John Young’s 1972 jump on the Moon, cut to one thin slice and laid side by side: his two jumps draw their own arches. The second strip is the same clip, slowed 1.5× in secret. Shown one clip at a time, a language model gives both the same answer. Ansatz measures each, and tells them apart.
+            The true value is 1.625. Below, every frame of John Young’s jump cut to one thin slice and laid side by side, so his two jumps draw their own arches; under it, the same clip slowed 1.5× in secret. Shown one clip at a time, a language model gives both the same answer. Ansatz measures each, and tells them apart.
           </p>
           <div className={styles.cta}>
             <Link className="btn" href="/new">
@@ -55,17 +60,41 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
           const win = s.e.candidates.find((c) => c.law.id === s.e.winner) ?? s.e.candidates[0];
           const law = toPixels(win.fit.predicted, m);
           const pos = (f: number, y: number) => ({ left: `${((f + 0.5) * meta.slice / W) * 100}%`, top: `${(y / H) * 100}%` });
-          const lawPath = m.px.map((p, i) => (law[i] ? `${i ? "L" : "M"}${((p.f + 0.5) * meta.slice).toFixed(1)} ${law[i].y.toFixed(1)}` : "")).join("");
+          const jumps = jumpsOf(s.id).filter((j) => j.px.px?.length);
+          const X = (f: number) => ((f + 0.5) * meta.slice).toFixed(1);
+          const dots = jumps.length ? jumps.flatMap((j) => j.px.px!.map(([f, y]) => ({ f, y }))) : m.px.map((p) => ({ f: p.f, y: p.y }));
+          const lawPaths = jumps.length
+            ? jumps.map((j) => j.px.px!.map(([f, , fy], i) => `${i ? "L" : "M"}${X(f)} ${fy.toFixed(1)}`).join(""))
+            : [m.px.map((p, i) => (law[i] ? `${i ? "L" : "M"}${X(p.f)} ${law[i].y.toFixed(1)}` : "")).join("")];
+          const apexes = jumps.map((j) => {
+            const top = j.px.px!.reduce((a, b) => (b[2] < a[2] ? b : a));
+            return { n: j.n, left: `${(((top[0] + 0.5) * meta.slice) / W) * 100}%`, top: `${(top[2] / H) * 100}%` };
+          });
           return (
             <div key={s.id} className={styles.stripRow}>
+              <div className={styles.still} aria-hidden="true">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/slits/${s.id}-still.webp`} alt="" />
+                <i style={{ left: `${((meta.x + meta.slice / 2) / s.e.video.width) * 100}%` }} />
+              </div>
               <Link href={`/x/${s.id}`} className={styles.strip} style={{ width: `${(meta.duration / maxS) * 100}%` }} aria-label={`${s.title}: slit-scan of every frame`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/slits/${s.id}.webp`} alt="" />
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-                  <path d={lawPath} className={styles.law} vectorEffect="non-scaling-stroke" />
-                </svg>
-                {m.px.map((p, i) => (
+                {dots.map((p, i) => (
                   <i key={i} className={styles.dot} style={pos(p.f, p.y)} />
+                ))}
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+                  {lawPaths.map((d, i) => (
+                    <g key={i}>
+                      <path d={d} className={styles.lawHalo} vectorEffect="non-scaling-stroke" />
+                      <path d={d} className={styles.law} vectorEffect="non-scaling-stroke" />
+                    </g>
+                  ))}
+                </svg>
+                {apexes.map((a) => (
+                  <span key={a.n} className={styles.jumpTag} style={{ left: a.left, top: a.top }}>
+                    jump {a.n}
+                  </span>
                 ))}
               </Link>
               <figcaption className={styles.cap}>
@@ -78,16 +107,20 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
         })}
         <p className={styles.legend}>
           <span>
-            <i className={styles.kDot} /> the helmet top, measured by SAM 3.1 in each frame
+            <i className={styles.kSlit} /> where each frame is cut: one column, 4 pixels wide, laid beside the next
           </span>
           <span>
-            <i className={styles.kLaw} /> the law that won
+            <i className={styles.kDot} /> the helmet top, measured by SAM 3.1 in each airborne frame of both jumps
+          </span>
+          <span>
+            <i className={styles.kLaw} /> the fitted fall
           </span>
         </p>
       </figure>
 
       {mt && (
         <div className={`wrap ${styles.lower}`}>
+          <div>
           <table className={styles.memory}>
             <thead>
               <tr>
@@ -113,7 +146,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                         so it runs {ratio.toFixed(2)}× slow
                         {mt.sameJump ? (
                           <>
-                            ; jump for jump, <Link href="/x/moon-jump#same-jump">{mt.sameJump.combined.ratio.toFixed(2)} ± {mt.sameJump.combined.sigma.toFixed(2)}×</Link>
+                            ; jump for jump, <Link href="/x/moon-jump#same-jump">{mt.sameJump.combined.ratio.toFixed(3)} ± {mt.sameJump.combined.sigma.toFixed(3)}×</Link>
                           </>
                         ) : null}{" "}
                         (it is 1.5×)
@@ -122,23 +155,14 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                   </td>
                 </tr>
               ))}
-              {mt.renders && (
-                <tr>
-                  <th scope="row">
-                    <Link href="/proof">3 new renders, slowed {mt.renders.slows.join("×, ")}× in secret</Link>
-                  </th>
-                  <td>
-                    g {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
-                    <span className={styles.note}>Earth’s 9.8, mostly</span>
-                  </td>
-                  <td>
-                    all {mt.renders.slows.length} flagged
-                    <span className={styles.flag}>at {mt.renders.clocks.map((v) => v.toFixed(1)).join("×, ")}× (one ruler misread)</span>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
+          {st && (
+            <p className={styles.punch}>
+              Same frames, same ruler: Muse Spark’s estimate of the fall in the broadcast was {st.single[0].playback_accel} m/s², about {Math.round(mt.rows[0].g / Number(st.single[0].playback_accel))}× too small, so it called the real broadcast slowed. SAM 3.1 measured it.
+            </p>
+          )}
+          </div>
           <div className={styles.side}>
             {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt.rows[1]} />}
             <p className={styles.sideNote}>Gravity in m/s². Blue: the broadcast, on the Moon’s tick. Orange: the slowed copy, which a fall alone would place on a world with half the Moon’s pull.</p>

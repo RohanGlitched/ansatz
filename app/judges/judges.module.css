@@ -39,8 +39,7 @@
 
 .board a {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 2px 16px;
+  gap: 4px;
   padding: 14px 0;
   border-bottom: 1px solid var(--rule);
   text-decoration: none;
@@ -53,14 +52,10 @@
 }
 
 .boardWeight {
-  grid-row: span 2;
-  align-self: center;
-  font-size: clamp(36px, 3.6vw, 48px);
-  font-weight: 650;
-  font-variation-settings: "wdth" 88;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  color: #8fa0ff;
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
 
@@ -337,5 +332,63 @@
   .numbers td {
     border: 0;
     padding: 2px 0;
+  }
+}
+
+.gaps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+  color: var(--ink-2);
+  font-size: 16.5px;
+}
+
+/* the three results a judge should leave with, under the brief */
+.proofRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 2px solid #8fa0ff;
+  padding-bottom: clamp(36px, 5vw, 64px);
+  font-family: var(--font);
+}
+
+.proofRow a {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 18px 20px 0 0;
+  text-decoration: none;
+}
+
+.proofRow a + a {
+  padding-left: 20px;
+  border-left: 1px solid var(--rule);
+}
+
+.proofRow b {
+  font-size: clamp(30px, 3.2vw, 44px);
+  font-weight: 650;
+  font-variation-settings: "wdth" 88;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: #8fa0ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.proofRow span {
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+
+@media (max-width: 760px) {
+  .proofRow {
+    grid-template-columns: 1fr;
+  }
+  .proofRow a + a {
+    padding-left: 0;
+    border-left: 0;
   }
 }
