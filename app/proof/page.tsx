@@ -113,6 +113,8 @@ export default async function ProofPage() {
   const moon = await getExperiment("moon-jump");
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
+  // the held-out test's example: a law that fits the seen frames and fails after them, read from the stored run
+  const bbLin = (await getExperiment("beach-ball-drag").catch(() => null))?.candidates.find((c) => /linear/i.test(c.law.title) && c.fit.ok && Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ));
   const s = b?.summary;
   const slowAll = await slowRenders();
   // the clock-check controls' small slowdowns, each with what its ruler was and what gravity came out as
@@ -427,7 +429,7 @@ export default async function ProofPage() {
                 <strong>Without Muse’s hypotheses</strong>: against the one or two fixed controls each run carries, the winner predicts the unseen frames far better ({(s.medianPredictionRel * 100).toFixed(2)}% of the motion against {(s.medianPredictionRelControl * 100).toFixed(2)}%, medians). Against a fair library of twelve textbook laws it ties on most clips: see the next section.
               </li>
               <li>
-                <strong>Without the prediction test</strong> (picking the law that fits the seen frames best): on these clean renders, fit alone picks the right physics just as often ({s.lawCorrectIfChosenByFit} of {s.lawJudged} clips). The held-out test earns its keep where a law fits the seen frames and fails after them: on <Link href="/x/beach-ball-drag">the beach ball</Link>, linear air drag fits the first 70% to within 2.1× the noise, then misses the rest by 66×; quadratic drag, the right physics, wins.
+                <strong>Without the prediction test</strong> (picking the law that fits the seen frames best): on these clean renders, fit alone picks the right physics just as often ({s.lawCorrectIfChosenByFit} of {s.lawJudged} clips). The held-out test earns its keep where a law fits the seen frames and fails after them: on <Link href="/x/beach-ball-drag">the beach ball</Link>, {bbLin ? `linear air drag fits the first 70% to within ${bbLin.fit.trainZ!.toFixed(1)}× the noise, then misses the rest by ${Math.round(bbLin.fit.testZ!)}×` : "linear air drag fits the first 70% closely, then misses the rest"}; quadratic drag, the right physics, wins.
               </li>
               <li>
                 <strong>Cost and time</strong>: ${s.totalUsd.toFixed(2)} for all {s.cases} clips, a median of {s.medianSeconds.toFixed(0)} s each.

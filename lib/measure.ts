@@ -381,6 +381,27 @@ export function flightWindow(t: number[], ypx: number[]): { a: number; b: number
 }
 
 /**
+ * Where a falling body lands and stops: the last sample of free flight, or -1 if it never does. A landing is an
+ * event in the motion itself, not a number a law is fitted to: the downward speed collapses within a frame or two
+ * and then stays near zero. A bounce (the speed reverses to a fast upward one), an apex (the speed passes smoothly
+ * through zero, rising to falling) and air drag (the speed changes gradually) are not landings.
+ */
+export function landingIndex(t: number[], ypx: number[], minSpeed = 50): number {
+  const n = t.length;
+  const vy = ypx.map((_, i) => (i === 0 || i === n - 1 ? NaN : (ypx[i + 1] - ypx[i - 1]) / (t[i + 1] - t[i - 1])));
+  for (let i = 2; i < n - 2; i++) {
+    const v0 = vy[i - 1];
+    // y grows downward: a fall has positive speed, fast enough that a stop is not noise
+    if (!(v0 > minSpeed) || !(vy[i] < 0.9 * v0)) continue;
+    // stopped: near-zero speed for two frames, or for the last frame whose speed can be measured
+    for (let k = i; k <= Math.min(i + 3, n - 2); k++) {
+      if (Math.abs(vy[k]) < 0.1 * v0 && (k + 1 >= n - 1 || Math.abs(vy[k + 1]) < 0.1 * v0)) return i - 1;
+    }
+  }
+  return -1;
+}
+
+/**
  * The longest stretch one downward-curving parabola explains to within the measurement noise: the airborne
  * part of a jump or throw, found globally (every start and end), so it works when the curvature per frame is
  * smaller than the pixel quantisation (a slow lunar jump in 240-line TV). O(n²) windows, O(1) each via
@@ -541,6 +562,10 @@ export function measure(args: {
     // each end, where a take-off or a landing bends the path
     const pick = ps && (!fw || ps.b - ps.a > 1.4 * (fw.b - fw.a)) ? { a: ps.a + 1, b: ps.b - 1 } : fw;
     if (pick) samples = samples.slice(pick.a, Math.min(samples.length, pick.a + Math.round((pick.b - pick.a + 1) / frac)));
+    // the stretch above is scaled out into the held-out frames blind, so it can run past a landing; the free flight
+    // ends where the body stops, which is an event seen in the motion, not a value any law is tuned to
+    const land = landingIndex(samples.map((s) => T(s.f)), samples.map((s) => s.cy));
+    if (land >= 6) samples = samples.slice(0, land + 1);
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);
   const f0 = samples[0].f, f1 = samples[samples.length - 1].f;
