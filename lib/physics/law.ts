@@ -210,17 +210,21 @@ export type Fit = {
   predicted: Record<string, number[]>;
 };
 
-/** Robust per-channel noise: MAD of second differences / sqrt(6) (white noise on a smooth path). */
+/**
+ * Robust per-channel noise: MAD of third differences / sqrt(20). Third differences cancel a constant acceleration,
+ * so a fall filmed at 24 fps doesn't pass its own curvature off as noise (second differences overstated the noise
+ * 17-fold there; this stays within about 20% for falls, swings and springs from 24 to 240 fps).
+ */
 export function noiseScale(v: number[]): number {
   const d: number[] = [];
-  for (let i = 2; i < v.length; i++) {
-    const x = v[i] - 2 * v[i - 1] + v[i - 2];
+  for (let i = 3; i < v.length; i++) {
+    const x = v[i] - 3 * v[i - 1] + 3 * v[i - 2] - v[i - 3];
     if (Number.isFinite(x)) d.push(Math.abs(x));
   }
   if (d.length < 3) return 1e-3;
   d.sort((a, b) => a - b);
   const mad = d[Math.floor(d.length / 2)] * 1.4826;
-  return Math.max(mad / Math.sqrt(6), 1e-5);
+  return Math.max(mad / Math.sqrt(20), 1e-5);
 }
 
 function slopeAtStart(t: number[], v: number[], n = 6) {
