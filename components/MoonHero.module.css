@@ -82,6 +82,23 @@
   font-size: 13px;
   color: #ff5a1f;
   margin-top: 2px;
+  white-space: normal;
+  max-width: 22ch;
+}
+
+@media (max-width: 640px) {
+  .memory {
+    font-size: 14px;
+  }
+
+  .memory tbody th {
+    min-width: 9ch;
+  }
+
+  .memory th,
+  .memory td {
+    padding-right: 8px;
+  }
 }
 
 .line {
