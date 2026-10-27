@@ -1,7 +1,7 @@
 {
  "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
  "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
- "n_cases": 33,
+ "n_cases": 34,
  "cases": [
   {
    "case_id": "ff01_earth_orange_ball",
@@ -4337,6 +4337,163 @@
    "encoding": "H.264, yuv420p, CRF 20, +faststart",
    "integration": "RK4, step 0.0001 s, bisection events",
    "truth_file": "clips/se04_series_L1.00.json"
+  },
+  {
+   "case_id": "sx02_coulomb_k20_mu0.45",
+   "phenomenon": "spring_mass",
+   "variant": "coulomb_vertical",
+   "description": "Blue block on a spring sliding against a guide with dry friction mu = 0.45 m/s^2 (k = 20 N/m, m = 0.20 kg); pulled down 12 cm; metre stick below.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 20.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.2,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 100.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 10.0,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.0,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.3,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.3981,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.12,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 470.785,
+     "unit": "px"
+    },
+    "coulomb_mu": {
+     "value": 0.45,
+     "unit": "m/s^2 (y'' = -(k/m)(y - y_eq) - mu sign(y'))"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00121,
+   "pixels_per_metre": 826.4462809917355,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     141.777
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "blue weight",
+     "kind": "block on spring",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "size_m": [
+      0.09,
+      0.06
+     ],
+     "size_px": [
+      74.38,
+      49.59
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 826.446,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      226.78,
+      644.34
+     ],
+     [
+      1053.22,
+      644.34
+     ]
+    ],
+    "thickness_px": 28.93,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "equilibrium_crossing_times_s": [
+     0.66097,
+     0.97546,
+     1.29001,
+     1.60464,
+     1.91937,
+     2.23425,
+     2.54935,
+     2.86476,
+     3.18069,
+     3.49755,
+     3.81634,
+     4.14029,
+     4.49058
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.6290371050022285,
+     0.6291770823210232,
+     0.6293625252345316,
+     0.6296156055461446,
+     0.6299739701018172,
+     0.6305059034733784,
+     0.6313464164344551,
+     0.6327959085926396,
+     0.6356499973184753,
+     0.6427350217437335,
+     0.6742397023396487
+    ],
+    "period_mean_damped_numeric_s": 0.6358581125552797,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sx02_coulomb_k20_mu0.45.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sx02_coulomb_k20_mu0.45.json"
   }
  ]
 }

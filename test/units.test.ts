@@ -30,3 +30,11 @@ test("values print with their uncertainty to two significant figures", () => {
   assert.equal(fmtPair(1.7163, 0.1142), "1.72 ± 0.11");
   assert.equal(fmtPair(9.52, 0.0), "9.52");
 });
+
+test("unit powers however a model writes them", () => {
+  for (const u of ["m/s^2", "m/s²", "m s^-2", "m·s⁻²", "m/s2"]) {
+    assert.equal(metrePower(u), 1, u);
+  }
+  assert.equal(metrePower("1/(m^2 s^2)"), -2);
+  assert.equal(metrePower("1/m"), -1);
+});

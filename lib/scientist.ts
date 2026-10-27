@@ -342,7 +342,7 @@ export async function reviseAgentic(
     `Experiment: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body}.`,
     `Scoreboard (fitted frames only):\n${JSON.stringify(board, null, 1)}`,
     METHOD,
-    "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs will lose on the held-out frames. Then call submit_law with the one law to test.",
+    "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test.",
   ].join("\n\n");
   const tools = [
     { type: "function", name: "fit_law", description: "Fit a candidate law to the fitted frames and report how well it explains them.", parameters: LAW_SCHEMA },

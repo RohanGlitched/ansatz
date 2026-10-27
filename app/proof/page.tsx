@@ -77,7 +77,7 @@ const NAMES: Record<string, string> = {
 export default async function ProofPage() {
   const b = await bench();
   const ab = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then(
-    (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number }[] },
+    (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number; unit?: string }[] },
     () => null,
   );
   // clips filmed on a phone, each with the person's own tape-measured truth
@@ -307,9 +307,11 @@ export default async function ProofPage() {
               </div>
               {ab.extra?.map((x) => (
                 <div key={x.id}>
-                  <p className={styles.big}>{x.libraryMissMm}→{x.modelMissMm} mm</p>
+                  <p className={styles.big}>
+                    {x.libraryMissMm}→{x.modelMissMm} {x.unit ?? "mm"}
+                  </p>
                   <p>
-                    <Link href={`/x/${x.id}`}>{x.title}</Link>: the library’s best law ({x.libraryLaw}) misses the unseen motion by {x.libraryMissMm} mm; Muse Wonder’s, found with its fitting tool, by {x.modelMissMm} mm. This is where a model that writes laws earns its place.
+                    <Link href={`/x/${x.id}`}>{x.title}</Link>: the library’s best law ({x.libraryLaw}) misses the unseen motion by {x.libraryMissMm} {x.unit ?? "mm"}; Muse Wonder’s, found with its fitting tool, by {x.modelMissMm} {x.unit ?? "mm"}. This is where a model that writes laws earns its place.
                   </p>
                 </div>
               ))}

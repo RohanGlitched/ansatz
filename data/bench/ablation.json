@@ -298,7 +298,20 @@
    "modelLaw": "Spring with cubic stiffening (Muse Wonder)",
    "libraryLaw": "Damped harmonic motion",
    "modelMissMm": 0.2,
-   "libraryMissMm": 47.4
+   "libraryMissMm": 47.4,
+   "unit": "mm"
+  },
+  {
+   "id": "dry-friction-spring",
+   "title": "Spring with dry friction (a render)",
+   "verdict": "wonder",
+   "model": 2.04,
+   "library": 68.56,
+   "modelLaw": "Spring with dry friction (Muse Wonder)",
+   "libraryLaw": "Damped harmonic motion",
+   "modelMissMm": 0.28,
+   "libraryMissMm": 9.3,
+   "unit": "px"
   }
  ]
 }

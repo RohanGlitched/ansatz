@@ -12,7 +12,7 @@ import { controls } from "./physics/library";
 import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
-import { metrePower, prettyUnit } from "./units";
+import { metrePower, prettyUnit, secondPower } from "./units";
 import { fmtPair } from "./format";
 import { lawLatex } from "./latex";
 export { toPixels };
@@ -143,7 +143,14 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   const tie = (fa: number, fb: number) => Math.max(fa, fb) < 1.5 || Math.abs(fa - fb) < Math.max(0.1 * Math.max(fa, fb), 0.5);
   // a law whose fitted parameter is pressed against its bound was limited, not measured: it ranks after every
   // law whose parameters all landed inside their ranges
-  const pinned = (c: Candidate) => c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]));
+  // (a parameter the data can't pin down, σ larger than its value, isn't limited by its bound in any way that matters:
+  // a smoothing scale at its floor, say)
+  const pinned = (c: Candidate) =>
+    c.law.params.some((p) => {
+      if (p.fixed || p.name === "cal" || !atBound(c.law, p.name, c.fit.theta[p.name])) return false;
+      const v = c.fit.theta[p.name], sg = c.fit.sigma[p.name];
+      return Number.isFinite(sg) && sg <= Math.abs(v);
+    });
   // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC, then the
   // smaller error
   // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"). Two
@@ -193,7 +200,9 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
     const v = fit.theta[p.name], s = fit.sigma[p.name];
     let ref: number | undefined, label = "";
     const nm = p.name.toLowerCase();
-    if ((nm === "g" || /gravit/.test(p.meaning ?? "")) && gUsed === null) {
+    // only an acceleration in real units can be compared with a world's gravity (a rest position "set by gravity" can't)
+    const accel = metrePower(p.unit) === 1 && secondPower(p.unit) === -2 && m?.calibration.kind !== "none";
+    if ((nm === "g" || /gravit/.test(p.meaning ?? "")) && accel && gUsed === null) {
       ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
       label = obs.body === "earth" ? (obs.location.latitude_deg !== null ? `normal gravity at ${obs.location.latitude_deg.toFixed(1)}° latitude` : "standard gravity on Earth") : `surface gravity of the ${obs.body === "moon" ? "Moon" : obs.body === "mars" ? "planet Mars" : obs.body}`;
     } else if (stated[nm] !== undefined) {
@@ -517,7 +526,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)
       const lead = cands[0];
-      const poorFit = lead.fit.ok && lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor;
+      // or when the leader fits the seen frames but badly mispredicts the unseen ones (in noise units)
+      const poorFit = lead.fit.ok && (lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor || (lead.fit.testZ ?? 0) > Number(process.env.WONDER_POOR_PREDICTION ?? 5));
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
       // a run must finish inside the 300 s function limit (the watchdog fires at 285 s)
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
@@ -672,6 +682,8 @@ const LENGTH_CHANNELS = new Set(["x", "y", "s", "r"]);
 export function atBound(law: Law, name: string, v: number) {
   const p = law.params.find((q) => q.name === name);
   if (!p || p.fixed) return false;
+  // a phase bounded at ±π wraps around: sitting at −π is the same as sitting at +π, not a limit
+  if (p.min !== undefined && p.max !== undefined && Math.abs(p.min + Math.PI) < 0.01 && Math.abs(p.max - Math.PI) < 0.01) return false;
   const span = (p.max ?? Infinity) - (p.min ?? -Infinity);
   const tol = Number.isFinite(span) ? span * 0.005 : Math.abs(v) * 0.005;
   return (p.max !== undefined && Math.abs(v - p.max) <= tol && p.max !== 0) || (p.min !== undefined && p.min !== 0 && Math.abs(v - p.min) <= tol);

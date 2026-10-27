@@ -694,12 +694,14 @@ def build_pend(cid, L, th0, c, g, R, col, W, H, fps, dur, bgk, ref, lead, seed, 
                 ref_t, ev, exp, [], lead, 1, seed)
 
 
-def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0):
+def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0, mu=0.0):
     rng = np.random.default_rng(seed)
     # ell = distance of block centre below the fixed anchor (down positive):  ell'' = g - (k/m)(ell - l0) - b ell'
     # a hardening spring adds - (k3/m)(ell - ell_eq)^3 about the equilibrium (Duffing)
     ell_eq = l0 + g * m / k
-    f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - b * y[1]]
+    # dry (Coulomb) friction of constant size mu (m/s²) against the motion: the swing shrinks by a fixed amount each
+    # half cycle, a straight-line decay no exponential damping reproduces (smoothed over 2 mm/s to keep RK4 honest)
+    f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - b * y[1] - mu * math.tanh(y[1] / 0.002)]
     T, Y, _ = integrate(f, [ell_eq + A, 0.0], dur - lead)
     traj = Traj(T, Y, lead)
     ymax_ell = max(Y[:, 0]) + bh_m / 2
@@ -748,13 +750,15 @@ def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, r
               "damping_b": P(b, "1/s (y'' = -(k/m)(y - y_eq) - b y')"), "g": P(g, "m/s^2"),
               "natural_length_to_block_centre": P(l0, "m"), "equilibrium_extension_below_anchor_y_eq": P(ell_eq, "m (= l0 + g m / k)"),
               "initial_displacement_below_equilibrium": P(A, "m (released from rest)"), "equilibrium_pixel_row": P(round(ppx_eq, 3), "px")}
+    if mu:
+        params["coulomb_mu"] = P(mu, "m/s^2 (y'' = -(k/m)(y - y_eq) - mu sign(y'))")
     if k3:
         params["k3"] = P(k3, "N/m^3 (hardening: y'' = -(k/m)(y - y_eq) - (k3/m)(y - y_eq)^3 - b y')")
         params["k3_over_m"] = P(k3 / m, "1/(m^2 s^2)")
     ev = {"release_time_s": lead, "equilibrium_crossing_times_s": [round(lead + float(x), 5) for x in tz[:40]]}
     exp = {"period_damped_numeric_s": per[:12], "period_mean_damped_numeric_s": float(np.mean(per)) if per else None,
            "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."}
-    return Case(cid, "spring_mass", "hardening_vertical" if k3 else "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
+    return Case(cid, "spring_mass", "hardening_vertical" if k3 else "coulomb_vertical" if mu else "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
 
 
 def build_bounce(cid, g, e, h0, vx, R, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, capture_fps=None, floor="wood", bgkw=None,
@@ -1026,6 +1030,10 @@ SERIES = [
     for i, L in enumerate([0.40, 0.60, 0.80, 1.00])
 ]
 CASES += SERIES
+# a spring that slows by dry friction: amplitude falls in a straight line, which no textbook law in the library has
+CASES += [("sx02_coulomb_k20_mu0.45", build_spring, dict(k=20.0, m=0.20, b=0.0, l0=0.30, A=0.12, g=9.81, bw_m=0.09, bh_m=0.06, col=COL["blue"], W=1280, H=720, fps=60, dur=7.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="stick_h", lead=0.5, seed=612, noun="blue weight", mu=0.45,
+        desc="Blue block on a spring sliding against a guide with dry friction mu = 0.45 m/s^2 (k = 20 N/m, m = 0.20 kg); pulled down 12 cm; metre stick below."))]
 CASE_IDS = [c[0] for c in CASES]
 
 
