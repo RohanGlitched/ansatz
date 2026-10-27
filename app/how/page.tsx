@@ -5,7 +5,7 @@ import styles from "./how.module.css";
 
 export const metadata: Metadata = {
   title: "How it works",
-  description: "How Ansatz turns a phone clip into a tested law of motion: five Meta models, a clock read from the file, a safe equation language, and a prediction test.",
+  description: "How Ansatz turns a phone clip into a tested law of motion: four Meta models, a clock read from the file, a safe equation language, and a prediction test.",
 };
 
 export default function HowPage() {

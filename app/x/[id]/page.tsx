@@ -100,7 +100,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     {cmp && e.clock && (cmp.param === "g" || /accelerates at g/.test(cmp.label)) ? (
                       // a clock problem explains the miss: say so first, and what the value is at the detected speed
                       <span className={styles.ref}>
-                        Clock check: the clip plays about {e.clock.factor.toFixed(2)}× slower than life. At that speed {p.name} = {fmt(v * Math.pow(e.clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
+                        Clock check: the clip plays about {e.clock.factor.toFixed(2)}× slower than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(e.clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
                       </span>
                     ) : (
                       cmp && (
