@@ -26,7 +26,7 @@ type Event = { step: string; state: string; detail?: string; at: number; data?: 
 export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[] };
 const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples, replays = [] }: { samples: Sample[]; replays?: Replay[] }) {
+export default function NewExperiment({ samples, replays = [], classCode }: { samples: Sample[]; replays?: Replay[]; classCode?: string }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -172,6 +172,7 @@ export default function NewExperiment({ samples, replays = [] }: { samples: Samp
           ruler: ruler && Number(rulerLen) > 0 ? { noun: ruler, metres: Number(rulerLen) } : undefined,
           sample: fromSample || undefined,
           language: language || undefined,
+          class: classCode || undefined,
         }),
       });
       if (!r.ok || !r.body) {

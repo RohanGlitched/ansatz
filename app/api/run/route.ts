@@ -1,4 +1,5 @@
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
+import { addClassRun, useClassRun } from "@/lib/classes";
 import { checkAndCount, visitorOf } from "@/lib/limits";
 import { getObject, objectSize, putObject } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
@@ -10,7 +11,7 @@ const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spa
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string };
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
@@ -24,7 +25,9 @@ export async function POST(req: Request) {
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
   const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
-  const gate = await checkAndCount(visitorOf(req), admin);
+  // a class link spends the class's own quota; everyone else is limited per visitor and per day
+  const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
+  const gate = classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
   if (!gate.ok) return Response.json({ error: gate.why }, { status: 429 });
 
   // look at the size before downloading anything
@@ -91,7 +94,8 @@ export async function POST(req: Request) {
             if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
           },
         );
-        await putObject(`experiments/${id}.json`, JSON.stringify(exp), "application/json");
+        await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode } : exp), "application/json");
+        if (classCode) await addClassRun(classCode, id).catch(() => {});
         send("done", { id });
       } catch (e) {
         const failure = { message: (e as Error).message, step: (e as { step?: string }).step };

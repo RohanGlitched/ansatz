@@ -105,12 +105,20 @@ export default async function Home() {
               <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in Hindi or English, and get g, the law, the error against the textbook value and a lab report to hand in.</p>
             </div>
             <div>
-              <h3>A teacher with one phone for forty students</h3>
-              <p>One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. Each run costs about 15–30 cents of model calls and takes under two minutes.</p>
+              <h3>A teacher with a class of forty</h3>
+              <p>
+                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g. A run costs 10–40 cents of model calls and takes about 90 seconds.
+              </p>
             </div>
             <div>
               <h3>Anyone who needs a number from a video</h3>
               <p>A coach measuring a jump, a maker measuring a drag coefficient, a researcher digitising footage that used to take an hour of clicking frame by frame in tracking software. Ansatz gives the constants with error bars and keeps the model honest: it proposes, the data decides.</p>
+            </div>
+            <div>
+              <h3>Anyone asking whether a clip is real time</h3>
+              <p>
+                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> (1.50×, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4.3×), where a language model watching the same frames answered from memory.
+              </p>
             </div>
           </div>
         </div>
