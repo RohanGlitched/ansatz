@@ -52,7 +52,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
         <div className={styles.text}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
           <p className="lede">
-            Show a language model every frame of this 1972 clip and it recites the Moon’s textbook gravity, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark, and only the measurement notices.
+            Show a language model up to 300 frames of this 1972 clip and it recites the Moon’s textbook gravity, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark, and only the measurement notices.
           </p>
           {mt ? (
             <table className={styles.memory}>

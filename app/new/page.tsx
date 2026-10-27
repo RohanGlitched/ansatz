@@ -7,7 +7,7 @@ import moonReplay from "@/data/replays/moon-jump.json";
 export const metadata: Metadata = { title: "Run an experiment" };
 
 const SAMPLES: Sample[] = [
-  { file: "/samples/pendulum.mp4", label: "A pendulum: is it real time?", hint: "a blocked pendulum (MikeRun, Wikimedia Commons, CC BY-SA 4.0); Ansatz checks its clock", noun: "yellow tennis ball" },
+  { file: "/samples/pendulum.mp4", label: "A pendulum: is it real time?", hint: "MikeRun, Wikimedia Commons, CC BY-SA 4.0", noun: "yellow tennis ball" },
   { file: "/samples/paper-bag.mp4", label: "A paper bag, thrown", hint: "air drag, filmed at 20× slow motion", noun: "white paper bag", slowMotion: 20 },
 ];
 

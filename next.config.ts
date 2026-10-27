@@ -15,6 +15,10 @@ const config: NextConfig = {
     "/x/[id]/report": ["./data/showcase/**"],
     "/proof": ["./data/bench/**"],
   },
+  async redirects() {
+    // an older run of the same Wikimedia clip; its current page is sample-pendulum
+    return [{ source: "/x/slowmo-pendulum", destination: "/x/sample-pendulum", permanent: true }];
+  },
   async headers() {
     return [
       {

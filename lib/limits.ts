@@ -1,5 +1,5 @@
 import "server-only";
-import { getObject, putObject } from "./store";
+import { getObject, updateJson } from "./store";
 
 /**
  * Spend guards. Each run costs about $0.10–0.30 of model calls and the hackathon gives $150, so runs are
@@ -7,6 +7,7 @@ import { getObject, putObject } from "./store";
  */
 export const PER_VISITOR = Number(process.env.RUNS_PER_VISITOR ?? 6);
 export const PER_DAY = Number(process.env.RUNS_PER_DAY ?? 90);
+export const UPLOADS_PER_VISITOR = Number(process.env.UPLOADS_PER_VISITOR ?? 12);
 
 type Day = { total: number; byVisitor: Record<string, number> };
 
@@ -18,17 +19,32 @@ async function read(): Promise<Day> {
 }
 
 export async function checkAndCount(visitor: string, admin: boolean): Promise<{ ok: true } | { ok: false; why: string }> {
-  const d = await read();
-  if (!admin) {
-    if ((d.byVisitor[visitor] ?? 0) >= PER_VISITOR)
-      return { ok: false, why: `You have run ${PER_VISITOR} experiments today, the most one visitor can. The showcase experiments are always open, and the limit resets at midnight UTC.` };
-    if (d.total >= PER_DAY)
-      return { ok: false, why: `Ansatz has run its ${PER_DAY} experiments for today (each one calls Meta's models). The limit resets at midnight UTC; the showcase experiments are always open.` };
-  }
-  d.total++;
-  d.byVisitor[visitor] = (d.byVisitor[visitor] ?? 0) + 1;
-  await putObject(`usage/${today()}.json`, JSON.stringify(d), "application/json").catch(() => {});
-  return { ok: true };
+  let why = "";
+  // counted in one conditional write: two runs starting together can't both take the last slot; if the count can't
+  // be written, the run doesn't start (a counter that fails open is no limit at all)
+  const done = await updateJson<Day>(`usage/${today()}.json`, { total: 0, byVisitor: {} }, (d) => {
+    if (!admin && (d.byVisitor[visitor] ?? 0) >= PER_VISITOR) {
+      why = `You have run ${PER_VISITOR} experiments today, the most one visitor can. The showcase experiments are always open, and the limit resets at midnight UTC.`;
+      return null;
+    }
+    if (!admin && d.total >= PER_DAY) {
+      why = `Ansatz has run its ${PER_DAY} experiments for today (each one calls Meta's models). The limit resets at midnight UTC; the showcase experiments are always open.`;
+      return null;
+    }
+    return { total: d.total + 1, byVisitor: { ...d.byVisitor, [visitor]: (d.byVisitor[visitor] ?? 0) + 1 } };
+  }).catch(() => {
+    why = "Ansatz couldn't record this run just now, so it didn't start. Try again in a minute.";
+    return null;
+  });
+  return done ? { ok: true } : { ok: false, why };
+}
+
+/** Uploads per visitor per day: a clip is uploaded before it runs, and storage costs too. */
+export async function countUpload(visitor: string): Promise<boolean> {
+  const r = await updateJson<{ byVisitor: Record<string, number> }>(`usage/uploads-${today()}.json`, { byVisitor: {} }, (d) =>
+    (d.byVisitor[visitor] ?? 0) >= UPLOADS_PER_VISITOR ? null : { byVisitor: { ...d.byVisitor, [visitor]: (d.byVisitor[visitor] ?? 0) + 1 } },
+  ).catch(() => null);
+  return !!r;
 }
 
 export async function usageToday() {

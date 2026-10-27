@@ -1,5 +1,5 @@
 import "server-only";
-import { getObject, putObject } from "./store";
+import { getObject, putObject, updateJson } from "./store";
 
 /**
  * Class links: a teacher makes a code, and every run made with it counts against the class's own quota instead of
@@ -9,7 +9,9 @@ export type ClassRecord = { code: string; name: string; createdAt: string; expir
 
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);
 const DAYS = 7;
-const CLASSES_PER_DAY = Number(process.env.CLASSES_PER_DAY ?? 10);
+const CLASSES_PER_DAY = Number(process.env.CLASSES_PER_DAY ?? 3);
+// every class's runs together, per day: class links can't spend more than this whatever their quotas say
+const CLASS_RUNS_PER_DAY = Number(process.env.CLASS_RUNS_PER_DAY ?? 40);
 const CLASSES_PER_VISITOR = 3;
 
 const key = (code: string) => `classes/${code}.json`;
@@ -39,20 +41,25 @@ export async function createClass(name: string, visitor: string): Promise<{ ok: 
   return { ok: true, cls };
 }
 
-/** Counts one run against the class, if it still has runs left. */
+/** Counts one run against the class, if it still has runs left and class links haven't spent today's allowance. */
 export async function useClassRun(code: string): Promise<{ ok: true; cls: ClassRecord } | { ok: false; why: string }> {
   const cls = await getClass(code);
   if (!cls) return { ok: false, why: "That class link isn't valid. Ask your teacher for the link again." };
   if (Date.now() > Date.parse(cls.expiresAt)) return { ok: false, why: "That class link has expired (they last a week). Ask your teacher for a new one." };
-  if (cls.used >= cls.quota) return { ok: false, why: `Your class has used all ${cls.quota} of its runs.` };
-  cls.used++;
-  await putObject(key(code), JSON.stringify(cls), "application/json");
-  return { ok: true, cls };
+  const day = await updateJson<{ total: number }>(`classes/runs-${today()}.json`, { total: 0 }, (d) => (d.total >= CLASS_RUNS_PER_DAY ? null : { total: d.total + 1 })).catch(() => null);
+  if (!day) return { ok: false, why: `Class links have used today's ${CLASS_RUNS_PER_DAY} runs. The limit resets at midnight UTC.` };
+  let full = false;
+  const next = await updateJson<ClassRecord>(key(code), cls, (c) => {
+    if (c.used >= c.quota) {
+      full = true;
+      return null;
+    }
+    return { ...c, used: c.used + 1 };
+  }).catch(() => null);
+  if (!next) return { ok: false, why: full ? `Your class has used all ${cls.quota} of its runs.` : "The run couldn't be recorded just now. Try again in a minute." };
+  return { ok: true, cls: next };
 }
 
 export async function addClassRun(code: string, id: string) {
-  const cls = await getClass(code);
-  if (!cls || cls.runs.includes(id)) return;
-  cls.runs.push(id);
-  await putObject(key(code), JSON.stringify(cls), "application/json").catch(() => {});
+  await updateJson<ClassRecord | null>(key(code), null, (c) => (c && !c.runs.includes(id) ? { ...c, runs: [...c.runs, id] } : null)).catch(() => {});
 }

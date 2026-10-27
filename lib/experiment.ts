@@ -240,14 +240,22 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
   // 1. the clip and its clock: normalise (H.264 ≤1280 px, original frame times, narration as WAV)
   const info = await step("upload", async () => {
-    const raw = readVideoInfo(input.video);
-    if (raw.duration > 60) throw new ExperimentError("Clips longer than 60 seconds aren't supported yet. Trim it to the motion.", "upload");
+    // the original's own sample table when it has one (MP4/MOV); a browser recording (WebM) is read after conversion,
+    // which keeps every frame's timestamp
+    let raw: VideoInfo | null = null;
+    try {
+      raw = readVideoInfo(input.video);
+    } catch {
+      raw = null;
+    }
+    if (raw && raw.duration > 60) throw new ExperimentError("Clips longer than 60 seconds aren't supported yet. Trim it to the motion.", "upload");
     const prep = await prepare(input.video, { maxSeconds: 60 });
     const vi = readVideoInfo(prep.video);
+    if (vi.duration > 61) throw new ExperimentError("Clips longer than 60 seconds aren't supported yet. Trim it to the motion.", "upload");
     if (vi.times.length < 12) throw new ExperimentError("That clip has too few frames to measure.", "upload");
     const fileId = await uploadFile(prep.video, "clip.mp4", "video/mp4");
     const stored = input.onPrepared ? await input.onPrepared(prep.video) : undefined;
-    return { vi, fileId, prep, stored: stored || undefined, rawInfo: raw };
+    return { vi, fileId, prep, stored: stored || undefined, rawInfo: raw ?? vi };
   }, (r) => `${r.vi.times.length} frames at ${r.vi.fps.toFixed(r.vi.fps % 1 ? 2 : 0)} fps (${r.rawInfo.codec}, ${r.rawInfo.width}×${r.rawInfo.height}), clock read from the file${r.prep.hadAudio ? ", narration found" : ""}`);
   const { vi, fileId, prep } = info;
   const extraFiles: string[] = [];
@@ -506,7 +514,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       let c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
       if (c) c.winnerId = cands[0].law.id;
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
-      // was fitted to by more than three times the measurement noise (judged on fitted frames only)
+      // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)
       const lead = cands[0];
       const poorFit = lead.fit.ok && lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor;
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";

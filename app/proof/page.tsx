@@ -247,10 +247,10 @@ export default async function ProofPage() {
                 <strong>Without SAM 3.1 and the fit</strong> (Muse Spark reading numbers off the video): median error {pct(s.medianEyeballErrPct, 0)} instead of {pct(s.medianConstErrPct, 2)}.
               </li>
               <li>
-                <strong>Without Muse’s hypotheses</strong> (textbook laws only): the best textbook law misses the unseen frames by {(s.medianPredictionRelControl * 100).toFixed(2)}% of the motion (median), against {(s.medianPredictionRel * 100).toFixed(2)}% for the winner.
+                <strong>Without Muse’s hypotheses</strong>: against the one or two fixed controls each run carries, the winner predicts the unseen frames far better ({(s.medianPredictionRel * 100).toFixed(2)}% of the motion against {(s.medianPredictionRelControl * 100).toFixed(2)}%, medians). Against a fair library of twelve textbook laws it ties on most clips: see the next section.
               </li>
               <li>
-                <strong>Without the prediction test</strong> (picking the law that fits the seen frames best): the right physics in {s.lawCorrectIfChosenByFit} of {s.lawJudged} clips instead of {s.lawCorrect}.
+                <strong>Without the prediction test</strong> (picking the law that fits the seen frames best): on these clean renders, fit alone picks the right physics just as often ({s.lawCorrectIfChosenByFit} of {s.lawJudged} clips). The held-out test earns its keep where a law fits the seen frames and fails after them: on <Link href="/x/hardening-spring">the hardening spring</Link>, laws that fit the first 70% respectably missed the rest by over 100× the noise.
               </li>
               <li>
                 <strong>Cost and time</strong>: ${s.totalUsd.toFixed(2)} for all {s.cases} clips, a median of {s.medianSeconds.toFixed(0)} s each.
@@ -278,7 +278,7 @@ export default async function ProofPage() {
                 <p className={styles.big}>
                   {ab.summary.sparkBetter}/{ab.summary.clips}
                 </p>
-                <p>where Spark’s law is better: two pucks colliding, which no one-body textbook law describes</p>
+                <p>where Spark’s law scores better: the two pucks colliding. Neither side truly describes two bodies (both are graded wrong in the table above), so this is no win; two-body laws are the next thing to build.</p>
               </div>
               <div>
                 <p className={styles.big}>

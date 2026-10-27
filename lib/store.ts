@@ -82,6 +82,35 @@ export async function getObject(key: string): Promise<Uint8Array | null> {
   return new Uint8Array(await r.arrayBuffer());
 }
 
+/**
+ * Read-modify-write that two visitors can't race: reads the object and its generation, applies `change`, and writes
+ * only if nobody wrote in between (GCS ifGenerationMatch; 0 means "doesn't exist yet"), retrying on a clash.
+ * `change` returns null to leave the object as it is. Local storage (development) has no rivals and just writes.
+ */
+export async function updateJson<T>(key: string, empty: T, change: (v: T) => T | null): Promise<T | null> {
+  const b = bucket();
+  if (!b) {
+    const cur = await getObject(key).then((r) => (r ? (JSON.parse(new TextDecoder().decode(r)) as T) : empty));
+    const next = change(cur);
+    if (next !== null) await putObject(key, JSON.stringify(next), "application/json");
+    return next;
+  }
+  for (let i = 0; i < 6; i++) {
+    const r = await fetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(b)}/o/${encodeURIComponent(key)}?alt=media`, { headers: { authorization: `Bearer ${await gcsToken()}` }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+    if (!r.ok && r.status !== 404) throw new Error(`GCS read ${key}: HTTP ${r.status}`);
+    const gen = r.status === 404 ? "0" : r.headers.get("x-goog-generation") ?? "0";
+    const cur = r.status === 404 ? empty : ((await r.json()) as T);
+    const next = change(cur);
+    if (next === null) return null;
+    const q = new URLSearchParams({ uploadType: "media", name: key, ifGenerationMatch: gen });
+    const w = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(b)}/o?${q}`, { method: "POST", headers: { authorization: `Bearer ${await gcsToken()}`, "content-type": "application/json" }, body: JSON.stringify(next), signal: AbortSignal.timeout(15_000) });
+    if (w.ok) return next;
+    if (w.status !== 412) throw new Error(`GCS write ${key}: HTTP ${w.status}`);
+    await new Promise((res) => setTimeout(res, 100 + Math.random() * 300 * (i + 1)));
+  }
+  throw new Error(`GCS write ${key}: too many concurrent writers`);
+}
+
 /** An object's size in bytes without downloading it (null if it isn't there). */
 export async function objectSize(key: string): Promise<number | null> {
   const b = bucket();

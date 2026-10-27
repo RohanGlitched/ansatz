@@ -89,7 +89,7 @@ export default async function Home() {
             <li>
               <span className={styles.step}>Referee</span>
               <h3>Explain or revise</h3>
-              <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. If they drift in a way no candidate explains, Muse Wonder writes one more law, and that law has to earn its place the same way.</p>
+              <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. If every law misses, Muse Wonder, an agent with a fitting tool, tries laws on the seen frames and submits one, which has to earn its place the same way.</p>
               <p className={styles.model}>Muse Spark 1.3 and Muse Wonder 1.0</p>
             </li>
           </ol>
@@ -102,7 +102,7 @@ export default async function Home() {
           <div className={styles.who}>
             <div>
               <h3>A student with a phone</h3>
-              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in Hindi or English, and get g, the law, the error against the textbook value and a lab report to hand in, in six languages. Film it at four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.</p>
+              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in Hindi or English, and get g, the law, the error against the textbook value and a lab report to hand in, in seven languages. Film it at four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.</p>
             </div>
             <div>
               <h3>A teacher with a class of forty</h3>
@@ -117,7 +117,7 @@ export default async function Home() {
             <div>
               <h3>Anyone asking whether a clip is real time</h3>
               <p>
-                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> (1.50×, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4.3×), where a language model watching the same frames answered from memory.
+                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> (1.50×, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where a language model watching the same frames answered from memory.
               </p>
             </div>
           </div>
@@ -141,7 +141,7 @@ export default async function Home() {
                     <div className={styles.cardEq}>
                       <Tex>{lawLatex(w.law)[lawLatex(w.law).length > 1 ? 1 : 0] ?? ""}</Tex>
                     </div>
-                    <p className={styles.cardFinding}>{e.clock ? `Caught a clip in slow motion: gravity came out ${(1 / (e.clock.factor * e.clock.factor)).toFixed(3)} of Earth’s, so the clip plays about ${e.clock.factor.toFixed(1)}× slower than real life.` : e.headline ?? e.finding}</p>
+                    <p className={styles.cardFinding}>{e.headline ?? e.finding}</p>
                     <p className="small">{e.source.credit}</p>
                   </div>
                 </Link>

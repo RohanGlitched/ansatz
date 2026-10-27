@@ -26,7 +26,7 @@ Show Muse Spark every frame of the 1972 Apollo 16 clip and ask for the Moon’s 
 | Clips rendered in slow motion (2×, 4×, 8×), not declared | **all 3 flagged** by the clock check; factor within 2% on two (the third misread its 15 cm ruler as a metre stick) | exact |
 | The same constants read off the clips by Muse Spark alone | median error 38%; on the slowed clips it answered Earth’s 9.81 | exact |
 | A hidden stiffening spring (a render): Muse Wonder’s law, found with its fitting tool | k₃/m = **4012 ± 7** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
-| A pendulum filmed in slow motion (no caption says so) | flagged: about **4.3× slower than real life** | the uploader titled it “slow motion” |
+| A pendulum filmed in slow motion (no caption says so) | flagged: about **4 to 4.5× slower than real life** (unconfirmed: the capture rate isn’t published) | the uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).
 
