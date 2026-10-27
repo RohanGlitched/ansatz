@@ -25,11 +25,13 @@
 }
 
 .strip {
+  --p: 1;
   position: relative;
   height: clamp(150px, 22vw, 300px);
   background: #000;
   border-radius: 2px;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .strip img,
@@ -44,6 +46,12 @@
   object-fit: fill;
 }
 
+/* the latent print: the whole strip, faint and grey, so the scan develops a picture rather than sweeping a void */
+.strip img.latent {
+  filter: grayscale(1) contrast(0.95);
+  opacity: 0.22;
+}
+
 .unseen {
   fill: rgba(14, 16, 18, 0.22);
 }
@@ -54,11 +62,28 @@
   stroke-dasharray: 5 4;
 }
 
+/* the law on the dark strip: the light blue of the plates, with a dark halo so it reads over pale footage */
 .law {
   fill: none;
-  stroke: var(--law);
+  stroke: #8fa0ff;
   stroke-width: 2.5;
   stroke-linejoin: round;
+}
+
+.lawHalo {
+  fill: none;
+  stroke: rgba(8, 10, 30, 0.8);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.runner {
+  fill: none;
+  stroke: #f3f4f0;
+  stroke-width: 1.75;
+  stroke-dasharray: 6 5;
+  stroke-linejoin: round;
+  opacity: 0.85;
 }
 
 .dot {
@@ -69,16 +94,35 @@
   border-radius: 50%;
   background: var(--measured);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.2s, transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3);
 }
 
+/* the predictions, outside the developing print: at the split they draw ahead to the end of the clip */
+.ahead {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--draw, 0.9s) cubic-bezier(0.45, 0, 0.25, 1) var(--pause, 0.6s);
+}
+
+/* the tag's seam sits on the split: "fitted" to its left, "predicted" to its right, in an edge band the motion
+   leaves empty */
 .tag {
   font-family: var(--font);
   position: absolute;
   top: 10px;
-  transform: translateX(-50%);
-  display: flex;
+  left: calc(var(--s) * 100%);
+  width: 0;
+  height: 22px;
   font-size: 12px;
   white-space: nowrap;
+  transition: opacity 0.5s ease-out;
+}
+
+.tag.tagLow {
+  top: auto;
+  bottom: 10px;
 }
 
 .tag b {
@@ -87,12 +131,16 @@
 }
 
 .tag b:first-child {
+  position: absolute;
+  right: 0;
   background: #2d4bff;
   color: #fff;
   border-radius: 3px 0 0 3px;
 }
 
 .tag b:last-child {
+  position: absolute;
+  left: 0;
   background: #fff;
   color: #121417;
   border-radius: 0 3px 3px 0;
@@ -105,13 +153,71 @@
   max-width: 90ch;
 }
 
-/* the scan: the strip develops at the clip's own speed; each measurement lands as the line passes its frame, and the
-   fitted/predicted label appears when the scan crosses into frames no law saw */
+/* the race: each law's miss on the unseen frames, counted as the scan passes them */
+.race {
+  font-family: var(--font);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  margin-top: 8px;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  transition: opacity 0.4s;
+}
+
+.raceHead {
+  color: var(--ink-2);
+}
+
+.racer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.racerName {
+  color: var(--ink-2);
+}
+
+.kWin,
+.kRun {
+  display: inline-block;
+  width: 18px;
+  align-self: center;
+}
+
+.kWin {
+  height: 3px;
+  background: var(--law);
+}
+
+.kRun {
+  height: 0;
+  border-top: 2px dashed var(--ink-2);
+}
+
+.tie {
+  font-style: italic;
+}
+
+.count {
+  white-space: nowrap;
+  color: var(--ink);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.count > span:not(:last-child) {
+  display: none;
+}
+
+/* the scan: the strip develops at the clip's own speed (ReplayScope writes --p); each measurement lands as the line
+   passes its frame */
 .develop {
   position: absolute;
   inset: 0;
-  clip-path: inset(0 100% 0 0);
-  animation: develop var(--dur) linear both paused;
+  clip-path: inset(0 calc((1 - var(--p, 1)) * 100%) 0 0);
 }
 
 .scanLine {
@@ -122,64 +228,42 @@
   width: 2px;
   background: var(--measured);
   box-shadow: 0 0 12px 2px rgba(255, 90, 31, 0.6);
-  animation: scanMove var(--dur) linear both paused;
+  transform: translateX(calc(var(--p, 1) * (100cqw - 2px)));
+  opacity: calc((1 - var(--p, 1)) * 1000);
   pointer-events: none;
 }
 
-.develop .dot {
-  animation: dotIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) var(--d) both paused;
+/* while the laws run ahead, the scan line waits at the split, dimmed */
+.strip[data-holding] .scanLine {
+  opacity: 0.45;
 }
 
-.develop .tag {
-  animation: tagIn 0.5s ease-out var(--d) both paused;
+.scan[data-reset] * {
+  transition: none !important;
 }
 
-.scan[data-playing] .develop,
-.scan[data-playing] .scanLine,
-.scan[data-playing] .develop .dot,
-.scan[data-playing] .develop .tag {
-  animation-play-state: running;
-}
-
-@keyframes develop {
-  to {
-    clip-path: inset(0 0 0 0);
+/* before a scan has run (and only when it can run): the latent print, and every mark waiting for its frame. With no
+   script or reduced motion none of this applies, so the finished print shows. */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .scan:not([data-state="done"]) .strip {
+    --p: 0;
   }
-}
-
-@keyframes scanMove {
-  0% {
-    left: 0;
-    opacity: 1;
-  }
-  97% {
-    opacity: 1;
-  }
-  100% {
-    left: calc(100% - 2px);
+  .scan:not([data-state="done"]) .dot:not([data-on]) {
     opacity: 0;
-  }
-}
-
-@keyframes dotIn {
-  from {
     transform: scale(2.6);
+  }
+  .scan:not([data-state="done"]) :is(.tag, .race):not([data-on]) {
     opacity: 0;
   }
-  to {
-    transform: scale(1);
-    opacity: 1;
+  .scan:not([data-state="done"]) .ahead:not([data-on]) {
+    clip-path: inset(0 calc((1 - var(--split)) * 100%) 0 0);
+    transition: none;
   }
-}
-
-@keyframes tagIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -6px);
+  .scan:not([data-state="done"]) .count > span {
+    display: none;
   }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
+  .scan:not([data-state="done"]) .count > span[data-on]:not(:has(+ span[data-on])) {
+    display: inline;
   }
 }
 
@@ -197,4 +281,13 @@
 .replay:hover {
   border-color: #8fa0ff;
   color: var(--ink);
+}
+
+@media (max-width: 600px) {
+  .long {
+    display: none;
+  }
+  .race {
+    font-size: 13px;
+  }
 }

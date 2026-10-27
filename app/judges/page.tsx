@@ -58,6 +58,8 @@ export default async function JudgesPage() {
   const springGain = spring && sparkBest(spring) ? sparkBest(spring)!.fit.testRms / winnerOf(spring).fit.testRms : NaN;
   const slowPendulum = by("sample-pendulum");
 
+  const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as { summary: { reviseWhenNeeded: number; needed: number; reviseWhenRight: number; right: number } }, () => null);
+  const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; tie: number; worse: number } }, () => null);
   const bench = await readFile(path.join(process.cwd(), "data", "bench", "synth.json"), "utf8").then((t) => JSON.parse(t) as { summary: Summary; rows: { checks: Check[] }[] }, () => null);
   const ablation = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number } }, () => null);
   const s = bench?.summary;
@@ -108,6 +110,9 @@ export default async function JudgesPage() {
         <>Structured output with strict JSON schemas, video input at the clip’s own frame rate, function tools for Muse Wonder, streamed SAM masks drawn live during a run.</>,
         <>
           Muse Wonder earned its place: on {wonderWins.length} of the published runs it found the law Muse Spark missed. On the stiffening spring its law predicts the unseen motion {Number.isFinite(springGain) ? `${Math.round(springGain)}×` : "far"} better than Muse Spark’s best{springTruth ? `, and recovers the hidden stiffening k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} against a true ${+springTruth.truth.toPrecision(4)}` : ""}.
+        </>,
+        <>
+          Each model was also tested on its own over the whole benchmark (<Link href="/proof#models">Proof</Link>): the referee asked for a new law on {refb ? `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed}` : "both"} renders that needed one and on {refb ? `${refb.summary.reviseWhenRight} of ${refb.summary.right}` : "none of the"} clips that didn’t; Muse Wonder, challenged on every clip, kept the right law on {wonb ? `${wonb.summary.tie} of ${wonb.summary.clips}` : "most"}, and the held-out test threw out the {wonb?.summary.worse ?? "few"} laws where it overreached.
         </>,
         <>Every model call is listed on its experiment with its purpose, time and cost, so you can see exactly what each model did.</>,
       ],
@@ -172,6 +177,8 @@ export default async function JudgesPage() {
     ...(mt ? [{ what: "The same clip slowed 1.5× in secret", value: `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²: ${ratio.toFixed(2)}× slow`, href: "/x/moon-jump-slowed" }] : []),
     ...(mt?.sameJump ? [{ what: "Slowdown measured jump for jump (truth 1.5×)", value: `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring" }] : []),
+    ...(refb ? [{ what: "Referee asked for a new law: when one was missing / when it wasn’t", value: `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed} / ${refb.summary.reviseWhenRight} of ${refb.summary.right}`, href: "/proof#models" }] : []),
+    ...(wonb ? [{ what: "Muse Wonder challenged on every benchmark clip: kept the right law", value: `${wonb.summary.tie} of ${wonb.summary.clips}; ${wonb.summary.worse} overreaches, all rejected by the held-out test`, href: "/proof#models" }] : []),
     { what: "Physical constants within 5% on rendered clips", value: `${physWithin} of ${phys.length}, median ${physMedian.toFixed(2)}%`, href: "/proof" },
     ...(gRuler.length ? [{ what: "Of those, g measured against a ruler in view (the hardest case)", value: `${gRuler.filter((x) => x <= 5).length} of ${gRuler.length}, median ${median(gRuler).toFixed(1)}%`, href: "/proof" }] : []),
     ...(s ? [{ what: "Muse Spark reading the same constants by eye", value: `median ${s.medianEyeballErrPct.toFixed(0)}% off`, href: "/proof" }] : []),

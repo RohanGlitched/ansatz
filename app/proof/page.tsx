@@ -77,6 +77,12 @@ const NAMES: Record<string, string> = {
 
 export default async function ProofPage() {
   const b = await bench();
+  // the referee and Muse Wonder, each run over every benchmark clip on its own (data/bench/referee.json, wonder.json)
+  type Ref = { summary: { clips: number; revise: number; reviseWhenNeeded: number; needed: number; reviseWhenRight: number; right: number; usd: number } };
+  type Won = { summary: { clips: number; beat: number; tie: number; worse: number; none: number; usd: number }; rows: { verdict: string; submitted?: string; ratio?: number }[] };
+  const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as Ref, () => null);
+  const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
+  const worse = wonb?.rows.filter((r) => r.verdict === "worse" && Number.isFinite(r.ratio)).map((r) => r.ratio!) ?? [];
   const ab = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then(
     (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number; unit?: string }[] },
     () => null,
@@ -282,6 +288,30 @@ export default async function ProofPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        </section>
+      )}
+
+      {refb && wonb && (
+        <section className="section" id="models">
+          <div className={`wrap ${styles.two}`}>
+            <div>
+              <h2>Do the models earn their place?</h2>
+              <p className="lede" style={{ marginTop: 12 }}>
+                The referee and Muse Wonder, each run on its own over every benchmark clip, from the stored measurements. ${(refb.summary.usd + wonb.summary.usd).toFixed(2)} of model calls in all.
+              </p>
+            </div>
+            <ul className={styles.ablation}>
+              <li>
+                <strong>The referee asks for a new law only when one is missing.</strong> Shown the fitted frames alone (no ranks, no held-out errors), Muse Spark asked for one on {refb.summary.reviseWhenNeeded} of the {refb.summary.needed} renders we built to need a law outside the textbook, at full strength, and on {refb.summary.reviseWhenRight} of the {refb.summary.right} clips whose leading law already had the right physics.
+              </li>
+              <li>
+                <strong>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</strong> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn’t there; each such law missed the frames it never saw by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is only called in when the referee asks, which on these clips it didn’t.
+              </li>
+              <li>
+                <strong>Where a law really was missing</strong>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames.
+              </li>
+            </ul>
           </div>
         </section>
       )}

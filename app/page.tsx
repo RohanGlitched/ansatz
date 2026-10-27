@@ -3,6 +3,8 @@ import PlateWithControls from "@/components/PlateWithControls";
 import StrobePlate from "@/components/StrobePlate";
 import Tex from "@/components/Tex";
 import MoonHero from "@/components/MoonHero";
+import StripCard from "@/components/StripCard";
+import { slitOf } from "@/components/strip";
 import { getExperiment, plateData, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
 import { costText, headline, timeText } from "@/lib/headline";
@@ -184,7 +186,7 @@ export default async function Home() {
               const w = winnerOf(e);
               return (
                 <Link key={e.id} href={`/x/${e.id}`} className={styles.card}>
-                  <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />
+                  {slitOf(e.id) ? <StripCard e={e} /> : <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />}
                   <div className={styles.cardBody}>
                     <p className={styles.cardTitle}>{e.title}</p>
                     <div className={styles.cardEq}>

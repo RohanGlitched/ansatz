@@ -1,0 +1,552 @@
+{
+ "generatedAt": "2026-10-27T05:23:19.368Z",
+ "note": "Muse Wonder as a standing challenger on each benchmark clip: the fitted-frames table a run would give it, a brief that the chosen law may already be right, the fit_law tool and up to three turns. Its submitted law is fitted and ranked against the stored laws on the held-out 30%, which it never saw. beat: it leads with an unseen miss at least 10% smaller; tie: the same law, or within 10%; worse: a larger unseen miss; none: nothing usable submitted.",
+ "summary": {
+  "clips": 28,
+  "beat": 0,
+  "tie": 24,
+  "worse": 4,
+  "none": 0,
+  "usd": 2.076
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "file": "bb01_e0.72_orange.json",
+   "verdict": "tie",
+   "submitted": "Bouncing ball in vacuum",
+   "ratio": 1,
+   "usd": 0.0953,
+   "fromLog": true
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "file": "bb02_e0.88_blue_120fps.json",
+   "verdict": "tie",
+   "submitted": "Ballistic bounce in vacuum",
+   "ratio": 1,
+   "usd": 0.0861,
+   "fromLog": true
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "file": "bb03_e0.60_purple_240fps.json",
+   "verdict": "worse",
+   "submitted": "Quadratic air drag with frictional bounce",
+   "ratio": 1.9,
+   "usd": 0.0951,
+   "fromLog": true
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "file": "co01_e0.90_unequal_mass.json",
+   "verdict": "tie",
+   "submitted": "Uniform glide (no friction)",
+   "ratio": 1,
+   "usd": 0.1059,
+   "fromLog": true
+  },
+  {
+   "id": "co02e050equalmass120fps",
+   "file": "co02_e0.50_equal_mass_120fps.json",
+   "before": "Frictionless Glide with Elastic Bounce",
+   "beforeUnseen": 0.18717371528725985,
+   "beforeZ": 2.5321044976813805,
+   "attempts": [
+    "Frictionless Glide with Inelastic Bounce",
+    "Dry Friction with Inelastic Bounce"
+   ],
+   "auto": false,
+   "submitted": "Frictionless Glide with Elastic Bounce",
+   "sameAsLeader": true,
+   "unseen": 0.1871737150526215,
+   "z": 2.5321044945061186,
+   "rank": 2,
+   "of": 7,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0865
+  },
+  {
+   "id": "ff01earthorangeball",
+   "file": "ff01_earth_orange_ball.json",
+   "before": "Fall with quadratic air drag",
+   "beforeUnseen": 0.0007467768465799487,
+   "beforeZ": 2.03705400645021,
+   "attempts": [
+    "Fall with quadratic air drag"
+   ],
+   "auto": false,
+   "submitted": "Fall with quadratic air drag",
+   "sameAsLeader": true,
+   "unseen": 0.0007954493500586268,
+   "z": 2.1698226088363572,
+   "rank": 1,
+   "of": 6,
+   "ratio": 1.07,
+   "verdict": "tie",
+   "usd": 0.044
+  },
+  {
+   "id": "ff02earthblueblocktiles",
+   "file": "ff02_earth_blue_block_tiles.json",
+   "before": "Textbook projectile (no air)",
+   "beforeUnseen": 0.0008400105875164938,
+   "beforeZ": 2.060573621560183,
+   "attempts": [
+    "Projectile with quadratic air drag",
+    "Projectile with linear air drag"
+   ],
+   "auto": false,
+   "submitted": "Textbook projectile (no air)",
+   "sameAsLeader": true,
+   "unseen": 0.0008400106010462139,
+   "z": 2.060573649253052,
+   "rank": 1,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0578
+  },
+  {
+   "id": "ff03moonyellowball",
+   "file": "ff03_moon_yellow_ball.json",
+   "before": "Lunar vacuum free fall",
+   "beforeUnseen": 0.0005281920321242884,
+   "beforeZ": 2.2520005813591824,
+   "attempts": [
+    "Lunar vacuum free fall",
+    "Fall with gravity weakening with height"
+   ],
+   "auto": false,
+   "submitted": "Lunar vacuum free fall",
+   "sameAsLeader": true,
+   "unseen": 0.0005281917921282657,
+   "z": 2.2519995581116743,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0513
+  },
+  {
+   "id": "ff04marswhiteball",
+   "file": "ff04_mars_white_ball.json",
+   "before": "Free fall in vacuum",
+   "beforeUnseen": 0.0007123834755421445,
+   "beforeZ": 1.4803310404810892,
+   "attempts": [
+    "Free fall in vacuum",
+    "Fall with linear air drag"
+   ],
+   "auto": false,
+   "submitted": "Free fall in vacuum",
+   "sameAsLeader": true,
+   "unseen": 0.0007123835344936393,
+   "z": 1.4803311629818219,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0516
+  },
+  {
+   "id": "in01solidbeta0420deg",
+   "file": "in01_solid_beta0.4_20deg.json",
+   "before": "Constant downslope acceleration",
+   "beforeUnseen": 0.28697772005570055,
+   "beforeZ": 1.7505024217217913,
+   "attempts": [
+    "Rolling with quadratic air drag",
+    "Acceleration decreasing along ramp"
+   ],
+   "auto": false,
+   "submitted": "Constant downslope acceleration",
+   "sameAsLeader": true,
+   "unseen": 0.28697772340814914,
+   "z": 1.7505024421711401,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0559
+  },
+  {
+   "id": "in02hollowbeta066720deg",
+   "file": "in02_hollow_beta0.667_20deg.json",
+   "before": "Constant acceleration down ramp",
+   "beforeUnseen": 0.49094026791146295,
+   "beforeZ": 4.299648780440625,
+   "attempts": [
+    "Constant acceleration with end stop",
+    "Probe stop location 500"
+   ],
+   "auto": false,
+   "submitted": "Constant acceleration with end stop",
+   "sameAsLeader": false,
+   "unseen": 0.49094025078098924,
+   "z": 4.299648630412595,
+   "rank": 5,
+   "of": 7,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0945
+  },
+  {
+   "id": "pd01earthyellowbeachballk025",
+   "file": "pd01_earth_yellow_beachball_k0.25.json",
+   "before": "Projectile with quadratic air drag",
+   "beforeUnseen": 0.001255006794594755,
+   "beforeZ": 2.5990260273193346,
+   "attempts": [
+    "Quadratic drag with Magnus lift",
+    "Quadratic drag with horizontal wind"
+   ],
+   "auto": false,
+   "submitted": "Projectile with quadratic air drag",
+   "sameAsLeader": true,
+   "unseen": 0.0012550068010028015,
+   "z": 2.5990260663333893,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0653
+  },
+  {
+   "id": "pd02earthpaperballk045",
+   "file": "pd02_earth_paper_ball_k0.45.json",
+   "before": "Quadratic air drag",
+   "beforeUnseen": 0.0022125859675720485,
+   "beforeZ": 4.042852988283652,
+   "attempts": [
+    "Quadratic drag with steady wind",
+    "Linear plus quadratic drag"
+   ],
+   "auto": false,
+   "submitted": "Quadratic air drag",
+   "sameAsLeader": true,
+   "unseen": 0.002212586008557646,
+   "z": 4.04285304277151,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0677
+  },
+  {
+   "id": "pd03earthorangeballoonk015",
+   "file": "pd03_earth_orange_balloon_k0.15.json",
+   "before": "Projectile with quadratic air drag",
+   "beforeUnseen": 0.004313164698166421,
+   "beforeZ": 3.4002010007444894,
+   "attempts": [
+    "Quadratic drag with floor bounce",
+    "Linear plus quadratic drag"
+   ],
+   "auto": false,
+   "submitted": "Quadratic drag with floor bounce",
+   "sameAsLeader": false,
+   "unseen": 0.505797852872303,
+   "z": 402.20238782108675,
+   "rank": 5,
+   "of": 6,
+   "ratio": 117,
+   "verdict": "worse",
+   "usd": 0.1157
+  },
+  {
+   "id": "pe01small8degl060",
+   "file": "pe01_small_8deg_L0.60.json",
+   "before": "Viscous-Damped Linear Pendulum",
+   "beforeUnseen": 0.0004719204332232883,
+   "beforeZ": 2.040472594425505,
+   "attempts": [
+    "Nonlinear Pendulum with Viscous Damping",
+    "Nonlinear Pendulum with Linear and Quadratic Drag"
+   ],
+   "auto": false,
+   "submitted": "Viscous-Damped Linear Pendulum",
+   "sameAsLeader": true,
+   "unseen": 0.0004719204221126925,
+   "z": 2.0404725463857862,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0646
+  },
+  {
+   "id": "pe02large70degl080",
+   "file": "pe02_large_70deg_L0.80.json",
+   "before": "Damped pendulum with viscous friction",
+   "beforeUnseen": 0.0008431821415404764,
+   "beforeZ": 2.536540116187812,
+   "attempts": [
+    "Pendulum with viscous and Coulomb pivot friction",
+    "Pendulum with viscous plus quadratic drag"
+   ],
+   "auto": false,
+   "submitted": "Damped pendulum with viscous friction",
+   "sameAsLeader": true,
+   "unseen": 0.0008431821424424891,
+   "z": 2.5365401189011845,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0525
+  },
+  {
+   "id": "pe03small9degl035room",
+   "file": "pe03_small_9deg_L0.35_room.json",
+   "before": "Damped pendulum with viscous friction",
+   "beforeUnseen": 0.0007625428280779713,
+   "beforeZ": 2.3050305753765974,
+   "attempts": [
+    "Pendulum with viscous and Coulomb pivot friction",
+    "Pendulum with viscous and quadratic drag"
+   ],
+   "auto": false,
+   "submitted": "Damped pendulum with viscous friction",
+   "sameAsLeader": true,
+   "unseen": 0.0007625428248934059,
+   "z": 2.3050305657501746,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0659
+  },
+  {
+   "id": "pe04large60degl12024fps",
+   "file": "pe04_large_60deg_L1.20_24fps.json",
+   "before": "Damped pendulum with linear drag",
+   "beforeUnseen": 0.0009226881149611471,
+   "beforeZ": 2.3642862183739117,
+   "attempts": [
+    "Pendulum with viscous drag and dry Coulomb friction",
+    "Pendulum with dry Coulomb friction only"
+   ],
+   "auto": false,
+   "submitted": "Damped pendulum with linear drag",
+   "sameAsLeader": true,
+   "unseen": 0.0009226880423533122,
+   "z": 2.3642860323219113,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0539
+  },
+  {
+   "id": "pr01earthgreenballtiles",
+   "file": "pr01_earth_green_ball_tiles.json",
+   "before": "Vacuum projectile",
+   "beforeUnseen": 0.0012177234279547116,
+   "beforeZ": 1.2480892507778703,
+   "attempts": [
+    "Projectile with constant horizontal wind acceleration",
+    "Projectile with effective gravity different from g"
+   ],
+   "auto": false,
+   "submitted": "Vacuum projectile",
+   "sameAsLeader": true,
+   "unseen": 0.0012177234299351441,
+   "z": 1.2480892528048433,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0468
+  },
+  {
+   "id": "pr02earthredballroom",
+   "file": "pr02_earth_red_ball_room.json",
+   "before": "Vacuum projectile",
+   "beforeUnseen": 0.0019347536396145855,
+   "beforeZ": 1.9293466352158177,
+   "attempts": [
+    "Vacuum projectile with floor bounce",
+    "Dragged projectile with floor bounce"
+   ],
+   "auto": false,
+   "submitted": "Dragged projectile with floor bounce",
+   "sameAsLeader": false,
+   "unseen": 0.3122825228909292,
+   "z": 317.00272191306925,
+   "rank": 6,
+   "of": 6,
+   "ratio": 161,
+   "verdict": "worse",
+   "usd": 0.1249
+  },
+  {
+   "id": "sm01bounce240fpsx8",
+   "file": "sm01_bounce_240fps_x8.json",
+   "before": "Bouncing ball in vacuum",
+   "beforeUnseen": 0.00030589441333593,
+   "beforeZ": 1.5509352717133682,
+   "attempts": [
+    "Bouncing ball with impact-speed-dependent restitution",
+    "Bouncing ball with tangential friction loss at bounce"
+   ],
+   "auto": false,
+   "submitted": "Bouncing ball in vacuum",
+   "sameAsLeader": true,
+   "unseen": 0.00030589443905263325,
+   "z": 1.550935433361394,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0712
+  },
+  {
+   "id": "sm02bounce120fpsx4a4",
+   "file": "sm02_bounce_120fps_x4_a4.json",
+   "before": "Gravity only with bouncy floor",
+   "beforeUnseen": 0.00029993641433421353,
+   "beforeZ": 2.317325445214989,
+   "attempts": [
+    "Gravity only with bouncy floor",
+    "Gravity bounce with tangential friction at floor"
+   ],
+   "auto": false,
+   "submitted": "Gravity only with bouncy floor",
+   "sameAsLeader": true,
+   "unseen": 0.00029993618677587585,
+   "z": 2.3173238174347848,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0835
+  },
+  {
+   "id": "sm03bounce60fpsx2stick",
+   "file": "sm03_bounce_60fps_x2_stick.json",
+   "before": "Gravity bounce with no air",
+   "beforeUnseen": 0.0006434950141047433,
+   "beforeZ": 1.666627884002164,
+   "attempts": [
+    "Gravity bounce with no air (baseline)",
+    "Bounce with restitution falling at high impact speed"
+   ],
+   "auto": false,
+   "submitted": "Gravity bounce with no air",
+   "sameAsLeader": true,
+   "unseen": 0.0006434949944791949,
+   "z": 1.6666278421795175,
+   "rank": 2,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.1058
+  },
+  {
+   "id": "sp01k25m020b035",
+   "file": "sp01_k25_m0.20_b0.35.json",
+   "before": "Viscously damped spring",
+   "beforeUnseen": 0.1767464006458022,
+   "beforeZ": 0.9569759654994873,
+   "attempts": [
+    "Spring with viscous plus dry Coulomb damping",
+    "Viscously damped spring with slowly creeping equilibrium"
+   ],
+   "auto": false,
+   "submitted": "Viscously damped spring with slowly creeping equilibrium",
+   "sameAsLeader": false,
+   "unseen": 0.25716498491739775,
+   "z": 1.3923944636766397,
+   "rank": 2,
+   "of": 7,
+   "ratio": 1.45,
+   "verdict": "worse",
+   "usd": 0.0734
+  },
+  {
+   "id": "sp02k60m015b10fast",
+   "file": "sp02_k60_m0.15_b1.0_fast.json",
+   "before": "Viscously damped spring",
+   "beforeUnseen": 0.17247950094470513,
+   "beforeZ": 0.9929145962602832,
+   "attempts": [
+    "Spring with viscous and dry Coulomb friction",
+    "Driven viscously damped spring"
+   ],
+   "auto": false,
+   "submitted": "Viscously damped spring",
+   "sameAsLeader": true,
+   "unseen": 0.1724794949440658,
+   "z": 0.9929145617165213,
+   "rank": 2,
+   "of": 7,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0748
+  },
+  {
+   "id": "sp03k8m050b012soft",
+   "file": "sp03_k8_m0.50_b0.12_soft.json",
+   "before": "Spring with viscous damping",
+   "beforeUnseen": 0.1451497757374428,
+   "beforeZ": 1.1764180775771729,
+   "attempts": [
+    "Viscous spring with cubic stiffening",
+    "Spring with quadratic stiffness asymmetry"
+   ],
+   "auto": false,
+   "submitted": "Spring with viscous damping",
+   "sameAsLeader": true,
+   "unseen": 0.14514974445815002,
+   "z": 1.1764178240630268,
+   "rank": 2,
+   "of": 7,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.066
+  },
+  {
+   "id": "tt01earthblueballportrait",
+   "file": "tt01_earth_blue_ball_portrait.json",
+   "before": "Vacuum free flight",
+   "beforeUnseen": 0.0016609389876014046,
+   "beforeZ": 4.268169014499848,
+   "attempts": [
+    "Free fall with Coriolis eastward drift"
+   ],
+   "auto": false,
+   "submitted": "Vacuum free flight",
+   "sameAsLeader": true,
+   "unseen": 0.001660938768466007,
+   "z": 4.268168451382024,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0504
+  },
+  {
+   "id": "tt02earthyellowballboard",
+   "file": "tt02_earth_yellow_ball_board.json",
+   "before": "Free fall in vacuum",
+   "beforeUnseen": 0.004049151412306318,
+   "beforeZ": 4.19638737581624,
+   "attempts": [
+    "Free fall in vacuum (chosen, control)",
+    "Projectile vacuum x and y"
+   ],
+   "auto": false,
+   "submitted": "Free fall in vacuum",
+   "sameAsLeader": true,
+   "unseen": 0.004049151426818692,
+   "z": 4.196387390857218,
+   "rank": 2,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "tie",
+   "usd": 0.0695
+  }
+ ]
+}

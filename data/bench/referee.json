@@ -1,0 +1,315 @@
+{
+ "generatedAt": "2026-10-27T05:21:45.819Z",
+ "note": "The referee as a run calls it: the fitted-frames table and residual plot only, no ranks and no held-out errors. A revise verdict asks for one more law. needsNew marks the two renders whose law no proposed law had; rightPhysics is the benchmark's own judgement of the leading law.",
+ "summary": {
+  "clips": 30,
+  "revise": 2,
+  "reviseWhenNeeded": 2,
+  "needed": 2,
+  "reviseWhenRight": 0,
+  "right": 24,
+  "usd": 0.431
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0119
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0139
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0173
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "needsNew": false,
+   "rightPhysics": false,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.011
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "needsNew": false,
+   "rightPhysics": false,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0164
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0145
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0121
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0109
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0111
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "needsNew": false,
+   "rightPhysics": null,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0095
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "needsNew": false,
+   "rightPhysics": null,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0105
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0106
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0127
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0126
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "drift",
+   "strength": 1,
+   "idea": "",
+   "usd": 0.0151
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0146
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "drift",
+   "strength": 1,
+   "idea": "",
+   "usd": 0.0199
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0125
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0083
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0129
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0144
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0165
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0141
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "drift",
+   "strength": 1,
+   "idea": "",
+   "usd": 0.0181
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0149
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0177
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0117
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "needsNew": false,
+   "rightPhysics": true,
+   "verdict": "accept",
+   "feature": "none",
+   "strength": 0,
+   "idea": "",
+   "usd": 0.0149
+  },
+  {
+   "id": "hardening-spring",
+   "needsNew": true,
+   "rightPhysics": false,
+   "verdict": "revise",
+   "feature": "oscillating",
+   "strength": 3,
+   "idea": "Add a cubic stiffness term for a real spring that stiffens away from equilibrium. The steady wave in the misses suggests the period shifts with amplitude, which a linear spring cannot follow.",
+   "usd": 0.019
+  },
+  {
+   "id": "dry-friction-spring",
+   "needsNew": true,
+   "rightPhysics": false,
+   "verdict": "revise",
+   "feature": "oscillating",
+   "strength": 3,
+   "idea": "Add a cubic Duffing stiffening term to the spring force for large stretch. The misses swing positive-negative in time with very few runs and high autocorrelation, hinting the true frequency shifts as the swing shrinks.",
+   "usd": 0.0314
+  }
+ ]
+}
