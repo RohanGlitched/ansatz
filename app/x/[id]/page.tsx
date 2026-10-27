@@ -93,7 +93,10 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             {runnerUp && (
               <div>
                 <dt>Runner-up</dt>
-                <dd>{fmtLen(runnerUp.fit.testRms, lengthUnit, channels)}</dd>
+                <dd>
+                  {fmtLen(runnerUp.fit.testRms, lengthUnit, channels)}
+                  {runnerUp.fit.testRms <= win.fit.testRms && " (a tie within the measurement noise; see the trial)"}
+                </dd>
               </div>
             )}
             <div>
