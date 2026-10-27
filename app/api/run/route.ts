@@ -50,7 +50,7 @@ export async function POST(req: Request) {
   // the judges' lane needs its passphrase as well as its code, and spends its own dollar reserve, not the site's
   const judges = classCode === JUDGES_CODE;
   if (judges && !admin && !judgesKeyOk(typeof body.k === "string" ? body.k : keyFromReferer(req)))
-    return Response.json({ error: "The judges’ lane needs the full link from the hackathon’s testing instructions (it ends in &k=…). The recorded runs on /new need no link." }, { status: 403 });
+    return Response.json({ error: "The judges’ lane needs its full link (it ends in &k=…). Without it, run the clip from /new in the visitors’ lane; the recorded runs there need no link." }, { status: 403 });
   const spend: SpendLedger = judges ? "judges" : "site";
   // a ceiling on what a day can spend, whatever the counts say
   if (!admin && (await spentToday(spend)) >= (judges ? JUDGES_DAILY_USD : DAILY_USD))

@@ -82,7 +82,7 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
           "."
         ) : judges ? (
           <>
-            ; up to {cls.quota - cls.used} more until {fmtDate(cls.expiresAt)}. These runs are reserved for the hackathon’s judges: they don’t share the visitors’ daily limit or the 40 runs a day that class links share, and they have their own daily budget of Meta credits. Start one with the link in the Devpost testing instructions; see <Link href="/judges">the judges’ page</Link>.
+            ; up to {cls.quota - cls.used} more until {fmtDate(cls.expiresAt)}. These runs are reserved for the hackathon’s judges: they don’t share the visitors’ daily limit or the 40 runs a day that class links share, and they have their own daily budget of Meta credits. Start one with the judges’ link (it ends in &amp;k=…), or use Run an experiment in the visitors’ lane; see <Link href="/judges">the judges’ page</Link>.
           </>
         ) : (
           <>

@@ -139,7 +139,7 @@ export async function GET() {
   p(`- ${SITE}/proof : the benchmark (${synth?.summary.cases ?? "the"} rendered clips with known answers), model checks, error-bar calibration. Sections: #headline (the summary figures), #real-footage, #benchmark (every clip), #slow-motion (the clock check), #models, #checks, #ablation, #library (against a textbook library).`);
   p(`- ${SITE}/how : the pipeline step by step, with what each step produced on the Moon run.`);
   p(`- ${SITE}/new : run an experiment on your own clip, or watch a recorded run for free: ${SITE}/new?replay=hardening-spring (Muse Wonder's law wins the race), ${SITE}/new?replay=moon-jump or ${SITE}/new?replay=pendulum (no model is called).`);
-  p("- The judges' lane: its link is in the hackathon's private testing instructions. It has its own runs and its own daily budget, apart from the visitors' and the classes' limits.");
+  p("- The judges' lane: its link carries a key and is given to judges directly; without it, /new runs clips in the visitors' lane (a few runs per visitor per day). It has its own runs and its own daily budget, apart from the visitors' and the classes' limits.");
   p();
   p("## Machine-readable files (GET only)");
   p(`- ${SITE}/x/<id>/record.json : the stored experiment: observation, every candidate law with its fit and held-out miss, the referee's critique, Muse Wonder's attempts, comparisons, the model ledger. SAM's masks and storage paths are left out.`);

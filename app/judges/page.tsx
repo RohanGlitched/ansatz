@@ -11,6 +11,7 @@ import { costText, headline, timeText } from "@/lib/headline";
 import { median } from "@/lib/median";
 import { getClass, JUDGES_CODE } from "@/lib/classes";
 import { slowRenders } from "@/app/proof/slow";
+import { PER_VISITOR } from "@/lib/limits";
 import styles from "./judges.module.css";
 
 export const metadata: Metadata = {
@@ -231,7 +232,7 @@ export default async function JudgesPage() {
             </p>
             <HeroStill />
             <p className={styles.headNote}>
-              A recorded run calls no model and needs no link. To run your own clip, use the judges’ link in the Devpost testing instructions{laneEnds ? `: it has runs reserved for judges until ${laneEnds}` : ""}. For agents: <a href="/llms.txt">/llms.txt</a> lists every number with its source, and <Link href="/x">/x</Link> indexes every experiment.
+              A recorded run calls no model and needs no link. To run your own clip, open <Link href="/new">Run an experiment</Link>: every visitor gets {PER_VISITOR} runs a day{laneEnds ? `, and the judges’ link, if you were sent it, has more reserved for judges until ${laneEnds}` : ""}. For agents: <a href="/llms.txt">/llms.txt</a> lists every number with its source, and <Link href="/x">/x</Link> indexes every experiment.
             </p>
           </div>
           <ol className={styles.board} aria-label="The judging criteria">
@@ -449,10 +450,13 @@ export default async function JudgesPage() {
         <div className="wrap">
           <h2>Bring a clip</h2>
           <p className="lede" style={{ marginTop: 12 }}>
-            Anything that falls, swings, bounces or rolls, filmed from a phone that stays still. Say what you know while you film. The link for your own clip is in the Devpost testing instructions: it has runs and a daily budget reserved for judges{laneEnds ? ` until ${laneEnds}` : ""}, so a busy day for visitors won’t lock you out, and every run made with it is listed on one page. A recorded run needs no link and calls no model.
+            Anything that falls, swings, bounces or rolls, filmed from a phone that stays still. Say what you know while you film. Upload it on Run an experiment: every visitor gets {PER_VISITOR} runs a day. The judges’ link, if you were sent it, has runs and a daily budget reserved for judges{laneEnds ? ` until ${laneEnds}` : ""}, so a busy day for visitors won’t lock you out, and every run made with it is listed on one page. A recorded run needs no link and calls no model.
           </p>
           <p style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link className="btn" href="/new?replay=hardening-spring">
+            <Link className="btn" href="/new">
+              Run an experiment
+            </Link>
+            <Link className="btn ghost" href="/new?replay=hardening-spring">
               Watch a recorded run
             </Link>
             <Link className="btn ghost" href="/how">

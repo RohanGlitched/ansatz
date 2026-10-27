@@ -72,7 +72,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
             )}
             {cls?.code === JUDGES_CODE && !sp.k && (
               <p className="small" style={{ marginBottom: 20, color: "var(--warn)" }}>
-                This lane needs the key in its link: use the full link from the hackathon submission’s testing instructions. Without it you can still <a href="/new?replay=hardening-spring">watch a recorded run</a>.
+                This lane needs the key in its link (the full judges’ link ends in &amp;k=…). Without it, run your clip in the visitors’ lane on <a href="/new">Run an experiment</a>, or <a href="/new?replay=hardening-spring">watch a recorded run</a>.
               </p>
             )}
             {ser && (
