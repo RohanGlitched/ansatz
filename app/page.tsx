@@ -127,7 +127,7 @@ export default async function Home() {
               const w = winnerOf(e);
               return (
                 <Link key={e.id} href={`/x/${e.id}`} className={styles.card}>
-                  <StrobePlate data={plateData(e, { lazyStrobe: true })} compact />
+                  <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />
                   <div className={styles.cardBody}>
                     <p className={styles.cardTitle}>{e.title}</p>
                     <div className={styles.cardEq}>

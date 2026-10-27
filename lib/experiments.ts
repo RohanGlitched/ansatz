@@ -46,13 +46,23 @@ export function winnerOf(e: Experiment) {
   return e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
 }
 
-export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: boolean } = {}): PlateData {
+// a tenth of a pixel is finer than any screen draws it; and a smooth path needs no more than a few hundred points
+const r1 = (p: { x: number; y: number }) => ({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 });
+const thin = (pts: { x: number; y: number }[], max: number, keep?: number) => {
+  const k = Math.max(1, Math.ceil(pts.length / max));
+  return pts.filter((_, i) => i % k === 0 || i === pts.length - 1 || i === keep).map(r1);
+};
+
+export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: boolean; compact?: boolean } = {}): PlateData {
   const m = e.measured;
   const win = winnerOf(e);
   const lawPx = toPixels(win.fit.predicted, m);
   const n = m.px.length;
   const split = Math.min(n - 1, Math.max(1, Math.round(n * e.trainFrac)));
   const baseT = e.strobe[0]?.t ?? 0;
+  // a gallery card shows at most ~80 dots: measurements and law thinned with one stride, so the split still lines up
+  const k = opts.compact ? Math.max(1, Math.ceil(n / 80)) : 1;
+  const every = <T,>(a: T[]) => (k === 1 ? a : a.filter((_, i) => i % k === 0));
   return {
     video: videoUrl(e),
     width: e.video.width,
@@ -60,11 +70,12 @@ export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: 
     baseT,
     strobe: opts.lazyStrobe ? [] : strobeOf(e),
     strobeSrc: opts.lazyStrobe ? `/x/${e.id}/strobe.json` : undefined,
-    measured: m.px.map((p) => ({ x: p.x, y: p.y })),
-    split,
-    law: lawPx,
-    pivot: m.pivot ? { x: m.pivot.x, y: m.pivot.y } : null,
-    whatIf: e.whatIf.map((w) => ({ label: w.label, px: w.px })),
+    measured: every(m.px).map(r1),
+    split: Math.round(split / k),
+    // the law's path is index-aligned with the measurements (split marks the unseen part)
+    law: every(lawPx).map(r1),
+    pivot: m.pivot ? r1(m.pivot) : null,
+    whatIf: opts.compact ? [] : e.whatIf.map((w) => ({ label: w.label, px: thin(w.px, 160) })),
     caption: opts.caption,
   };
 }
