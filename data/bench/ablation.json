@@ -1,0 +1,304 @@
+{
+ "summary": {
+  "clips": 28,
+  "sparkBetter": 2,
+  "tied": 25,
+  "libraryBetter": 1,
+  "skipped": 0
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "verdict": "tie",
+   "spark": 1.36,
+   "library": 1.36,
+   "sparkLaw": "Bouncing ball in vacuum",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Bouncing ball in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "verdict": "tie",
+   "spark": 1.74,
+   "library": 1.74,
+   "sparkLaw": "Ballistic bounce in vacuum",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Ballistic bounce in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "verdict": "tie",
+   "spark": 1.44,
+   "library": 1.44,
+   "sparkLaw": "Vacuum projectile with bouncy floor",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Vacuum projectile with bouncy floor",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "verdict": "spark",
+   "spark": 1.12,
+   "library": 3.58,
+   "sparkLaw": "Uniform glide (no friction)",
+   "libraryLaw": "Harmonic motion with quadratic drag",
+   "winner": "Uniform glide (no friction)",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "verdict": "spark",
+   "spark": 1.91,
+   "library": 2.88,
+   "sparkLaw": "Frictionless Glide with Elastic Bounce",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Frictionless Glide with Elastic Bounce",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "verdict": "tie",
+   "spark": 0.49,
+   "library": 0.38,
+   "sparkLaw": "Fall with quadratic air drag",
+   "libraryLaw": "Simple harmonic motion",
+   "winner": "Free fall in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "verdict": "tie",
+   "spark": 1.81,
+   "library": 1.81,
+   "sparkLaw": "Free fall in vacuum",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Free fall in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "verdict": "tie",
+   "spark": 0.49,
+   "library": 0.49,
+   "sparkLaw": "Lunar vacuum free fall",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Lunar vacuum free fall",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "verdict": "tie",
+   "spark": 1.28,
+   "library": 1.28,
+   "sparkLaw": "Free fall in vacuum",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Free fall in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "verdict": "tie",
+   "spark": 1.22,
+   "library": 1.22,
+   "sparkLaw": "Constant downslope acceleration",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Constant downslope acceleration",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "verdict": "library",
+   "spark": 2.34,
+   "library": 1.66,
+   "sparkLaw": "Downslope acceleration with linear drag",
+   "libraryLaw": "Simple harmonic motion",
+   "winner": "Constant acceleration down ramp",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "verdict": "tie",
+   "spark": 1.1,
+   "library": 1.1,
+   "sparkLaw": "Projectile with quadratic air drag",
+   "libraryLaw": "Flight with quadratic drag",
+   "winner": "Projectile with quadratic air drag",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "verdict": "tie",
+   "spark": 1.65,
+   "library": 1.77,
+   "sparkLaw": "Quadratic drag with Magnus lift",
+   "libraryLaw": "Flight with quadratic drag",
+   "winner": "Quadratic air drag",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "verdict": "tie",
+   "spark": 1.47,
+   "library": 1.47,
+   "sparkLaw": "Projectile with quadratic air drag",
+   "libraryLaw": "Flight with quadratic drag",
+   "winner": "Projectile with quadratic air drag",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "verdict": "tie",
+   "spark": 1.48,
+   "library": 1.43,
+   "sparkLaw": "Viscous-Damped Linear Pendulum",
+   "libraryLaw": "Pendulum with linear damping",
+   "winner": "Viscous-Damped Linear Pendulum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "verdict": "tie",
+   "spark": 0.57,
+   "library": 0.57,
+   "sparkLaw": "Damped pendulum with viscous friction",
+   "libraryLaw": "Pendulum with linear damping",
+   "winner": "Damped pendulum with viscous friction",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "verdict": "tie",
+   "spark": 1.41,
+   "library": 1.41,
+   "sparkLaw": "Damped pendulum with viscous friction",
+   "libraryLaw": "Pendulum with linear damping",
+   "winner": "Damped pendulum with viscous friction",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "verdict": "tie",
+   "spark": 0.16,
+   "library": 0.16,
+   "sparkLaw": "Damped pendulum with linear drag",
+   "libraryLaw": "Pendulum with linear damping",
+   "winner": "Damped pendulum with linear drag",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "verdict": "tie",
+   "spark": 0.98,
+   "library": 0.98,
+   "sparkLaw": "Vacuum projectile",
+   "libraryLaw": "Free flight, no air",
+   "winner": "Vacuum projectile",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "verdict": "tie",
+   "spark": 1.87,
+   "library": 1.87,
+   "sparkLaw": "Vacuum projectile",
+   "libraryLaw": "Free flight, no air",
+   "winner": "Vacuum projectile",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "verdict": "tie",
+   "spark": 1.78,
+   "library": 1.78,
+   "sparkLaw": "Bouncing ball in vacuum",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Bouncing ball in vacuum",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "verdict": "tie",
+   "spark": 1.25,
+   "library": 1.26,
+   "sparkLaw": "Gravity with quadratic air drag and bounce",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Gravity only with bouncy floor",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "verdict": "tie",
+   "spark": 1.27,
+   "library": 1.27,
+   "sparkLaw": "Bouncing ball with fast-air drag and bounce friction",
+   "libraryLaw": "Bouncing, no air",
+   "winner": "Gravity bounce with no air",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "verdict": "tie",
+   "spark": 0.29,
+   "library": 0.29,
+   "sparkLaw": "Damped spring with quadratic air drag",
+   "libraryLaw": "Damped harmonic motion",
+   "winner": "Viscously damped spring",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "verdict": "tie",
+   "spark": 0.65,
+   "library": 0.65,
+   "sparkLaw": "Damped nonlinear Duffing spring",
+   "libraryLaw": "Damped harmonic motion",
+   "winner": "Viscously damped spring",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "verdict": "tie",
+   "spark": 0.28,
+   "library": 0.28,
+   "sparkLaw": "Spring with viscous damping",
+   "libraryLaw": "Damped harmonic motion",
+   "winner": "Spring with viscous damping",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "verdict": "tie",
+   "spark": 1.03,
+   "library": 1.04,
+   "sparkLaw": "Free flight with quadratic air drag",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Vacuum free flight",
+   "winnerOrigin": "muse"
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "verdict": "tie",
+   "spark": 0.59,
+   "library": 0.61,
+   "sparkLaw": "Fall with quadratic air drag",
+   "libraryLaw": "Uniform acceleration",
+   "winner": "Free fall in vacuum",
+   "winnerOrigin": "muse"
+  }
+ ],
+ "extra": [
+  {
+   "id": "hardening-spring",
+   "title": "Hardening spring (a hidden cubic stiffness)",
+   "verdict": "wonder",
+   "model": 0.44,
+   "library": 87.69,
+   "modelLaw": "Spring with cubic stiffening (Muse Wonder)",
+   "libraryLaw": "Damped harmonic motion",
+   "modelMissMm": 0.2,
+   "libraryMissMm": 47.4
+  }
+ ]
+}

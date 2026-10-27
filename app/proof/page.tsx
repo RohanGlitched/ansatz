@@ -76,6 +76,10 @@ const NAMES: Record<string, string> = {
 
 export default async function ProofPage() {
   const b = await bench();
+  const ab = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then(
+    (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number }[] },
+    () => null,
+  );
   const moon = await getExperiment("moon-jump");
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
@@ -252,6 +256,45 @@ export default async function ProofPage() {
                 <strong>Cost and time</strong>: ${s.totalUsd.toFixed(2)} for all {s.cases} clips, a median of {s.medianSeconds.toFixed(0)} s each.
               </li>
             </ul>
+          </div>
+        </section>
+      )}
+
+      {ab && (
+        <section className={`section ${styles.band}`}>
+          <div className="wrap">
+            <h2>Does the model add anything a textbook doesn’t?</h2>
+            <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>
+              We fitted a library of {12} textbook laws (simple, large-angle, damped and dragged pendulums; harmonic motion with and without damping or drag; flight in vacuum, with linear or quadratic drag, and bouncing) to every clip with no model involved, and scored them exactly as Muse Spark’s laws are scored.
+            </p>
+            <div className={styles.stats} style={{ marginTop: 20 }}>
+              <div>
+                <p className={styles.big}>
+                  {ab.summary.tied}/{ab.summary.clips}
+                </p>
+                <p>clips where Muse Spark’s best law ties the library’s best: on textbook physics it re-derives the textbook, written in the clip’s own quantities</p>
+              </div>
+              <div>
+                <p className={styles.big}>
+                  {ab.summary.sparkBetter}/{ab.summary.clips}
+                </p>
+                <p>where Spark’s law is better: two pucks colliding, which no one-body textbook law describes</p>
+              </div>
+              <div>
+                <p className={styles.big}>
+                  {ab.summary.libraryBetter}/{ab.summary.clips}
+                </p>
+                <p>where the library is better: a hollow ball rolling down a ramp, whose rolling law Spark wrote less well</p>
+              </div>
+              {ab.extra?.map((x) => (
+                <div key={x.id}>
+                  <p className={styles.big}>{x.libraryMissMm}→{x.modelMissMm} mm</p>
+                  <p>
+                    <Link href={`/x/${x.id}`}>{x.title}</Link>: the library’s best law ({x.libraryLaw}) misses the unseen motion by {x.libraryMissMm} mm; Muse Wonder’s, found with its fitting tool, by {x.modelMissMm} mm. This is where a model that writes laws earns its place.
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
