@@ -1,0 +1,3865 @@
+{
+ "generatedAt": "2026-10-27T06:16:40.254Z",
+ "note": "Offline, no model or SAM call: every number is read from the stored runs. Muse Spark's observe step (subject, free-motion window, reference object, world, slow-motion, spoken facts, experiment type) is compared with the renders' exact truth (bench/synth/clips) and, for the four clips that are not renders, with facts checked by hand. Judgement calls: (1) subject matching is lenient on kind (a block may be a box or mass, a puck a disc, a bob a ball) and on colour words (off-white is white), but it needs a colour and a kind; for pendulum bobs the colour comes from the render's RGB. (2) The free-motion window is release to impact, landing, the stopper, the last converged bounce, or the end of the clip for pendulums and springs, from the truth's event times times the slow-motion factor; before release a bob or block is held, so a window that starts at 0 loses some IoU. (3) A reference counts as picked when it is present and names the right kind of object (stick, bar or ruler; paper or sheet), and the length is right within 5%. (4) Slow motion is scored only when the clip itself states it, and none of the renders draws or speaks a caption (the factor is in their metadata), so the stated count is zero; the slowed clips are listed instead, with the clock check's reading. (5) On four showcase clips we gave the subject and/or the ruler with the clip (moon-jump, moon-jump-slowed, sample-pendulum; the metre stick on hardening-spring), so those fields are the hint, not the observer, and are left out of the subject and ruler counts. (6) Six showcase renders are matched to their bench clips by size, fps, length, scale and the constants in the credit text (the web copies are re-encoded, so the bytes differ). (7) hindi-pendulum has no physical ruler read from the picture; its scale is the narrated string, so it is scored under narration facts, not under the ruler. (8) The naive default's trouble is judged from the physics (a gravity scale needs the right g, an unslowed clip and no drag), not re-run; whether SAM would find “the moving object” by that name was not tested. A reason is hard when the observer's answer is right and the naive default's is not, shared when both miss, soft when it is a degradation rather than a failure.",
+ "summary": {
+  "runs": 43,
+  "subjectRight": 40,
+  "subjectScored": 40,
+  "firstNounFound": 40,
+  "windowMedianIoU": 0.882,
+  "windowScored": 39,
+  "windowNaiveWholeClipMedianIoU": 0.842,
+  "windowTighterThanWholeClip": 19,
+  "windowIouAtLeast0_8": 25,
+  "rulerPicked": 7,
+  "rulerNeeded": 35,
+  "rulerLengthRight": 6,
+  "rulerFoundByNameWhenPicked": 6,
+  "rulerMissedButNoticedABar": 8,
+  "rulerNoneTruth": 3,
+  "rulerNoneCorrect": 3,
+  "worldRight": 43,
+  "statedSlowFound": 0,
+  "statedSlow": 0,
+  "slowedClips": 7,
+  "slowedClipsObserverSaidNone": 7,
+  "slowedClipsClockCheckFlagged": 5,
+  "slowFalseAlarms": 0,
+  "narrationFactFound": 1,
+  "narrationFacts": 1,
+  "motionKindRight": 43,
+  "naiveWouldFail": 7,
+  "naiveWouldFailBy": {
+   "wrong world (Earth assumed on the Moon or Mars)": 4,
+   "slowed clip: gravity-as-ruler scale off by the slowdown squared": 3
+  },
+  "samSubjectFallbacks": 0,
+  "hintedByUs": {
+   "subject": 3,
+   "ruler": 4,
+   "slowMotion": 0
+  },
+  "bySet": {
+   "benchmark": 28,
+   "control": 5,
+   "showcase": 10
+  }
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/bb01_e0.72_orange.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange ball"
+    ],
+    "truth": [
+     "orange ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     4
+    ],
+    "truth": [
+     0.4,
+     3.728
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.832,
+    "naiveWholeClipIou": 0.832
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “black-and-white scale bar” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/bb02_e0.88_blue_120fps.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "blue ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     4
+    ],
+    "truth": [
+     0.3,
+     4
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.925,
+    "naiveWholeClipIou": 0.925
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/bb03_e0.60_purple_240fps.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "purple ball"
+    ],
+    "truth": [
+     "purple ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "purple ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "purple ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "purple ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.86
+    ],
+    "truth": [
+     0.2,
+     1.865
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.89,
+    "naiveWholeClipIou": 0.666
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none (it named a “white paper” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "whole clip covers 33% frames outside the free motion (IoU 0.666 vs the observer's 0.89)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "set": "benchmark",
+   "phenomenon": "collision_2d",
+   "truthSource": "bench/synth/clips/co01_e0.90_unequal_mass.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow disc",
+     "red disc"
+    ],
+    "truth": [
+     "red puck",
+     "yellow puck"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red puck",
+      "kind": true,
+      "colour": true,
+      "right": true
+     },
+     {
+      "truth": "yellow puck",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow disc"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow disc"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.6
+    ],
+    "truth": [
+     0,
+     1.6
+    ],
+    "truthBasis": "whole clip (both pucks move from the start)",
+    "iou": 1,
+    "naiveWholeClipIou": 1
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": true
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "along a path",
+    "observed": "along a path",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "2 objects move: one generic prompt, \"the moving object\", names neither (not tested: no SAM call was made)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "set": "benchmark",
+   "phenomenon": "collision_2d",
+   "truthSource": "bench/synth/clips/co02_e0.50_equal_mass_120fps.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange disc",
+     "white disc"
+    ],
+    "truth": [
+     "orange puck",
+     "white puck"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange puck",
+      "kind": true,
+      "colour": true,
+      "right": true
+     },
+     {
+      "truth": "white puck",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange disc"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange disc"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     2
+    ],
+    "truth": [
+     0,
+     2
+    ],
+    "truthBasis": "whole clip (both pucks move from the start)",
+    "iou": 1,
+    "naiveWholeClipIou": 1
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": true
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "along a path",
+    "observed": "along a path",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "2 objects move: one generic prompt, \"the moving object\", names neither (not tested: no SAM call was made)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "set": "benchmark",
+   "phenomenon": "free_fall",
+   "truthSource": "bench/synth/clips/ff01_earth_orange_ball.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange ball"
+    ],
+    "truth": [
+     "orange ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.8
+    ],
+    "truth": [
+     0.5,
+     1.14
+    ],
+    "truthBasis": "release to impact",
+    "iou": 0.356,
+    "naiveWholeClipIou": 0.356
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “striped pole” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "set": "benchmark",
+   "phenomenon": "free_fall",
+   "truthSource": "bench/synth/clips/ff02_earth_blue_block_tiles.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue block"
+    ],
+    "truth": [
+     "blue block"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue block",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.5
+    ],
+    "truth": [
+     0.3,
+     0.864
+    ],
+    "truthBasis": "release to impact",
+    "iou": 0.376,
+    "naiveWholeClipIou": 0.376
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": true
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "set": "benchmark",
+   "phenomenon": "free_fall",
+   "truthSource": "bench/synth/clips/ff03_moon_yellow_ball.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "yellow ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     2.6
+    ],
+    "truth": [
+     0.6,
+     2.057
+    ],
+    "truthBasis": "release to impact",
+    "iou": 0.56,
+    "naiveWholeClipIou": 0.486
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "white paper = 0.297 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "moon",
+    "observed": "moon",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "assumes Earth's g (9.81 m/s²) on the Moon (1.63): a scale taken from gravity is 6.0× too large, and every g, height and speed measured with it is wrong"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "set": "benchmark",
+   "phenomenon": "free_fall",
+   "truthSource": "bench/synth/clips/ff04_mars_white_ball.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "white ball"
+    ],
+    "truth": [
+     "white ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "white ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "white ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "white ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.85
+    ],
+    "truth": [
+     0.4,
+     1.518
+    ],
+    "truthBasis": "release to impact",
+    "iou": 0.605,
+    "naiveWholeClipIou": 0.447
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "mars",
+    "observed": "mars",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "assumes Earth's g (9.81 m/s²) on Mars (3.72): a scale taken from gravity is 2.6× too large, and every g, height and speed measured with it is wrong"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 55% frames outside the free motion (IoU 0.447 vs the observer's 0.605)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "set": "benchmark",
+   "phenomenon": "incline_rolling",
+   "truthSource": "bench/synth/clips/in01_solid_beta0.4_20deg.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "blue ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.8
+    ],
+    "truth": [
+     0.5,
+     1.525
+    ],
+    "truthBasis": "release to the stopper",
+    "iou": 0.57,
+    "naiveWholeClipIou": 0.427
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "along a path",
+    "observed": "along a path",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "metre stick (1 m) is in frame and the observer did not pick it: both leave lengths in pixels (along a path)"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 57% frames outside the free motion (IoU 0.427 vs the observer's 0.57)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "set": "benchmark",
+   "phenomenon": "incline_rolling",
+   "truthSource": "bench/synth/clips/in02_hollow_beta0.667_20deg.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "red ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.9
+    ],
+    "truth": [
+     0.5,
+     1.619
+    ],
+    "truthBasis": "release to the stopper",
+    "iou": 0.589,
+    "naiveWholeClipIou": 0.43
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "along a path",
+    "observed": "along a path",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "A4 sheet of paper (0.297 m) is in frame and the observer did not pick it: both leave lengths in pixels (along a path)"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 57% frames outside the free motion (IoU 0.43 vs the observer's 0.589)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "set": "benchmark",
+   "phenomenon": "projectile_drag",
+   "truthSource": "bench/synth/clips/pd01_earth_yellow_beachball_k0.25.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "yellow ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.1,
+     2
+    ],
+    "truth": [
+     0.3,
+     1.577
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.672,
+    "naiveWholeClipIou": 0.426
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “black and white bar” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "drag bends the gravity-as-ruler scale; the observer missed the ruler too, so both share the bias"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 57% frames outside the free motion (IoU 0.426 vs the observer's 0.672)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "set": "benchmark",
+   "phenomenon": "projectile_drag",
+   "truthSource": "bench/synth/clips/pd02_earth_paper_ball_k0.45.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "white ball"
+    ],
+    "truth": [
+     "white paper ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "white paper ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "white ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "white ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.9
+    ],
+    "truth": [
+     0.3,
+     1.342
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.549,
+    "naiveWholeClipIou": 0.401
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "drag bends the gravity-as-ruler scale; the observer missed the ruler too, so both share the bias"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 60% frames outside the free motion (IoU 0.401 vs the observer's 0.549)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "set": "benchmark",
+   "phenomenon": "projectile_drag",
+   "truthSource": "bench/synth/clips/pd03_earth_orange_balloon_k0.15.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange ball"
+    ],
+    "truth": [
+     "orange ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     2.9
+    ],
+    "truth": [
+     0.3,
+     1.681
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.476,
+    "naiveWholeClipIou": 0.395
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "drag bends the gravity-as-ruler scale; the observer missed the ruler too, so both share the bias"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "set": "benchmark",
+   "phenomenon": "pendulum",
+   "truthSource": "bench/synth/clips/pe01_small_8deg_L0.60.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "pendulum bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "pendulum bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": [
+     0.5,
+     7
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.929,
+    "naiveWholeClipIou": 0.929
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "set": "benchmark",
+   "phenomenon": "pendulum",
+   "truthSource": "bench/synth/clips/pe02_large_70deg_L0.80.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "pendulum bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "pendulum bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": [
+     0.5,
+     7
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.929,
+    "naiveWholeClipIou": 0.929
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "set": "benchmark",
+   "phenomenon": "pendulum",
+   "truthSource": "bench/synth/clips/pe03_small_9deg_L0.35_room.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "green ball"
+    ],
+    "truth": [
+     "pendulum bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "pendulum bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "green ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "green ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     5
+    ],
+    "truth": [
+     0.4,
+     5
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.92,
+    "naiveWholeClipIou": 0.92
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "set": "benchmark",
+   "phenomenon": "pendulum",
+   "truthSource": "bench/synth/clips/pe04_large_60deg_L1.20_24fps.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "pendulum bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "pendulum bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     8
+    ],
+    "truth": [
+     0.5,
+     8
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.938,
+    "naiveWholeClipIou": 0.938
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "set": "benchmark",
+   "phenomenon": "projectile",
+   "truthSource": "bench/synth/clips/pr01_earth_green_ball_tiles.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "green ball"
+    ],
+    "truth": [
+     "green ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "green ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "green ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "green ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.78
+    ],
+    "truth": [
+     0.4,
+     1.478
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.605,
+    "naiveWholeClipIou": 0.449
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "whole clip covers 55% frames outside the free motion (IoU 0.449 vs the observer's 0.605)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "set": "benchmark",
+   "phenomenon": "projectile",
+   "truthSource": "bench/synth/clips/pr02_earth_red_ball_room.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "red ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.53
+    ],
+    "truth": [
+     0.2,
+     1.297
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.717,
+    "naiveWholeClipIou": 0.549
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "whole clip covers 45% frames outside the free motion (IoU 0.549 vs the observer's 0.717)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/sm01_bounce_240fps_x8.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange ball"
+    ],
+    "truth": [
+     "orange ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.8,
+     7.5
+    ],
+    "truth": [
+     0.96,
+     7.5
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.976,
+    "naiveWholeClipIou": 0.872
+   },
+   "ruler": {
+    "truth": "15 cm ruler (0.15 m)",
+    "needed": true,
+    "observed": "black-and-white striped bar = 1 m",
+    "picked": true,
+    "lengthRight": false,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 8,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": 3.11
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "the clip is slowed 8× and nothing in it says so: a gravity-as-ruler scale on a slowed clip is 64.0× off; the observer has no right ruler either (only the clock check names the slowdown)"
+     },
+     {
+      "kind": "shared",
+      "text": "the observer picked the ruler but read it as 1 m instead of 0.15 m: its scale is 6.7× off, so it is no better than a naive default here"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/sm02_bounce_120fps_x4_a4.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "red ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.9,
+     6
+    ],
+    "truth": [
+     0.8,
+     6
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.981,
+    "naiveWholeClipIou": 0.867
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "white paper = 0.297 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 4,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": 4.07
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "the clip is slowed 4× and nothing in it says so: a gravity-as-ruler scale on a slowed clip is 16.0× off; the observer's ruler gives the right scale (only the clock check names the slowdown)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "set": "benchmark",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/sm03_bounce_60fps_x2_stick.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "blue ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.2,
+     5
+    ],
+    "truth": [
+     0.4,
+     5
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.958,
+    "naiveWholeClipIou": 0.92
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "black and white striped bar = 1 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 2,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": 2.01
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "the clip is slowed 2× and nothing in it says so: a gravity-as-ruler scale on a slowed clip is 4.0× off; the observer's ruler gives the right scale (only the clock check names the slowdown)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "set": "benchmark",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sp01_k25_m0.20_b0.35.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "green block"
+    ],
+    "truth": [
+     "green weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "green weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "green block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "green block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     5
+    ],
+    "truth": [
+     0.5,
+     5
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.9,
+    "naiveWholeClipIou": 0.9
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "metre stick (1 m) is in frame and the observer did not pick it: both leave lengths in pixels (oscillation)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "set": "benchmark",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sp02_k60_m0.15_b1.0_fast.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange block"
+    ],
+    "truth": [
+     "orange weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     3
+    ],
+    "truth": [
+     0.4,
+     3
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.867,
+    "naiveWholeClipIou": 0.867
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "metre stick (1 m) is in frame and the observer did not pick it: both leave lengths in pixels (oscillation)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "set": "benchmark",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sp03_k8_m0.50_b0.12_soft.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red block"
+    ],
+    "truth": [
+     "red weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     8
+    ],
+    "truth": [
+     0.6,
+     8
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.925,
+    "naiveWholeClipIou": 0.925
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "A4 sheet of paper (0.297 m) is in frame and the observer did not pick it: both leave lengths in pixels (oscillation)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "set": "benchmark",
+   "phenomenon": "vertical_toss",
+   "truthSource": "bench/synth/clips/tt01_earth_blue_ball_portrait.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "blue ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.52
+    ],
+    "truth": [
+     0,
+     1.402
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.922,
+    "naiveWholeClipIou": 0.701
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “striped pole” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "set": "benchmark",
+   "phenomenon": "vertical_toss",
+   "truthSource": "bench/synth/clips/tt02_earth_yellow_ball_board.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "yellow ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     1.8
+    ],
+    "truth": [
+     0,
+     1.06
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.589,
+    "naiveWholeClipIou": 0.424
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "whole clip covers 58% frames outside the free motion (IoU 0.424 vs the observer's 0.589)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ck01_rt_bounce_60fps_stick",
+   "set": "control",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/ck01_rt_bounce_60fps_stick.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "teal ball"
+    ],
+    "truth": [
+     "teal ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "teal ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "teal ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "teal ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     3.4
+    ],
+    "truth": [
+     0.15,
+     3.391
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.953,
+    "naiveWholeClipIou": 0.926
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "ck02_rt_bounce_30fps_a4",
+   "set": "control",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/ck02_rt_bounce_30fps_a4.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "red ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     4
+    ],
+    "truth": [
+     0.15,
+     3.679
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.882,
+    "naiveWholeClipIou": 0.882
+   },
+   "ruler": {
+    "truth": "A4 sheet of paper (0.297 m)",
+    "needed": true,
+    "observed": "white paper = 0.297 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "has no ruler, but on an undistorted Earth flight gravity supplies the scale anyway (the observer's ruler is a cross-check here)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ck03_rt_bounce_120fps_stick",
+   "set": "control",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/ck03_rt_bounce_120fps_stick.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "green ball"
+    ],
+    "truth": [
+     "green ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "green ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "green ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "green ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     2.3
+    ],
+    "truth": [
+     0.12,
+     2.494
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.874,
+    "naiveWholeClipIou": 0.791
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "striped scale bar = 1 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": false,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "has no ruler, but on an undistorted Earth flight gravity supplies the scale anyway (the observer's ruler is a cross-check here)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ck04_bounce_x1.25_stick",
+   "set": "control",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/ck04_bounce_x1.25_stick.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "yellow ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     5
+    ],
+    "truth": [
+     0.188,
+     4.045
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.772,
+    "naiveWholeClipIou": 0.772
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "black and white striped bar = 1 m",
+    "picked": true,
+    "lengthRight": true,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1.25,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "the clip is slowed 1.25× and nothing in it says so: a gravity-as-ruler scale on a slowed clip is 1.6× off; the observer's ruler gives the right scale (only the clock check names the slowdown)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "ck05_bounce_x1.5_stick",
+   "set": "control",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/ck05_bounce_x1.5_stick.json (rendered ground truth)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "blue ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.1,
+     5.4
+    ],
+    "truth": [
+     0.225,
+     4.854
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.873,
+    "naiveWholeClipIou": 0.842
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “black and white bar” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1.5,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "the clip is slowed 1.5× and nothing in it says so: a gravity-as-ruler scale on a slowed clip is 2.3× off; the observer has no right ruler either (only the clock check names the slowdown)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "moon-jump",
+   "set": "showcase",
+   "phenomenon": "jump",
+   "truthSource": "hand-checked: NASA Apollo 16, Young's jump on the Moon; no ruler stated in the clip (we gave the astronaut's height, 1.88 m)",
+   "hintedByUs": [
+    "subject",
+    "ruler"
+   ],
+   "subject": {
+    "scored": false,
+    "observed": [
+     "astronaut"
+    ],
+    "truth": [
+     "astronaut"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "astronaut",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "astronaut"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "astronaut"
+   },
+   "window": {
+    "scored": false,
+    "observed": [
+     0,
+     8
+    ],
+    "truth": null,
+    "truthBasis": "no per-frame truth for this clip",
+    "iou": null,
+    "naiveWholeClipIou": null
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "astronaut = 1.88 m",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": true,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "moon",
+    "observed": "moon",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "assumes Earth's g (9.81 m/s²) on the Moon (1.63): a scale taken from gravity is 6.0× too large, and every g, height and speed measured with it is wrong"
+     }
+    ]
+   }
+  },
+  {
+   "id": "moon-jump-slowed",
+   "set": "showcase",
+   "phenomenon": "jump",
+   "truthSource": "hand-checked: the same footage slowed 1.5x by us with interpolated frames; nothing in the file says so",
+   "hintedByUs": [
+    "subject",
+    "ruler"
+   ],
+   "subject": {
+    "scored": false,
+    "observed": [
+     "astronaut"
+    ],
+    "truth": [
+     "astronaut"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "astronaut",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "astronaut"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "astronaut"
+   },
+   "window": {
+    "scored": false,
+    "observed": [
+     0,
+     12
+    ],
+    "truth": null,
+    "truthBasis": "no per-frame truth for this clip",
+    "iou": null,
+    "naiveWholeClipIou": null
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "astronaut = 1.88 m",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": true,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "moon",
+    "observed": "moon",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1.5,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": 1.5
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": true,
+    "reasons": [
+     {
+      "kind": "hard",
+      "text": "assumes Earth's g (9.81 m/s²) on the Moon (1.63): a scale taken from gravity is 6.0× too large, and every g, height and speed measured with it is wrong"
+     },
+     {
+      "kind": "shared",
+      "text": "the clip is slowed 1.5× and nothing in it says so: neither the observer nor a naive default sees it, only the clock check does"
+     }
+    ]
+   }
+  },
+  {
+   "id": "sample-pendulum",
+   "set": "showcase",
+   "phenomenon": "pendulum",
+   "truthSource": "hand-checked: Wikimedia Commons clip, a yellow tennis ball on a string; only the uploader's title says slow motion, the picture and sound do not",
+   "hintedByUs": [
+    "subject",
+    "ruler"
+   ],
+   "subject": {
+    "scored": false,
+    "observed": [
+     "yellow tennis ball"
+    ],
+    "truth": [
+     "yellow tennis ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow tennis ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow tennis ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow tennis ball"
+   },
+   "window": {
+    "scored": false,
+    "observed": [
+     3.2,
+     8
+    ],
+    "truth": null,
+    "truthBasis": "no per-frame truth for this clip",
+    "iou": null,
+    "naiveWholeClipIou": null
+   },
+   "ruler": {
+    "truth": "none stated in the clip",
+    "needed": false,
+    "observed": "tennis ball = 0.067 m",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": false,
+    "hinted": true,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": "slowed (factor not known); only the uploader's title says so",
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": true,
+    "falseAlarm": false,
+    "clockCheckFactor": 4.3
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "the clip is slowed and nothing in it says so: neither the observer nor a naive default sees it, only the clock check does"
+     }
+    ]
+   }
+  },
+  {
+   "id": "hindi-pendulum",
+   "set": "showcase",
+   "phenomenon": "pendulum",
+   "truthSource": "hand-checked: render, a red bob on a string; the narrator says in Hindi that the thread is sixty centimetres (L = 0.60 m)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "red ball"
+    ],
+    "truth": [
+     "red bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "red bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "red ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "red ball"
+   },
+   "window": {
+    "scored": false,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": null,
+    "truthBasis": "no per-frame truth for this clip",
+    "iou": null,
+    "naiveWholeClipIou": null
+   },
+   "ruler": {
+    "truth": "the string, whose 0.60 m the narrator states (no physical ruler is read from the picture)",
+    "needed": false,
+    "observed": "black string = 0.6 m",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": true,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [
+    {
+     "fact": "thread length 0.60 m, spoken in Hindi",
+     "found": true,
+     "extracted": "thread length = 0.6 m"
+    }
+   ],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "soft",
+      "text": "a spoken length is only heard by the model; a naive default measures L from Earth's g instead, which agrees here"
+     }
+    ]
+   }
+  },
+  {
+   "id": "beach-ball-drag",
+   "set": "showcase",
+   "phenomenon": "projectile_drag",
+   "truthSource": "bench/synth/clips/pd01_earth_yellow_beachball_k0.25.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "yellow ball"
+    ],
+    "truth": [
+     "yellow ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "yellow ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "yellow ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "yellow ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0.1,
+     2
+    ],
+    "truth": [
+     0.3,
+     1.577
+    ],
+    "truthBasis": "launch to landing",
+    "iou": 0.672,
+    "naiveWholeClipIou": 0.426
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “black and white bar” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "drag bends the gravity-as-ruler scale; the observer missed the ruler too, so both share the bias"
+     },
+     {
+      "kind": "soft",
+      "text": "whole clip covers 57% frames outside the free motion (IoU 0.426 vs the observer's 0.672)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "big-swing",
+   "set": "showcase",
+   "phenomenon": "pendulum",
+   "truthSource": "bench/synth/clips/pe02_large_70deg_L0.80.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue ball"
+    ],
+    "truth": [
+     "pendulum bob"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "pendulum bob",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": [
+     0.5,
+     7
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.929,
+    "naiveWholeClipIou": 0.929
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "swing",
+    "observed": "swing",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "bouncing-ball",
+   "set": "showcase",
+   "phenomenon": "bouncing_ball",
+   "truthSource": "bench/synth/clips/bb01_e0.72_orange.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange ball"
+    ],
+    "truth": [
+     "orange ball"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange ball",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange ball"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange ball"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     4
+    ],
+    "truth": [
+     0.4,
+     3.728
+    ],
+    "truthBasis": "release to the last bounce",
+    "iou": 0.832,
+    "naiveWholeClipIou": 0.832
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none (it named a “black-and-white scale bar” but did not use it as a ruler)",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": true,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "flight",
+    "observed": "flight",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "spring",
+   "set": "showcase",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sp01_k25_m0.20_b0.35.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "green block"
+    ],
+    "truth": [
+     "green weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "green weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "green block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "green block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     5
+    ],
+    "truth": [
+     0.5,
+     5
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.9,
+    "naiveWholeClipIou": 0.9
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "metre stick (1 m) is in frame and the observer did not pick it: both leave lengths in pixels (oscillation)"
+     }
+    ]
+   }
+  },
+  {
+   "id": "hardening-spring",
+   "set": "showcase",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sx01_hardening_k12_k3_800.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [
+    "ruler"
+   ],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "orange block"
+    ],
+    "truth": [
+     "orange weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "orange weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "orange block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "orange block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": [
+     0.5,
+     7
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.929,
+    "naiveWholeClipIou": 0.929
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": false,
+    "observed": "metre stick = 1 m",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": false,
+    "hinted": true,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": []
+   }
+  },
+  {
+   "id": "dry-friction-spring",
+   "set": "showcase",
+   "phenomenon": "spring_mass",
+   "truthSource": "bench/synth/clips/sx02_coulomb_k20_mu0.45.json (the same render: matching size, fps, length, scale and constants)",
+   "hintedByUs": [],
+   "subject": {
+    "scored": true,
+    "observed": [
+     "blue block"
+    ],
+    "truth": [
+     "blue weight"
+    ],
+    "right": true,
+    "perObject": [
+     {
+      "truth": "blue weight",
+      "kind": true,
+      "colour": true,
+      "right": true
+     }
+    ],
+    "firstNounFound": true,
+    "samSubjectTracks": [
+     "blue block"
+    ],
+    "altNounRetries": 0,
+    "pointAtFallback": false,
+    "trackedNoun": "blue block"
+   },
+   "window": {
+    "scored": true,
+    "observed": [
+     0,
+     7
+    ],
+    "truth": [
+     0.5,
+     7
+    ],
+    "truthBasis": "release to the end of the clip",
+    "iou": 0.929,
+    "naiveWholeClipIou": 0.929
+   },
+   "ruler": {
+    "truth": "metre stick (1 m)",
+    "needed": true,
+    "observed": "none",
+    "picked": false,
+    "lengthRight": false,
+    "foundByName": null,
+    "hinted": false,
+    "noticedButUnused": false,
+    "falsePositive": false,
+    "correctNone": false
+   },
+   "world": {
+    "truth": "earth",
+    "observed": "earth",
+    "right": true
+   },
+   "motionKind": {
+    "truth": "oscillation",
+    "observed": "oscillation",
+    "right": true
+   },
+   "slowMotion": {
+    "truth": 1,
+    "stated": false,
+    "observed": 1,
+    "scored": false,
+    "found": null,
+    "sayingOnePointZeroOnASlowedClip": false,
+    "falseAlarm": false,
+    "clockCheckFactor": null
+   },
+   "narration": [],
+   "naive": {
+    "default": "“the moving object”, whole clip, no ruler, Earth",
+    "wouldFail": false,
+    "reasons": [
+     {
+      "kind": "shared",
+      "text": "metre stick (1 m) is in frame and the observer did not pick it: both leave lengths in pixels (oscillation)"
+     }
+    ]
+   }
+  }
+ ]
+}

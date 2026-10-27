@@ -287,6 +287,9 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   cands.forEach((c, i) => (c.rank = i + 1));
 }
 
+/** the uncertainty a stated length carries into g = ω²L */
+const STATED_REL = Number(process.env.STATED_LENGTH_REL ?? 0.01);
+
 function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"], m?: Measured): Comparison[] {
   const out: Comparison[] = [];
   // a free flight written as uniform acceleration along a vertical path: |a| is the gravity it measured
@@ -301,7 +304,8 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
   // L is the narrator's figure, or else the radius of the swing's circle measured against the ruler in view
   const ruled = m?.pivot && (m.calibration.kind === "reference" || m.calibration.kind === "stated") && m.pivot.lengthOk !== false && m.pivot.arcDeg > 15;
   const Lm = stated.l ?? (ruled ? m!.pivot!.r * m!.calibration.metresPerPixel : undefined);
-  const relL = stated.l !== undefined ? 0 : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
+  // a spoken or typed length is rounded ("fifty centimetres"): it carries 1% unless the arc measured it
+  const relL = stated.l !== undefined ? STATED_REL : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
   if (w && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
     const v = fit.theta[w.name] ** 2 * Lm, s = Math.hypot(2 * fit.theta[w.name] * Lm * (fit.sigma[w.name] || 0), v * relL);
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
@@ -543,7 +547,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const given: string[] = [];
     const stated: Record<string, number> = {};
     if (m.calibration.kind === "gravity") given.push(`g = ${m.calibration.g.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}); it set the scale, so treat g as known and fixed`);
-    if (m.calibration.kind === "reference") given.push(`scale: ${m.calibration.note}, known to ±${Math.round((obs.reference.relative_uncertainty ?? 0.03) * 100)}%`);
+    if (m.calibration.kind === "reference") {
+      const ru = obs.reference.relative_uncertainty ?? 0.03;
+      given.push(`scale: ${m.calibration.note}, ${ru < 0.005 ? "its length taken as exact" : `known to ±${+(ru * 100).toPrecision(2)}%`}`);
+    }
     if (slow > 1) given.push(`the clip plays ${slow}× slower than real life (${obs.slow_motion.evidence}); times are already corrected to real seconds`);
     for (const f of obs.stated_facts) {
       given.push(`${f.quantity} = ${f.value} ${f.unit} (“${f.said}”)`);

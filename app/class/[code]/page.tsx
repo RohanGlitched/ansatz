@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getClass } from "@/lib/classes";
+import { getClass, JUDGES_CODE } from "@/lib/classes";
 import { classRows } from "@/lib/classrows";
 import { fmtPair } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Class results", robots: { index: false } };
+/** A real class's page lists its students, so it stays out of search; the demo and the judges' lane hold no one's name. */
+export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const { code } = await params;
+  const open = code === "demo23" || code === JUDGES_CODE;
+  return { title: code === JUDGES_CODE ? "Judges’ lane" : "Class results", robots: open ? undefined : { index: false } };
+}
 
 /** A class's results as a teacher marks them: one row per run, every measurement of g on one line, and a CSV. */
 export default async function ClassPage({ params }: { params: Promise<{ code: string }> }) {
@@ -27,7 +32,7 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
       <h1 style={{ fontSize: "clamp(28px, 3.6vw, 42px)" }}>{cls.name}</h1>
       {cls.demo && (
         <p className="small">
-          A demo of what a teacher sees once students have run their clips. These rows are the site’s own experiments with student labels: A to D are one rendered pendulum at four string lengths, E is narrated in Hindi by a synthetic voice, and F swings through 70°. No real class has used Ansatz yet. <Link href="/class/new">Make a class link</Link> for your class.
+          A demo of what a teacher sees once students have run their clips. These rows are the site’s own experiments with student labels: A to D are one rendered pendulum at four string lengths, each measured with only an A4 sheet as its ruler (so each g carries about 6%; with tape-measured lengths the same four runs give g = 9.81, as on <Link href="/series/pendulum-lengths">the series page</Link>), E is narrated in Hindi by a synthetic voice, and F swings through 70°. No real class has used Ansatz yet. <Link href="/class/new">Make a class link</Link> for your class.
         </p>
       )}
       <p className="lede">
@@ -36,7 +41,10 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
           "."
         ) : (
           <>
-            ; up to {cls.quota - cls.used} more until {new Date(cls.expiresAt).toDateString()} (during the hackathon, all classes share 40 runs a day). Students run theirs at{" "}
+            ; up to {cls.quota - cls.used} more until {new Date(cls.expiresAt).toDateString()}
+            {cls.code === JUDGES_CODE
+              ? ". These runs are reserved for the hackathon’s judges: they don’t share the visitors’ daily limit or the 40 runs a day that class links share (the site’s overall daily spending cap still applies). Run one at "
+              : " (during the hackathon, class links share 40 runs a day between them). Students run theirs at "}
             <Link href={`/new?class=${cls.code}`}>/new?class={cls.code}</Link>.
           </>
         )}

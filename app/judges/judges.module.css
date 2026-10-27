@@ -392,3 +392,18 @@
     border-left: 0;
   }
 }
+
+.headCta {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.headNote {
+  margin-top: 12px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink-3);
+  max-width: 60ch;
+}

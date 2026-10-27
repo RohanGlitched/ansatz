@@ -253,3 +253,8 @@
     border-bottom: 1px solid var(--rule);
   }
 }
+
+.muted {
+  color: var(--ink-3);
+  font-style: normal;
+}

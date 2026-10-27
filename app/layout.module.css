@@ -42,6 +42,16 @@
   color: var(--law);
 }
 
+/* the section you are in: ink, with the law's blue underline */
+.nav a[aria-current="page"],
+.mnav a[aria-current="page"] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--law);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
 .nav .cta {
   color: var(--paper);
   background: var(--ink);

@@ -1,6 +1,7 @@
 import "server-only";
 import { getExperiment, showcaseIds } from "./experiments";
 import type { Experiment } from "./experiment";
+import { median } from "./median";
 
 /**
  * The figures quoted across the site, each derived from the stored runs in one place, so the home page, the judges'
@@ -17,10 +18,6 @@ export type Headline = {
   moonClock?: { factor: number; sigma: number };
 };
 
-const median = (v: number[]) => {
-  const s = [...v].sort((a, b) => a - b);
-  return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : NaN;
-};
 
 export async function headline(): Promise<Headline> {
   const exps = (await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null);

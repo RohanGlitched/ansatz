@@ -8,7 +8,7 @@ Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the mo
 
 Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab).
 
-## Can a language model tell the speed?
+## Can Muse Spark tell the speed on its own?
 
 We slowed the 1972 Apollo 16 jump by 1.5× with motion-interpolated frames at an ordinary 29.97 fps, told no one, and asked Muse Spark about each clip on its own (up to 300 frames each, with the astronaut's height as a ruler): how fast does the astronaut fall as the video plays, and does it play at real speed?
 

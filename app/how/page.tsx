@@ -10,7 +10,8 @@ export const metadata: Metadata = {
   description: "How Ansatz turns a phone clip into a tested law of motion: four Meta models, a clock read from the file, a safe equation language, and a prediction test.",
 };
 
-export const dynamic = "force-dynamic";
+// reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
+export const revalidate = 300;
 
 export default async function HowPage() {
   // every step is shown with what it produced on one real run: John Young's jump on the Moon
@@ -107,7 +108,7 @@ export default async function HowPage() {
         </Step>
         <Step n="4" spec={spec?.propose} title="Propose laws" who="Muse Spark 1.3">
           <p>
-            Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; the last 30% is never shown to any model) and writes two to four candidate laws as initial-value problems in a small equation language:
+            Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; no number from the last 30% reaches any model; the observer in step 2 watches the whole clip to describe it, but never sees a measurement) and writes two to four candidate laws as initial-value problems in a small equation language:
           </p>
           <div className={styles.code}>
             <Tex display>{"\\ddot{x} = -k\\,\\dot{x}\\sqrt{\\dot{x}^2+\\dot{y}^2}, \\qquad \\ddot{y} = -g - k\\,\\dot{y}\\sqrt{\\dot{x}^2+\\dot{y}^2}"}</Tex>

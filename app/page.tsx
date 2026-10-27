@@ -11,7 +11,10 @@ import { costText, headline, timeText } from "@/lib/headline";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
-export const dynamic = "force-dynamic";
+// cached and rebuilt at most once a minute: it reads shipped runs, plus the visitors' latest runs from storage (force-static keeps
+// that uncached storage read from turning the page back into a per-request render)
+export const dynamic = "force-static";
+export const revalidate = 60;
 
 export default async function Home() {
   const ids = await showcaseIds();
@@ -41,7 +44,7 @@ export default async function Home() {
         <div className={styles.heroText}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
           <p className="lede">
-            A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion, and each law has to predict the part of the clip it never saw. The one that does is the answer.
+            A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion, and each law has to predict the part of the motion it was never fitted to. The one that does is the answer.
           </p>
           <div className={styles.ctaRow}>
             <Link className="btn" href="/new">
@@ -168,7 +171,7 @@ export default async function Home() {
             <div>
               <h3>Anyone asking whether a clip is real time</h3>
               <p>
-                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where a language model watching the same frames answered from memory.
+                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where Muse Spark, watching the same frames on its own, answered from memory.
               </p>
             </div>
           </div>

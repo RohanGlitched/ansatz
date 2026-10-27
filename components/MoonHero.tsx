@@ -68,16 +68,16 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
       <div className={`wrap ${styles.head}`}>
         <p className={styles.tagline}>Film anything that moves. Ansatz finds the law that moves it.</p>
         <h1>
-          From 1972 television, Ansatz measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²` : ""}.
+          From 1972 television, SAM 3.1 and Muse Spark measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)}\u00a0±\u00a0${g.sigma.toFixed(2)}\u00a0m/s²` : ""}.
         </h1>
         <div className={styles.intro}>
-          <p className={styles.lead}>Is this footage real time? Shown one clip, a language model can’t tell. A falling object can.</p>
+          <p className={styles.lead}>Is this footage real time? Muse Spark, watching alone, can’t tell. Muse Spark with SAM 3.1 measuring every frame can.</p>
           <p className={styles.lede}>
             {g ? `The true value is ${g.reference}. ` : ""}Below, every frame of John Young’s jump cut to one thin slice and laid side by side, so his two jumps draw their own arches; under it, the same clip slowed {truth ? `${truth}× ` : ""}in secret.{" "}
             {repB && rp
               ? `Asked ${word(rp.n)} times about the slowed copy alone, Muse Spark called it real speed ${wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}. `
               : "Shown one clip at a time, a language model gives both the same answer. "}
-            SAM 3.1 times every fall, and Ansatz tells the two apart.
+            SAM 3.1 times every fall, code fits the laws Muse Spark proposes, and the two clips come apart by exactly the slowdown.
           </p>
           <div className={styles.cta}>
             <Link className="btn" href="/new">
@@ -85,6 +85,9 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
             </Link>
             <Link className="btn ghost" href="/x/moon-jump">
               Open the Moon experiment
+            </Link>
+            <Link className={styles.judging} href="/judges">
+              Judging? Start here (3 minutes)
             </Link>
           </div>
         </div>
@@ -297,16 +300,17 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                       <td data-label="Ansatz, one clip">
                         <strong className={i === 0 ? styles.big : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)} m/s²
                         {i === 0 ? (
-                          <span className={styles.note}>real speed: the Moon is {g?.reference ?? ""}</span>
+                          <span className={styles.note}>consistent with real speed, if this is the Moon ({g?.reference ?? ""}) and Young is 1.88 m tall</span>
                         ) : (
                           <span className={styles.flag}>
-                            so it runs {ratio.toFixed(2)}× slow
                             {sj ? (
                               <>
-                                ; jump for jump, <Link href="/x/moon-jump#same-jump">{sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}×</Link>
+                                slower than the broadcast by <Link href="/x/moon-jump#same-jump">{sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}×</Link>, jump for jump
                               </>
-                            ) : null}
-                            {truth ? ` (it is ${truth}×)` : ""}
+                            ) : (
+                              <>so it runs {ratio.toFixed(2)}× slow</>
+                            )}
+                            {truth ? ` (truth ${truth}×)` : ""}
                           </span>
                         )}
                       </td>
@@ -317,7 +321,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
             </table>
             {repB && rp && sj ? (
               <p className={styles.punch}>
-                Asked {word(rp.n)} times, Muse Spark called the secretly slowed copy real speed {wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}, answering {rangeOf(repB.answers)} m/s², the Moon’s textbook value. Ansatz measured it {sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}× slow, jump for jump{truth ? ` (truth ${truth}×)` : ""}.
+                Asked {word(rp.n)} times, Muse Spark called the secretly slowed copy real speed {wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}, answering {rangeOf(repB.answers)} m/s², the Moon’s textbook value. With SAM 3.1 timing every fall, the same copy measures {sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}× slow, jump for jump{truth ? ` (truth ${truth}×)` : ""}.
               </p>
             ) : (
               st && (
@@ -332,8 +336,8 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
             <p className={styles.sideNote}>Gravity in m/s². Blue: the broadcast, on the Moon’s tick. Orange: the slowed copy, which a fall alone would place on a world with half the Moon’s pull.</p>
             {st && (
               <p className={styles.sideNote}>
-                Side by side, Muse Spark can count frames and say B is about {st.pair.factor}× slower. Given Ansatz’s measurements as tools, it answers{" "}
-                <Link href="/x/moon-jump#speed-test">{ratio.toFixed(2)}×</Link>, from a ratio that needs no reference value.
+                Side by side, Muse Spark can count frames and say B is about {st.pair.factor}× slower. Given SAM 3.1’s measurements as tools, Muse Spark answers{" "}
+                <Link href="/x/moon-jump#speed-test">{ratio.toFixed(2)}× (the ratio of the two whole runs)</Link>, which needs no reference value.
               </p>
             )}
           </div>

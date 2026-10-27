@@ -1,10 +1,10 @@
-import { headers } from "next/headers";
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Newsreader } from "next/font/google";
 import Link from "next/link";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import styles from "./layout.module.css";
+import NavLinks from "./nav-links";
 
 // a science journal's pair: a characterful grotesque for display, figures and interface; a reading serif that sits
 // naturally beside the Computer Modern of the equations
@@ -24,11 +24,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#f2f3f0", width: "device-width", initialScale: 1 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // set by middleware.ts on experiment pages read in another language
-  const lang = (await headers()).get("x-lang") ?? "en";
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // no headers() here: reading the request in the root layout would make every page render on demand, and the pages
+  // that only read stored runs are cached instead. A page read in another language marks its own text with lang.
   return (
-    <html lang={lang} className={`${display.variable} ${serif.variable}`}>
+    <html lang="en" className={`${display.variable} ${serif.variable}`}>
+      <head>
+        <link rel="alternate" type="text/plain" href="/llms.txt" title="Guide for language-model agents" />
+      </head>
       <body>
         <header className={styles.top}>
           <div className={`wrap ${styles.bar}`}>
@@ -37,20 +40,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span>Ansatz</span>
             </Link>
             <nav className={styles.nav} aria-label="Main">
-              <Link href="/#experiments">Experiments</Link>
-              <Link href="/proof">Proof</Link>
-              <Link href="/how">How it works</Link>
-              <Link href="/judges">For judges</Link>
+              <NavLinks />
               <Link href="/new" className={styles.cta}>
                 Run an experiment
               </Link>
             </nav>
           </div>
           <nav className={styles.mnav} aria-label="Sections">
-            <Link href="/#experiments">Experiments</Link>
-            <Link href="/proof">Proof</Link>
-            <Link href="/how">How it works</Link>
-            <Link href="/judges">For judges</Link>
+            <NavLinks />
           </nav>
         </header>
         <main>{children}</main>
@@ -73,7 +70,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div>
               <h3 className={styles.fh}>Lab</h3>
               <Link href="/new">Run an experiment</Link>
-              <Link href="/#experiments">Experiments</Link>
+              <Link href="/x">All experiments, with their numbers</Link>
+              <Link href="/series/pendulum-lengths">One pendulum, four lengths</Link>
               <Link href="/proof">Proof: the benchmark</Link>
               <Link href="/how">How it works</Link>
               <Link href="/judges">For judges: the case in one page</Link>
@@ -88,6 +86,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <div>
               <h3 className={styles.fh}>Project</h3>
               <a href="https://github.com/RohanGlitched/ansatz">Code on GitHub</a>
+              <a href="/llms.txt">For agents: llms.txt</a>
+              <a href="/bench">Benchmark data (JSON)</a>
               <span>Meta Global AI Developer Hackathon, 2026</span>
               <span>Clips credited on each experiment</span>
             </div>

@@ -32,6 +32,8 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   const e = await getExperiment(id);
   if (!e) notFound();
   const tr = lang && LANGUAGES[lang] ? await translation(e, lang).catch(() => null) : null;
+  // the Moon page sets its slowdown figures beside the slowed copy's own clock check
+  const slowedClock = e.extras?.memoryTest?.sameJump ? (await getExperiment("moon-jump-slowed").catch(() => null))?.clock ?? null : null;
   const win = winnerOf(e);
   const hasSlit = e.id in slits;
   // the ranking's own score (the worse of the fitted and unseen misses, in noise units), and why a law sits where it does
@@ -59,6 +61,8 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   // the readout leads with what was measured against what it should be; the prediction test follows
   // when even the winner misses the unseen frames by far more than the noise, a precise ± would overclaim
   const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  // a systematic listed outside the quoted ± (the Moon's choice of tracked point) is named next to the headline value
+  const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
   const lead = (() => {
     if (e.clock) {
       return {
@@ -77,7 +81,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
     return {
       label: cmp.label.charAt(0).toUpperCase() + cmp.label.slice(1),
       value: rough ? `about ${fmt(v, 2)}${unit}` : `${fmtPair(v, cmp.sigma)}${unit}`,
-      against: `Known value ${+cmp.reference.toPrecision(4)}${unit}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.`,
+      against: `Known value ${+cmp.reference.toPrecision(4)}${unit}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.${point ? ` The ± is statistical and ruler; which point of the body is followed adds a further ±${point.value} (see the error budget below).` : ""}`,
     };
   })();
 
@@ -282,7 +286,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 <div className={styles.rank}>{c.rank}</div>
                 <div className={styles.cand}>
                   <p className={styles.candTitle}>
-                    {c.law.title} <span className={styles.origin}>{c.origin === "muse" ? "proposed by Muse Spark" : c.origin === "revision" ? "written by Muse Wonder at the referee’s request" : "textbook control"}</span>
+                    {c.law.title} <span className={styles.origin}>{c.origin === "muse" ? "proposed by Muse Spark" : c.origin === "revision" ? `written by Muse Wonder${e.wonder?.trigger === "code" ? ", called in by the fit check" : e.wonder?.trigger === "referee" ? ", called in by the referee" : ""}` : "textbook control"}</span>
                   </p>
                   <div className={styles.candEq}>
                     {lawLatex(c.law).map((l, i) => (
@@ -601,6 +605,41 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     </table>
                   </>
                 )}
+                {(() => {
+                  const [a, b] = e.extras!.memoryTest!.rows;
+                  const two = Math.sqrt(a.g / b.g);
+                  const sTwo = 0.5 * two * Math.hypot((a.sigmaStat ?? a.sigma) / a.g, (b.sigmaStat ?? b.sigma) / b.g);
+                  const sj = e.extras!.memoryTest!.sameJump!.combined;
+                  return (
+                    <>
+                      <h3 className={styles.h3}>Which slowdown number is which</h3>
+                      <dl className={styles.which}>
+                        <div>
+                          <dt>
+                            {sj.ratio.toFixed(3)} ± {sj.sigma.toFixed(3)}×
+                          </dt>
+                          <dd>The headline: the same two jumps measured in both clips by the same code. Needs no reference value and no world.</dd>
+                        </div>
+                        <div>
+                          <dt>
+                            {two.toFixed(2)} ± {sTwo.toFixed(2)}×
+                          </dt>
+                          <dd>The ratio of the two published runs, which each picked a different jump (second in the broadcast, first in the copy). It is also what Muse Spark answered when given Ansatz’s measurements as tools.</dd>
+                        </div>
+                        {slowedClock && (
+                          <div>
+                            <dt>
+                              {slowedClock.factor.toFixed(2)} ± {(slowedClock.sigma ?? 0).toFixed(2)}×
+                            </dt>
+                            <dd>
+                              The slowed copy on its own, against the Moon’s known gravity (<Link href="/x/moon-jump-slowed">its page</Link>). A different question: it assumes the clip was filmed on the Moon.
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </>
+                  );
+                })()}
                 <p className="small" style={{ marginTop: 8, maxWidth: "90ch" }}>
                   Measured offline from one SAM 3.1 track of each whole clip, with the jump windows set by us (they bracket each jump with a margin; the airborne frames inside are found by the same rule as in a run). The quadratic over the whole flight is a different estimator from a run’s, which fits 70% and predicts the rest, so these values differ slightly from the runs above.
                 </p>
@@ -617,22 +656,6 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>
               The fair version of the test: we asked Muse Spark about the playback itself, not the Moon. It saw up to 300 frames of each clip and was told the astronaut’s height. Clip B is clip A slowed 1.5× with interpolated frames.
             </p>
-            {e.extras.speedTest.repeats && (
-              <div className={styles.repeats}>
-                {e.extras.speedTest.repeats.clips.map((c) => (
-                  <p key={c.clip}>
-                    <strong>
-                      Clip {c.clip} ({c.truth}): called slowed {c.calledSlowed} of {e.extras!.speedTest!.repeats!.n} times
-                    </strong>
-                    <span>
-                      {" "}
-                      answers, as played: {c.answers.map((a) => `${a.playback_accel} m/s²${a.real_speed ? "" : ` (“slowed ${a.factor}×”)`}`).join(", ")}
-                    </span>
-                  </p>
-                ))}
-                <p className="small">{e.extras.speedTest.repeats.note} Answering 1.6 is answering with the Moon’s textbook gravity; the one row below is a single sample of the same question.</p>
-              </div>
-            )}
             <table className={styles.vs}>
               <thead>
                 <tr>
@@ -642,31 +665,63 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 </tr>
               </thead>
               <tbody>
-                {e.extras.speedTest.single.map((x, i) => (
-                  <tr key={x.clip}>
-                    <td>Clip {x.clip} alone: the acceleration as it plays, and is it real speed?</td>
-                    <td>
-                      {x.playback_accel} m/s²; {x.real_speed ? "real speed" : `slowed ${x.factor}×`}
-                      <p className="small">{x.reasoning}</p>
-                    </td>
-                    <td className="num">
-                      {e.extras!.memoryTest ? `${e.extras!.memoryTest.rows[i].g.toFixed(2)} ± ${e.extras!.memoryTest.rows[i].sigma.toFixed(2)} m/s²` : "—"}; {i === 0 ? "real speed" : "slowed about 1.5×"}
-                    </td>
-                  </tr>
-                ))}
+                {(e.extras.speedTest.repeats?.clips ?? e.extras.speedTest.single.map((x) => ({ clip: x.clip, truth: "", answers: [x], calledSlowed: x.real_speed ? 0 : 1 }))).map((c, i) => {
+                  const n = c.answers.length;
+                  const sj = e.extras!.memoryTest?.sameJump?.combined;
+                  return (
+                    <tr key={c.clip}>
+                      <td>
+                        Clip {c.clip} alone{c.truth ? ` (${c.truth})` : ""}: the acceleration as it plays, and is it real speed?
+                      </td>
+                      <td>
+                        <strong>
+                          {n > 1 ? `called it ${c.calledSlowed === 0 ? "real speed" : "slowed"} ${c.calledSlowed === 0 ? n : c.calledSlowed} of ${n} times` : c.calledSlowed ? "slowed" : "real speed"}
+                        </strong>
+                        <p className="small">its answers, as played: {c.answers.map((a) => `${a.playback_accel} m/s²${a.real_speed ? "" : ` (“slowed ${a.factor}×”)`}`).join("; ")}</p>
+                      </td>
+                      <td className="num">
+                        {i === 0
+                          ? e.extras!.memoryTest
+                            ? `${e.extras!.memoryTest.rows[0].g.toFixed(2)} ± ${e.extras!.memoryTest.rows[0].sigma.toFixed(2)} m/s²: real speed, if this is the Moon`
+                            : "—"
+                          : sj
+                            ? `slower than A by ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}×, jump for jump`
+                            : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
                 <tr>
                   <td>Both clips side by side: is either slower, and by what factor?</td>
                   <td>
-                    {e.extras.speedTest.pair.slower === "neither" ? "neither" : `${e.extras.speedTest.pair.slower} is slower, by ${e.extras.speedTest.pair.factor}×`}
+                    {e.extras.speedTest.pair.slower === "neither" ? "neither" : `${e.extras.speedTest.pair.slower} is slower, by ${e.extras.speedTest.pair.factor}×`} (asked once)
                     <p className="small">{e.extras.speedTest.pair.reasoning}</p>
                   </td>
-                  <td className="num">B by {e.extras.memoryTest ? fmtPair(Math.sqrt(e.extras.memoryTest.rows[0].g / e.extras.memoryTest.rows[1].g), 0.5 * Math.sqrt(e.extras.memoryTest.rows[0].g / e.extras.memoryTest.rows[1].g) * Math.hypot((e.extras.memoryTest.rows[0].sigmaStat ?? e.extras.memoryTest.rows[0].sigma) / e.extras.memoryTest.rows[0].g, (e.extras.memoryTest.rows[1].sigmaStat ?? e.extras.memoryTest.rows[1].sigma) / e.extras.memoryTest.rows[1].g)) : "—"}×</td>
+                  <td className="num">
+                    {e.extras.memoryTest?.sameJump ? `B by ${e.extras.memoryTest.sameJump.combined.ratio.toFixed(3)} ± ${e.extras.memoryTest.sameJump.combined.sigma.toFixed(3)}×, jump for jump` : "—"}
+                  </td>
                 </tr>
               </tbody>
             </table>
             <p style={{ marginTop: 16, maxWidth: "75ch" }}>
-              One clip at a time, the model called the slowed copy real speed every time it was asked, and the real-speed one slowed in some answers. Side by side it can count frames and see that B is slower, which is impressive. Ansatz needs no second clip: each one’s measured fall says how fast it plays.
+              {e.extras.speedTest.repeats
+                ? `One clip at a time, the model called the slowed copy real speed ${e.extras.speedTest.repeats.clips[1].answers.length - e.extras.speedTest.repeats.clips[1].calledSlowed} of ${e.extras.speedTest.repeats.n} times, answering with the Moon’s textbook gravity, and called the real broadcast slowed ${e.extras.speedTest.repeats.clips[0].calledSlowed} of ${e.extras.speedTest.repeats.n} times.`
+                : "One clip at a time, the model gives the same answer for both."}{" "}
+              Side by side it can count frames and see that B is slower, which is impressive. Ansatz needs no second clip to measure each one’s fall; comparing the two, jump for jump, gives the slowdown with no reference value.
             </p>
+            {e.extras.speedTest.repeats && (
+              <details className={styles.earlier}>
+                <summary>The first single answers, with Muse Spark’s reasoning (asked once each, before the five repeats)</summary>
+                {e.extras.speedTest.single.map((x) => (
+                  <p key={x.clip} className="small">
+                    <strong>
+                      Clip {x.clip}: {x.playback_accel} m/s², {x.real_speed ? "real speed" : `slowed ${x.factor}×`}.
+                    </strong>{" "}
+                    {x.reasoning}
+                  </p>
+                ))}
+              </details>
+            )}
             <div className={styles.toolTest}>
               <p>
                 <strong>With Ansatz’s measurements as tools</strong> (measure_motion for each clip, and compare_clips, a ratio that needs no reference value), Muse Spark made these calls:
@@ -732,7 +787,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                       </td>
                       <td className="num">{eye ? `${fmt(eye.value)} ${prettyUnit(eye.unit)}` : "—"}</td>
                       <td className="num">
-                        <strong>{fmtPair(cmp && /accelerates at g/.test(cmp.label) ? Math.abs(win.fit.theta[p.name]) : win.fit.theta[p.name], win.fit.sigma[p.name])}</strong> {prettyUnit(p.unit)}
+                        <strong>{rough ? `about ${fmt(cmp && /accelerates at g/.test(cmp.label) ? Math.abs(win.fit.theta[p.name]) : win.fit.theta[p.name], 2)}` : fmtPair(cmp && /accelerates at g/.test(cmp.label) ? Math.abs(win.fit.theta[p.name]) : win.fit.theta[p.name], win.fit.sigma[p.name])}</strong> {prettyUnit(p.unit)}
                       </td>
                       {e.comparisons.length > 0 && <td className="num">{cmp ? `${fmt(cmp.reference)} ${prettyUnit(p.unit)}` : "—"}</td>}
                     </tr>
@@ -780,7 +835,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                   <span>{c.purpose}</span>
                   <span className="num small">
                     {c.ms ? `${(c.ms / 1000).toFixed(1)} s` : ""}
-                    {c.frames ? `${c.frames} frames` : ""}
+                    {c.frames ? `${c.frames} frames${!c.ms ? " (time not recorded; cost estimated from frames)" : ""}` : ""}
                     {c.outputTokens ? `, ${c.outputTokens.toLocaleString()} tokens out` : ""}
                   </span>
                   <span className="num">${c.usd.toFixed(4)}</span>

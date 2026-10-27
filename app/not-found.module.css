@@ -1,0 +1,96 @@
+/* the wrong address: a dark plate, the way an empty frame of film reads */
+.page {
+  background: var(--plate);
+  color: var(--plate-ink);
+  padding-block: clamp(48px, 8vw, 112px);
+}
+
+.inner {
+  display: grid;
+  gap: 16px;
+}
+
+.code {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--measured);
+  font-variant-numeric: tabular-nums;
+}
+
+.h1 {
+  font-size: clamp(32px, 4.4vw, 52px);
+  color: var(--plate-ink);
+  max-width: 20ch;
+}
+
+.lede {
+  font-family: var(--serif);
+  font-size: clamp(18px, 1.6vw, 21px);
+  line-height: 1.5;
+  color: #c5cad0;
+  max-width: 62ch;
+}
+
+.lede code {
+  font-family: var(--font);
+  font-size: 0.9em;
+  color: #8fa0ff;
+}
+
+.ways {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  border-top: 1px solid #8fa0ff;
+}
+
+.ways li {
+  border-bottom: 1px solid #2b3036;
+}
+
+.ways a {
+  display: grid;
+  gap: 6px;
+  height: 100%;
+  align-content: start;
+  padding: 18px 16px 18px 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.wayTitle {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.ways a:hover .wayTitle {
+  color: #8fa0ff;
+}
+
+.wayWhat {
+  font-family: var(--font);
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #b8bec6;
+}
+
+.wayHref {
+  font-family: var(--font);
+  font-size: 13px;
+  color: #8b929b;
+}
+
+.small {
+  font-family: var(--font);
+  font-size: 14px;
+  color: #8b929b;
+  margin-top: 12px;
+}
+
+.small a {
+  color: #8fa0ff;
+}

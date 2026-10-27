@@ -10,11 +10,14 @@
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   column-gap: clamp(24px, 4vw, 64px);
   row-gap: 14px;
-  align-items: end;
+  align-items: start;
+  /* the right column sets the height; the headline row takes the slack, so the tagline and headline sit at the top */
+  grid-template-rows: auto 1fr;
 }
 
 .tagline {
   grid-column: 1;
+  align-self: start;
   font-family: var(--font);
   font-size: 15px;
   font-weight: 500;
@@ -24,8 +27,8 @@
 .head h1 {
   grid-column: 1;
   color: var(--plate-ink);
-  font-size: clamp(32px, 3.9vw, 54px);
-  max-width: 17ch;
+  font-size: clamp(30px, 3.2vw, 44px);
+  max-width: 21ch;
 }
 
 .intro {
@@ -73,6 +76,23 @@
 .cta :global(.btn.ghost) {
   background: transparent;
   color: var(--plate-ink);
+}
+
+/* a quiet third way in, for the hackathon's judges */
+.judging {
+  align-self: center;
+  font-family: var(--font);
+  font-size: 15px;
+  color: #8fa0ff;
+  text-decoration: underline;
+  text-decoration-color: rgba(143, 160, 255, 0.45);
+  text-underline-offset: 4px;
+  padding-inline: 4px;
+}
+
+.judging:hover {
+  color: var(--plate-ink);
+  text-decoration-color: currentColor;
 }
 
 /* the strips share one playback clock: a second is the same width on both; a still of each clip sits in the gutter,
@@ -651,6 +671,9 @@
 /* phones and tablets: one clip, full width, above the strips, with the cut column marked; it drives the scan. The
    detail paragraph moves below the plate so the first strip starts near the fold. */
 @media (max-width: 900px) {
+  .head {
+    grid-template-rows: none;
+  }
   .hero {
     display: flex;
     flex-direction: column;

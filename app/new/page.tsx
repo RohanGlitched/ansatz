@@ -13,8 +13,12 @@ const SAMPLES: Sample[] = [
   { file: "/samples/paper-bag.mp4", label: "A paper bag, thrown", hint: "air drag, filmed at 20× slow motion", noun: "white paper bag", slowMotion: 20 },
 ];
 
-export default async function NewPage({ searchParams }: { searchParams: Promise<{ class?: string; series?: string }> }) {
+// /new?replay=moon-jump (or pendulum) opens on that recorded run, playing: a link a judge can follow, with no model called
+const REPLAY_ALIASES: Record<string, string> = { moon: "moon-jump", "moon-jump": "moon-jump", pendulum: "sample-pendulum", "sample-pendulum": "sample-pendulum" };
+
+export default async function NewPage({ searchParams }: { searchParams: Promise<{ class?: string; series?: string; replay?: string }> }) {
   const sp = await searchParams;
+  const autoReplay = sp.replay ? REPLAY_ALIASES[sp.replay.toLowerCase()] : undefined;
   const code = sp.class?.toLowerCase();
   const ser = sp.series ? await getSeries(sp.series).catch(() => null) : null;
   const cls = code ? await getClass(code).catch(() => null) : null;
@@ -35,7 +39,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
           Adding to <strong>{ser.title}</strong>: {ser.ids.length} length{ser.ids.length === 1 ? "" : "s"} so far. Film the same pendulum at a new string length, with the same paper sheet on the wall; the <a href={`/series/${ser.id}`}>series page</a> fits them together.
         </p>
       )}
-      <NewExperiment samples={SAMPLES} replays={[moonReplay as Replay, pendulumReplay as Replay]} classCode={cls?.code} seriesId={ser?.id} runNote={`Published runs took ${timeText(hl)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, which we pay.`} />
+      <NewExperiment samples={SAMPLES} replays={[moonReplay as Replay, pendulumReplay as Replay]} classCode={cls?.code} seriesId={ser?.id} autoReplay={autoReplay} runNote={`Published runs took ${timeText(hl)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, which we pay.`} />
     </div>
   );
 }

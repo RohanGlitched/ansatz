@@ -6,6 +6,9 @@ import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
 import slits from "@/data/slits.json";
 import styles from "./proof.module.css";
 
+// reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Proof",
   description: "Ansatz measured against clips with exactly known physics, against Muse Spark guessing by eye, and on real footage including the Moon.",
@@ -29,6 +32,7 @@ type Row = {
   calibration: string;
   usd: number;
   seconds: number;
+  clock?: { factor: number } | null;
 };
 type Bench = {
   generatedAt: string;
@@ -82,6 +86,8 @@ export default async function ProofPage() {
   type Won = { summary: { clips: number; beat: number; tie: number; worse: number; none: number; usd: number }; rows: { verdict: string; submitted?: string; ratio?: number }[] };
   const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as Ref, () => null);
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
+  type Obs = { summary: { runs: number; subjectRight: number; subjectScored: number; firstNounFound: number; worldRight: number; motionKindRight: number; naiveWouldFail: number; rulerPicked: number; rulerNeeded: number; rulerLengthRight: number; windowMedianIoU: number; windowNaiveWholeClipMedianIoU: number; narrationFactFound: number; narrationFacts: number } };
+  const obsb = await readFile(path.join(process.cwd(), "data", "bench", "observer.json"), "utf8").then((t) => JSON.parse(t) as Obs, () => null);
   const worse = wonb?.rows.filter((r) => r.verdict === "worse" && Number.isFinite(r.ratio)).map((r) => r.ratio!) ?? [];
   const lite = await readFile(path.join(process.cwd(), "data", "bench", "lite.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; constantsWithin5: number; constantsChecked: number; medianPhysErrPct: number; lawCorrect: number; lawJudged: number; medianSamUsd: number } }, () => null);
   const cov = await readFile(path.join(process.cwd(), "data", "bench", "coverage.json"), "utf8").then((t) => JSON.parse(t) as { trials: number; cases: { law: string; noise: string; "coverage1σ": number; "coverage2σ": number }[] }, () => null);
@@ -260,6 +266,19 @@ export default async function ProofPage() {
                       </td>
                       <td className="num">
                         {r.checks.filter((c) => !c.quantity.startsWith("scale")).length === 0 && <span className="small">no constant to compare</span>}
+                        {(r.slowMotion ?? 1) > 1 && (
+                          // on a clip slowed in secret the test is the clock check; gravity as filmed is meant to be off
+                          <span className={styles.check}>
+                            clock check:{" "}
+                            {r.clock ? (
+                              <em className={Math.abs(r.clock.factor / r.slowMotion - 1) <= 0.1 ? styles.good : styles.bad}>
+                                flagged {r.clock.factor.toFixed(2)}× slow (truth {r.slowMotion}×){Math.abs(r.clock.factor / r.slowMotion - 1) > 0.1 ? ": the ruler was misread" : ""}
+                              </em>
+                            ) : (
+                              <em className={styles.bad}>not flagged (truth {r.slowMotion}×)</em>
+                            )}
+                          </span>
+                        )}
                         {r.checks.map((c) => {
                           // a fall sets the scale assuming real time: on a clip slowed n×, it comes out n² too big, as it must
                           const n = r.slowMotion ?? 1, ratio = c.measured / c.truth;
@@ -305,14 +324,19 @@ export default async function ProofPage() {
               </p>
             </div>
             <ul className={styles.ablation}>
+              {obsb && (
+                <li>
+                  <strong>The observer is what lets a clip nobody labelled become an experiment.</strong> Across {obsb.summary.runs} stored runs, Muse Spark named the moving object right {obsb.summary.subjectRight} of {obsb.summary.subjectScored} times (where we didn’t hand it the name), and SAM 3.1 found it on that first name every time; it read the world right {obsb.summary.worldRight} of {obsb.summary.runs} times and the kind of experiment {obsb.summary.motionKindRight} of {obsb.summary.runs}, and took the string length from Hindi narration. A lite default that assumes Earth and no ruler would have failed on {obsb.summary.naiveWouldFail} of these runs, every Moon and Mars clip among them. Its limits: it used a ruler on only {obsb.summary.rulerPicked} of {obsb.summary.rulerNeeded} clips that had one, because the rendered rulers are unmarked striped bars whose length it declined to guess (it read {obsb.summary.rulerLengthRight} of {obsb.summary.rulerPicked} right when it did; stating the ruler on the run form fixes the rest), and its free-motion window is only a little tighter than the whole clip (median overlap {obsb.summary.windowMedianIoU.toFixed(2)} against {obsb.summary.windowNaiveWholeClipMedianIoU.toFixed(2)}).
+                </li>
+              )}
               <li>
                 <strong>The referee asks for a new law only when one is missing.</strong> Shown the fitted frames alone (no ranks, no held-out errors), Muse Spark asked for one on {refb.summary.reviseWhenNeeded} of the {refb.summary.needed} renders we built to need a law outside the textbook, at full strength, and on {refb.summary.reviseWhenRight} of the {refb.summary.right} clips whose leading law already had the right physics.
               </li>
               <li>
-                <strong>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</strong> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn’t there; each such law missed the frames it never saw by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is only called in when the referee asks, which on these clips it didn’t.
+                <strong>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</strong> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn’t there; each such law missed the frames it never saw by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is called in only when the referee asks for a new law or when the leading law misses even its own fitted frames by more than six times the noise; on these clips neither happened.
               </li>
               <li>
-                <strong>Where a law really was missing</strong>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
+                <strong>Where a law really was missing</strong>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames. On both, the fit check called it in (the leader missed its own fitted frames by 48× and 14× the noise), and the referee, asked separately, wanted a new law too. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
               </li>
             </ul>
           </div>

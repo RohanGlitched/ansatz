@@ -7,6 +7,7 @@ import type { Experiment } from "@/lib/experiment";
 import { LANGUAGES } from "@/lib/translate";
 import slits from "@/data/slits.json";
 import { costText, headline, timeText } from "@/lib/headline";
+import { median } from "@/lib/median";
 import { JUDGES_CODE } from "@/lib/classes";
 import styles from "./judges.module.css";
 
@@ -15,7 +16,8 @@ export const metadata: Metadata = {
   description: "Ansatz against the four judging criteria, with every claim linked to the run, page or benchmark row that backs it.",
 };
 
-export const dynamic = "force-dynamic";
+// reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
+export const revalidate = 300;
 
 type Summary = {
   cases: number;
@@ -67,7 +69,7 @@ export default async function JudgesPage() {
   const s = bench?.summary;
   const phys = (bench?.rows.flatMap((r) => r.checks) ?? []).filter((c) => !c.quantity.startsWith("scale"));
   const physErr = phys.map((c) => Math.abs(c.errPct)).sort((a, b) => a - b);
-  const physMedian = physErr.length ? (physErr[(physErr.length - 1) >> 1] + physErr[physErr.length >> 1]) / 2 : NaN;
+  const physMedian = median(physErr);
   const physWithin = physErr.filter((x) => x <= 5).length;
   const gRuler = phys.filter((c) => (c.quantity === "g" || c.quantity.startsWith("g as"))).map((c) => Math.abs(c.errPct));
 
@@ -78,7 +80,6 @@ export default async function JudgesPage() {
   });
   const costs = exps.map((e) => e.ledger.usd).sort((a, b) => a - b);
   const secs = exps.map((e) => e.ledger.ms / 1000).sort((a, b) => a - b);
-  const median = (v: number[]) => (v.length ? (v[(v.length - 1) >> 1] + v[v.length >> 1]) / 2 : NaN);
   const langs = Object.keys(LANGUAGES).length + 1;
   const hl = await headline();
   const samRuns = exps.map((e) => e.ledger.calls.filter((c) => c.model === "sam-3.1").reduce((t, c) => t + c.usd, 0));
@@ -154,12 +155,12 @@ export default async function JudgesPage() {
     { t: "0:30", title: "The Moon experiment", body: `Gravity measured from the pixels of 1972 television, with a ruler we chose (Young’s suited height, 1.88 m ± 5%): ${g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)}` : "1.72"} m/s² against the Moon’s 1.625, with a further ±0.2 depending on which point of the body is followed. Scroll to “Can it tell the speed?” for the fair test.`, href: "/x/moon-jump", go: "Open it" },
     { t: "1:15", title: "A law Muse Spark didn’t propose", body: "A spring we rendered to stiffen as it stretches: Muse Spark’s laws miss, Muse Wonder’s notebook shows four attempts, and the cubic law it submitted wins on frames it never saw.", href: "/x/hardening-spring", go: "Open it" },
     { t: "2:00", title: "The scoreboard", body: "Every number Ansatz reported on clips with known answers, beside Muse Spark’s guess by eye.", href: "/proof", go: "Proof" },
-    { t: "2:30", title: "Watch a run", body: "Replay a recorded run, with SAM’s masks arriving frame by frame and the laws competing. No model is called.", href: "/new", go: "Run page" },
+    { t: "2:30", title: "Watch a run", body: "A recorded run replays from the start: SAM 3.1’s measurements arrive frame by frame, the photo-finish strip builds as they do, and the candidate laws race across the unseen part. No model is called.", href: "/new?replay=moon-jump", go: "Watch a recorded run" },
   ];
 
   const novel = [
     { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, asked about each clip on its own: ${rep ? `it called the secretly slowed copy real speed ${rep.n - rep.b.calledSlowed} times out of ${rep.n}, answering ${rep.b.answers[0].playback_accel} m/s², the textbook value; it called the real broadcast slowed ${rep.a.calledSlowed} of ${rep.n} times` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
-    { title: "Laws judged on frames no model saw", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
+    { title: "Laws judged on motion no model was given", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
     { title: "A clock check from physics", body: "Gravity scales with the square of time. When a ruler makes gravity a measurement, a value far from the planet’s says the clip isn’t real time, and by how much.", href: "/x/sample-pendulum" },
     { title: "An agent that does science with a tool", body: "Muse Wonder doesn’t answer; it experiments. It fits laws to the seen frames, reads the residuals, revises, and submits one law to a trial it can’t see.", href: "/x/dry-friction-spring" },
     { title: "The video as its own chart", body: "Every frame cut to one slice through the moving object and laid side by side, a race-finish camera for physics. The motion draws its own graph in real pixels, and the measurement sits on top.", href: `/x/${Object.keys(slits)[0]}` },
@@ -199,7 +200,18 @@ export default async function JudgesPage() {
           <div>
             <h1>For judges</h1>
             <p className="lede" style={{ marginTop: 16 }}>
-              Ansatz turns any video of something moving into a physics experiment: SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose laws of motion, and the law that predicts the part of the clip no model saw wins. Here it is against your four criteria. Every number on this page is read from the stored runs, and every claim links to where you can check it.
+              Ansatz turns any video of something moving into a physics experiment: SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose laws of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to and no model was given, wins. Here it is against your four criteria. Every number on this page is read from the stored runs, and every claim links to where you can check it.
+            </p>
+            <p className={styles.headCta}>
+              <Link className="btn" href={`/new?class=${JUDGES_CODE}`}>
+                Run your own clip
+              </Link>
+              <Link className="btn ghost" href="/new?replay=moon-jump">
+                Watch a recorded run
+              </Link>
+            </p>
+            <p className={styles.headNote}>
+              The first button uses runs reserved for judges until November 10. For agents: <a href="/llms.txt">/llms.txt</a> lists every number with its source, and <Link href="/x">/x</Link> indexes every experiment.
             </p>
           </div>
           <ol className={styles.board} aria-label="The judging criteria">
@@ -221,7 +233,7 @@ export default async function JudgesPage() {
               <b>
                 {hl.moon.g.toFixed(2)} ± {hl.moon.sigma.toFixed(2)} m/s²
               </b>
-              <span>the Moon’s gravity, measured from 1972 television (true {hl.moon.reference})</span>
+              <span>the Moon’s gravity, measured from 1972 television by SAM 3.1 and code (true {hl.moon.reference}); the ± is statistical and ruler, and which point of the body is followed adds about ±0.2</span>
             </Link>
           )}
           {hl.jumpForJump && (

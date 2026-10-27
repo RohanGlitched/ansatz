@@ -27,7 +27,7 @@ type Event = { step: string; state: string; detail?: string; at: number; data?: 
 export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[]; cut?: LiveData["cut"] };
 const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples, replays = [], classCode, seriesId, runNote }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string; runNote?: string }) {
+export default function NewExperiment({ samples, replays = [], classCode, seriesId, runNote, autoReplay }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string; runNote?: string; /** a replay id from /new?replay=: start that recorded run on arrival */ autoReplay?: string }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -170,6 +170,17 @@ export default function NewExperiment({ samples, replays = [], classCode, series
       if (top < 0 || top + 560 > window.innerHeight - head) window.scrollTo({ top: window.scrollY + top - 8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }, 80);
   }
+
+  // a deep link to a replay starts it once, on arrival; only a recorded replay, never a real run
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (autoStarted.current || !autoReplay) return;
+    const r = replays.find((x) => x.id === autoReplay);
+    if (!r) return;
+    autoStarted.current = true;
+    watchReplay(r);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoReplay]);
 
   async function watchReplay(replay: Replay) {
     const token = ++replayToken.current;
@@ -376,7 +387,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
               </div>
             )}
             {replays.length > 0 && (
-              <div className={styles.samples}>
+              <div className={styles.samples} id="replays" style={{ scrollMarginTop: 110 }}>
                 <p className="small">Just want to see a run? These replay real ones, recorded on {replays[0].recorded}, at {REPLAY_SPEED}× speed, SAM 3.1’s measurements included. No model is called.</p>
                 <div className={styles.sampleRow}>
                   {replays.map((r, i) => (
@@ -412,7 +423,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
                 held ? (
                   <div className={styles.held}>
                     <Link className="btn" href={`/x/${held.id}`}>
-                      Open the full result →
+                      Open the full result
                     </Link>
                     {held.replay && (
                       <button type="button" className="btn ghost" onClick={() => watchReplay(held.replay!)}>
@@ -461,7 +472,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
         <>
         {classCode && (
           <label className={styles.field}>
-            <span>Your name or roll number (for your teacher)</span>
+            <span>{classCode === "jdgs26" ? "Your name (shown on the judges’ page)" : "Your name or roll number (for your teacher)"}</span>
             <input value={student} onChange={(e) => setStudent(e.target.value)} placeholder="e.g. Asha, roll 14" disabled={busy} maxLength={40} />
           </label>
         )}
@@ -523,7 +534,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
         {held ? (
           <p className={`small ${styles.heldNote}`}>
             {held.replay ? `This run took ${Math.round(held.secs)} s for real, replayed here in ${Math.round(held.secs / REPLAY_SPEED)} s, with no model called.` : `Done in ${Math.round(held.secs)} s.`}{" "}
-            <Link href={`/x/${held.id}`}>Open the full result →</Link>
+            <Link href={`/x/${held.id}`}>Open the full result</Link>
           </p>
         ) : (
           <>
