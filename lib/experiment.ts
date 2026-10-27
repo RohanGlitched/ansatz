@@ -480,12 +480,16 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const gRel = obs.location.latitude_deg != null ? 0.0005 : 0.0026;
     const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : obs.body === "earth" && (m.calibration.kind === "gravity" || gUsed !== null) ? gRel : 0;
     const inflate = (c: Candidate) => {
-      if (!rulerRel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
+      // a law that holds Earth's g fixed (a swing measured as an angle) turns time into length through g, so its lengths
+      // carry g's spread even with no ruler in view
+      const holdsG = obs.body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
+      const rel = rulerRel || (holdsG ? gRel : 0);
+      if (!rel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
       for (const p of c.law.params) {
         if (p.fixed) continue;
         const pw = metrePower(p.unit);
         const v = c.fit.theta[p.name], sStat = c.fit.sigma[p.name];
-        if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rulerRel * Math.abs(v));
+        if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rel * Math.abs(v));
       }
       (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded = true;
     };
