@@ -97,7 +97,7 @@ export default async function ProofPage() {
   const split = { phys: group(all.filter((c) => !c.quantity.startsWith("scale"))), scale: group(all.filter((c) => c.quantity.startsWith("scale"))) };
   // how much each kind of constant leans on a length scale: times and ratios need none; drag and string length need
   // the scale that assuming g gives; g itself needs a ruler in view, which is the hardest case
-  const kind = (q: string) => (/^(restitution|damping|omega)/.test(q) ? "free" : /^g/.test(q) ? "ruler" : "assumed");
+  const kind = (q: string) => (/^(restitution|damping|omega)/.test(q) ? "free" : (q === "g" || q.startsWith("g as")) ? "ruler" : "assumed");
   const byKind = { free: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "free")), assumed: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "assumed")), ruler: group(all.filter((c) => !c.quantity.startsWith("scale") && kind(c.quantity) === "ruler")) };
   const pct = (v: number, d = 1) => `${v.toFixed(d)}%`;
   // the winner's miss on the unseen frames as a share of how far the object moved (same units, so no scale is needed)

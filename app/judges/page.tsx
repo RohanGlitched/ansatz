@@ -62,7 +62,7 @@ export default async function JudgesPage() {
   const physErr = phys.map((c) => Math.abs(c.errPct)).sort((a, b) => a - b);
   const physMedian = physErr.length ? (physErr[(physErr.length - 1) >> 1] + physErr[physErr.length >> 1]) / 2 : NaN;
   const physWithin = physErr.filter((x) => x <= 5).length;
-  const gRuler = phys.filter((c) => /^g/.test(c.quantity)).map((c) => Math.abs(c.errPct));
+  const gRuler = phys.filter((c) => (c.quantity === "g" || c.quantity.startsWith("g as"))).map((c) => Math.abs(c.errPct));
 
   // what each Meta model did across the published runs, from their own ledgers
   const usage = MODELS.map((m) => {
@@ -74,6 +74,8 @@ export default async function JudgesPage() {
   const median = (v: number[]) => (v.length ? (v[(v.length - 1) >> 1] + v[v.length >> 1]) / 2 : NaN);
   const langs = Object.keys(LANGUAGES).length + 1;
   const hl = await headline();
+  const samRuns = exps.map((e) => e.ledger.calls.filter((c) => c.model === "sam-3.1").reduce((t, c) => t + c.usd, 0));
+  const samMedianCents = Math.round(median(samRuns) * 100);
 
   const criteria = [
     {
@@ -87,6 +89,9 @@ export default async function JudgesPage() {
         </>,
         <>
           A run costs {costText(hl)} in Meta credits and takes {timeText(hl)}. Each lab report prints with student fields, or exports as a PDF.
+        </>,
+        <>
+          Who it is for: an analysis of UDISE+ 2025-26 counts about 1.25 lakh of India’s 2.96 lakh schools with secondary classes that have no integrated science lab (<a href="https://educationforallinindia.com/integrated-science-laboratories-in-secondary-schools-in-india-udise-2025-26/">Education for All in India</a>). A two-gate school timing kit is listed at £198 (<a href="https://philipharris.co.uk/product/physics/motions-and-forces/motion-and-acceleration/philip-harris-foundation-physics-light-gate/pp00057791">Philip Harris</a>); a phone is already in most students’ pockets.
         </>,
         <>Beyond the classroom: it is system identification from any video, with a model kept honest. A pendulum clip posted online as “slow motion” came out with gravity about 18× too weak, which Ansatz reads as footage running about 4 to 4.5× slower than life (unconfirmed: the capture rate isn’t published).</>,
       ],
@@ -319,6 +324,25 @@ export default async function JudgesPage() {
               </div>
             ))}
           </dl>
+        </div>
+      </section>
+
+      <section className={`section ${styles.band}`}>
+        <div className={`wrap ${styles.two}`}>
+          <div>
+            <h2>After judging, for schools</h2>
+            <p className="lede" style={{ marginTop: 12 }}>
+              What a run costs, where the money goes, and how it gets cheaper. Planned, not built yet, except where it says so.
+            </p>
+          </div>
+          <ul className={styles.gaps}>
+            <li>
+              Today a run costs {costText(hl)}, which we pay, with daily limits per visitor and per class. Of that, SAM 3.1’s measurement is the median {samMedianCents} cents; the rest is Muse Spark watching, proposing and refereeing, and Muse Wonder when it is called in.
+            </li>
+            <li>A lite mode for school practicals: the student names the object and the experiment from a list, SAM 3.1 measures, and code fits the textbook laws. No Muse Spark call, so a run costs about what SAM does.</li>
+            <li>Muse Spark Open, the open-weight model, could watch and referee on a school’s own machine; we have not tried it yet, and will publish how often it agrees with Muse Spark on the benchmark before relying on it.</li>
+            <li>The code, the benchmark clips and their true values stay public, so a teacher or a board can check the method without trusting us.</li>
+          </ul>
         </div>
       </section>
 
