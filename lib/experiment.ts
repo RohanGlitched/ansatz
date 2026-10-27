@@ -11,6 +11,7 @@ import { compileLaw, fitLaw, type Fit, type Law, type Series } from "./physics/l
 import { controls } from "./physics/library";
 import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
+import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower } from "./units";
 import { fmtPair } from "./format";
@@ -525,7 +526,16 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
     const crit = await step("referee", async () => {
-      let c = await critique(obs, { units: dig.units, given, candidates: board }, ledger).catch(() => null);
+      // the leading laws' misses over the fitted frames, drawn as a picture for the referee (best effort)
+      const plot = await residualPlot(
+        cands.filter((c) => c.fit.ok).slice(0, 3).map((c) => {
+          const ch = Object.keys(c.fit.predicted).find((k) => m.series.ch[k]) ?? "";
+          const n = Math.max(3, Math.round(m.series.t.length * TRAIN));
+          return { title: c.law.title, t: m.series.t.slice(0, n), r: m.series.t.slice(0, n).map((_, i) => (c.fit.predicted[ch]?.[i] ?? NaN) - (m.series.ch[ch]?.[i] ?? NaN)) };
+        }),
+        noiseFloor,
+      ).catch(() => undefined);
+      let c = await critique(obs, { units: dig.units, given, candidates: board }, ledger, undefined, plot).catch(() => null);
       if (c) c.winnerId = cands[0].law.id;
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)

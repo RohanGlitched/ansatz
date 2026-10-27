@@ -55,7 +55,7 @@ export default function HowPage() {
         </Step>
         <Step n="6" title="Referee, and a theorist with a tool" who="Muse Spark 1.3, Muse Wonder 1.0">
           <p>
-            Muse Spark reads the ranking and the residuals binned in time over the fitted frames (never the held-out errors, so a revision can’t be tuned to the test). If the winner drifts in a way that points to a missing effect, or misses even the frames it was fitted to by more than six times the noise, Muse Wonder steps in as an agent with a fitting tool: it tries laws on the seen frames, reads their residuals, and submits one, which is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.
+            Muse Spark reads the ranking, the residuals binned in time and a plot of the leading laws’ misses, all over the fitted frames (never the held-out errors, so a revision can’t be tuned to the test). If the winner drifts in a way that points to a missing effect, or misses even the frames it was fitted to by more than six times the noise, Muse Wonder steps in as an agent with a fitting tool: it tries laws on the seen frames, reads their residuals, and submits one, which is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.
           </p>
         </Step>
         <Step n="7" title="The clock check" who="code">

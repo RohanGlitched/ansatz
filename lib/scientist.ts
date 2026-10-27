@@ -288,7 +288,7 @@ export const CRITIQUE_SCHEMA = {
   },
 };
 
-export async function critique(obs: Observation, board: unknown, ledger: Ledger, model = MODELS.critique): Promise<Critique> {
+export async function critique(obs: Observation, board: unknown, ledger: Ledger, model = MODELS.critique, plot?: Uint8Array): Promise<Critique> {
   const text = [
     "You are the referee in a physics lab. Several candidate laws were fitted to the first 70% of a tracked motion and then asked to predict the last 30%, which they never saw. Code has already ranked them by that prediction error; the winner (rank 1) is decided and you cannot change it. Explain the result honestly and briefly, and decide whether one more law is worth testing. Ask for a revision only when the winner's residuals drift systematically in time (not just noise) and a specific physical effect would explain the drift.",
     `Experiment: ${obs.phenomenon}. ${obs.what_happens}`,
@@ -296,7 +296,24 @@ export async function critique(obs: Observation, board: unknown, ledger: Ledger,
     METHOD,
   ].join("\n\n");
   const { value } = await respondJson<Critique>(
-    { model, effort: "medium", input: [{ role: "user", content: [{ type: "input_text", text }] }], schema: CRITIQUE_SCHEMA, name: "critique", maxOutput: 20000 },
+    {
+      model,
+      effort: "medium",
+      input: [
+        {
+          role: "user",
+          content: [
+            // the residuals as a picture too: law minus measurement against time over the fitted frames, the leading laws
+            // in blue, orange and green, with the measurement noise as a dashed band
+            ...(plot ? [{ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(plot).toString("base64")}` }, { type: "input_text", text: "The image plots each leading law's misses (law minus measurement) against time over the fitted frames: rank 1 blue, rank 2 orange, rank 3 green; the dashed band is ± the measurement noise. Misses that wander outside the band in a pattern point to a missing effect." }] : []),
+            { type: "input_text", text },
+          ],
+        },
+      ],
+      schema: CRITIQUE_SCHEMA,
+      name: "critique",
+      maxOutput: 20000,
+    },
     ledger,
     "referee the fits",
   );
