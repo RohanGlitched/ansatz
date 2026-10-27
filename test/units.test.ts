@@ -21,3 +21,12 @@ test("second powers", () => {
   assert.equal(secondPower("s"), 1);
   assert.equal(secondPower("m"), 0);
 });
+
+import { fmtPair } from "../lib/format";
+
+test("values print with their uncertainty to two significant figures", () => {
+  assert.equal(fmtPair(4012.27, 6.71), "4012.3 ± 6.7");
+  assert.equal(fmtPair(0.80001, 0.00213), "0.8000 ± 0.0021");
+  assert.equal(fmtPair(1.7163, 0.1142), "1.72 ± 0.11");
+  assert.equal(fmtPair(9.52, 0.0), "9.52");
+});

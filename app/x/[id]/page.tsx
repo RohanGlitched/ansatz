@@ -8,6 +8,7 @@ import { clipData, getExperiment, plateData, winnerOf } from "@/lib/experiments"
 import { lawLatex, paramLatex } from "@/lib/latex";
 import { atBound, type Experiment } from "@/lib/experiment";
 import { prettyUnit, secondPower } from "@/lib/units";
+import { fmtPair } from "@/lib/format";
 import { LANGUAGES, translation } from "@/lib/translate";
 import styles from "./page.module.css";
 
@@ -105,8 +106,17 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     <span>{p.meaning}</span>
                   </dt>
                   <dd className="num">
-                    <strong>{fmt(v)}</strong>
-                    {Number.isFinite(s) && s > 0 ? <span> ± {fmt(s, 2)}</span> : <span className={styles.nd}> (not pinned down)</span>} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
+                    {Number.isFinite(s) && s > 0 ? (
+                      <>
+                        <strong>{fmtPair(v, s).split(" ± ")[0]}</strong>
+                        <span> ± {fmtPair(v, s).split(" ± ")[1]}</span>
+                      </>
+                    ) : (
+                      <>
+                        <strong>{fmt(v)}</strong>
+                        <span className={styles.nd}> (not pinned down)</span>
+                      </>
+                    )} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
                     {cmp && e.clock && (cmp.param === "g" || /accelerates at g/.test(cmp.label)) ? (
                       // a clock problem explains the miss: say so first, and what the value is at the detected speed
                       <span className={styles.ref}>
@@ -291,7 +301,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                   <tr key={r.label}>
                     <td>{r.label}</td>
                     <td className="num">
-                      <strong>{fmt(r.measured)}</strong> ± {fmt(r.sigma, 2)} {r.unit}
+                      <strong>{fmtPair(r.measured, r.sigma)}</strong> {r.unit}
                     </td>
                     <td className="num">
                       {fmt(r.truth)} {r.unit}

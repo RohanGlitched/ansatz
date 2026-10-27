@@ -13,6 +13,7 @@ import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, revi
 import { readVideoInfo, type VideoInfo } from "./video";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit } from "./units";
+import { fmtPair } from "./format";
 import { lawLatex } from "./latex";
 export { toPixels };
 import { cut, frameAt, prepare } from "./transcode";
@@ -101,7 +102,7 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
     const p = law.params.find((q) => q.name === name);
     const v = fit.theta[name], s = fit.sigma[name];
     const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${prettyUnit(p.unit)}` : "";
-    return s && Number.isFinite(s) && !p?.fixed ? `${fmtNum(v)} ± ${fmtNum(s, 2)}${unit}` : `${fmtNum(v)}${unit}`;
+    return s && Number.isFinite(s) && !p?.fixed && Math.abs(v) < 1e5 ? `${fmtPair(v, s)}${unit}` : `${fmtNum(v)}${unit}`;
   });
 }
 
