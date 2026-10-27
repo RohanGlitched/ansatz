@@ -40,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/#experiments">Experiments</Link>
               <Link href="/proof">Proof</Link>
               <Link href="/how">How it works</Link>
+              <Link href="/judges">For judges</Link>
               <Link href="/new" className={styles.cta}>
                 Run an experiment
               </Link>
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Link href="/#experiments">Experiments</Link>
               <Link href="/proof">Proof: the benchmark</Link>
               <Link href="/how">How it works</Link>
+              <Link href="/judges">For judges: the case in one page</Link>
             </div>
             <div>
               <h3 className={styles.fh}>Built with Meta</h3>
