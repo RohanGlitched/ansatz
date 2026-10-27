@@ -37,7 +37,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
   const [failed, setFailed] = useState(false);
   const [visible, setVisible] = useState(priority);
   // a ready-made print is used where it exists; if it fails to load, the print is developed from the clip as usual
-  const [usePoster, setUsePoster] = useState(compact && !!data.poster);
+  const [usePoster, setUsePoster] = useState(!!data.poster);
   const { width: W, height: H } = data;
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
       <div className={styles.frame} style={{ aspectRatio: `${W} / ${H}` }}>
         {usePoster ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={data.poster} alt="" width={W} height={H} className={styles.canvas} loading="lazy" decoding="async" onError={() => setUsePoster(false)} />
+          <img src={data.poster} alt="" width={W} height={H} className={styles.canvas} loading={priority ? "eager" : "lazy"} decoding="async" onError={() => setUsePoster(false)} />
         ) : (
           <canvas ref={canvasRef} width={W} height={H} className={styles.canvas} aria-hidden="true" />
         )}
