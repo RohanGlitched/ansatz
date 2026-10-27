@@ -169,6 +169,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         {lang && !tr && <p className="small">That translation would have changed a number, so it isn’t shown. Here is the English.</p>}
         <h1 className={styles.finding} lang={tr ? lang : undefined}>{prose(tr?.headline ?? e.headline ?? e.finding)}</h1>
         {(tr || e.headline) && <p className={styles.detailFinding} lang={tr ? lang : undefined}>{prose(tr?.finding ?? e.finding)}</p>}
+        {(e as Experiment & { rerun?: { note: string } }).rerun && <p className={styles.rerunNote}>{(e as Experiment & { rerun?: { note: string } }).rerun!.note}</p>}
         </div>
         <div className={styles.readout}>
           {lead ? (

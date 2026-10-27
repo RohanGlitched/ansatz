@@ -1,0 +1,212 @@
+{
+ "generatedAt": "2026-10-27T08:13:08.096Z",
+ "note": "Muse Wonder, old setting against new, on the two renders whose law the proposed laws missed and the four benchmark clips where it once overreached. found it: its law leads and cuts the unseen miss at least in half; held back: it kept the leading law or matched it within 10%; overreached: its law missed the unseen frames by more. Up to three turns each; the same stored measurements and fitted-frames table a run would give.",
+ "arms": [
+  "old: low effort, no plot",
+  "new: medium effort, residual plot"
+ ],
+ "rows": [
+  {
+   "clip": "hardening-spring",
+   "needsNew": true,
+   "arm": "old: low effort, no plot",
+   "before": "Spring with linear air damping",
+   "beforeUnseen": 0.047389765295930045,
+   "attempts": [
+    "Damped spring with cubic stiffness"
+   ],
+   "submitted": "Damped spring with cubic stiffness",
+   "rank": 1,
+   "of": 6,
+   "ratio": 0.00436,
+   "verdict": "found it",
+   "usd": 0.0709
+  },
+  {
+   "clip": "hardening-spring",
+   "needsNew": true,
+   "arm": "new: medium effort, residual plot",
+   "before": "Spring with linear air damping",
+   "beforeUnseen": 0.047389765295930045,
+   "attempts": [
+    "Damped spring with cubic nonlinear stiffness"
+   ],
+   "submitted": "Damped spring with cubic nonlinear stiffness",
+   "rank": 1,
+   "of": 6,
+   "ratio": 0.00436,
+   "verdict": "found it",
+   "usd": 0.091
+  },
+  {
+   "clip": "dry-friction-spring",
+   "needsNew": true,
+   "arm": "old: low effort, no plot",
+   "before": "Viscously Damped Spring",
+   "beforeUnseen": 9.287529923315041,
+   "attempts": [
+    "Duffing nonlinear spring with viscous damping",
+    "Spring with Coulomb dry friction plus viscous damping"
+   ],
+   "submitted": "Spring with Coulomb dry friction plus viscous damping",
+   "rank": 1,
+   "of": 6,
+   "ratio": 0.0287,
+   "verdict": "found it",
+   "usd": 0.0908
+  },
+  {
+   "clip": "dry-friction-spring",
+   "needsNew": true,
+   "arm": "new: medium effort, residual plot",
+   "before": "Viscously Damped Spring",
+   "beforeUnseen": 9.287529923315041,
+   "attempts": [
+    "Spring with cubic stiffening, viscous and dry friction",
+    "Spring with viscous and wide-bound Coulomb friction and cubic term"
+   ],
+   "submitted": "Spring with viscous and Coulomb dry friction",
+   "rank": 1,
+   "of": 6,
+   "ratio": 0.0289,
+   "verdict": "found it",
+   "usd": 0.1152
+  },
+  {
+   "clip": "sp01_k25_m0.20_b0.35",
+   "needsNew": false,
+   "arm": "old: low effort, no plot",
+   "before": "Viscously damped spring",
+   "beforeUnseen": 0.1767464006458022,
+   "attempts": [
+    "Spring with viscous plus Coulomb dry friction damping",
+    "Viscously damped spring with slowly drifting equilibrium"
+   ],
+   "submitted": "Viscously damped spring with slowly drifting equilibrium",
+   "rank": 2,
+   "of": 7,
+   "ratio": 1.45,
+   "verdict": "overreached",
+   "usd": 0.1204
+  },
+  {
+   "clip": "sp01_k25_m0.20_b0.35",
+   "needsNew": false,
+   "arm": "new: medium effort, residual plot",
+   "before": "Viscously damped spring",
+   "beforeUnseen": 0.1767464006458022,
+   "attempts": [
+    "Spring with viscous and dry friction damping",
+    "Viscously damped spring with slowly drifting equilibrium"
+   ],
+   "submitted": "Viscously damped spring",
+   "rank": 1,
+   "of": 7,
+   "ratio": 1,
+   "verdict": "held back",
+   "usd": 0.1326
+  },
+  {
+   "clip": "bb03_e0.60_purple_240fps",
+   "needsNew": false,
+   "arm": "old: low effort, no plot",
+   "before": "Vacuum projectile with bouncy floor",
+   "beforeUnseen": 0.0003661384786792403,
+   "attempts": [
+    "Quadratic drag with steady wind and bounce",
+    "Vacuum fall in slightly tilted coordinates with bounce"
+   ],
+   "submitted": "Vacuum projectile with bouncy floor",
+   "rank": 1,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "held back",
+   "usd": 0.1106
+  },
+  {
+   "clip": "bb03_e0.60_purple_240fps",
+   "needsNew": false,
+   "arm": "new: medium effort, residual plot",
+   "before": "Vacuum projectile with bouncy floor",
+   "beforeUnseen": 0.0003661384786792403,
+   "attempts": [
+    "Quadratic drag with velocity-dependent restitution",
+    "Vacuum bounce with small constant horizontal acceleration"
+   ],
+   "submitted": "Vacuum projectile with bouncy floor",
+   "rank": 1,
+   "of": 5,
+   "ratio": 1,
+   "verdict": "held back",
+   "usd": 0.1398
+  },
+  {
+   "clip": "pd03_earth_orange_balloon_k0.15",
+   "needsNew": false,
+   "arm": "old: low effort, no plot",
+   "before": "Projectile with quadratic air drag",
+   "beforeUnseen": 0.004313164698166421,
+   "attempts": [
+    "Quadratic drag with a physical floor bounce",
+    "Quadratic drag with compliant floor contact"
+   ],
+   "submitted": "Quadratic drag with a physical floor bounce",
+   "rank": 5,
+   "of": 6,
+   "ratio": 114,
+   "verdict": "overreached",
+   "usd": 0.127
+  },
+  {
+   "clip": "pd03_earth_orange_balloon_k0.15",
+   "needsNew": false,
+   "arm": "new: medium effort, residual plot",
+   "before": "Projectile with quadratic air drag",
+   "beforeUnseen": 0.004313164698166421,
+   "attempts": [
+    "Quadratic drag with a physical floor bounce"
+   ],
+   "submitted": "Projectile with quadratic air drag",
+   "rank": 2,
+   "of": 6,
+   "ratio": 1.01,
+   "verdict": "held back",
+   "usd": 0.0971
+  },
+  {
+   "clip": "pr02_earth_red_ball_room",
+   "needsNew": false,
+   "arm": "old: low effort, no plot",
+   "before": "Vacuum projectile",
+   "beforeUnseen": 0.0019347536396145855,
+   "attempts": [
+    "Vacuum projectile with floor bounce",
+    "Projectile with floor contact and rolling friction"
+   ],
+   "submitted": "Vacuum projectile",
+   "rank": 3,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "held back",
+   "usd": 0.1313
+  },
+  {
+   "clip": "pr02_earth_red_ball_room",
+   "needsNew": false,
+   "arm": "new: medium effort, residual plot",
+   "before": "Vacuum projectile",
+   "beforeUnseen": 0.0019347536396145855,
+   "attempts": [
+    "Vacuum projectile with floor bounce",
+    "Projectile with constant horizontal wind acceleration"
+   ],
+   "submitted": "Vacuum projectile",
+   "rank": 3,
+   "of": 6,
+   "ratio": 1,
+   "verdict": "held back",
+   "usd": 0.1258
+  }
+ ],
+ "usd": 1.352
+}

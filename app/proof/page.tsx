@@ -93,6 +93,11 @@ export default async function ProofPage() {
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
   type Obs = { summary: { runs: number; subjectRight: number; subjectScored: number; firstNounFound: number; worldRight: number; motionKindRight: number; naiveWouldFail: number; rulerPicked: number; rulerNeeded: number; rulerLengthRight: number; windowMedianIoU: number; windowNaiveWholeClipMedianIoU: number; narrationFactFound: number; narrationFacts: number } };
   const obsb = await readFile(path.join(process.cwd(), "data", "bench", "observer.json"), "utf8").then((t) => JSON.parse(t) as Obs, () => null);
+  const wab = await readFile(path.join(process.cwd(), "data", "bench", "wonder-ab.json"), "utf8").then((t) => JSON.parse(t) as { arms: string[]; rows: { clip: string; needsNew: boolean; arm: string; verdict: string; ratio?: number }[]; usd: number }, () => null);
+  const abArm = (arm: string) => {
+    const r = wab?.rows.filter((x) => x.arm === arm) ?? [];
+    return { found: r.filter((x) => x.needsNew && x.verdict === "found it").length, needed: r.filter((x) => x.needsNew).length, held: r.filter((x) => !x.needsNew && x.verdict === "held back").length, tame: r.filter((x) => !x.needsNew).length };
+  };
   const voice = await readFile(path.join(process.cwd(), "data", "bench", "voice.json"), "utf8").then((t) => JSON.parse(t) as { summary: { languages: number; lengthChecked: number; releaseHeard: number } }, () => null);
   const worse = wonb?.rows.filter((r) => r.verdict === "worse" && Number.isFinite(r.ratio)).map((r) => r.ratio!) ?? [];
   const lite = await readFile(path.join(process.cwd(), "data", "bench", "lite.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; constantsWithin5: number; constantsChecked: number; medianPhysErrPct: number; lawCorrect: number; lawJudged: number; medianSamUsd: number } }, () => null);
@@ -235,7 +240,7 @@ export default async function ProofPage() {
               <Link href="/x/sample-pendulum" className={styles.realCard}>
                 <p className={styles.realBig}>about 4 to 4.5× slow</p>
                 <p>
-                  <strong>A clip that may hide its slow motion, flagged.</strong> A pendulum posted online. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays slower than life: about 4 to 4.5×, unconfirmed, because the capture rate isn’t published and the clamp isn’t modelled. Nothing in the frames says so; only its uploader’s title says “slow motion”.
+                  <strong>A clip that may hide its slow motion, flagged.</strong> A pendulum posted online. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays slower than life: about 4 to 4.5×, unconfirmed, because the capture rate isn’t published and the clamp isn’t modelled. Nothing in the frames says so; only its uploader’s title says “slow motion”. A re-run with today’s stricter pipeline declines to measure the string’s length, because the swing isn’t one circle, so it claims no factor at all.
                 </p>
               </Link>
             )}
@@ -342,6 +347,14 @@ export default async function ProofPage() {
                   <strong>The observer is what lets a clip nobody labelled become an experiment.</strong> Across {obsb.summary.runs} stored runs, Muse Spark named the moving object right {obsb.summary.subjectRight} of {obsb.summary.subjectScored} times (where we didn’t hand it the name), and SAM 3.1 found it on that first name every time; it read the world right {obsb.summary.worldRight} of {obsb.summary.runs} times and the kind of experiment {obsb.summary.motionKindRight} of {obsb.summary.runs}, and took the string length from Hindi narration. A lite default that assumes Earth and no ruler would have failed on {obsb.summary.naiveWouldFail} of these runs, every Moon and Mars clip among them. Its limits: it used a ruler on only {obsb.summary.rulerPicked} of {obsb.summary.rulerNeeded} clips that had one, because the rendered rulers are unmarked striped bars whose length it declined to guess (it read {obsb.summary.rulerLengthRight} of {obsb.summary.rulerPicked} right when it did; stating the ruler on the run form fixes the rest), and its free-motion window is only a little tighter than the whole clip (median overlap {obsb.summary.windowMedianIoU.toFixed(2)} against {obsb.summary.windowNaiveWholeClipMedianIoU.toFixed(2)}).
                 </li>
               )}
+              {wab && wab.arms.length === 2 && (() => {
+                const [o, n] = wab.arms.map(abArm);
+                return (
+                  <li>
+                    <strong>Muse Wonder, old setting against new.</strong> On the two renders whose law was missing and the four clips where it once overreached: at low effort with no picture it found the law {o.found} of {o.needed} times and held back {o.held} of {o.tame}; at medium effort, shown a plot of each attempt’s misses, it found the law {n.found} of {n.needed} times and held back {n.held} of {n.tame}. Runs now use the second setting (${wab.usd.toFixed(2)} for the comparison).
+                  </li>
+                );
+              })()}
               {voice && (
                 <li>
                   <strong>Muse Voice Transcribe, in each language.</strong> A spoken string length and a “let go” word, in synthetic voices: the length heard and parsed right in {voice.summary.lengthChecked} of {voice.summary.languages} languages (Bengali misheard “seventy”), the let-go word heard in {voice.summary.releaseHeard} of {voice.summary.languages}. Real speakers are still to be tested.

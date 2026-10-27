@@ -29,7 +29,7 @@ const wording = [
   (t) => [...t.matchAll(/when the referee asks/gi)].filter((m) => !/\bor\b/.test(t.slice(m.index, m.index + 160).split(/[.;)\n]/)[0])).map((m) => clip(t, m.index)),
   (t) => [...t.matchAll(/The language model/g)].map((m) => clip(t, m.index)),
   // 1.55 is the whole-run ratio of the two accelerations; the headline is the jump-for-jump 1.494, so 1.55 must say which it is
-  (t) => [...t.matchAll(/(?<![\d.])1\.55(?!\d)/g)].filter((m) => !/whole-run|ratio/i.test(t.slice(Math.max(0, m.index - 40), m.index + 44))).map((m) => clip(t, m.index)),
+  (t) => [...t.matchAll(/(?<![\d.])1\.55(?!\d)(?!\s?(s|ms|m|cm|mm|kg|rad)\b)/g)].filter((m) => !/whole-run|ratio/i.test(t.slice(Math.max(0, m.index - 40), m.index + 44))).map((m) => clip(t, m.index)),
 ];
 const clip = (t, i) => `“…${t.slice(Math.max(0, i - 50), i + 60).trim()}…”`;
 

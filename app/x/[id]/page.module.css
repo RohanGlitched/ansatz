@@ -762,3 +762,17 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* a record kept from an earlier pipeline says what a re-run on today's found */
+.rerunNote {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  max-width: 70ch;
+  border-left: 2px solid var(--measured);
+  background: rgba(255, 90, 31, 0.08);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}

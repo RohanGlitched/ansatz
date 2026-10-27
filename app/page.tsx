@@ -174,7 +174,7 @@ export default async function Home() {
             <div>
               <h3>Anyone asking whether a clip is real time</h3>
               <p>
-                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5×, unconfirmed), where Muse Spark, watching the same frames on its own, answered from memory.
+                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5× on an earlier run, unconfirmed; today’s stricter pipeline declines to give a factor), where Muse Spark, watching the same frames on its own, answered from memory.
               </p>
             </div>
           </div>
