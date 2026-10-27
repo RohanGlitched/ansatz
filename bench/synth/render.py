@@ -1018,6 +1018,14 @@ CASES = [
         bgk="tiles", bgkw=B["tiles_dark"], ref="stick_h", lead=0.2, seed=1003, noun="blue ball",
         desc="Blue ball (r = 4 cm) dropped from 1.0 m, e = 0.70, filmed at 60 fps and played at 30 fps (2x slow motion); metre stick on the floor.")),
 ]
+# a school practical: the same pendulum at four lengths, each with an A4 sheet as the ruler (series mode: L against T²)
+SERIES = [
+    (f"se0{i + 1}_series_L{L:.2f}", build_pend, dict(L=L, th0=10.0, c=0.03, g=9.81, R=0.035, col=COL["orange"], W=1280, H=720, fps=60, dur=8.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="a4", lead=0.5, seed=1100 + i, noun="orange bob",
+        desc=f"School practical: pendulum of length {L:.2f} m, 10 deg swing, light damping, A4 sheet on the wall."))
+    for i, L in enumerate([0.40, 0.60, 0.80, 1.00])
+]
+CASES += SERIES
 CASE_IDS = [c[0] for c in CASES]
 
 

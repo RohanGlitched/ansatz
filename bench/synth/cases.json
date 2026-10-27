@@ -1,7 +1,7 @@
 {
  "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
  "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
- "n_cases": 29,
+ "n_cases": 33,
  "cases": [
   {
    "case_id": "ff01_earth_orange_ball",
@@ -3759,6 +3759,584 @@
    "encoding": "H.264, yuv420p, CRF 20, +faststart",
    "integration": "RK4, step 0.0001 s, bisection events",
    "truth_file": "clips/sm03_bounce_60fps_x2_stick.json"
+  },
+  {
+   "case_id": "se01_series_L0.40",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "School practical: pendulum of length 0.40 m, 10 deg swing, light damping, A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.4,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.03,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 10.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 480,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00149,
+   "pixels_per_metre": 671.1409395973154,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     124.43
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "orange bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.035,
+     "radius_px": 23.49,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 199.329,
+    "short_side_m": 0.21,
+    "short_side_px": 140.94,
+    "size_px": [
+     140.94,
+     199.33
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      450.21,
+      449.93
+     ],
+     [
+      591.15,
+      449.93
+     ],
+     [
+      591.15,
+      649.26
+     ],
+     [
+      450.21,
+      649.26
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     0.81841,
+     1.45397,
+     2.08951,
+     2.72503,
+     3.36053,
+     3.99601,
+     4.63146,
+     5.2669,
+     5.90231,
+     6.53771,
+     7.17308,
+     7.80844
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.2711052108999372,
+     1.2710606612957969,
+     1.2710169598758008,
+     1.270974090264255,
+     1.270932036597662,
+     1.2708907830993232,
+     1.2708503144318666,
+     1.2708106155850754,
+     1.2707716717206257,
+     1.2707334683996319
+    ],
+    "period_mean_damped_numeric_s": 1.2709145812169975,
+    "period_undamped_same_amplitude_numeric_s": 1.2711677109286221,
+    "period_small_angle_formula_s": 1.2687479698438826,
+    "nonlinear_period_ratio": 1.001907188143156,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/se01_series_L0.40.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/se01_series_L0.40.json"
+  },
+  {
+   "case_id": "se02_series_L0.60",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "School practical: pendulum of length 0.60 m, 10 deg swing, light damping, A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.6,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.03,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 10.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 480,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00179,
+   "pixels_per_metre": 558.659217877095,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     108.045
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "orange bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.035,
+     "radius_px": 19.55,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 165.922,
+    "short_side_m": 0.21,
+    "short_side_px": 117.318,
+    "size_px": [
+     117.32,
+     165.92
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      474.26,
+      490.73
+     ],
+     [
+      591.58,
+      490.73
+     ],
+     [
+      591.58,
+      656.65
+     ],
+     [
+      474.26,
+      656.65
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     0.89014,
+     1.66854,
+     2.4469,
+     3.22523,
+     4.00354,
+     4.7818,
+     5.56004,
+     6.33825,
+     7.11643,
+     7.89459
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.5567647182401938,
+     1.556698466314219,
+     1.5566337557419319,
+     1.556570550228745,
+     1.5565088146219201,
+     1.556448514345476,
+     1.5563896156758572,
+     1.5563320858269192
+    ],
+    "period_mean_damped_numeric_s": 1.556543315124408,
+    "period_undamped_same_amplitude_numeric_s": 1.5568561346384073,
+    "period_small_angle_formula_s": 1.5538925691547856,
+    "nonlinear_period_ratio": 1.0019071881431505,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/se02_series_L0.60.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/se02_series_L0.60.json"
+  },
+  {
+   "case_id": "se03_series_L0.80",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "School practical: pendulum of length 0.80 m, 10 deg swing, light damping, A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 0.8,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.03,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 10.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 480,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00209,
+   "pixels_per_metre": 478.4688995215311,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     96.364
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "orange bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.035,
+     "radius_px": 16.75,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 142.105,
+    "short_side_m": 0.21,
+    "short_side_px": 100.478,
+    "size_px": [
+     100.48,
+     142.11
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      491.4,
+      519.81
+     ],
+     [
+      591.88,
+      519.81
+     ],
+     [
+      591.88,
+      661.91
+     ],
+     [
+      491.4,
+      661.91
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     0.95066,
+     1.84947,
+     2.74824,
+     3.64697,
+     4.54565,
+     5.44429,
+     6.3429,
+     7.24146
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     1.7975833494694402,
+     1.79749565133802,
+     1.7974103046692242,
+     1.7973272457990892,
+     1.797246412889491,
+     1.7971677458121897
+    ],
+    "period_mean_damped_numeric_s": 1.7973717849962423,
+    "period_undamped_same_amplitude_numeric_s": 1.7977026168459984,
+    "period_small_angle_formula_s": 1.7942805861865494,
+    "nonlinear_period_ratio": 1.0019071881431443,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/se03_series_L0.80.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/se03_series_L0.80.json"
+  },
+  {
+   "case_id": "se04_series_L1.00",
+   "phenomenon": "pendulum",
+   "variant": "small_amplitude",
+   "description": "School practical: pendulum of length 1.00 m, 10 deg swing, light damping, A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "L": {
+     "value": 1.0,
+     "unit": "m (pivot to bob centre)"
+    },
+    "linear_damping_c": {
+     "value": 0.03,
+     "unit": "1/s (theta'' = -(g/L) sin(theta) - c theta')"
+    },
+    "initial_amplitude": {
+     "value": 10.0,
+     "unit": "deg (released from rest)"
+    },
+    "bob_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "pivot_position_world": {
+     "value": [
+      0.0,
+      0.0
+     ],
+     "unit": "m"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 480,
+   "duration_s": 8.0,
+   "physics_duration_s": 8.0,
+   "metres_per_pixel": 0.00239,
+   "pixels_per_metre": 418.41004184100416,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     87.615
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "bob",
+     "noun_phrase": "orange bob",
+     "kind": "ball on string",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "radius_m": 0.035,
+     "radius_px": 14.64,
+     "centroid_definition": "centre of the bob (string excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 124.268,
+    "short_side_m": 0.21,
+    "short_side_px": 87.866,
+    "size_px": [
+     87.87,
+     124.27
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      504.24,
+      541.59
+     ],
+     [
+      592.11,
+      541.59
+     ],
+     [
+      592.11,
+      665.86
+     ],
+     [
+      504.24,
+      665.86
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "zero_crossing_times_s": [
+     1.00401,
+     2.00891,
+     3.01376,
+     4.01855,
+     5.02329,
+     6.02798,
+     7.03262
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     2.0097464277041563,
+     2.009637502139586,
+     2.0095318364581654,
+     2.009429332295236,
+     2.009329894182896
+    ],
+    "period_mean_damped_numeric_s": 2.009534998556008,
+    "period_undamped_same_amplitude_numeric_s": 2.009892627298444,
+    "period_small_angle_formula_s": 2.0060666807106475,
+    "nonlinear_period_ratio": 1.0019071881431385,
+    "note": "theta measured from the downward vertical. Release from rest at release_time_s."
+   },
+   "notes": [],
+   "video_file": "clips/se04_series_L1.00.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/se04_series_L1.00.json"
   }
  ]
 }
