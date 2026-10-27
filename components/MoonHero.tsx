@@ -52,7 +52,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
         <div className={styles.text}>
           <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
           <p className="lede">
-            Ask a language model for the Moon’s gravity from this 1972 clip and it recites the textbook, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark.
+            Show a language model every frame of this 1972 clip and it recites the Moon’s textbook gravity, even after we secretly slow the clip down. Ansatz measures it, frame by frame, with SAM 3.1 and Muse Spark, and only the measurement notices.
           </p>
           {mt ? (
             <table className={styles.memory}>
@@ -67,7 +67,10 @@ export default function MoonHero({ e }: { e: Experiment }) {
                 {mt.rows.map((r, i) => (
                   <tr key={r.clip}>
                     <th scope="row">{i === 0 ? "Apollo 16, 1972" : "Same clip, secretly slowed 1.5×"}</th>
-                    <td className="num">{r.eye != null ? r.eye.toFixed(1) : "—"}</td>
+                    <td className="num">
+                      {r.eye != null ? r.eye.toFixed(2) : "—"}
+                      <span className={styles.note}>{i === 0 ? "the textbook, recalled" : "the textbook again"}</span>
+                    </td>
                     <td className="num">
                       <strong className={i === 0 ? styles.num : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
                       {i > 0 && <span className={styles.flag}>so the clip runs {Math.sqrt(mt.rows[0].g / r.g).toFixed(2)}× slow (it does: 1.5×)</span>}

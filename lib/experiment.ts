@@ -54,7 +54,7 @@ export type Experiment = {
   headline: string;
   finding: string;
   comparisons: Comparison[];
-  eyeball: (Eyeball & { model: string }) | null;
+  eyeball: (Eyeball & { model: string; seen?: { fps: number; frames: number } }) | null;
   /** set when the measured gravity says the clip's clock isn't real time */
   clock: { factor: number; note: string } | null;
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
@@ -63,7 +63,7 @@ export type Experiment = {
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
   wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
-  extras?: { truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; clock: string; href?: string }[] } };
+  extras?: { truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[] } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -264,7 +264,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const narr = narration?.transcript ?? "";
 
     // 3. observe
-    const { obs, sources } = await step("observe", () => observe(fileId, narr, ledger, vi.duration), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
+    const { obs, sources } = await step("observe", () => observe(fileId, narr, ledger, vi.duration, vi.fps), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
     if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "given with the clip" };
     if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "given with the clip" }];
     if (input.hints?.window) obs.window = input.hints.window;
@@ -489,11 +489,15 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     }));
     const board = boardOf();
     const winnerFirst = cands[0];
-    const eyePromise: Promise<Eyeball | null> = input.skipEyeball
+    const eyePromise: Promise<(Eyeball & { seen?: { fps: number; frames: number } }) | null> = input.skipEyeball
       ? Promise.resolve(null)
       : winnerFirst.law.params.some((p) => !p.fixed && p.name !== "cal") === false
         ? Promise.resolve(null)
-        : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger).catch(() => null);
+        : eyeball(fileId, narr, winnerFirst.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => ({ name: p.name, unit: p.unit ?? "", meaning: p.meaning ?? p.name })), ledger, {
+            fps: vi.fps,
+            duration: vi.duration,
+            ruler: obs.reference.present ? `the ${obs.reference.noun_phrase} is ${obs.reference.real_length_m} m along its ${obs.reference.dimension}` : undefined,
+          }).catch(() => null);
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
     const crit = await step("referee", async () => {

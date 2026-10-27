@@ -1,6 +1,6 @@
 import { META_BASE } from "@/lib/meta/client";
 import { usageToday } from "@/lib/limits";
-import { getExperiment, recentIds } from "@/lib/experiments";
+import { getExperiment, recentIds, showcaseIds } from "@/lib/experiments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +32,13 @@ async function modelStatus() {
       }
       if (missing.every((id) => value[id])) break;
     }
-    for (const id of missing) value[id] ??= "not listed just now, and no recent experiment called it";
+    // then the published showcases, which record every call they made
+    for (const sid of await showcaseIds()) {
+      if (missing.every((id) => value[id])) break;
+      const e = await getExperiment(sid).catch(() => null);
+      for (const id of missing) if (!value[id] && e?.ledger.calls.some((c) => c.model.startsWith(id))) value[id] = `answered the ${e.title} showcase at ${e.createdAt}`;
+    }
+    for (const id of missing) value[id] ??= "not listed just now, and no recorded experiment called it";
   }
   cached = { at: Date.now(), value };
   return value;

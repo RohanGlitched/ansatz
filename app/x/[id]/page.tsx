@@ -97,10 +97,17 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                   <dd className="num">
                     <strong>{fmt(v)}</strong>
                     {Number.isFinite(s) && s > 0 ? <span> ± {fmt(s, 2)}</span> : <span className={styles.nd}> (not pinned down)</span>} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
-                    {cmp && (
+                    {cmp && e.clock && (cmp.param === "g" || /accelerates at g/.test(cmp.label)) ? (
+                      // a clock problem explains the miss: say so first, and what the value is at the detected speed
                       <span className={styles.ref}>
-                        {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
+                        Clock check: the clip plays about {e.clock.factor.toFixed(2)}× slower than life. At that speed {p.name} = {fmt(v * Math.pow(e.clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
                       </span>
+                    ) : (
+                      cmp && (
+                        <span className={styles.ref}>
+                          {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%{Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
+                        </span>
+                      )
                     )}
                   </dd>
                 </div>
@@ -142,10 +149,11 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 Time rescales every constant by its power of seconds, so no new run is needed to see what a slow-motion clip would mean:
               </p>
               <ul>
-                {[2, 4, 8].filter((f) => Math.abs(Math.log(f / e.clock!.factor)) < 0.9).map((f) => (
+                {[e.clock.factor, ...[2, 4, 8].filter((f) => Math.abs(Math.log(f / e.clock!.factor)) < 0.9)].map((f, i) => (
                   <li key={f}>
-                    At {f}× slow motion:{" "}
+                    {i === 0 ? `At the detected ${f.toFixed(2)}×:` : `At ${f}× slow motion:`}{" "}
                     {freeParams.map((p) => `${p.name} = ${fmt(win.fit.theta[p.name] * Math.pow(f, -secondPower(p.unit)))} ${prettyUnit(p.unit)}`).join(", ")}
+                    {i === 0 && " (gravity matches by construction: that is how the factor was found)"}
                   </li>
                 ))}
               </ul>
@@ -331,12 +339,12 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             {(() => {
               const [a, b] = e.extras!.memoryTest!.rows;
               // gravity scales with 1/time², so the two runs give the slowdown with no reference value; the ruler is the
-              // same astronaut in both, so its ±5% cancels and only the statistical errors remain (conservatively, all of them)
+              // same astronaut's assumed height in both, so its ±5% cancels and only the statistical errors remain
               const f = Math.sqrt(a.g / b.g);
-              const sf = 0.5 * f * Math.hypot(a.sigma / a.g, b.sigma / b.g);
+              const sf = 0.5 * f * Math.hypot((a.sigmaStat ?? a.sigma) / a.g, (b.sigmaStat ?? b.sigma) / b.g);
               return (
                 <p style={{ marginTop: 16, maxWidth: "75ch" }}>
-                  The language model gives the same answer to both, because it recognises the footage and recalls the textbook. Ansatz’s answer moves with the pixels. Taken together, the two measurements say the second clip plays {f.toFixed(2)} ± {sf.toFixed(2)}× slower than the first; we slowed it 1.5×. That needs no textbook value and no ruler, since gravity scales as one over time squared and the same astronaut is the ruler in both. On its own, each run’s clock check can only compare against the Moon value it assumes, so it says “slow motion, or a weaker world”.
+                  The language model gives the same answer to both, because it recognises the footage and recalls the textbook; on the real clip that recalled value is closer to the truth than our measurement, and on the slowed clip it is simply wrong. Ansatz’s answer moves with the pixels. Taken together, the two measurements say the second clip plays {f.toFixed(2)} ± {sf.toFixed(2)}× slower than the first; we slowed it 1.5×. That needs no textbook value and no ruler, since gravity scales as one over time squared and the same astronaut is the ruler in both. On its own, each run’s clock check can only compare against the Moon value it assumes, so it says “slow motion, or a weaker world”.
                 </p>
               );
             })()}

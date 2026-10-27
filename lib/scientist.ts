@@ -106,17 +106,25 @@ export const OBS_SCHEMA = {
   },
 };
 
-export async function observe(fileId: string, narration: string, ledger: Ledger, durationS: number): Promise<{ obs: Observation; sources: { url: string; title: string }[] }> {
+/** How a model sees the clip: every frame at its native rate, up to 300 frames, so it can time motion as well as look. */
+export function videoPart(fileId: string, nativeFps: number, durationS: number) {
+  const fps = Math.max(1, Math.min(nativeFps || 30, 300 / Math.max(0.5, durationS)));
+  return { part: { type: "input_video", file_id: fileId, fps: Math.round(fps * 100) / 100 }, fps, frames: Math.round(fps * durationS) };
+}
+
+export async function observe(fileId: string, narration: string, ledger: Ledger, durationS: number, nativeFps = 30): Promise<{ obs: Observation; sources: { url: string; title: string }[] }> {
+  const vid = videoPart(fileId, nativeFps, durationS);
   const prompt = [
     `You are the observing scientist in a physics lab. Watch this ${durationS.toFixed(1)} s clip. Another model will track the moving object frame by frame and fit equations of motion to it, so your job is to say WHAT to track, WHEN the free motion happens, and WHAT is known for certain.`,
     narration ? `The person filming said (transcribed, may be Hindi, English or mixed):\n"""${narration.slice(0, 3000)}"""` : "There is no narration.",
     "Read any on-screen text too (captions often state the slow-motion factor, frame rate or lengths). If you need the real size of a standard object to use as a ruler, look it up.",
+    "Rulers: people are asked to tape a sheet of paper to the wall or lay a metre stick down, so take such objects at their standard size rather than declining them. A plain sheet of white paper is A4 (0.297 m long side; say relative_uncertainty 0.06, since it could be US Letter, 0.279 m); a stick with ten alternating bands is a metre stick (1.0 m, 0.01); a banded ruler counts its bands. Decline a ruler only when nothing of standard size is in the plane of the motion. A ruler matters even when the object falls freely: comparing it with the fall is how a slowed-down clip gets caught.",
   ].join("\n\n");
   const { value, raw } = await respondJson<Observation>(
     {
       model: MODELS.observe,
       effort: "medium",
-      input: [{ role: "user", content: [{ type: "input_file", file_id: fileId }, { type: "input_text", text: prompt }] }],
+      input: [{ role: "user", content: [vid.part, { type: "input_text", text: prompt }] }],
       schema: OBS_SCHEMA,
       name: "observation",
       tools: [{ type: "web_search" }],
@@ -396,9 +404,18 @@ export async function reviseAgentic(
 
 export type Eyeball = { estimates: { quantity: string; value: number; unit: string }[]; law_in_words: string; confidence: string };
 
-export async function eyeball(fileId: string, narration: string, quantities: { name: string; unit: string; meaning: string }[], ledger: Ledger): Promise<Eyeball> {
+export async function eyeball(
+  fileId: string,
+  narration: string,
+  quantities: { name: string; unit: string; meaning: string }[],
+  ledger: Ledger,
+  clip: { fps: number; duration: number; ruler?: string } = { fps: 30, duration: 10 },
+): Promise<Eyeball & { seen: { fps: number; frames: number } }> {
+  // the same footing as the measurement: every frame (up to 300) and the same ruler
+  const vid = videoPart(fileId, clip.fps, clip.duration);
   const text = [
-    "Watch this clip of a physics experiment and estimate these quantities as precisely as you can from the video alone (you may reason about frame timing and sizes you can see).",
+    `Watch this clip of a physics experiment and estimate these quantities as precisely as you can from the video alone. You are shown ${vid.frames} frames, ${vid.fps.toFixed(1)} per second of the clip, so you can time the motion frame by frame.`,
+    clip.ruler ? `For scale: ${clip.ruler}.` : "",
     quantities.map((q) => `- ${q.name} (${q.unit}): ${q.meaning}`).join("\n"),
     narration ? `The person filming said: """${narration.slice(0, 2000)}"""` : "",
     "Give your best numerical estimate for each even if unsure.",
@@ -407,7 +424,7 @@ export async function eyeball(fileId: string, narration: string, quantities: { n
     {
       model: MODELS.eyeball,
       effort: "medium",
-      input: [{ role: "user", content: [{ type: "input_file", file_id: fileId }, { type: "input_text", text }] }],
+      input: [{ role: "user", content: [vid.part, { type: "input_text", text }] }],
       name: "eyeball",
       schema: {
         type: "object",
@@ -422,9 +439,9 @@ export async function eyeball(fileId: string, narration: string, quantities: { n
       maxOutput: 16000,
     },
     ledger,
-    "eyeball baseline",
+    `eyeball baseline (${vid.frames} frames at ${vid.fps.toFixed(1)} fps)`,
   );
-  return value;
+  return { ...value, seen: { fps: vid.fps, frames: vid.frames } };
 }
 
 /** Muse Spark points at the object in one frame (pixel box), so SAM 3.1 can follow it when a noun phrase finds nothing. */

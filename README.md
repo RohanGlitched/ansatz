@@ -10,12 +10,12 @@ Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *P
 
 ## Memory or measurement
 
-Ask a language model for the Moon’s gravity from the 1972 Apollo 16 clip and it says 1.6. Slow the clip down 1.5× in secret and it still says 1.6: it recognises the footage and recalls the textbook. Ansatz measures:
+Show Muse Spark every frame of the 1972 Apollo 16 clip and ask for the Moon’s gravity: it says 1.63. Slow the clip down 1.5× in secret and it still says 1.60: it recognises the footage and recalls the textbook. On the real clip the recalled value is closer to the truth; only the measurement responds to the slowdown. Ansatz measures:
 
 | Clip | Muse Spark, by eye | Ansatz, measured |
 |---|---|---|
-| Apollo 16, John Young’s jump salute | 1.6 m/s² | **1.74 ± 0.12 m/s²** (the Moon: 1.625) |
-| The same clip, slowed 1.5× in secret | 1.6 m/s² | **0.80 ± 0.05 m/s²**, so the clip runs **1.48× slow** (truth: 1.5×) |
+| Apollo 16, John Young’s jump salute | 1.63 m/s² | **1.72 ± 0.11 m/s²** (the Moon: 1.625) |
+| The same clip, slowed 1.5× in secret (motion-interpolated, 29.97 fps) | 1.60 m/s² | **0.72 ± 0.05 m/s²**, so the clip runs **1.55 ± 0.04× slow** (truth: 1.5×) |
 
 ## What it measured
 

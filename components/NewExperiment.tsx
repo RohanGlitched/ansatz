@@ -23,10 +23,10 @@ const STEPS: { id: StepId; label: string; who: string }[] = [
 export type Sample = { file: string; label: string; hint: string; noun?: string; slowMotion?: number; narration?: string };
 type Event = { step: string; state: string; detail?: string; at: number; data?: unknown };
 /** a real run's progress log, kept so anyone can watch one without spending a cent */
-export type Replay = { id: string; clip: string; recorded: string; events: Event[] };
+export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[] };
 const REPLAY_SPEED = 3;
 
-export default function NewExperiment({ samples, replay }: { samples: Sample[]; replay?: Replay }) {
+export default function NewExperiment({ samples, replays = [] }: { samples: Sample[]; replays?: Replay[] }) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -130,8 +130,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
     setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : (d.state as StepState["state"]), detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
   }
 
-  async function watchReplay() {
-    if (!replay) return;
+  async function watchReplay(replay: Replay) {
     setError(null);
     setPreview(replay.clip);
     setReplaying(true);
@@ -291,12 +290,16 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
                 </button>
               )}
             </div>
-            {replay && (
+            {replays.length > 0 && (
               <div className={styles.samples}>
-                <p className="small">Just want to see one run? This replays a real one, recorded on {replay.recorded}, at {REPLAY_SPEED}× speed. No model is called.</p>
-                <button type="button" className="btn ghost" onClick={watchReplay}>
-                  Watch a recorded run
-                </button>
+                <p className="small">Just want to see a run? These replay real ones, recorded on {replays[0].recorded}, at {REPLAY_SPEED}× speed, SAM’s masks included. No model is called.</p>
+                <div className={styles.sampleRow}>
+                  {replays.map((r, i) => (
+                    <button key={r.id} type="button" className={i === 0 ? "btn" : "btn ghost"} onClick={() => watchReplay(r)}>
+                      Watch Ansatz measure {r.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {samples.length > 0 && (
@@ -408,7 +411,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
         <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
           {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : "Run the experiment"}
         </button>
-        <p className="small">{!file && !busy ? "Choose or film a clip first." : "About a minute and a half. Each run calls five Meta models and costs about 15–30 cents, which we pay."}</p>
+        <p className="small">{!file && !busy ? "Choose or film a clip first." : "About 90 seconds, up to 3 minutes when Muse Wonder steps in. Each run calls up to four Meta models and costs about 10–40 cents, which we pay."}</p>
       </div>
     </div>
   );

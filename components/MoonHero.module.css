@@ -86,6 +86,14 @@
   max-width: 22ch;
 }
 
+.note {
+  display: block;
+  font-size: 13px;
+  color: #8b929b;
+  margin-top: 2px;
+  white-space: normal;
+}
+
 @media (max-width: 640px) {
   .memory {
     font-size: 14px;
