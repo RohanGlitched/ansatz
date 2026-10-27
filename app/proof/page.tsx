@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getExperiment } from "@/lib/experiments";
+import { getExperiment, showcaseIds } from "@/lib/experiments";
 import styles from "./proof.module.css";
 
 export const metadata: Metadata = {
@@ -80,6 +80,9 @@ export default async function ProofPage() {
     (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number }[] },
     () => null,
   );
+  // clips filmed on a phone, each with the person's own tape-measured truth
+  const phone = (await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e) => e?.source.phone && e.extras?.truth?.rows.length);
+  const phoneErr = phone.flatMap((e) => e!.extras!.truth!.rows.map((r) => Math.abs((r.measured - r.truth) / r.truth) * 100)).sort((a, b) => a - b);
   const moon = await getExperiment("moon-jump");
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
@@ -100,6 +103,22 @@ export default async function ProofPage() {
           A tool that claims to find laws must be checked against laws we already know. We rendered {s?.cases ?? "a set of"} clips with exactly known physics, ran each through Ansatz with no hints, and compared every number it reported with the truth. We also asked Muse Spark to read the same numbers off the same clips by eye.
         </p>
       </header>
+
+      {phone.length > 0 && (
+        <section className={`wrap ${styles.stats}`}>
+          <div>
+            <p className={styles.big}>{phone.length}</p>
+            <p>
+              clips filmed on a phone, each with the truth measured by tape before the run: median error {phoneErr[phoneErr.length >> 1]?.toFixed(1)}% over {phoneErr.length} quantities.{" "}
+              {phone.map((e) => (
+                <Link key={e!.id} href={`/x/${e!.id}`} style={{ marginRight: 8 }}>
+                  {e!.title}
+                </Link>
+              ))}
+            </p>
+          </div>
+        </section>
+      )}
 
       {s && (
         <section className={`wrap ${styles.stats}`}>

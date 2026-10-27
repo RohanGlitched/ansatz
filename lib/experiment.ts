@@ -38,7 +38,7 @@ export type Experiment = {
   id: string;
   createdAt: string;
   title: string;
-  source: { kind: "upload" | "showcase"; video: string; credit?: string; license?: string; page?: string };
+  source: { kind: "upload" | "showcase"; video: string; credit?: string; license?: string; page?: string; phone?: string };
   video: Pick<VideoInfo, "width" | "height" | "fps" | "duration" | "codec" | "rotation"> & { frames: number; jitter: number };
   narration?: { transcript: string; turns: { startMs: number; endMs: number; transcript: string }[] };
   observation: Observation;
