@@ -100,10 +100,12 @@ export default function MoonHero({ e }: { e: Experiment }) {
           </div>
         </div>
         <div className={styles.visual}>
-          <div className={styles.clip}>
-            <video src="/showcase/moon-jump.mp4" muted autoPlay loop playsInline aria-label="Apollo 16: John Young's jump salute, April 1972" />
-            <span className={styles.caption}>NASA, Apollo 16, 21 April 1972</span>
-          </div>
+          {!mt && (
+            <div className={styles.clip}>
+              <video src="/showcase/moon-jump.mp4" muted autoPlay loop playsInline aria-label="Apollo 16: John Young's jump salute, April 1972" />
+              <span className={styles.caption}>NASA, Apollo 16, 21 April 1972</span>
+            </div>
+          )}
           <figure className={styles.chart}>
             <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Height of the astronaut's helmet against time: measured points, the fitted lunar arc, and the same take-off under Earth's gravity">
               {ticksH.map((h) => (
@@ -138,6 +140,19 @@ export default function MoonHero({ e }: { e: Experiment }) {
               </span>
             </figcaption>
           </figure>
+          {mt && (
+            <div className={styles.pair}>
+              {[
+                { src: "/showcase/moon-jump.mp4", label: "NASA, Apollo 16, 1972: real speed", href: "/x/moon-jump" },
+                { src: "/showcase/moon-jump-slowed.mp4", label: "slowed 1.5× in secret", href: "/x/moon-jump-slowed" },
+              ].map((c) => (
+                <Link key={c.src} href={c.href} className={styles.pairClip}>
+                  <video src={c.src} muted autoPlay loop playsInline preload="metadata" aria-label={`Apollo 16 jump, ${c.label}`} />
+                  <span>{c.label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
