@@ -4,18 +4,28 @@
 
 **[Try it live](https://ansatz-lab.vercel.app)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[How it works](https://ansatz-lab.vercel.app/how)**
 
-Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object in every frame, **Muse Spark** watches the clip, hears the narration (through **Muse Voice Transcribe**) and writes candidate laws of motion as equations, and code fits each law to the first 70% of the motion and makes it predict the last 30%. The law that predicts the frames it never saw wins. **Muse Wonder** writes one more law when the misses point to a missing effect. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, and a list of every model call and what it cost.
+Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object in every frame (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the frames it never saw wins. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
 
-Built for the Meta Global AI Developer Hackathon (Indie track), themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab).
+Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab).
+
+## Memory or measurement
+
+Ask a language model for the Moon’s gravity from the 1972 Apollo 16 clip and it says 1.6. Slow the clip down 1.5× in secret and it still says 1.6: it recognises the footage and recalls the textbook. Ansatz measures:
+
+| Clip | Muse Spark, by eye | Ansatz, measured |
+|---|---|---|
+| Apollo 16, John Young’s jump salute | 1.6 m/s² | **1.74 ± 0.12 m/s²** (the Moon: 1.625) |
+| The same clip, slowed 1.5× in secret | 1.6 m/s² | **0.80 ± 0.05 m/s²**, so the clip runs **1.48× slow** (truth: 1.5×) |
 
 ## What it measured
 
 | | Ansatz | Truth |
 |---|---|---|
-| The Moon’s gravity, from John Young’s jump salute (Apollo 16 TV, 352×240, 1972) | **1.74 ± 0.12 m/s²** | 1.625 m/s² |
-| 37 constants in rendered clips with known physics (g, string length, drag, restitution, damping, frequency, camera scale) | **median error 0.11%**, 36 of 37 within 5% | exact |
+| 22 physical constants in rendered clips with known physics (g, string length, drag, restitution, damping, frequency) | **22 of 22 within 5%**, median error 0.08% | exact |
+| 15 camera scales in the same clips (metres per pixel, from a fall or a ruler) | 14 of 15 within 5%, median 0.18% | exact |
 | The same constants read off the clips by Muse Spark alone | median error 26% | exact |
-| A pendulum filmed in slow motion (no caption says so) | flagged: **4.2× slower than real life** | uploader titled it “slow motion” |
+| A hidden stiffening spring (a render): Muse Wonder’s law, found with its fitting tool | k₃/m = **4012 ± 7** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
+| A pendulum filmed in slow motion (no caption says so) | flagged: about **4.3× slower than real life** | the uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).
 
@@ -32,7 +42,7 @@ flowchart LR
   F --> G[Muse Spark 1.3: 2–4 candidate laws as ODEs]
   G --> H[Code: RK4 + Levenberg–Marquardt on first 70%]
   H --> I[Predict last 30%; simpler law wins ties]
-  I --> J[Muse Spark referee; Muse Wonder writes one revision]
+  I --> J[Muse Spark referee; Muse Wonder, an agent with a fit tool]
   J --> K[Report: strobe print, law, constants ± σ, clock check]
 ```
 
@@ -41,6 +51,7 @@ flowchart LR
 - **The clock comes from the file.** Frame times are read from the MP4 sample table, not assumed from a frame rate ([`lib/video.ts`](lib/video.ts)).
 - **Given is separated from measured.** Every report lists what was assumed (a ruler, a stated length, Earth’s gravity) apart from what was measured; a ruler’s own uncertainty is carried into each constant by its power of metres.
 - **The clock check.** When a ruler makes gravity a measurement, a gravity far from the planet’s says the clip isn’t real time: gravity scales with the square of time.
+- **Ranking is order-independent.** Each law is scored on the worse of its fitted and held-out errors, in units of measurement noise. Laws that both predict within the noise tie, and the simpler one wins. Model-guessed bounds that a fit presses against are widened and refitted from where the fit stopped.
 
 ## Run it
 
@@ -53,7 +64,7 @@ npx tsx scripts/run.ts path/to/clip.mp4 --ruler "A4 sheet=0.297"   # one experim
 npx tsx scripts/bench.ts --suite synth && npx tsx scripts/score.ts  # the benchmark
 ```
 
-Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). Each run costs about $0.10–0.30 of Meta API calls; runs are capped per visitor and per day.
+Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). Each run costs about $0.10–0.40 of Meta API calls (a class of 40 is about $8); runs are capped per visitor and per day.
 
 ## Credits
 
