@@ -574,7 +574,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           };
           // the theorist's scoreboard carries no rank (the ranks encode the held-out misses): sorted by the fitted frames only
           const sealed = board.map(({ rank: _rank, ...rest }) => rest).sort((a, b) => (a.ok ? a.train_rms : Infinity) - (b.ok ? b.train_rms : Infinity));
-          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: sealed }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : budgetLeft > 110_000 ? 3 : 2));
+          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: sealed }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2), t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
           wonder = { idea, attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
