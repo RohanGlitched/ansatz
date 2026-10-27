@@ -247,6 +247,8 @@ export function parseJsonLoose<T>(text: string): T | undefined {
   }
 }
 
+export class IncompleteStream extends Error {}
+
 /** POST /v1/responses with stream: true; returns the concatenated output_text (SAM's wire lines). */
 export async function respondStreamText(body: Record<string, unknown>, ledger: Ledger | null, purpose: string, onDelta?: (d: string) => void): Promise<string> {
   const t = Date.now();
@@ -259,6 +261,7 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
   let buf = "";
   let out = "";
   let failure: string | null = null;
+  let completed = false;
   const reader = r.body.getReader();
   for (;;) {
     const { value, done } = await reader.read();
@@ -280,11 +283,15 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
       if (ev.type === "response.output_text.delta" && ev.delta) {
         out += ev.delta;
         onDelta?.(ev.delta);
-      } else if (ev.type === "response.failed") failure = ev.response?.error?.message ?? "response failed";
+      } else if (ev.type === "response.completed") completed = true;
+      else if (ev.type === "response.incomplete") failure = "the response stopped before it finished";
+      else if (ev.type === "response.failed") failure = ev.response?.error?.message ?? "response failed";
       else if (ev.type === "error") failure = ev.message ?? "stream error";
     }
   }
   if (failure) throw new Error(`${purpose}: ${failure}`);
+  // a stream that just ends, with no completed event, may have lost its tail (for SAM: the last frames)
+  if (!completed) throw new IncompleteStream(`${purpose}: the stream ended before the response completed`);
   ledger?.add({ model: String(body.model), purpose, ms: Date.now() - t, usd: 0 });
   return out;
 }

@@ -5,7 +5,17 @@
  * the stroboscopic print from the very pixels that were measured.
  */
 import { buildObjectPrompt, decodeMaskToRaster, decodeMaskToRLE, formats, type SegmentationMaskRecord } from "@meta-sam/parser";
-import { Ledger, PRICE, respondStreamText } from "./client";
+import { IncompleteStream, Ledger, PRICE, respondStreamText } from "./client";
+
+/** One retry when a stream ends without completing; any other failure goes straight up. */
+const once = async <T,>(f: () => Promise<T>): Promise<T> => {
+  try {
+    return await f();
+  } catch (e) {
+    if (e instanceof IncompleteStream) return f();
+    throw e;
+  }
+};
 
 export type Sample = {
   f: number; // source frame index
@@ -128,7 +138,7 @@ function liveListener(onMask?: (m: LiveMask) => void) {
 
 /** Tracks every match of `noun` through the clip. */
 export async function trackNoun(fileId: string, noun: string, ledger: Ledger | null, frameCount?: number, onMask?: (m: LiveMask) => void): Promise<SamResult> {
-  const raw = await respondStreamText(
+  const raw = await once(() => respondStreamText(
     {
       model: "sam-3.1",
       input: [{ type: "message", role: "user", content: [{ type: "input_text", text: noun }, { type: "input_video", file_id: fileId }] }],
@@ -137,7 +147,7 @@ export async function trackNoun(fileId: string, noun: string, ledger: Ledger | n
     null,
     `track "${noun}"`,
     liveListener(onMask),
-  );
+  ));
   if (process.env.SAM_DUMP_DIR) {
     const { writeFileSync, mkdirSync } = await import("node:fs");
     mkdirSync(process.env.SAM_DUMP_DIR, { recursive: true });
@@ -158,7 +168,7 @@ export async function trackBoxes(
   frameCount?: number,
 ): Promise<SamResult> {
   const text = buildObjectPrompt({ size, objects: objects.map((o) => ({ id: o.id, prompts: [{ frame: o.frame, box: o.box }] })) });
-  const raw = await respondStreamText(
+  const raw = await once(() => respondStreamText(
     {
       model: "sam-3.1",
       input: [{ type: "message", role: "user", content: [{ type: "input_text", text }, { type: "input_video", file_id: fileId }] }],
@@ -166,7 +176,7 @@ export async function trackBoxes(
     },
     null,
     "track pointed objects",
-  );
+  ));
   const res = parseSam(raw, "pointed object");
   const frames = Math.max(50, frameCount ?? res.frames);
   ledger?.add({ model: "sam-3.1", purpose: "track pointed objects", ms: 0, frames, usd: frames * PRICE.samFrame });
