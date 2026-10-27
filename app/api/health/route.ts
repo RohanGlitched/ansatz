@@ -1,5 +1,6 @@
 import { META_BASE } from "@/lib/meta/client";
 import { usageToday } from "@/lib/limits";
+import { sameSecret } from "@/lib/secret";
 import { getExperiment, recentIds, showcaseIds } from "@/lib/experiments";
 
 export const runtime = "nodejs";
@@ -45,11 +46,13 @@ async function modelStatus() {
 }
 
 /** What this deployment can reach right now: Meta's model list, storage, ffmpeg, today's usage. */
-export async function GET() {
+export async function GET(req: Request) {
   const out: Record<string, unknown> = { at: new Date().toISOString(), region: process.env.VERCEL_REGION ?? "local" };
   out.models = await modelStatus();
   try {
-    out.usage = await usageToday();
+    // usage is the builder's business: shown only with the admin token
+    const u = await usageToday();
+    if (sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN)) out.usage = u;
     out.storage = "ok";
   } catch (e) {
     out.storage = (e as Error).message;

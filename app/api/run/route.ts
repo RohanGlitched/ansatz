@@ -1,7 +1,7 @@
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
 import { addClassRun, useClassRun } from "@/lib/classes";
-import { checkAndCount, visitorOf } from "@/lib/limits";
-import { getObject, objectSize, putObject } from "@/lib/store";
+import { addSpend, checkAndCount, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
+import { getObject, objectSize, putObject, updateJson } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
 
 export const runtime = "nodejs";
@@ -25,6 +25,11 @@ export async function POST(req: Request) {
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
   const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
+  // each upload runs once: a replayed key can't spend the day's runs
+  const claimed = await updateJson<{ at: string } | null>(`claims/${body.key.replace(/^uploads\//, "")}.json`, null, (c) => (c ? null : { at: new Date().toISOString() })).catch(() => null);
+  if (!claimed) return Response.json({ error: "That upload has already been run. Upload the clip again to run it again." }, { status: 409 });
+  // and a ceiling on what a day can spend, whatever the counts say
+  if (!admin && (await spentToday()) >= DAILY_USD) return Response.json({ error: "Ansatz has spent today's allowance of Meta credits. The limit resets at midnight UTC; the showcase experiments are always open." }, { status: 429 });
   // a class link spends the class's own quota; everyone else is limited per visitor and per day
   const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
   const gate = classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
@@ -94,6 +99,7 @@ export async function POST(req: Request) {
             if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
           },
         );
+        await addSpend(exp.ledger.usd).catch(() => {});
         await putObject(`experiments/${id}.json`, JSON.stringify(classCode ? { ...exp, class: classCode, student: typeof body.student === "string" ? body.student.trim().slice(0, 40) || undefined : undefined } : exp), "application/json");
         if (classCode) await addClassRun(classCode, id).catch(() => {});
         send("done", { id });

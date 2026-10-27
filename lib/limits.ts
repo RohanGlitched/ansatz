@@ -8,6 +8,8 @@ import { getObject, updateJson } from "./store";
 export const PER_VISITOR = Number(process.env.RUNS_PER_VISITOR ?? 6);
 export const PER_DAY = Number(process.env.RUNS_PER_DAY ?? 90);
 export const UPLOADS_PER_VISITOR = Number(process.env.UPLOADS_PER_VISITOR ?? 12);
+/** Dollars of Meta calls a day may spend, whatever the run counts say */
+export const DAILY_USD = Number(process.env.DAILY_USD ?? 12);
 
 type Day = { total: number; byVisitor: Record<string, number> };
 
@@ -55,4 +57,14 @@ export async function usageToday() {
 export function visitorOf(req: Request) {
   const xf = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   return xf || req.headers.get("x-real-ip") || "local";
+}
+
+export async function spentToday(): Promise<number> {
+  const raw = await getObject(`usage/usd-${today()}.json`).catch(() => null);
+  return raw ? (JSON.parse(new TextDecoder().decode(raw)) as { usd: number }).usd : 0;
+}
+
+export async function addSpend(usd: number) {
+  if (!(usd > 0)) return;
+  await updateJson<{ usd: number }>(`usage/usd-${today()}.json`, { usd: 0 }, (d) => ({ usd: d.usd + usd }));
 }
