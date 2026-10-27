@@ -66,7 +66,9 @@ async function metaFetch(path: string, init: RequestInit & { timeoutMs?: number 
       });
       if (r.status === 429 || r.status >= 500) {
         last = new MetaError(`Meta API ${r.status}`, r.status, (await r.text()).slice(0, 400));
-        await new Promise((res) => setTimeout(res, 1200 * (i + 1) + Math.random() * 600));
+        // the server's own Retry-After when it gives one (capped), otherwise a growing pause with jitter
+        const after = Number(r.headers.get("retry-after"));
+        await new Promise((res) => setTimeout(res, Number.isFinite(after) && after > 0 ? Math.min(after, 20) * 1000 : 1200 * (i + 1) + Math.random() * 600));
         continue;
       }
       // measured on Oct 27: the API sometimes answers a valid request with 404 model_not_found, then 200 on retry
@@ -80,8 +82,10 @@ async function metaFetch(path: string, init: RequestInit & { timeoutMs?: number 
       }
       return r;
     } catch (e) {
+      // a timed-out call is not retried: it already spent its whole budget, and a retry would double the wait
+      if ((e as Error).name === "TimeoutError") throw e;
       last = e;
-      await new Promise((res) => setTimeout(res, 800 * (i + 1)));
+      await new Promise((res) => setTimeout(res, 1500 * (i + 1)));
     }
   }
   throw last instanceof Error ? last : new Error(String(last));

@@ -6,11 +6,13 @@ import PrintButton from "@/components/PrintButton";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import { prettyUnit } from "@/lib/units";
+import { tr } from "@/lib/i18n";
+import { LANGUAGES, translation } from "@/lib/translate";
 import styles from "./report.module.css";
 
 export const dynamic = "force-dynamic";
 
-type Params = { params: Promise<{ id: string }> };
+type Params = { params: Promise<{ id: string }>; searchParams?: Promise<{ lang?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
@@ -19,8 +21,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 /** A one-page lab report in the form a physics practical asks for: aim, method, observations, result, errors. */
-export default async function ReportPage({ params }: Params) {
+export default async function ReportPage({ params, searchParams }: Params) {
   const { id } = await params;
+  const q = (await searchParams)?.lang;
+  const lang = q && LANGUAGES[q] ? q : undefined;
+  const t = tr(lang);
   const e = await getExperiment(id);
   if (!e) notFound();
   const win = winnerOf(e);
@@ -31,18 +36,19 @@ export default async function ReportPage({ params }: Params) {
   const free = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
   const step = Math.max(1, Math.ceil(m.series.t.length / 14));
   const rows = m.series.t.map((t, i) => ({ t, i })).filter((r) => r.i % step === 0);
+  const trans = lang ? await translation(e, lang).catch(() => null) : null;
   const fmt = (v: number, sig = 3) => (Number.isFinite(v) ? String(+v.toPrecision(sig)) : "—");
   return (
-    <article className={styles.page}>
+    <article className={styles.page} lang={lang ?? "en"}>
       <div className={styles.noprint}>
         <PrintButton />
-        <a href={`/x/${e.id}`}>Back to the experiment</a>
+        <a href={`/x/${e.id}${lang ? `?lang=${lang}` : ""}`}>{t("back")}</a>
       </div>
       <header>
-        <p className={styles.small}>Lab report, made with Ansatz from a video clip ({new Date(e.createdAt).toDateString()})</p>
+        <p className={styles.small}>{t("made_with", { date: new Date(e.createdAt).toISOString().slice(0, 10) })}</p>
         <h1>{e.title}</h1>
         <div className={styles.student}>
-          {["Name", "Class", "Roll no.", "Date"].map((f) => (
+          {[t("name"), t("class"), t("roll"), t("date")].map((f) => (
             <label key={f}>
               {f} <input aria-label={f} />
             </label>
@@ -50,22 +56,20 @@ export default async function ReportPage({ params }: Params) {
         </div>
       </header>
 
-      <h2>Aim</h2>
-      <p>To find the law that governs the motion in the clip, and to measure its constants with their uncertainties.</p>
+      <h2>{t("aim")}</h2>
+      <p>{t("aim_text")}</p>
 
-      <h2>Apparatus</h2>
-      <p>
-        A video clip ({e.video.frames} frames at {e.video.fps.toFixed(1)} fps, {e.video.width}×{e.video.height}); for scale, {m.calibration.note}. Measurement by SAM 3.1 (Meta), one mask per frame.
-      </p>
+      <h2>{t("apparatus")}</h2>
+      <p>{t("apparatus_text", { frames: e.video.frames, fps: e.video.fps.toFixed(1), size: `${e.video.width}×${e.video.height}`, scale: m.calibration.note })}</p>
 
-      <h2>Method</h2>
+      <h2>{t("method")}</h2>
       <ol>
-        <li>The object (“{e.tracking.noun}”) was located in every frame; its position was taken as {e.measured.point === "top" ? "the top of its mask (for a jumper, the head, which arms and legs can’t drag around)" : "the centre of its mask"}. Frame times were read from the video file.</li>
-        <li>{e.candidates.length} candidate laws were written as equations of motion and each was fitted to the first {Math.round(e.trainFrac * 100)}% of the motion.</li>
-        <li>Each fitted law predicted the remaining {Math.round((1 - e.trainFrac) * 100)}% of the motion, which it had not seen. The law with the smallest prediction error was kept.</li>
+        <li>{t(e.measured.point === "top" ? "method_1_top" : "method_1_centre", { noun: e.tracking.noun })}</li>
+        <li>{t("method_2", { n: e.candidates.length, pct: Math.round(e.trainFrac * 100) })}</li>
+        <li>{t("method_3", { pct: Math.round((1 - e.trainFrac) * 100) })}</li>
       </ol>
 
-      <h2>Observations</h2>
+      <h2>{t("observations")}</h2>
       <table className={styles.table}>
         <thead>
           <tr>
@@ -86,13 +90,13 @@ export default async function ReportPage({ params }: Params) {
           ))}
         </tbody>
       </table>
-      <p className={styles.small}>{step === 1 ? "Every" : `Every ${ordinal(step)}`} measurement of {m.series.t.length}; the full series is on the experiment page.</p>
+      <p className={styles.small}>{step === 1 ? t("every", { n: m.series.t.length }) : t("every_nth", { k: step, n: m.series.t.length })}</p>
       {channels.slice(0, 2).map((ch) => (
         <SeriesChart key={ch} t={m.series.t} measured={m.series.ch[ch]} law={win.fit.predicted[ch]} split={plate.split} label={ch === "theta" ? "angle" : ch} unit={ch === "theta" ? "rad" : lengthUnit} height={200} />
       ))}
 
-      <h2>Result</h2>
-      <p>The law that best predicted the unseen motion: {win.law.title}.</p>
+      <h2>{t("result")}</h2>
+      <p>{t("result_law", { law: win.law.title })}</p>
       <div className={styles.eq}>
         {lawLatex(win.law).map((l, i) => (
           <Tex key={i} display>
@@ -103,10 +107,10 @@ export default async function ReportPage({ params }: Params) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Quantity</th>
-            <th>Measured</th>
-            <th>Accepted value</th>
-            <th>Difference</th>
+            <th>{t("quantity")}</th>
+            <th>{t("measured")}</th>
+            <th>{t("accepted")}</th>
+            <th>{t("difference")}</th>
           </tr>
         </thead>
         <tbody>
@@ -127,48 +131,39 @@ export default async function ReportPage({ params }: Params) {
           })}
         </tbody>
       </table>
-      <p>{e.finding}</p>
+      <p>{trans?.finding ?? e.finding}</p>
 
-      <h2>Conclusion</h2>
-      <p>{conclusion(e, win.law.title)}</p>
+      <h2>{t("conclusion")}</h2>
+      <p>{conclusion(e, win.law.title, t)}</p>
 
-      <h2>Precautions</h2>
+      <h2>{t("precautions")}</h2>
       <ul>
-        <li>Keep the camera still, resting on a support, and film the motion side-on so it crosses the frame.</li>
-        <li>Keep the object of known size in the same plane as the motion, so one scale holds for both.</li>
-        <li>Use bright light, so each frame is sharp and the object’s outline is clear.</li>
-        {e.observation.motion_kind === "swing" && <li>Release the pendulum without pushing it, and keep the string taut.</li>}
-        <li>Note whether the phone films in slow motion; the clip’s clock must be real time, or the factor stated.</li>
+        <li>{t("prec_still")}</li>
+        <li>{t("prec_plane")}</li>
+        <li>{t("prec_light")}</li>
+        {e.observation.motion_kind === "swing" && <li>{t("prec_swing")}</li>}
+        <li>{t("prec_clock")}</li>
       </ul>
 
-      <h2>Sources of error</h2>
+      <h2>{t("errors")}</h2>
       <ul>
-        <li>Scale: {m.calibration.note}.</li>
+        <li>{t("scale_err", { scale: m.calibration.note })}</li>
         {[...e.observation.caveats, ...(e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique.caveats : [])].slice(0, 5).map((c, i) => (
           <li key={i}>{c}</li>
         ))}
-        <li>Given rather than measured: {e.given.length ? e.given.join("; ") : "nothing"}.</li>
+        <li>{t("given", { given: e.given.length ? e.given.join("; ") : t("nothing") })}</li>
       </ul>
     </article>
   );
 }
 
-function ordinal(n: number) {
-  const t = n % 100;
-  return `${n}${t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-}
-
 /** One paragraph a student can stand behind: the law, how well its constants agree with accepted values, and any clock doubt. */
-function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string) {
-  const parts = [`The motion is described by the law “${law}”, which predicted the part of the motion it had not seen better than every alternative tested.`];
+function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string, t: ReturnType<typeof tr>) {
+  const parts = [t("conc_law", { law })];
   for (const c of e.comparisons.slice(0, 2)) {
     const n = c.withinSigma;
-    parts.push(
-      Number.isFinite(n) && n <= 2
-        ? `The measured ${c.param} agrees with the accepted value (${c.label}) within ${Math.abs(c.errorPct).toFixed(1)}%, inside its uncertainty.`
-        : `The measured ${c.param} differs from the accepted value (${c.label}) by ${Math.abs(c.errorPct).toFixed(1)}%, more than its uncertainty allows.`,
-    );
+    parts.push(t(Number.isFinite(n) && n <= 2 ? "conc_agree" : "conc_differ", { q: c.param, label: c.label, pct: Math.abs(c.errorPct).toFixed(1) }));
   }
-  if (e.clock) parts.push(`This points to the clip’s clock rather than the physics: ${e.clock.note}`);
+  if (e.clock) parts.push(t("conc_clock", { f: e.clock.factor.toFixed(1) }));
   return parts.join(" ");
 }

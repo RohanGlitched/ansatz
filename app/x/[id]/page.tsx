@@ -145,7 +145,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             </>
           )}
           <p style={{ marginTop: 18 }}>
-            <a className="btn ghost" href={`/x/${e.id}/report`}>
+            <a className="btn ghost" href={`/x/${e.id}/report${tr && lang ? `?lang=${lang}` : ""}`}>
               Lab report (print or PDF)
             </a>{" "}
             <a className="btn ghost" href={`/x/${e.id}/data.csv`} download>
