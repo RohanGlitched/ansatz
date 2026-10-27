@@ -12,10 +12,15 @@ const PAUSE = 0.6, DRAW = 0.9;
  * law stopped being fitted and had to predict. The scan stops at that moment; the winner and the runner-up draw their
  * predictions ahead to the end of the clip, and then the measurements arrive on top of them.
  */
-export default function PhotoFinish({ e }: { e: Experiment }) {
+export default function PhotoFinish({ e, rivalId }: { e: Experiment; /** race this law instead of the runner-up (the page picks it) */ rivalId?: string }) {
   const g = stripGeometry(e);
   if (!g) return null;
-  const { meta, m, W, H, axis, X, Y, at, n, splitIdx, split, win, runner, channels, pathOf, missSoFar } = g;
+  const { meta, m, W, H, axis, X, Y, at, n, splitIdx, split, win, channels, pathOf, missSoFar } = g;
+  const rival = rivalId ? e.candidates.find((c) => c.law.id === rivalId && c.fit.ok && c.law.id !== win.law.id) : undefined;
+  const runner = rival ?? g.runner;
+  // each law's miss on the unseen frames in units of the measurement noise: 1 is a law that misses by the noise alone
+  const z = (c: typeof win) => (Number.isFinite(c.fit.testZ) ? (c.fit.testZ! < 10 ? c.fit.testZ!.toFixed(1) : String(Math.round(c.fit.testZ!))) : null);
+  const tie = !!runner && runner.fit.testRms <= win.fit.testRms;
   const dur = meta.duration;
   const s = split ? at(split.f) : 1;
   const seconds = Array.from({ length: Math.floor(dur) + 1 }, (_, k) => k);
@@ -24,6 +29,24 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
   const near = m.px.filter((p) => Math.abs(at(p.f) - s) < 0.18).map((p) => Y(p) / H);
   const tagBottom = near.filter((y) => y < 0.24).length > near.filter((y) => y > 0.76).length;
   const fmtS = (x: number) => x.toFixed(3);
+  // jumps measured for the same-jump test that the race doesn't use (on the Moon, jump 1): helmet-top pixels and the
+  // parabola fitted to them, so the bigger first arch reads as measured too, with its own g
+  const f0 = m.px[0]?.f ?? 0, f1 = m.px[n - 1]?.f ?? 0;
+  const also = axis === "arc" ? [] : (e.extras?.memoryTest?.sameJump?.jumps ?? []).flatMap((j) => {
+    const fit = j.real as unknown as { g: number; px?: [number, number, number][] };
+    const px = fit.px ?? [];
+    if (px.length < 3 || (px[0][0] <= f1 && px[px.length - 1][0] >= f0)) return [];
+    const apex = px.reduce((p, q) => (q[2] < p[2] ? q : p));
+    return [{
+      n: j.jump,
+      g: fit.g.toFixed(2),
+      px,
+      fit: px.map(([f, , fy], i) => `${i ? "L" : "M"}${X(f).toFixed(1)} ${fy.toFixed(1)}`).join(""),
+      at: at(px[px.length - 1][0]).toFixed(4),
+      left: `${(X(apex[0]) / W) * 100}%`,
+      top: `${(apex[2] / H) * 100}%`,
+    }];
+  });
   const counters = [
     { c: win, cls: styles.kWin, name: win.law.title },
     ...(runner ? [{ c: runner, cls: styles.kRun, name: runner.law.title }] : []),
@@ -54,6 +77,21 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
             {m.px.map((p, i) =>
               i % every === 0 ? <i key={i} className={styles.dot} data-at={at(p.f).toFixed(4)} style={{ left: `${(X(p.f) / W) * 100}%`, top: `${(Y(p) / H) * 100}%` }} /> : null,
             )}
+            {/* the other jumps in the clip, measured the same way (helmet top, frame by frame) for the same-jump test:
+                grey, since the race below is run on one jump only */}
+            {also.map((j) => (
+              <span key={j.n} className={styles.also}>
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+                  <path d={j.fit} className={styles.alsoLaw} vectorEffect="non-scaling-stroke" />
+                </svg>
+                {j.px.map(([f, y]) => (
+                  <i key={f} className={`${styles.dot} ${styles.alsoDot}`} data-at={at(f).toFixed(4)} style={{ left: `${(X(f) / W) * 100}%`, top: `${(y / H) * 100}%` }} />
+                ))}
+                <em className={styles.alsoTag} data-at={j.at} style={{ left: j.left, top: j.top }}>
+                  jump {j.n} · also measured · same law · g {j.g}
+                </em>
+              </span>
+            ))}
           </span>
           {/* the predictions sit outside the developing print, so they can run ahead of the data */}
           {split && (
@@ -81,7 +119,7 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
             {counters.map(({ c, cls, name }) => (
               <span key={c.law.id} className={styles.racer}>
                 <i className={cls} aria-hidden="true" />
-                <span className={styles.racerName}>{c === win ? "winner" : "runner-up"}, {name}</span>
+                <span className={styles.racerName}>{c === win ? "winner" : rival ? "rival" : "runner-up"}, {name}</span>
                 <strong className={styles.count}>
                   <span data-t={fmtS(s * dur)}>—</span>
                   {missSoFar(c).map((p, k) => (
@@ -92,7 +130,13 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
                 </strong>
               </span>
             ))}
-            {runner && runner.fit.testRms <= win.fit.testRms && <span className={styles.tie}>a tie within the measurement noise</span>}
+            {runner && z(win) && z(runner) ? (
+              <span className={styles.tie}>
+                {z(win)}× vs {z(runner)}× the noise{tie ? ": a tie" : ""}
+              </span>
+            ) : (
+              tie && <span className={styles.tie}>a tie within the measurement noise</span>
+            )}
           </p>
         )}
       </ReplayScope>
@@ -102,7 +146,7 @@ export default function PhotoFinish({ e }: { e: Experiment }) {
           : axis === "follow"
             ? `Photo-finish: a ${meta.slice}-pixel column cut from each of the clip’s ${meta.frames} frames where SAM 3.1 placed the ${e.tracking.noun}, laid side by side, so its height draws its own graph against time.`
             : `Photo-finish: one ${meta.slice}-pixel slice through the ${e.tracking.noun} from each of the clip’s ${meta.frames} frames, laid side by side, so the motion draws its own graph against time.`}{" "}
-        Orange: SAM 3.1’s measurement in each frame. Blue: the law that won, fitted to the left of the line and predicting the right{runner ? "; dashed: the runner-up’s prediction" : ""}. The scan stops at the line while both laws draw what they expect, then the measurements land.
+        Orange: SAM 3.1’s measurement in each frame.{also.length ? ` Grey: ${also.map((j) => `jump ${j.n}`).join(", ")}, measured the same way for the same-jump test (helmet top in each airborne frame, with its fitted fall); the race below uses one jump.` : ""} Blue: the law that won, fitted to the left of the line and predicting the right{runner ? `; dashed: ${rival ? `a rival law’s prediction (${rival.law.title}, ranked ${rival.rank} of ${e.candidates.length})` : "the runner-up’s prediction"}` : ""}. The scan stops at the line while both laws draw what they expect, then the measurements land.
       </figcaption>
     </figure>
   );

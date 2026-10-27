@@ -1,5 +1,6 @@
 {
  "generatedAt": "2026-10-27T05:29:00.693Z",
+ "pipeline": "2026-10-27c (scored before the held-out 30% was sealed in measurement: scale, pivot, line and noise unit then read every frame)",
  "method": "ar1-white",
  "about": "Each case fits the same synthetic track family many times with the real fitter (first 70% of frames); coverage is the share of fits whose ±1σ / ±2σ interval holds the truth (68.3% / 95.4% if calibrated); pulls are (fit − truth)/σ. 'mixed' noise is half white, half AR(0.8) by variance, a check on noise that is not AR(1).",
  "trials": 400,

@@ -9,6 +9,11 @@ import { lawLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
 import { fmtOff, summarise, type Summary } from "./summary";
 import styles from "./index.module.css";
+import { BENCH_FILES } from "@/app/bench/files";
+
+// Muse Wonder is called in by code when the leading law misses its fitted frames by more than this many times the
+// noise (lib/experiment.ts reads the same setting)
+const POOR_FIT = Number(process.env.WONDER_POOR_FIT ?? 6);
 
 // every row is read from runs that ship with the site; they change only with a deploy
 export const revalidate = 300;
@@ -16,6 +21,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "Every experiment",
   description: "Every Ansatz experiment in one list: the photo-finish of each clip, the law that won, the constant it measured against the known value, and links to the lab report, the data as CSV and the raw record as JSON.",
+  alternates: { canonical: "/x" },
 };
 
 const eqOf = (e: Experiment) => {
@@ -66,14 +72,17 @@ export default async function ExperimentsIndex() {
   const rows = exps.map((e) => ({ e, s: summarise(e), w: winnerOf(e) }));
   const seriesRows = runs.map((e) => ({ e, s: summarise(e), w: winnerOf(e) }));
   const known = rows.filter((r) => r.s?.known && r.s.offPct !== undefined);
-  const real = exps.filter((e) => !/^Rendered/.test(e.source.credit ?? ""));
+  // footage nobody rendered, and among it the copies we altered ourselves (the Moon clip slowed in secret)
+  const notRendered = exps.filter((e) => !/^Rendered/.test(e.source.credit ?? ""));
+  const copies = notRendered.filter((e) => /\bby us\b/i.test(e.source.credit ?? ""));
+  const real = notRendered.filter((e) => !copies.includes(e));
 
   return (
     <>
       <header className={`wrap ${styles.head}`}>
         <h1 className={styles.h1}>Every experiment</h1>
         <p className="lede">
-          {exps.length} clips, each measured by SAM 3.1, given laws by Muse Spark (and Muse Wonder when the referee asks), and ranked on the part of the motion no law was fitted to. {real.length} are real footage; the rest are renders whose physics we set, so the answer is known. {known.length} of the {exps.length} carry a known value to check against, with how far off Ansatz came.
+          {exps.length} clips, each measured by SAM 3.1, given laws by Muse Spark (and Muse Wonder when the referee asks for one or the leading law misses its fitted frames by more than {POOR_FIT}× the noise), and ranked on the part of the motion no law was fitted to. {real.length} are real footage{copies.length ? ` (and ${copies.length} ${copies.length === 1 ? "is a copy" : "are copies"} we slowed)` : ""}; the rest are renders whose physics we set, so the answer is known. {known.length} of the {exps.length} carry a known value to check against, with how far off Ansatz came.
         </p>
         <nav className={styles.jump} aria-label="On this page">
           <a href="#showcase">The {exps.length} experiments</a>
@@ -251,7 +260,15 @@ export default async function ExperimentsIndex() {
               <dt>
                 <a href="/bench">/bench</a>
               </dt>
-              <dd>The benchmark files behind /proof, read-only: synth, wonder, referee, lite, clock-controls, coverage and ablation.</dd>
+              <dd>
+                The benchmark files behind /proof and the series page, read-only:{" "}
+                {Object.keys(BENCH_FILES).map((f, i, all) => (
+                  <span key={f}>
+                    <a href={`/bench/${f}`}>{f.replace(/\.json$/, "")}</a>
+                    {i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : "."}
+                  </span>
+                ))}
+              </dd>
             </div>
             <div>
               <dt>
@@ -260,7 +277,7 @@ export default async function ExperimentsIndex() {
               <dd>When each Meta model last answered.</dd>
             </div>
           </dl>
-          <p className={styles.rule}>Please never POST to /api/run or /api/upload: they run paid models. The recorded replays at <a href="/new?replay=moon-jump">/new?replay=moon-jump</a> show a full run for free.</p>
+          <p className={styles.rule}>Please never POST to /api/run or /api/upload: they run paid models. The recorded replays at <a href="/new?replay=hardening-spring">/new?replay=hardening-spring</a> show a full run for free.</p>
           <p className={styles.next}>
             <Link className="btn" href="/judges">
               For judges: the case in one page

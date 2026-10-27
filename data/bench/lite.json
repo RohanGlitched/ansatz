@@ -1,5 +1,6 @@
 {
  "generatedAt": "2026-10-27T05:33:18.350Z",
+ "pipeline": "2026-10-27c (scored before the held-out 30% was sealed in measurement: scale, pivot, line and noise unit then read every frame)",
  "summary": {
   "clips": 28,
   "constantsWithin5": 26,

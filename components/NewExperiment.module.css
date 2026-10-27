@@ -205,6 +205,9 @@
   font-size: 14px;
   color: var(--ink-2);
   margin-top: 2px;
+  /* the observe step's second line: the observer's noun handed to SAM 3.1 */
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .secs {
@@ -326,4 +329,207 @@
 
 .heldNote {
   margin-top: 14px;
+}
+
+/* the page's title and intro; while a run plays they fold to one line so the stage starts high */
+.title {
+  font-size: clamp(30px, 4vw, 46px);
+  max-width: 20ch;
+}
+
+.introRun {
+  margin-bottom: 14px;
+}
+
+.introRun .title {
+  font-size: 18px;
+  font-weight: 600;
+  max-width: none;
+  letter-spacing: 0;
+}
+
+/* trim to the motion: two handles on one track */
+.trim {
+  margin-top: 12px;
+  font-family: var(--font);
+}
+
+.trimHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+
+.trimHead span:first-child {
+  font-weight: 600;
+}
+
+.trimHead span:last-child {
+  color: var(--ink-2);
+}
+
+.range {
+  position: relative;
+  height: 32px;
+  margin-top: 4px;
+}
+
+.range::before {
+  content: "";
+  position: absolute;
+  inset: 14px 0 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.rangeFill {
+  position: absolute;
+  top: 14px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--measured);
+}
+
+.range input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  background: none;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.range input::-webkit-slider-runnable-track {
+  background: none;
+  height: 32px;
+}
+
+.range input::-moz-range-track {
+  background: none;
+}
+
+.range input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--measured);
+  cursor: ew-resize;
+}
+
+.range input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--measured);
+  cursor: ew-resize;
+}
+
+.range input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--law);
+  outline-offset: 2px;
+}
+
+.prepNote {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink-2);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sizeNote {
+  margin-top: 10px;
+  max-width: 62ch;
+}
+
+/* lite mode: say what it is, and no model watches the clip */
+.lite {
+  font-family: var(--font);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+
+.liteOn {
+  border-color: var(--ink);
+}
+
+.switch {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 15px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.switch input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--law);
+  flex: none;
+}
+
+.types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.type,
+.typeOn {
+  font: inherit;
+  font-size: 14px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.type:hover {
+  border-color: var(--ink);
+}
+
+.typeOn {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.liteNote {
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.linkBtn {
+  font: inherit;
+  font-size: 14px;
+  background: none;
+  border: 0;
+  padding: 8px 0 0;
+  min-height: 36px;
+  color: var(--law);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }

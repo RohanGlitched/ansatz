@@ -11,6 +11,8 @@ const config: NextConfig = {
     "/api/run": ["./node_modules/ffmpeg-static/ffmpeg*"],
     "/api/health": ["./node_modules/ffmpeg-static/ffmpeg*", "./data/showcase/**"],
     "/x/[id]": ["./data/showcase/**"],
+    "/x/[id]/[lang]": ["./data/showcase/**"],
+    "/x/[id]/live": ["./data/showcase/**"],
     "/series/[id]": ["./data/showcase/**", "./data/series/**"],
     "/x/[id]/report": ["./data/showcase/**"],
     "/proof": ["./data/bench/**"],

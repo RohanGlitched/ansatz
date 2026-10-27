@@ -1,3 +1,6 @@
+import { fmtPair } from "../lib/format";
+import { prettyUnit } from "../lib/units";
+
 /**
  * Pure helpers for the live photo-finish on /new: which SAM points belong to which object, which object is the one
  * that moves, which strip column each measured point sits in, and which clip time each column was cut from.
@@ -153,4 +156,99 @@ export function samFrame(w: number, h: number, vw: number, vh: number): [number,
   if (Math.max(w, h) >= 1278) return [w, h];
   if (rx > 1.01 && Math.abs(rx - ry) < 0.02) return [vw, h];
   return [w, h];
+}
+
+/** What the end of a run shows in large type: the measured value against the known one (as /x/<id> leads with). */
+export type Readout = { label: string; value: string; against: string };
+
+/** The fields of a stored experiment the readout reads (a record from /x/<id>/record.json has them all). */
+type ReadoutRecord = {
+  winner: string;
+  clock: { factor: number; sigma?: number } | null;
+  comparisons: { param: string; measured: number; sigma: number; reference: number; label: string; errorPct: number; withinSigma: number }[];
+  candidates: { law: { id: string; params: { name: string; unit?: string; fixed?: boolean }[] }; fit: { ok?: boolean; testRms: number; testZ?: number; trainZ?: number; predicted?: Record<string, number[]> }; rank: number }[];
+  measured: { calibration: { kind: string }; px: unknown[] };
+  trainFrac?: number;
+  extras?: { truth?: { rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; errorBudget?: { rows: { source: string; value: number; included: boolean }[] } };
+};
+
+const sig = (v: number, n = 2) => (Number.isFinite(v) ? String(+v.toPrecision(n)) : "—");
+
+/** Units as a textbook prints them ("m/s^2" → "m/s²"; a per-length-squared-per-second-squared as "m⁻²s⁻²"). */
+function unitText(u?: string) {
+  if (!u || u === "1" || u === "-") return "";
+  const map: Record<string, string> = { "1/(m²·s²)": "m⁻²s⁻²" };
+  return ` ${map[u] ?? prettyUnit(u)}`;
+}
+
+/**
+ * The large readout at the end of a run: how much slower than life the clip plays when gravity says so; else the
+ * measured constant against its known value (or, for a clip we rendered, against the value it was rendered with);
+ * else the winning law's miss on the unseen frames. The same choice /x/<id> makes.
+ */
+export function readoutOf(e: ReadoutRecord): Readout {
+  const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
+  const free = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
+  const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  if (e.clock) {
+    return {
+      label: "How much slower than life the clip plays",
+      value: rough ? `about ${e.clock.factor.toFixed(1)}×` : `${e.clock.factor.toFixed(2)}${e.clock.sigma ? ` ± ${e.clock.sigma.toFixed(2)}` : ""}×`,
+      against: rough
+        ? `Unconfirmed: gravity came out too weak for the world, and the winning law misses the unseen frames by ${sig(win.fit.testZ!)}× the noise.`
+        : "From gravity coming out too weak against the world’s known value, so it assumes the world.",
+    };
+  }
+  const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
+  const cmp = e.comparisons.find((c) => free.some((p) => p.name === c.param));
+  if (cmp) {
+    const p = free.find((q) => q.name === cmp.param)!;
+    const v = /accelerates at g|gravity/i.test(cmp.label) ? Math.abs(cmp.measured) : cmp.measured;
+    const u = unitText(p.unit);
+    return {
+      label: cmp.label.charAt(0).toUpperCase() + cmp.label.slice(1),
+      value: rough ? `about ${sig(v)}${u}` : `${fmtPair(v, cmp.sigma)}${u}`,
+      against: `Known value ${+cmp.reference.toPrecision(4)}${u}: off by ${sig(Math.abs(cmp.errorPct))}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${sig(cmp.withinSigma)}σ` : ""}.${point ? ` Which point of the body is followed adds a further ±${point.value}${u}.` : ""}`,
+    };
+  }
+  // a rendered clip: the constant only the winning law has, against the value the clip was rendered with
+  const rows = (e.extras?.truth?.rows ?? []).filter((r) => free.some((p) => p.name === r.param));
+  if (rows.length) {
+    const runner = e.candidates.find((c) => c.law.id !== win.law.id && c.fit.ok !== false);
+    const own = rows.find((r) => !runner?.law.params.some((p) => p.name === r.param && !p.fixed)) ?? rows[0];
+    const errPct = ((own.measured - own.truth) / own.truth) * 100;
+    const z = own.sigma > 0 ? Math.abs(own.measured - own.truth) / own.sigma : NaN;
+    const u = unitText(own.unit);
+    return {
+      label: own.label.charAt(0).toUpperCase() + own.label.slice(1),
+      value: `${fmtPair(own.measured, own.sigma)}${u}`,
+      against: `Rendered with ${+own.truth.toPrecision(4)}${u}: off by ${sig(Math.abs(errPct))}%${Number.isFinite(z) && z < 20 ? `, ${sig(z)}σ` : ""}.`,
+    };
+  }
+  const n = e.measured.px.length;
+  const unseen = n - Math.max(1, Math.round(n * (e.trainFrac ?? 0.7)));
+  const angle = !!win.fit.predicted && Object.keys(win.fit.predicted).length === 1 && "theta" in win.fit.predicted;
+  const v = win.fit.testRms;
+  const len = !Number.isFinite(v) ? "—" : angle ? `${((v * 180) / Math.PI).toFixed(2)}°` : e.measured.calibration.kind === "none" ? `${v.toFixed(1)} px` : v < 0.01 ? `${(v * 1000).toFixed(1)} mm` : `${(v * 100).toFixed(1)} cm`;
+  return {
+    label: `Average miss on the ${unseen} frames no law was fitted to`,
+    value: len,
+    against: Number.isFinite(win.fit.testZ) ? `${sig(win.fit.testZ!)}× the measurement noise.` : "",
+  };
+}
+
+/** The ranking's own score for a law: the worse of its misses on the fitted and the unseen frames, in noise units. */
+export function noiseScore(fit: { ok?: boolean; testZ?: number; trainZ?: number }) {
+  if (fit.ok === false || !Number.isFinite(fit.testZ)) return undefined;
+  return Math.max(fit.testZ!, Number.isFinite(fit.trainZ) ? fit.trainZ! : 0);
+}
+
+/** Two noise-unit scores the ranking calls a tie (lib/experiment.ts rankCandidates uses the same rule). */
+export function tiedScores(a: number, b: number) {
+  return Math.max(a, b) < 1.5 || Math.abs(a - b) < Math.max(0.1 * Math.max(a, b), 0.5);
+}
+
+/** "1.0×", "237×": a noise-unit miss, to two figures. */
+export function fmtZ(z: number) {
+  return `${z < 10 ? z.toFixed(1) : Math.round(z).toLocaleString("en-US")}×`;
 }

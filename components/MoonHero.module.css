@@ -27,8 +27,8 @@
 .head h1 {
   grid-column: 1;
   color: var(--plate-ink);
-  font-size: clamp(30px, 3.2vw, 44px);
-  max-width: 21ch;
+  font-size: clamp(36px, 4.4vw, 62px);
+  max-width: 14ch;
 }
 
 .intro {
@@ -686,9 +686,16 @@
   .tagline,
   .lead,
   .lede,
+  .score,
   .cta {
     width: min(var(--max), 100% - 32px);
     margin-inline: auto;
+  }
+  .score {
+    order: 2;
+  }
+  .score dd {
+    font-size: 24px;
   }
   .head h1 {
     order: 1;
@@ -707,12 +714,11 @@
     order: 4;
     margin-top: 20px;
   }
+  /* the tagline leads on a phone too: what Ansatz is, before the Moon headline */
   .tagline {
-    order: 5;
-    margin-top: 28px;
-    font-size: 16px;
-    color: var(--plate-ink);
-    font-weight: 600;
+    order: 0;
+    margin-bottom: 8px;
+    font-size: 15px;
   }
   .lede {
     order: 6;
@@ -843,4 +849,51 @@
     color: #8b929b;
     margin-bottom: 2px;
   }
+}
+
+/* the two-row scoreboard beside the headline */
+.score {
+  margin-block: 0;
+  display: grid;
+  border-top: 1px solid #2c3036;
+  font-family: var(--font);
+}
+
+.score div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid #2c3036;
+}
+
+.score dt {
+  font-size: 14px;
+  color: #a9afb7;
+}
+
+.score dd {
+  margin: 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 650;
+  font-variation-settings: "wdth" 90;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #e9ebe6;
+  font-variant-numeric: tabular-nums;
+}
+
+.score dd span {
+  margin-left: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: #a9afb7;
+}
+
+.scoreWin dd {
+  color: #8fa0ff;
+}
+
+.score + .cta {
+  margin-top: 22px;
 }

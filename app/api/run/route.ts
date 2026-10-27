@@ -1,11 +1,12 @@
 import { crossOrigin, sameOrigin } from "@/lib/origin";
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
-import { addClassRun, useClassRun } from "@/lib/classes";
+import { addClassRun, JUDGES_CODE, judgesKeyOk, useClassRun } from "@/lib/classes";
 import { addSeriesRun } from "@/lib/series";
-import { addSpend, checkAndCount, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
+import { addSpend, checkAndCount, countJudgeRun, DAILY_USD, JUDGES_DAILY_USD, spentToday, visitorOf, type SpendLedger } from "@/lib/limits";
 import { Ledger } from "@/lib/meta/client";
 import { getObject, objectSize, putObject, updateJson } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
+import { LITE_TYPES, type LiteType } from "@/lib/lite";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,17 @@ const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spa
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; student?: string; series?: string };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; k?: string; student?: string; series?: string; lite?: { type?: string } };
+
+/** The judges' passphrase from the page that sent the run (/new?class=…&k=…), when the form doesn't send it itself. */
+function keyFromReferer(req: Request): string | null {
+  try {
+    const u = new URL(req.headers.get("referer") ?? "");
+    return u.host === new URL(req.url).host ? u.searchParams.get("k") : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
@@ -26,21 +37,32 @@ export async function POST(req: Request) {
     return Response.json({ error: "Send JSON." }, { status: 400 });
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
+  // lite mode: the person says what kind of experiment it is and what moves, and no Muse model is called
+  const lite = body.lite && (LITE_TYPES as readonly string[]).includes(String(body.lite.type)) ? { type: body.lite.type as LiteType } : undefined;
+  if (body.lite && (!lite || !body.noun?.trim())) return Response.json({ error: "Lite mode needs the kind of experiment and the name of the moving thing." }, { status: 400 });
   const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
   const claimKey = `claims/${body.key.replace(/^uploads\//, "")}.json`;
   const already = () => Response.json({ error: "That upload has already been run. Upload the clip again to run it again." }, { status: 409 });
   // each upload runs once: a replayed key can't spend the day's runs. Looked at first without taking it, so a refused run
   // (below) leaves the upload to be tried again
   if (await getObject(claimKey).catch(() => null)) return already();
+  const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
+  // the judges' lane needs its passphrase as well as its code, and spends its own dollar reserve, not the site's
+  const judges = classCode === JUDGES_CODE;
+  if (judges && !admin && !judgesKeyOk(typeof body.k === "string" ? body.k : keyFromReferer(req)))
+    return Response.json({ error: "The judges’ lane needs the full link from the hackathon’s testing instructions (it ends in &k=…). The recorded runs on /new need no link." }, { status: 403 });
+  const spend: SpendLedger = judges ? "judges" : "site";
   // a ceiling on what a day can spend, whatever the counts say
-  if (!admin && (await spentToday()) >= DAILY_USD) return Response.json({ error: "Ansatz has spent today's allowance of Meta credits. The limit resets at midnight UTC; the showcase experiments are always open." }, { status: 429 });
+  if (!admin && (await spentToday(spend)) >= (judges ? JUDGES_DAILY_USD : DAILY_USD))
+    return Response.json({ error: judges ? "The judges’ lane has spent today’s reserve of Meta credits. It resets at midnight UTC; the recorded runs on /new are always open." : "Ansatz has spent today's allowance of Meta credits. The limit resets at midnight UTC; the showcase experiments are always open." }, { status: 429 });
   // look at the size before downloading anything
   const size = await objectSize(body.key).catch(() => null);
   if (size === null) return Response.json({ error: "The upload didn't arrive. Try again." }, { status: 404 });
   if (!(size <= 200 * 1024 * 1024)) return Response.json({ error: "That clip is over 200 MB. Trim it to the motion." }, { status: 413 });
-  // a class link spends the class's own quota; everyone else is limited per visitor and per day
-  const classCode = typeof body.class === "string" && body.class ? body.class.toLowerCase() : null;
-  const gate = classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
+  // a class link spends the class's own quota; the judges' lane also counts runs per connection; everyone else is
+  // limited per visitor and per day
+  const lane = judges ? await countJudgeRun(visitorOf(req), admin) : ({ ok: true } as const);
+  const gate = !lane.ok ? lane : classCode ? await useClassRun(classCode) : await checkAndCount(visitorOf(req), admin);
   if (!gate.ok) return Response.json({ error: gate.why }, { status: 429 });
   // the claim is taken only once the gates have passed, in one conditional write
   const claimed = await updateJson<{ at: string } | null>(claimKey, null, (c) => (c ? null : { at: new Date().toISOString() })).catch(() => null);
@@ -89,6 +111,7 @@ export async function POST(req: Request) {
             sample: body.sample === true,
             ledger,
             language: LANGS.includes(String(body.language)) ? String(body.language) : undefined,
+            lite,
             hints: {
               noun: body.noun?.trim().slice(0, 60) || undefined,
               slowMotion: body.slowMotion && body.slowMotion > 1 && body.slowMotion <= 64 ? body.slowMotion : undefined,
@@ -126,7 +149,7 @@ export async function POST(req: Request) {
           /* closed by the watchdog */
         }
         // whatever the run spent counts against the day, whether it finished or threw
-        await addSpend(ledger.usd).catch(() => {});
+        await addSpend(ledger.usd, spend).catch(() => {});
       }
     },
   });

@@ -34,7 +34,7 @@
 .splitTag {
   font-family: var(--font);
   position: absolute;
-  transform: translate(-50%, calc(-100% - 28px));
+  transform: translate(-50%, -50%);
   display: flex;
   gap: 1px;
   font-size: 12px;
@@ -57,6 +57,61 @@
   background: #e9ebe6;
   color: var(--plate);
   border-radius: 0 3px 3px 0;
+}
+
+/* the layout switch over a chronophotograph: spread by time, or every exposure where it really was */
+.modes {
+  font-family: var(--font);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.modes button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 4px 11px;
+  cursor: pointer;
+}
+
+.modes button:first-of-type {
+  border-radius: 999px 0 0 999px;
+}
+
+.modes button:nth-of-type(2) {
+  border-radius: 0 999px 999px 0;
+  margin-left: -1px;
+}
+
+.modes button[aria-pressed="true"] {
+  background: var(--plate);
+  border-color: var(--plate);
+  color: var(--plate-ink);
+}
+
+.modeNote {
+  color: var(--ink-3);
+  margin-left: 8px;
+  line-height: 1.35;
+}
+
+/* the chronophotograph: time runs left to right, labelled under the plate */
+.tick {
+  font-family: var(--font);
+  position: absolute;
+  bottom: 9px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #8b929b;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  line-height: 1;
 }
 
 .caption {
@@ -89,5 +144,21 @@
 @media (max-width: 560px) {
   .splitTag {
     font-size: 10.5px;
+  }
+  .modeNote {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .frame img {
+    animation: develop 0.35s ease-out;
+  }
+}
+
+@keyframes develop {
+  from {
+    opacity: 0.4;
   }
 }

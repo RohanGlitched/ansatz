@@ -71,7 +71,7 @@ export const OBS_SCHEMA = {
         real_length_m: { type: "number", description: "Its real length in metres along `dimension` (0 if not present)." },
         dimension: { type: "string", enum: ["longest side", "shortest side"] },
         basis: { type: "string", description: "Why that length: a standard (A4 is 0.297 m), a label in view, or what the narrator said." },
-        relative_uncertainty: { type: "number", description: "How well that length is known, as a fraction: 0.003 for an A4 sheet, 0.02 for a sports ball, 0.05 for a person's height, 0.1 for a rough guess." },
+        relative_uncertainty: { type: "number", description: "How well that length is known, as a fraction: 0.06 for a plain sheet of paper (it could be A4 or US Letter), 0.003 only for a sheet labelled or said to be A4, 0.02 for a sports ball, 0.05 for a person's height, 0.1 for a rough guess." },
       },
     },
     stated_facts: {
@@ -109,6 +109,25 @@ export const OBS_SCHEMA = {
   },
 };
 
+/**
+ * The rulers a person can pick on /new, with how well each standard is known: the uncertainty comes with the preset,
+ * not from the model. An A4 sheet the person named is A4 (ISO 216, ±1 mm on 297 mm); a bank card is ISO/IEC 7810 ID-1
+ * (85.60 mm, about ±0.2 mm in practice); a tennis ball 6.54 to 6.86 cm (ITF), a cricket ball 7.13 to 7.29 cm (MCC); a
+ * metre stick to a millimetre. A plain sheet nobody named is 0.06 (it could be US Letter): that one is the observer's call.
+ */
+export const RULER_PRESETS = [
+  { noun: "white A4 sheet of paper", metres: 0.297, rel: 0.003 },
+  { noun: "credit card", metres: 0.0856, rel: 0.003 },
+  { noun: "tennis ball", metres: 0.067, rel: 0.025 },
+  { noun: "cricket ball", metres: 0.072, rel: 0.012 },
+  { noun: "metre stick", metres: 1.0, rel: 0.002 },
+] as const;
+
+/** The uncertainty of a ruler the person picked from the presets (matched by name and length); undefined otherwise. */
+export function presetUncertainty(noun: string, metres: number): number | undefined {
+  return RULER_PRESETS.find((p) => p.noun.toLowerCase() === noun.trim().toLowerCase() && Math.abs(p.metres - metres) < 1e-6)?.rel;
+}
+
 /** How a model sees the clip: every frame at its native rate, up to 300 frames, so it can time motion as well as look. */
 export function videoPart(fileId: string, nativeFps: number, durationS: number) {
   const fps = Math.max(1, Math.min(nativeFps || 30, 300 / Math.max(0.5, durationS)));
@@ -119,9 +138,9 @@ export async function observe(fileId: string, narration: string, ledger: Ledger,
   const vid = videoPart(fileId, nativeFps, durationS);
   const prompt = [
     `You are the observing scientist in a physics lab. Watch this ${durationS.toFixed(1)} s clip. Another model will track the moving object frame by frame and fit equations of motion to it, so your job is to say WHAT to track, WHEN the free motion happens, and WHAT is known for certain.`,
-    narration ? `The person filming said (transcribed, may be Hindi, English or mixed):\n"""${narration.slice(0, 3000)}"""` : "There is no narration.",
+    narration ? `The person filming said (transcribed; each line starts with its time in the clip, in seconds; may be any of seven languages, or mixed):\n"""${narration.slice(0, 3000)}"""` : "There is no narration.",
     "Read any on-screen text too (captions often state the slow-motion factor, frame rate or lengths). If a standard object (an A4 sheet, a tennis ball, a door) can serve as a ruler, give its usual size and say it is an estimate.",
-    "Rulers: people are asked to tape a sheet of paper to the wall or lay a metre stick down, so take such objects at their standard size rather than declining them. A plain sheet of white paper is A4 (0.297 m long side; say relative_uncertainty 0.06, since it could be US Letter, 0.279 m); a banded stick is a metre stick (1.0 m) only when the scene around it fits that size (a table, a person, a doorway); in a close-up of a small object it is more likely a 15 or 30 cm ruler, so judge its length from the objects around it, and set relative_uncertainty to 0.3 if you can't tell. Decline a ruler only when nothing of standard size is in the plane of the motion. A ruler matters even when the object falls freely: comparing it with the fall is how a slowed-down clip gets caught.",
+    "Rulers: people are asked to tape a sheet of paper to the wall or lay a metre stick down, so take such objects at their standard size rather than declining them. A plain sheet of white paper is A4 (0.297 m long side; say relative_uncertainty 0.06, since it could be US Letter, 0.279 m; only a sheet labelled A4, or one the narrator calls A4, gets 0.003); a banded stick is a metre stick (1.0 m) only when the scene around it fits that size (a table, a person, a doorway); in a close-up of a small object it is more likely a 15 or 30 cm ruler, so judge its length from the objects around it, and set relative_uncertainty to 0.3 if you can't tell. Decline a ruler only when nothing of standard size is in the plane of the motion. A ruler matters even when the object falls freely: comparing it with the fall is how a slowed-down clip gets caught.",
   ].join("\n\n");
   const { value, raw } = await respondJson<Observation>(
     {
@@ -339,68 +358,103 @@ export const WONDER_TOOLS = [
 
 export type WonderAttempt = { title: string; ok: boolean; trainRms?: number; error?: string };
 
+/** One theorist turn as stored: Muse Wonder's reasoning summary and any text it wrote, and the one tool call code ran. */
+export type WonderTurn = { turn: number; reasoning: string; text?: string; tool?: "fit_law" | "submit_law"; law?: string; ignored?: number };
+
+/** Muse Wonder's reasoning effort: medium unless WONDER_EFFORT says otherwise. */
+export const WONDER_EFFORT = () => process.env.WONDER_EFFORT || "medium";
+
+/** The key under which a fit_law result may carry its residual plot (a PNG); it is shown to Muse Wonder as an image, never as JSON. */
+export const WONDER_PLOT = "__residual_plot_png";
+
+/** The reasoning summary of a response, when the API returned one (it is optional output). */
+export function reasoningSummary(j: { output?: unknown[] }) {
+  return ((j.output ?? []) as { type: string; summary?: { text?: string }[]; content?: { type?: string; text?: string }[] }[])
+    .filter((o) => o.type === "reasoning")
+    .flatMap((o) => [...(o.summary ?? []).map((s) => s.text ?? ""), ...(o.content ?? []).filter((c) => c.type === "reasoning_text" || c.type === "summary_text").map((c) => c.text ?? "")])
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 /**
  * Muse Wonder as an agentic theorist: it can try laws with a fit_law tool (fitted to the fitted frames only;
  * the held-out errors are never returned) and iterate before it submits one. The submitted law then competes
- * on the frames nobody has seen, like every other candidate.
+ * on the frames nobody has seen, like every other candidate. One tool call per turn, enforced here (the API's
+ * parallel_tool_calls: false is a request, not a guarantee): any further call in a turn is answered "not run".
+ * Each attempt's residual plot, when the fitter drew one, is shown to it as an image on its next turn.
  */
 export async function reviseAgentic(
   obs: Observation,
   board: unknown,
   idea: string,
-  fit: (law: Law) => Record<string, unknown>,
+  fit: (law: Law) => Record<string, unknown> | Promise<Record<string, unknown>>,
   ledger: Ledger,
   model = MODELS.revise,
   maxTurns = 6,
   deadline = Infinity,
-): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean }> {
+): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean; turns: WonderTurn[] }> {
+  const tries = Math.max(0, maxTurns - 1);
   const text = [
     "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion; the rest is held back to test them and you will not see it. The law code chose (named in the table) is thought to miss a physical effect.",
     `Why you were called in: ${idea}`,
     `Experiment: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body}.`,
     `Table of fits (fitted frames only, smallest miss first):\n${JSON.stringify(board, null, 1)}`,
     METHOD,
-    "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test.",
+    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
   ].join("\n\n");
   const tools = WONDER_TOOLS;
   const attempts: WonderAttempt[] = [];
+  const turns: WonderTurn[] = [];
   // the best law it tried, by its fit to the seen frames: submitted for it if the turns run out first
   let best: { law: Law; rms: number } | null = null;
-  const fallback = () => ({ law: best?.law ?? null, attempts, auto: !!best });
+  const fallback = () => ({ law: best?.law ?? null, attempts, auto: !!best, turns });
   let prev: string | undefined;
   let input: unknown = [{ role: "user", content: [{ type: "input_text", text }] }];
   for (let turn = 0; turn < maxTurns; turn++) {
     // out of time: the best law tried so far goes forward rather than the run overrunning
     if (Date.now() > deadline) break;
     const raw = await respond(
-      { model, reasoning: { effort: process.env.WONDER_EFFORT ?? "low" }, max_output_tokens: 16000, tools, parallel_tool_calls: false, input, ...(prev ? { previous_response_id: prev } : {}) },
+      { model, reasoning: { effort: WONDER_EFFORT(), summary: "concise" }, max_output_tokens: 16000, tools, parallel_tool_calls: false, input, ...(prev ? { previous_response_id: prev } : {}) },
       ledger,
       `theorist turn ${turn + 1}`,
     );
     prev = raw.id;
     const calls = (raw.output ?? []).filter((o) => (o as { type: string }).type === "function_call") as unknown as { name: string; arguments: string; call_id: string }[];
+    const said = outputText(raw).trim();
+    const record: WonderTurn = { turn: turn + 1, reasoning: reasoningSummary(raw), ...(said ? { text: said.slice(0, 4000) } : {}) };
+    turns.push(record);
     if (!calls.length) {
-      const loose = parseJsonLoose<WireLaw>(outputText(raw));
-      return loose && loose.state ? { law: fromWire(loose), attempts } : fallback();
+      const loose = parseJsonLoose<WireLaw>(said);
+      return loose && loose.state ? { law: fromWire(loose), attempts, turns } : fallback();
     }
     const outputs: unknown[] = [];
-    for (const c of calls) {
-      let wire: WireLaw | null = null;
-      try {
-        wire = JSON.parse(c.arguments) as WireLaw;
-      } catch {
-        outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify({ error: "arguments were not valid JSON" }) });
-        continue;
-      }
-      if (c.name === "submit_law") return { law: fromWire(wire), attempts };
+    const images: unknown[] = [];
+    // only the first call of a turn runs; every other call_id still needs an answer
+    const [c, ...extra] = calls;
+    if (extra.length) record.ignored = extra.length;
+    let wire: WireLaw | null = null;
+    try {
+      wire = JSON.parse(c.arguments) as WireLaw;
+    } catch {
+      outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify({ error: "arguments were not valid JSON" }) });
+    }
+    if (wire) {
+      record.tool = c.name === "submit_law" ? "submit_law" : "fit_law";
+      record.law = wire.title;
+      if (c.name === "submit_law") return { law: fromWire(wire), attempts, turns };
       let result: Record<string, unknown>;
       try {
-        result = fit(fromWire(wire));
+        result = await fit(fromWire(wire));
       } catch (e) {
         result = { ok: false, error: (e as Error).message };
       }
+      const plot = result[WONDER_PLOT];
+      delete result[WONDER_PLOT];
       attempts.push({ title: wire.title, ok: !!result.ok, trainRms: typeof result.train_rms === "number" ? result.train_rms : undefined, error: typeof result.error === "string" ? result.error : undefined });
       outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify(result) });
+      if (plot instanceof Uint8Array)
+        images.push({ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(plot).toString("base64")}` }, { type: "input_text", text: `The misses of “${wire.title}” on the fitted frames (law minus measurement, in units of the measurement noise) against time; the dashed band is ±1 noise.` });
       const rms = typeof result.train_rms === "number" ? result.train_rms : Infinity;
       if (result.ok && Number.isFinite(rms) && (!best || rms < best.rms)) {
         try {
@@ -410,8 +464,10 @@ export async function reviseAgentic(
         }
       }
     }
+    for (const x of extra) outputs.push({ type: "function_call_output", call_id: x.call_id, output: JSON.stringify({ error: "not run: one tool call per turn; send it again on your next turn" }) });
     // say so before the last turn, so the theorist chooses rather than runs out
-    if (turn === maxTurns - 2) outputs.push({ role: "user", content: [{ type: "input_text", text: "Your next turn is the last: call submit_law with the one law to test." }] });
+    const last = turn === maxTurns - 2 ? [{ type: "input_text", text: "Your next turn is the last: call submit_law with the one law to test." }] : [];
+    if (images.length || last.length) outputs.push({ role: "user", content: [...images, ...last] });
     input = outputs;
   }
   return fallback();

@@ -6,6 +6,7 @@
  */
 import type { Track } from "./meta/sam";
 import { measure } from "./measure";
+import { median } from "./median";
 
 /** y = c0 + c1 τ + c2 τ² (τ = t − mean t) by least squares; a = 2 c2 with its ordinary (white-noise) 1σ. */
 export function quad(t: number[], y: number[]) {
@@ -120,7 +121,7 @@ export type JumpFit = {
 export function glitches(t: number[], ypx: number[]): number[] {
   const q = quad(t, ypx);
   const abs = q.res.map(Math.abs).sort((a, b) => a - b);
-  const robust = 1.4826 * abs[abs.length >> 1];
+  const robust = 1.4826 * median(abs);
   return q.res.map((r, i) => (Math.abs(r) > Math.max(3, 6 * robust) ? i : -1)).filter((i) => i >= 0);
 }
 

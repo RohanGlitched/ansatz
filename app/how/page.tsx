@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Tex from "@/components/Tex";
+import PipelineBand from "@/components/PipelineBand";
 import { getExperiment } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
 import styles from "./how.module.css";
@@ -68,9 +69,15 @@ export default async function HowPage() {
         referee: moon.critique?.why_it_won ? <blockquote className={styles.specQuote}>“{moon.critique.why_it_won}”</blockquote> : null,
         clockCheck: mt ? (
           <>
-            <p className={styles.specBig}>{Math.sqrt(mt.rows[0].g / mt.rows[1].g).toFixed(2)}× slow</p>
+            {mt.sameJump ? (
+              <p className={styles.specBig}>
+                {mt.sameJump.combined.ratio.toFixed(3)} ± {mt.sameJump.combined.sigma.toFixed(3)}× slow
+              </p>
+            ) : (
+              <p className={styles.specBig}>{Math.sqrt(mt.rows[0].g / mt.rows[1].g).toFixed(2)}× slow</p>
+            )}
             <p>
-              The same clip slowed 1.5× in secret: gravity came out {mt.rows[1].g.toFixed(2)} m/s² against {mt.rows[0].g.toFixed(2)}, and the square root of the ratio is the slowdown.
+              The same clip slowed {moon.extras?.speedTest?.truth ?? 1.5}× in secret{mt.sameJump ? ", measured jump for jump: each fall in the copy against the same fall in the broadcast" : ""}. Gravity as played came out {mt.rows[1].g.toFixed(2)} m/s² against {mt.rows[0].g.toFixed(2)}; the square root of that ratio, {Math.sqrt(mt.rows[0].g / mt.rows[1].g).toFixed(2)}×, is the whole-run ratio.
             </p>
           </>
         ) : null,
@@ -84,21 +91,22 @@ export default async function HowPage() {
           <p className="lede" style={{ marginTop: 16 }}>
             An <em>ansatz</em> is a physicist’s educated guess at the form of a law, made before the data decides. Ansatz automates the whole loop: look, measure, guess, test, and say honestly what was given and what was found. Beside each step, what it produced on one real run: <Link href="/x/moon-jump">John Young’s jump on the Moon</Link>.
           </p>
+          {moon && <PipelineBand e={moon} anchors={{ clip: "#clip", mask: "#measure", slit: "#measure", laws: "#propose", race: "#fit", verdict: "#referee" }} />}
         </div>
       </header>
 
       <section className={`wrap ${styles.steps}`}>
-        <Step n="1" spec={spec?.clock} title="The clip and its clock" who="ffmpeg, the MP4 sample table">
+        <Step n="1" id="clip" spec={spec?.clock} title="The clip and its clock" who="ffmpeg, the MP4 sample table">
           <p>
             Every clip is re-encoded once to H.264 at most 1280 pixels wide, keeping every original frame and its timestamp. Phones record at variable frame rates, so “frame <Tex>{"i"}</Tex> happened at <Tex>{"i/30"}</Tex> s” can be off by whole frames. Ansatz reads each frame’s presentation time from the file’s own sample table (<code>stts</code> and <code>ctts</code>). The soundtrack is split off as 16 kHz WAV for Muse Voice Transcribe.
           </p>
         </Step>
-        <Step n="2" spec={spec?.watch} title="Watch and listen" who="Muse Spark 1.3, Muse Voice Transcribe">
+        <Step n="2" id="watch" spec={spec?.watch} title="Watch and listen" who="Muse Spark 1.3, Muse Voice Transcribe">
           <p>
             Muse Spark watches the whole clip, with Voice Transcribe’s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema, so every field arrives where code expects it.
           </p>
         </Step>
-        <Step n="3" spec={spec?.measure} title="Measure every frame" who="SAM 3.1">
+        <Step n="3" id="measure" spec={spec?.measure} title="Measure every frame" who="SAM 3.1">
           <p>
             SAM 3.1 tracks the named object through every frame of the motion window (at most 450 frames per call; faster clips keep one frame in <Tex>{"k"}</Tex>, with true timestamps). Each mask is reduced to the numbers physics needs: its centroid from first moments, to a fraction of a pixel; its orientation and axes from second moments; and its true extent along those axes. On rendered clips with known positions the median centroid error is about half a pixel. For a person in flight Ansatz follows the top of the mask (the head), which a waving arm can’t drag around.
           </p>
@@ -106,7 +114,7 @@ export default async function HowPage() {
             The scale comes from a ruler in view (its mask’s length), from the narration, or, for a body flying freely on Earth, from gravity itself: a parabola fitted to the fall in pixels per second squared, set equal to <Tex>{"9.81\\,\\mathrm{m/s^2}"}</Tex>. A pendulum needs no ruler: its angle is measured about a pivot found by fitting a circle to the path.
           </p>
         </Step>
-        <Step n="4" spec={spec?.propose} title="Propose laws" who="Muse Spark 1.3">
+        <Step n="4" id="propose" spec={spec?.propose} title="Propose laws" who="Muse Spark 1.3">
           <p>
             Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; no number from the last 30% reaches any model; the observer in step 2 watches the whole clip to describe it, but never sees a measurement) and writes two to four candidate laws as initial-value problems in a small equation language:
           </p>
@@ -117,17 +125,17 @@ export default async function HowPage() {
             Each law names its state, its derivatives, its parameters with units and bounds, the measured channels it predicts, and any instantaneous events (a bounce: when <Tex>{"y = y_\\text{floor}"}</Tex>, <Tex>{"\\dot{y} \\to -e\\,\\dot{y}"}</Tex>). The language is parsed and compiled by Ansatz, never evaluated as code: a law that names a symbol it didn’t define is rejected before it runs. Textbook laws (a vacuum projectile, a small-angle pendulum) always compete as controls.
           </p>
         </Step>
-        <Step n="5" spec={spec?.fit} title="Fit, then predict what was never seen" who="code: RK4, Levenberg–Marquardt">
+        <Step n="5" id="fit" spec={spec?.fit} title="Fit, then predict what was never seen" who="code: RK4, Levenberg–Marquardt">
           <p>
             Each law is integrated with fourth-order Runge–Kutta, with impact events located inside the step, and fitted by Levenberg–Marquardt from several starting points to the first 70% of the motion, residuals weighted by each channel’s measured noise (from third differences of the track). Then it predicts the last 30%. Each law is ranked by the worse of its two misses, the seen frames and the unseen ones, in units of the noise: predicting the future is the test, but a law that can’t describe the frames it was fitted to hasn’t explained the motion. Laws that both stay within the noise, or within 10% of each other, tie, and the one with fewer parameters wins; the order doesn’t depend on the order the laws arrived in. A law whose fitted parameter is pressed against its bound ranks after every law that measured all of its parameters. Uncertainties come from the fit’s covariance plus the ruler’s own uncertainty, carried by each parameter’s power of metres.
           </p>
         </Step>
-        <Step n="6" spec={spec?.referee} title="Referee, and a theorist with a tool" who="Muse Spark 1.3, Muse Wonder 1.0">
+        <Step n="6" id="referee" spec={spec?.referee} title="Referee, and a theorist with a tool" who="Muse Spark 1.3, Muse Wonder 1.0">
           <p>
             Muse Spark reads the ranking, the residuals binned in time and a plot of the leading laws’ misses, all over the fitted frames (never the held-out errors, so a revision can’t be tuned to the test). If the winner drifts in a way that points to a missing effect, or misses even the frames it was fitted to by more than six times the noise, Muse Wonder steps in as an agent with a fitting tool: it tries laws on the seen frames, reads their residuals, and submits one, which is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.
           </p>
         </Step>
-        <Step n="7" spec={spec?.clockCheck} title="The clock check" who="code">
+        <Step n="7" id="clock-check" spec={spec?.clockCheck} title="The clock check" who="code">
           <p>
             When a ruler makes gravity a measurement rather than an assumption, a result far from the planet’s gravity says the clip’s clock isn’t real time. Gravity scales with the square of time, so a <Tex>{"g"}</Tex> eighteen times too weak means the clip plays about <Tex>{"\\sqrt{18} \\approx 4.2"}</Tex> times slower than life.
           </p>
@@ -184,9 +192,9 @@ export default async function HowPage() {
   );
 }
 
-function Step({ n, title, who, spec, children }: { n: string; title: string; who: string; spec?: React.ReactNode; children: React.ReactNode }) {
+function Step({ n, id, title, who, spec, children }: { n: string; id: string; title: string; who: string; spec?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className={styles.step}>
+    <section className={styles.step} id={id}>
       <p className={styles.n}>{n}</p>
       <div>
         <h2 className={styles.stepTitle}>{title}</h2>

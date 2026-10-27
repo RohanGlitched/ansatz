@@ -1,11 +1,11 @@
 import { csvNum, csvText } from "@/lib/csv";
 import { getExperiment, winnerOf } from "@/lib/experiments";
+import { fmtParam, fmtSig } from "@/lib/format";
 
 export const runtime = "nodejs";
 
 // a comment line never spans two lines, whatever a title or a meaning contains, and no field after a comma opens as a formula
 const one = (s: string) => s.replace(/[\r\n]+/g, " ").replace(/,(\s*)([=+\-@\t])/g, ",$1'$2");
-const sig2 = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(2)) : "");
 
 /** The experiment's data as CSV: every measured frame, the winning law's prediction, and which frames it was fitted on. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -23,10 +23,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const v = win.fit.theta[p.name], sg = win.fit.sigma[p.name];
     // no error bar when even the winner misses the unseen frames by far more than the noise
     const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
-    const val = p.fixed || !Number.isFinite(sg) ? `${v} (given)` : rough ? `about ${+v.toPrecision(3)} (no error bar: the law misses the unseen frames by ${+win.fit.testZ!.toPrecision(2)}x the noise)` : `${+v.toPrecision(6)} ± ${sig2(sg)}`;
+    // given (held fixed), not pinned down by the frames, rough, or measured: four different statements, kept apart
+    const val = !p.fixed && rough ? `about ${fmtSig(v, 3)} (no error bar: the law misses the unseen frames by ${fmtSig(win.fit.testZ!, 2)}x the noise)` : fmtParam(v, sg, p.fixed);
     lines.push(one(`# ${p.name} = ${val} ${p.unit ?? ""} : ${p.meaning ?? ""}`.trimEnd()));
   }
-  lines.push(`# scale: ${e.measured.calibration.metresPerPixel} m per pixel (${e.measured.calibration.kind})`);
+  const cal = e.measured.calibration;
+  lines.push(cal.kind === "none" || !(cal.metresPerPixel > 0) ? "# scale: none (lengths in pixels)" : `# scale: ${fmtSig(cal.metresPerPixel, 4)} m per pixel (${cal.kind})`);
   lines.push(`# fitted on the first ${nFit} of ${s.t.length} frames; the rest were predicted unseen`);
   lines.push(["t_s", "x_px", "y_px", ...chans.map((c) => `${c}_measured`), ...chans.map((c) => `${c}_law`), "split"].map(csvText).join(","));
   for (let i = 0; i < s.t.length; i++) {

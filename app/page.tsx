@@ -4,6 +4,7 @@ import StrobePlate from "@/components/StrobePlate";
 import Tex from "@/components/Tex";
 import MoonHero from "@/components/MoonHero";
 import StripCard from "@/components/StripCard";
+import MoonPairCard from "@/components/MoonPairCard";
 import { slitOf } from "@/components/strip";
 import { getExperiment, plateData, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
@@ -23,6 +24,8 @@ export default async function Home() {
   const hero = exps.find((e) => e.id === (process.env.HERO_ID ?? "beach-ball-drag")) ?? exps[0];
   const heroWin = hero ? winnerOf(hero) : null;
   const moon = exps.find((e) => e.id === "moon-jump");
+  // plates 1 and 2 (the broadcast and its slowed copy) merge into one A/B card when both strips and the same-jump test exist
+  const pair = moon?.extras?.memoryTest?.sameJump && slitOf("moon-jump-slowed") ? exps.find((e) => e.id === "moon-jump-slowed") ?? null : null;
   const recent = await recentExperiments().catch(() => []);
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   // one real run, shown step by step in the method section
@@ -81,7 +84,7 @@ export default async function Home() {
             <li>
               <span className={styles.step}>Observe</span>
               <h3>Watch and listen</h3>
-              <p>Muse Voice Transcribe hears what you said while filming, in English, Hindi or both; Muse Spark watches the clip, reads its captions and that transcript. Out comes what moves, when, what is known, and whether the clip is slowed down.</p>
+              <p>Muse Voice Transcribe hears what you said while filming, in any of seven languages; Muse Spark watches the clip, reads its captions and that transcript. Out comes what moves, when, what is known, and whether the clip is slowed down.</p>
               <p className={styles.model}>Muse Spark 1.3 and Muse Voice Transcribe</p>
               {spec && <blockquote className={styles.specimen}>“{spec.observation.what_happens.split(". ")[0]}.”</blockquote>}
             </li>
@@ -185,17 +188,25 @@ export default async function Home() {
             Real clips and clips with known answers, each one measured, theorised and tested end to end. Open one to see every candidate law, the frames it never saw, and what each model call cost.
           </p>
           <div className={styles.gallery}>
-            {exps.map((e) => {
+            {exps.filter((e) => !(pair && e.id === pair.id)).map((e) => {
               const w = winnerOf(e);
+              // the broadcast and its secretly slowed copy share one A/B plate, on one clock
+              const ab = pair && e.id === "moon-jump" ? pair : null;
+              const sj = ab ? e.extras?.memoryTest?.sameJump?.combined : null;
+              const g = e.comparisons.find((c) => c.param === "g");
               return (
-                <Link key={e.id} href={`/x/${e.id}`} className={styles.card}>
-                  {slitOf(e.id) ? <StripCard e={e} /> : <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />}
+                <Link key={e.id} href={ab ? `/x/${e.id}#same-jump` : `/x/${e.id}`} className={styles.card}>
+                  {ab ? <MoonPairCard a={e} b={ab} /> : slitOf(e.id) ? <StripCard e={e} /> : <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />}
                   <div className={styles.cardBody}>
-                    <p className={styles.cardTitle}>{e.title}</p>
+                    <p className={styles.cardTitle}>{ab ? "Apollo 16: the broadcast (A) and a copy slowed in secret (B)" : e.title}</p>
                     <div className={styles.cardEq}>
                       <Tex>{lawLatex(w.law)[lawLatex(w.law).length > 1 ? 1 : 0] ?? ""}</Tex>
                     </div>
-                    <p className={styles.cardFinding}>{e.headline ?? e.finding}</p>
+                    <p className={styles.cardFinding}>
+                      {ab && sj && g
+                        ? `From the broadcast, the Moon’s gravity: ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s². The copy runs ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower, jump for jump${e.extras?.speedTest?.truth ? ` (truth ${e.extras.speedTest.truth}×)` : ""}.`
+                        : (e.headline ?? e.finding)}
+                    </p>
                     <p className="small">{e.source.credit}</p>
                   </div>
                 </Link>

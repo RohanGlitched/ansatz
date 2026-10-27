@@ -170,6 +170,9 @@ export function compileLaw(law: Law): CompiledLaw {
           fired.push({ t, name: events[e].name });
           // nudge so the guard re-arms only after it becomes positive again
           prevG[e] = Math.max(events[e].when(scope), 0) || 0;
+          // every other guard is read again at the event's instant, after the update: the loop stops here, and a guard
+          // left at its value from the step before would fire (or miss) on a crossing it never saw
+          for (let o = 0; o < events.length; o++) if (o !== e) prevG[o] = events[o].when(scope);
           void pre;
           break;
         }
@@ -325,6 +328,11 @@ function clampTo(p: ParamSpec, v: number) {
   return Math.min(p.max ?? Infinity, Math.max(p.min ?? -Infinity, v));
 }
 
+/** How many of N samples a law is fitted to (the first `frac` of them); the rest are held out. measure() seals the same split. */
+export function splitIndex(N: number, frac = 0.7) {
+  return Math.max(3, Math.min(N - 1, Math.round(N * frac)));
+}
+
 function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
   const fail = (why: string): Fit => ({ lawId: law.id, ok: false, why, theta: {}, sigma: {}, trainCost: Infinity, trainRms: Infinity, testRms: Infinity, testMax: Infinity, bic: Infinity, n: 0, k: 0, iterations: 0, events: [], predicted: {} });
   let c: CompiledLaw;
@@ -336,9 +344,10 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
   const chans = Object.keys(law.observe).filter((k) => data.ch[k]);
   if (!chans.length) return fail(`the law observes ${Object.keys(law.observe).join(", ")}, none of which were measured`);
   const N = data.t.length;
-  const split = Math.max(3, Math.min(N - 1, Math.round(N * (opts.trainFrac ?? 0.7))));
+  const split = splitIndex(N, opts.trainFrac ?? 0.7);
   const trainT = data.t.slice(0, split);
-  const w = Object.fromEntries(chans.map((k) => [k, 1 / noiseScale(data.ch[k], data.t)]));
+  // each channel's noise unit from the fitted frames only: the held-out frames must not set the yardstick they are judged by
+  const w = Object.fromEntries(chans.map((k) => [k, 1 / noiseScale(data.ch[k].slice(0, split), trainT)]));
   const free = law.params.filter((p) => !p.fixed);
   const lo = c.free.map((_, i) => (i < free.length ? free[i].min ?? -Infinity : -Infinity));
   const hi = c.free.map((_, i) => (i < free.length ? free[i].max ?? Infinity : Infinity));
@@ -365,9 +374,10 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
   let cost = ss(r);
   let lambda = 1e-3;
   const P = theta.length;
-  let iter = 0;
+  let iter = 0, iterations = 0;
   let J: number[][] = [];
   for (; iter < (opts.maxIter ?? 120); iter++) {
+    iterations = iter + 1;
     // numeric Jacobian
     J = r.map(() => new Array(P).fill(0));
     for (let j = 0; j < P; j++) {
@@ -392,7 +402,7 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
         theta = cand; r = rc; cost = ss(rc);
         lambda = Math.max(lambda / 3, 1e-12);
         improved = true;
-        if (rel < 1e-10) iter = 1e9; // converged
+        if (rel < 1e-10) iter = Infinity; // converged (the count of steps taken is kept in `iterations`)
         break;
       }
       lambda *= 8;
@@ -444,7 +454,7 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
     bic: n * Math.log(cost / n) + k * Math.log(n),
     n,
     k,
-    iterations: Math.min(iter, 9999),
+    iterations,
     events: full.events,
     predicted: full.obs,
     cov: { method, rho: main.cv.rho, ...(main.cv.lag !== undefined ? { lag: main.cv.lag } : {}), ...(main.cv.whiteShare !== undefined ? { whiteShare: main.cv.whiteShare } : {}) },

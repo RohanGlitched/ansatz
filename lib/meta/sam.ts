@@ -136,6 +136,47 @@ export function parseSam(raw: string, noun: string, keepRle = true): Omit<SamRes
   return { width, height, tracks, frames: maxF + 1, raw };
 }
 
+/** Parses SAM's answer for one still image; every mask is given frame index `f` (the frame the still was cut from). */
+export function parseSamImage(raw: string, noun: string, f = 0): Omit<SamResult, "frames"> & { frames: number } {
+  const parser = formats.segmentation.image().createParser();
+  parser.push(raw, { emit: false });
+  const { result } = parser.finish({ status: "completed" });
+  let width = 0, height = 0;
+  const m = /;w=(\d+);h=(\d+)/.exec(raw);
+  if (m) { width = +m[1]; height = +m[2]; }
+  const tracks: Track[] = [];
+  for (const rec of result.records) {
+    if (rec.kind !== "mask") continue;
+    const mom = moments(rec);
+    if (mom) tracks.push({ id: rec.objectId, noun, samples: [{ f, ...mom, conf: rec.confidence }] });
+  }
+  return { width, height, tracks, frames: 1, raw };
+}
+
+/**
+ * Segments `noun` in one still frame with SAM 3.1's image mode (a PNG as a data URL): what a ruler that never moves
+ * needs, at $0.0025 an image, instead of a mask in every frame of the video.
+ */
+export async function segmentImage(png: Uint8Array, noun: string, ledger: Ledger | null, f = 0): Promise<SamResult> {
+  const clock = maskClock();
+  const res0 = await once(() =>
+    respondStreamText(
+      {
+        model: "sam-3.1",
+        input: [{ type: "message", role: "user", content: [{ type: "input_text", text: noun }, { type: "input_image", image_url: `data:image/png;base64,${Buffer.from(png).toString("base64")}` }] }],
+        metadata: { include_confidence: "true", mask_encoding: "one_bit" },
+      },
+      null,
+      `segment "${noun}" in a still`,
+      clock.onDelta,
+    ),
+  );
+  const res = parseSamImage(res0.text, noun, f);
+  const firstMaskMs = clock.first(res0);
+  ledger?.add({ model: "sam-3.1", purpose: `segment "${noun}" in one still frame (image mode)`, ms: res0.totalMs, firstMaskMs, totalMs: res0.totalMs, frames: 1, usd: PRICE.samImage });
+  return { ...res, timing: { firstMaskMs, totalMs: res0.totalMs } };
+}
+
 /** One mask as it streams in: enough to draw a dot while SAM is still working. */
 export type LiveMask = { f: number; cx: number; cy: number; id: string };
 

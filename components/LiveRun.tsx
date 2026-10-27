@@ -3,7 +3,7 @@
 import katex from "katex";
 import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import LiveStrip, { SLICE, type Geo, type RaceLaw } from "./LiveStrip";
-import { alignMeasure, clockOf, fmtMiss, linkObjects, missOf, pickSubject, samFrame } from "./liveStripMath";
+import { alignMeasure, clockOf, fmtMiss, fmtZ, linkObjects, missOf, pickSubject, samFrame, tiedScores, type Readout } from "./liveStripMath";
 import styles from "./LiveRun.module.css";
 
 export type LiveData = {
@@ -12,7 +12,8 @@ export type LiveData = {
   /** k: each point's frame in the tracked clip, when the stream carries it (replays do; a live run aligns them) */
   measure?: { width: number; height: number; px: [number, number][]; pivot: [number, number] | null; k?: number[] };
   laws?: { id: string; title: string; summary: string; latex: string[] }[];
-  board?: { id: string; title: string; origin: string; rank: number; miss: string; rel: number; latex: string[]; path: [number, number][] }[];
+  /** z: the ranking's score in noise units (the worse of the fitted and unseen misses), when the stream carries it */
+  board?: { id: string; title: string; origin: string; rank: number; miss: string; rel: number; z?: number; latex: string[]; path: [number, number][] }[];
   /** the clip's clock, read from the upload, observe and track steps */
   clock?: { fps?: number; window?: { start_s: number; end_s: number }; cut?: [number, number] };
   /** where the photo-finish is cut: a fixed column at x (straight-up motion), or riding on SAM's x */
@@ -42,7 +43,7 @@ function tex(s: string) {
  * What the experiment has found so far, on the dark plate: the clip with SAM's measurements on it, the photo-finish
  * strip it builds frame by frame, then the laws racing across the frames none of them saw.
  */
-function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; footer?: ReactNode }) {
+function LiveRun({ src, live, footer, readout }: { src: string | null; live: LiveData; footer?: ReactNode; /** the result in large type, once the run has ended */ readout?: Readout | null }) {
   const video = useRef<HTMLVideoElement>(null);
   const [duration, setDuration] = useState(0);
   const [vdim, setVdim] = useState<[number, number]>([0, 0]);
@@ -101,22 +102,28 @@ function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; fo
     return { geo, miss };
   }, [m, ks, tr, live.board, live.trainFrac]);
 
-  // the race: starts when the fitted laws arrive, a beat after the strip has zoomed in on the motion
+  // the race: starts when the fitted laws arrive, a beat after the strip has zoomed in on the motion, and runs again
+  // when a new law joins the board (Muse Wonder's, after the referee)
   const [p, setP] = useState(-1);
   const [settled, setSettled] = useState(false);
-  const started = useRef(false);
-  const hasBoard = !!live.board?.length;
+  const started = useRef("");
+  const boardKey = live.board?.map((b) => b.id).join("|") ?? "";
   const canRace = !!race?.geo.laws.length;
   useEffect(() => {
-    if (!hasBoard || started.current) return;
-    started.current = true;
+    if (!boardKey || started.current === boardKey) return;
+    const again = !!started.current;
+    started.current = boardKey;
+    if (again) {
+      setSettled(false);
+      setP(0);
+    }
     if (!canRace || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setP(1);
       setSettled(true);
       return;
     }
     let raf = 0, to = 0;
-    const t0 = performance.now() + 700;
+    const t0 = performance.now() + (again ? 400 : 700);
     const tick = (now: number) => {
       const q = Math.min(1, Math.max(0, (now - t0) / RACE_MS));
       setP(q);
@@ -128,7 +135,7 @@ function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; fo
       cancelAnimationFrame(raf);
       clearTimeout(to);
     };
-  }, [hasBoard]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [boardKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counter = (id: string) => {
     const mm = race?.miss[id];
@@ -160,10 +167,16 @@ function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; fo
   const cutX = live.cut?.axis === "y" && live.cut.x !== undefined ? live.cut.x : sub?.[sub.length - 1]?.[1];
   const cols = tr ? new Set(sub?.map((q) => q[0])).size : 0;
   const winMiss = winner ? race?.miss[winner.id] : undefined;
+  // the winner against the runner-up in units of the measurement noise: what the ranking compares
+  const rival = live.board?.[1];
+  const zLine =
+    winner && rival && Number.isFinite(winner.z) && Number.isFinite(rival.z)
+      ? `${fmtZ(winner.z!)} vs ${fmtZ(rival.z!)} the noise: ${tiedScores(winner.z!, rival.z!) ? "a tie, so the simpler law wins" : `${winner.title} wins, missing the unseen frames ${fmtRatio(rival.rel / winner.rel)} less`}`
+      : null;
 
   return (
     <>
-      <div className={styles.stage} ref={stage}>
+      <div className={styles.stage} ref={stage} data-stage="">
         <div className={styles.frame} style={{ ["--ar" as string]: `${W / H}` }}>
           {src && <video ref={video} src={src} className={styles.video} muted autoPlay loop playsInline preload="auto" onLoadedMetadata={(e) => {
                 const v = e.currentTarget;
@@ -223,12 +236,16 @@ function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; fo
                         <span key={i} dangerouslySetInnerHTML={{ __html: x }} />
                       ))}
                     </span>
-                    <span className={`num ${styles.miss}`}>{c}</span>
+                    <span className={`num ${styles.miss}`}>
+                      {c}
+                      {live.board && settled && Number.isFinite(live.board.find((b) => b.id === l.id)?.z) && <small className={styles.z}>{fmtZ(live.board.find((b) => b.id === l.id)!.z!)} noise</small>}
+                    </span>
                   </li>
                 );
               })}
             </ol>
-            {live.board && settled && <p className={styles.note}>Misses within the measurement noise of each other are a tie, and a tie goes to the simpler law.</p>}
+            {live.board && settled && zLine && <p className={styles.zLine}>{zLine}</p>}
+            {live.board && settled && <p className={styles.note}>“× noise” is a law’s miss in units of the measurement noise, the worse of its fitted and unseen frames: about 1× is as good as the measurement allows. Misses within the noise of each other are a tie, and a tie goes to the simpler law.</p>}
           </div>
         )}
         {settled && winner && (
@@ -237,10 +254,22 @@ function LiveRun({ src, live, footer }: { src: string | null; live: LiveData; fo
             <span className="num">{winMiss ? fmtMiss(winMiss.value, winMiss.unit) : winner.miss}</span>.{live.summary ? ` ${live.summary}` : ""}
           </p>
         )}
+        {readout && (
+          <div className={styles.readout} role="status">
+            <p className={styles.readLabel}>{readout.label}</p>
+            <p className={`num ${styles.bigNum}`}>{readout.value}</p>
+            {readout.against && <p className={styles.readSub}>{readout.against}</p>}
+          </div>
+        )}
         {footer}
       </div>
     </>
   );
+}
+
+/** "229×", "4.4×": how many times smaller the winner's miss is */
+function fmtRatio(r: number) {
+  return `${r >= 10 ? Math.round(r).toLocaleString("en-US") : r.toFixed(1)}×`;
 }
 
 export default memo(LiveRun);

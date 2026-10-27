@@ -2,6 +2,8 @@ import { Ledger, respondJson } from "./meta/client";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getObject, putObject } from "./store";
+import { addSpend, DAILY_USD, spentToday } from "./limits";
+import { refusalStands } from "./guards";
 import type { Experiment } from "./experiment";
 
 export const LANGUAGES: Record<string, string> = {
@@ -36,10 +38,12 @@ export async function translation(e: Experiment, lang: string): Promise<Translat
   }
   const key = `translations/${e.id}.${lang}.json`;
   const cached = await getObject(key).catch(() => null);
-  // a refusal is remembered too, so a page view never pays for the same translation twice
+  // a refusal is remembered for a day, so page views (and crawlers) never pay for the same refused translation twice
+  // in a day; after that it may be tried once more
   if (cached) {
-    const v = JSON.parse(new TextDecoder().decode(cached)) as { refused?: boolean } & Translation;
-    return v.refused ? null : v;
+    const v = JSON.parse(new TextDecoder().decode(cached)) as { refused?: boolean; at?: string } & Translation;
+    if (!v.refused) return v;
+    if (refusalStands(v)) return null;
   }
   if (!inflight.has(key)) inflight.set(key, translate(e, lang, key).finally(() => inflight.delete(key)));
   return inflight.get(key)!;
@@ -48,7 +52,10 @@ export async function translation(e: Experiment, lang: string): Promise<Translat
 export async function translate(e: Experiment, lang: string, key?: string): Promise<Translation | null> {
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const source: Translation = { headline: e.headline ?? e.finding, finding: e.finding, what_happens: e.observation.what_happens, summary: win.law.summary };
+  // a page view can start a translation, so it answers to the same daily dollar cap as a run, and its cost is counted
+  if ((await spentToday().catch(() => Infinity)) >= DAILY_USD) return null;
   const ledger = new Ledger();
+  const counted = () => addSpend(ledger.usd).catch(() => {});
   const { value } = await respondJson<Translation>(
     {
       model: process.env.ANSATZ_TRANSLATE_MODEL ?? "muse-spark-1.3",
@@ -75,11 +82,11 @@ export async function translate(e: Experiment, lang: string, key?: string): Prom
     },
     ledger,
     `translate to ${NAMES[lang]}`,
-  );
+  ).finally(counted);
   for (const k of Object.keys(source) as (keyof Translation)[]) {
     const want = numbers(source[k]), got = numbers(value[k] ?? "");
     if (want.some((n) => !got.includes(n))) {
-      if (key) await putObject(key, JSON.stringify({ refused: true }), "application/json").catch(() => {});
+      if (key) await putObject(key, JSON.stringify({ refused: true, at: new Date().toISOString() }), "application/json").catch(() => {});
       return null;
     }
   }

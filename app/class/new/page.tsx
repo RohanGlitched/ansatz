@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import ClassMaker from "@/components/ClassMaker";
 
-export const metadata: Metadata = { title: "Make a class link", description: "Give a class of students their own Ansatz runs for a week, and see every result on one page." };
+export const metadata: Metadata = { title: "Make a class link", description: "Give a class of students their own Ansatz runs for a week, and see every result on one page.", alternates: { canonical: "/class/new" } };
 
 export default function NewClassPage() {
   return (

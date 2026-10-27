@@ -4,7 +4,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
 import slits from "@/data/slits.json";
+import { median } from "@/lib/median";
 import styles from "./proof.module.css";
+import { slowRenders } from "./slow";
 
 // reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
 export const revalidate = 300;
@@ -12,6 +14,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "Proof",
   description: "Ansatz measured against clips with exactly known physics, against Muse Spark guessing by eye, and on real footage including the Moon.",
+  alternates: { canonical: "/proof" },
 };
 
 type Check = { quantity: string; truth: number; measured: number; sigma: number; errPct: number; withinSigma: number; eyeball?: number; eyeballErrPct?: number };
@@ -46,6 +49,8 @@ type Bench = {
     constantsWithin5pct: number;
     constantsChecked: number;
     medianEyeballErrPct: number;
+    medianEyeballErrPctCurrent?: number;
+    eyeballCurrent?: number;
     eyeballChecked: number;
     medianPredictionRel: number;
     medianPredictionRelControl: number;
@@ -88,6 +93,7 @@ export default async function ProofPage() {
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
   type Obs = { summary: { runs: number; subjectRight: number; subjectScored: number; firstNounFound: number; worldRight: number; motionKindRight: number; naiveWouldFail: number; rulerPicked: number; rulerNeeded: number; rulerLengthRight: number; windowMedianIoU: number; windowNaiveWholeClipMedianIoU: number; narrationFactFound: number; narrationFacts: number } };
   const obsb = await readFile(path.join(process.cwd(), "data", "bench", "observer.json"), "utf8").then((t) => JSON.parse(t) as Obs, () => null);
+  const voice = await readFile(path.join(process.cwd(), "data", "bench", "voice.json"), "utf8").then((t) => JSON.parse(t) as { summary: { languages: number; lengthChecked: number; releaseHeard: number } }, () => null);
   const worse = wonb?.rows.filter((r) => r.verdict === "worse" && Number.isFinite(r.ratio)).map((r) => r.ratio!) ?? [];
   const lite = await readFile(path.join(process.cwd(), "data", "bench", "lite.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; constantsWithin5: number; constantsChecked: number; medianPhysErrPct: number; lawCorrect: number; lawJudged: number; medianSamUsd: number } }, () => null);
   const cov = await readFile(path.join(process.cwd(), "data", "bench", "coverage.json"), "utf8").then((t) => JSON.parse(t) as { trials: number; cases: { law: string; noise: string; "coverage1σ": number; "coverage2σ": number }[] }, () => null);
@@ -103,11 +109,17 @@ export default async function ProofPage() {
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
   const s = b?.summary;
+  const slowAll = await slowRenders();
+  // the clock-check controls' small slowdowns, each with what its ruler was and what gravity came out as
+  const smallSlow = clockc?.rows.filter((r) => r.slow > 1) ?? [];
+  const missedSmall = smallSlow.filter((r) => r.clock == null && r.g != null && !/^not checkable/i.test(r.outcome));
+  const uncheckedSmall = smallSlow.filter((r) => r.clock == null && /^not checkable/i.test(r.outcome));
+  const misread = b?.rows.filter((r) => (r.slowMotion ?? 1) > 1 && r.clock && Math.abs(r.clock.factor / r.slowMotion - 1) > 0.1) ?? [];
   // physical constants and camera scales are different claims, so they are counted apart
   const all = b?.rows.flatMap((r) => r.checks) ?? [];
   const group = (cs: typeof all) => {
     const e = cs.map((c) => Math.abs(c.errPct)).sort((x, y) => x - y);
-    return { n: cs.length, within: e.filter((x) => x <= 5).length, median: e.length ? e[(e.length - 1) >> 1] * 0.5 + e[e.length >> 1] * 0.5 : NaN };
+    return { n: cs.length, within: e.filter((x) => x <= 5).length, median: median(e) };
   };
   const split = { phys: group(all.filter((c) => !c.quantity.startsWith("scale"))), scale: group(all.filter((c) => c.quantity.startsWith("scale"))) };
   // how much each kind of constant leans on a length scale: times and ratios need none; drag and string length need
@@ -157,7 +169,7 @@ export default async function ProofPage() {
           <div>
             <p className={styles.big}>{phone.length}</p>
             <p>
-              clips filmed on a phone, each with the truth measured by tape before the run: median error {phoneErr[phoneErr.length >> 1]?.toFixed(1)}% over {phoneErr.length} quantities.{" "}
+              clips filmed on a phone, each with the truth measured by tape before the run: median error {median(phoneErr).toFixed(1)}% over {phoneErr.length} quantities.{" "}
               {phone.map((e) => (
                 <Link key={e!.id} href={`/x/${e!.id}`} style={{ marginRight: 8 }}>
                   {e!.title}
@@ -169,7 +181,7 @@ export default async function ProofPage() {
       )}
 
       {s && (
-        <section className={`wrap ${styles.stats}`}>
+        <section className={`wrap ${styles.stats}`} id="headline">
           <div>
             <p className={styles.big}>{pct(split.phys.median, 2)}</p>
             <p>
@@ -178,7 +190,7 @@ export default async function ProofPage() {
           </div>
           <div>
             <p className={styles.big}>{pct(s.medianEyeballErrPct, 0)}</p>
-            <p>median error when Muse Spark estimated the same constants by watching the clip, without SAM 3.1 or the fit ({s.eyeballChecked} estimates)</p>
+            <p>median error when Muse Spark estimated the same constants by watching the clip, without SAM 3.1 or the fit ({s.eyeballChecked} estimates{s.medianEyeballErrPctCurrent !== undefined && s.eyeballCurrent ? `; the ${s.eyeballCurrent} made with today’s prompt, which shows it more frames: ${pct(s.medianEyeballErrPctCurrent, 0)}` : ""})</p>
           </div>
           <div>
             <p className={styles.big}>
@@ -186,13 +198,14 @@ export default async function ProofPage() {
             </p>
             <p>clips where the winning law had the right physics: drag where there was air drag, none where there wasn’t, sin θ for big swings, an impact for bounces</p>
           </div>
-          {s.slowClips ? (
-            <div>
+          {slowAll && slowAll.all.length ? (
+            <div id="slow-motion">
               <p className={styles.big}>
-                {s.slowFlagged}/{s.slowClips}
+                {slowAll.all.filter((r) => r.outcome === "flagged").length}/{slowAll.all.length}
               </p>
               <p>
-                clips rendered in slow motion (2×, 4×, 8×) and not declared so, flagged by the clock check from a ruler in view; the factor came out within 2% on {(s.slowFactorErrPct ?? []).filter((x) => Math.abs(x) <= 2).length}, and off where the ruler was misread (a 15 cm ruler taken for a metre stick)
+                {slowAll.line.replace(/^\d+ of \d+ /, "")}. The clock check works from a ruler in view
+                {misread.length ? `; the ${misread.map((r) => `${r.slowMotion}× clip read as ${r.clock!.factor.toFixed(1)}×`).join(" and the ")} because its ruler was misread` : ""}.
               </p>
             </div>
           ) : null}
@@ -204,7 +217,7 @@ export default async function ProofPage() {
       )}
      </div>
 
-      <section className={`section ${styles.band}`}>
+      <section className={`section ${styles.band}`} id="real-footage">
         <div className="wrap">
           <h2>Real footage</h2>
           <div className={styles.real}>
@@ -231,7 +244,7 @@ export default async function ProofPage() {
       </section>
 
       {b && (
-        <section className="section">
+        <section className="section" id="benchmark">
           <div className="wrap">
             <h2>Every clip with a known answer</h2>
             <p className="lede" style={{ marginTop: 12 }}>
@@ -329,6 +342,11 @@ export default async function ProofPage() {
                   <strong>The observer is what lets a clip nobody labelled become an experiment.</strong> Across {obsb.summary.runs} stored runs, Muse Spark named the moving object right {obsb.summary.subjectRight} of {obsb.summary.subjectScored} times (where we didn’t hand it the name), and SAM 3.1 found it on that first name every time; it read the world right {obsb.summary.worldRight} of {obsb.summary.runs} times and the kind of experiment {obsb.summary.motionKindRight} of {obsb.summary.runs}, and took the string length from Hindi narration. A lite default that assumes Earth and no ruler would have failed on {obsb.summary.naiveWouldFail} of these runs, every Moon and Mars clip among them. Its limits: it used a ruler on only {obsb.summary.rulerPicked} of {obsb.summary.rulerNeeded} clips that had one, because the rendered rulers are unmarked striped bars whose length it declined to guess (it read {obsb.summary.rulerLengthRight} of {obsb.summary.rulerPicked} right when it did; stating the ruler on the run form fixes the rest), and its free-motion window is only a little tighter than the whole clip (median overlap {obsb.summary.windowMedianIoU.toFixed(2)} against {obsb.summary.windowNaiveWholeClipMedianIoU.toFixed(2)}).
                 </li>
               )}
+              {voice && (
+                <li>
+                  <strong>Muse Voice Transcribe, in each language.</strong> A spoken string length and a “let go” word, in synthetic voices: the length heard and parsed right in {voice.summary.lengthChecked} of {voice.summary.languages} languages (Bengali misheard “seventy”), the let-go word heard in {voice.summary.releaseHeard} of {voice.summary.languages}. Real speakers are still to be tested.
+                </li>
+              )}
               <li>
                 <strong>The referee asks for a new law only when one is missing.</strong> Shown the fitted frames alone (no ranks, no held-out errors), Muse Spark asked for one on {refb.summary.reviseWhenNeeded} of the {refb.summary.needed} renders we built to need a law outside the textbook, at full strength, and on {refb.summary.reviseWhenRight} of the {refb.summary.right} clips whose leading law already had the right physics.
               </li>
@@ -360,7 +378,13 @@ export default async function ProofPage() {
               )}
               {clockc && (
                 <li>
-                  <strong>Clock-check controls.</strong> {clockc.rows.filter((r) => r.slow === 1 && r.ruler).length} real-time clips with a trusted ruler: {clockc.rows.filter((r) => r.slow === 1 && r.ruler && !r.clock).length} not flagged, no false alarm. Two small slowdowns: 1.25× was missed, because Muse Spark took the striped bar for a metre stick only as a guess (±30%), so the 36% shortfall in gravity sat inside the error bar; 1.5× couldn’t be checked, because it didn’t trust the bar at all. The check catches a slowdown when the ruler’s size is known, which the run form lets you state.
+                  <strong>Clock-check controls.</strong> {clockc.rows.filter((r) => r.slow === 1 && r.ruler).length} real-time clips with a trusted ruler: {clockc.rows.filter((r) => r.slow === 1 && r.ruler && !r.clock).length} not flagged, no false alarm.{" "}
+                  {smallSlow.length > 0 && `${smallSlow.length === 1 ? "One small slowdown" : `${smallSlow.length} small slowdowns`}: `}
+                  {missedSmall.map((r) => `${r.slow}× was missed, because Muse Spark took the striped bar for a metre stick only as a guess (±${Math.round((r.sigma! / r.g!) * 100)}%), so the ${Math.round((1 - 1 / (r.slow * r.slow)) * 100)}% shortfall in gravity sat inside the error bar`).join("; ")}
+                  {missedSmall.length > 0 && uncheckedSmall.length > 0 && "; "}
+                  {uncheckedSmall.map((r) => `${r.slow}× couldn’t be checked, because it didn’t trust the bar at all`).join("; ")}
+                  {smallSlow.length > 0 && ". "}
+                  The check catches a slowdown when the ruler’s size is known, which the run form lets you state.
                 </li>
               )}
               {lite && (
@@ -374,7 +398,7 @@ export default async function ProofPage() {
       )}
 
       {s && (
-        <section className={`section ${styles.band}`}>
+        <section className={`section ${styles.band}`} id="ablation">
           <div className={`wrap ${styles.two}`}>
             <div>
               <h2>What each part adds</h2>
@@ -401,7 +425,7 @@ export default async function ProofPage() {
       )}
 
       {ab && (
-        <section className={`section ${styles.band}`}>
+        <section className={`section ${styles.band}`} id="library">
           <div className="wrap">
             <h2>Does the model add anything a textbook doesn’t?</h2>
             <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>

@@ -10,6 +10,14 @@ export const PER_DAY = Number(process.env.RUNS_PER_DAY ?? 90);
 export const UPLOADS_PER_VISITOR = Number(process.env.UPLOADS_PER_VISITOR ?? 12);
 /** Dollars of Meta calls a day may spend, whatever the run counts say */
 export const DAILY_USD = Number(process.env.DAILY_USD ?? 12);
+/** The judges' lane keeps its own dollar reserve a day, apart from DAILY_USD, so visitors' runs can't spend it */
+export const JUDGES_DAILY_USD = Number(process.env.JUDGES_DAILY_USD ?? 3);
+/** Runs one connection may start in the judges' lane a day, so one person can't use up the lane */
+export const JUDGES_PER_VISITOR = Number(process.env.JUDGES_PER_VISITOR ?? 5);
+
+/** Which dollar ledger a run is counted in: the site's shared one, or the judges' lane's own */
+export type SpendLedger = "site" | "judges";
+const usdKey = (l: SpendLedger) => (l === "judges" ? `usage/usd-judges-${today()}.json` : `usage/usd-${today()}.json`);
 
 type Day = { total: number; byVisitor: Record<string, number> };
 
@@ -59,12 +67,27 @@ export function visitorOf(req: Request) {
   return xf || req.headers.get("x-real-ip") || "local";
 }
 
-export async function spentToday(): Promise<number> {
-  const raw = await getObject(`usage/usd-${today()}.json`).catch(() => null);
+export async function spentToday(ledger: SpendLedger = "site"): Promise<number> {
+  const raw = await getObject(usdKey(ledger)).catch(() => null);
   return raw ? (JSON.parse(new TextDecoder().decode(raw)) as { usd: number }).usd : 0;
 }
 
-export async function addSpend(usd: number) {
+export async function addSpend(usd: number, ledger: SpendLedger = "site") {
   if (!(usd > 0)) return;
-  await updateJson<{ usd: number }>(`usage/usd-${today()}.json`, { usd: 0 }, (d) => ({ usd: d.usd + usd }));
+  await updateJson<{ usd: number }>(usdKey(ledger), { usd: 0 }, (d) => ({ usd: d.usd + usd }));
+}
+
+/** One run in the judges' lane for this connection today, if it has any left; counted in one conditional write. */
+export async function countJudgeRun(visitor: string, admin: boolean): Promise<{ ok: true } | { ok: false; why: string }> {
+  if (admin) return { ok: true };
+  let full = false;
+  const r = await updateJson<{ byVisitor: Record<string, number> }>(`usage/judges-${today()}.json`, { byVisitor: {} }, (d) => {
+    if ((d.byVisitor[visitor] ?? 0) >= JUDGES_PER_VISITOR) {
+      full = true;
+      return null;
+    }
+    return { byVisitor: { ...d.byVisitor, [visitor]: (d.byVisitor[visitor] ?? 0) + 1 } };
+  }).catch(() => null);
+  if (r) return { ok: true };
+  return { ok: false, why: full ? `This connection has run ${JUDGES_PER_VISITOR} experiments in the judges’ lane today, the most one connection can. The limit resets at midnight UTC; the recorded runs on /new are always open.` : "Ansatz couldn't record this run just now, so it didn't start. Try again in a minute." };
 }

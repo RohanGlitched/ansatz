@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { median } from "../lib/median";
 import path from "node:path";
-import type { Candidate, Experiment } from "../lib/experiment";
+import { PIPELINE, recordAge, type Candidate, type Experiment } from "../lib/experiment";
 import { names, parse } from "../lib/physics/expr";
 import type { Law } from "../lib/physics/law";
 
@@ -12,6 +12,8 @@ const opt = (k: string, d: string) => (args.includes(k) ? args[args.indexOf(k) +
 const runsDir = opt("--runs", "bench/runs/synth");
 const truthDir = "bench/synth/clips";
 const out = opt("--out", "data/bench/synth.json");
+// which version of the method the scored runs come from (a re-score names its own: --pipeline "2026-10-27c sealed")
+const pipeline = opt("--pipeline", "");
 
 type Truth = {
   case_id: string;
@@ -128,8 +130,8 @@ function trackingErrorPx(e: Experiment, t: Truth): number | null {
   if (!truth) return null;
   // our pixels are the normalised clip's (≤1280 wide); the truth is in the original's
   const r = t.width / e.video.width;
-  const errs = e.measured.px.map((p) => (truth[p.f] ? Math.hypot(p.x * r - truth[p.f][0], p.y * r - truth[p.f][1]) / r : NaN)).filter(Number.isFinite).sort((a, b) => a - b);
-  return errs.length ? errs[errs.length >> 1] : null;
+  const errs = e.measured.px.map((p) => (truth[p.f] ? Math.hypot(p.x * r - truth[p.f][0], p.y * r - truth[p.f][1]) / r : NaN)).filter(Number.isFinite);
+  return errs.length ? median(errs) : null;
 }
 
 function relPrediction(e: Experiment, c: Candidate) {
@@ -171,6 +173,10 @@ for (const f of files.sort()) {
     checks: constants(e, t, win),
     calibration: e.measured.calibration.kind,
     clock: e.clock,
+    pipeline: e.pipeline ?? null,
+    // a by-eye reading from an older pipeline saw a handful of frames, not every frame: it is left out of the by-eye median
+    eyeStale: !!e.eyeball && !e.eyeball.seen,
+    eyeFrames: recordAge(e).eyeball,
     usd: e.ledger.usd,
     seconds: e.ledger.ms / 1000,
   });
@@ -180,6 +186,9 @@ const R = rows as { family: { ok: boolean | null }; familyIfChosenByFit: boolean
 const med = median;
 // every measured number counts, the camera's scale included (a wrong scale is a wrong measurement)
 const checks = R.flatMap((r) => r.checks);
+// physical constants only (a camera scale has no σ): how often the truth falls inside ±1σ and ±2σ
+const withSigma = checks.filter((c) => !c.quantity.startsWith("scale") && Number.isFinite(c.withinSigma));
+const eyeChecks = (R as unknown as { eyeStale: boolean; checks: Check[] }[]).filter((r) => !r.eyeStale).flatMap((r) => r.checks).filter((c) => c.eyeballErrPct !== undefined);
 const summary = {
   cases: R.length,
   lawCorrect: R.filter((r) => r.family.ok === true).length,
@@ -189,8 +198,13 @@ const summary = {
   medianConstErrPct: med(checks.map((c) => Math.abs(c.errPct))),
   constantsWithin5pct: checks.filter((c) => Math.abs(c.errPct) <= 5).length,
   constantsChecked: checks.length,
+  // current-pipeline by-eye readings only (every frame seen); the older ones are counted separately
+  // the headline counts every by-eye reading; the ones made with today's prompt (more frames) are reported beside it
   medianEyeballErrPct: med(checks.filter((c) => c.eyeballErrPct !== undefined).map((c) => Math.abs(c.eyeballErrPct!))),
   eyeballChecked: checks.filter((c) => c.eyeballErrPct !== undefined).length,
+  medianEyeballErrPctCurrent: med(eyeChecks.map((c) => Math.abs(c.eyeballErrPct!))),
+  eyeballCurrent: eyeChecks.length,
+  coverage: { checked: withSigma.length, within1: withSigma.filter((c) => c.withinSigma <= 1).length, within2: withSigma.filter((c) => c.withinSigma <= 2).length, worst: withSigma.length ? Math.max(...withSigma.map((c) => c.withinSigma)) : null },
   medianPredictionRel: med(R.map((r) => r.predictionRel)),
   medianPredictionRelControl: med(R.map((r) => r.predictionRelControl ?? NaN)),
   medianPredictionRelByFit: med(R.map((r) => r.predictionRelByFit ?? NaN)),
@@ -202,7 +216,7 @@ const summary = {
   medianSeconds: med(R.map((r) => r.seconds)),
 };
 mkdirSync(path.dirname(out), { recursive: true });
-writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), summary, rows }, null, 1));
+writeFileSync(out, JSON.stringify({ generatedAt: new Date().toISOString(), pipeline: pipeline || [...new Set((rows as { pipeline: string | null }[]).map((r) => r.pipeline ?? "before version stamps"))].join(", "), scoredWith: PIPELINE, summary, rows }, null, 1));
 console.log(JSON.stringify(summary, null, 1));
 for (const r of rows as { id: string; family: { ok: boolean | null; expect: string }; winner: { id: string }; checks: Check[]; trackingErrPx: number | null; predictionRel: number }[])
   console.log(`${r.id.padEnd(34)} law ${r.family.ok === null ? "  -  " : r.family.ok ? " ok  " : "WRONG"} ${r.winner.id.padEnd(26)} track ${r.trackingErrPx?.toFixed(2) ?? "-"}px  pred ${(r.predictionRel * 100).toFixed(2)}%  ${r.checks.map((c) => `${c.quantity}: ${c.measured.toPrecision(4)} vs ${c.truth.toPrecision(4)} (${c.errPct >= 0 ? "+" : ""}${c.errPct.toFixed(1)}%${c.eyeballErrPct !== undefined ? `, eye ${c.eyeballErrPct >= 0 ? "+" : ""}${c.eyeballErrPct.toFixed(0)}%` : ""})`).join("; ")}`);

@@ -5,19 +5,22 @@
  * the model calls and their cost.
  */
 import { deleteFile, Ledger, transcribe, uploadFile, type Call } from "./meta/client";
-import { trackBoxes, trackNoun, type LiveMask, type SamResult, type Sample, type Track } from "./meta/sam";
-import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
-import { compileLaw, fitLaw, type Fit, type Law, type Series } from "./physics/law";
+import { segmentImage, trackBoxes, trackNoun, type LiveMask, type SamResult, type Sample, type Track } from "./meta/sam";
+import { digest, localGravity, mainTrack, measure, rulerExtent, type Calibration, type Measured, type Pivot } from "./measure";
+import { compileLaw, fitLaw, splitIndex, type Fit, type Law, type Series } from "./physics/law";
+import { asrKeywords, releaseTurn, timedTurns } from "./i18n";
 import { controls } from "./physics/library";
-import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
+import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, presetUncertainty, reviseAgentic, WONDER_EFFORT, WONDER_PLOT, type Critique, type Eyeball, type Observation, type WonderAttempt, type WonderTurn } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
 import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
 import { fmtPair } from "./format";
+import { median } from "./median";
 import { lawLatex } from "./latex";
 export { toPixels };
 import { cut, frameAt, prepare } from "./transcode";
+import { liteLaws, liteObservation, NO_SPARK, type LiteType } from "./lite";
 
 export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
 
@@ -47,12 +50,15 @@ export type Experiment = {
   observation: Observation;
   observationSources: { url: string; title: string }[];
   tracking: { noun: string; tracks: number; framesSeen: number; meanConfidence: number };
-  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin"> & { series: Measured["series"]; px: Measured["px"]; point?: "centroid" | "top" };
+  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin" | "split"> & { series: Measured["series"]; px: Measured["px"]; point?: "centroid" | "top" };
   given: string[];
   reasoning: string;
   candidates: Candidate[];
   winner: string;
-  critique: Critique | null;
+  /** the referee's record. When a revision took the lead, `verdict` and its words are the second critique's, about the
+   * new winner; preRevision keeps what the first referee saw and asked for (the moment Muse Wonder was called in), and
+   * postRevision the second referee's own verdict, which code no longer overwrites with "accept" */
+  critique: (Critique & { preRevision?: CritiqueVerdict; postRevision?: CritiqueVerdict }) | null;
   /** at most a dozen plain words; no numbers */
   headline: string;
   finding: string;
@@ -64,7 +70,19 @@ export type Experiment = {
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
-  wonder?: { idea: string; /** who called Muse Wonder in (absent on older records) */ trigger?: "referee" | "code"; /** for a call by code: how far the winner missed the fitted frames, in noise units */ missZ?: number; attempts: WonderAttempt[]; submitted: string | null } | null;
+  wonder?: {
+    idea: string;
+    /** who called Muse Wonder in (absent on older records) */ trigger?: "referee" | "code";
+    /** for a call by code: how far the winner missed the fitted frames, in noise units, to one decimal (the idea's text prints the same figure) */ missZ?: number;
+    attempts: WonderAttempt[];
+    submitted: string | null;
+    /** what Muse Wonder wrote on each turn (its reasoning summary and any text), and the one tool it called */
+    turns?: WonderTurn[];
+    /** the turn budget it was told and the reasoning effort it ran at */
+    budget?: { turns: number; effort: string };
+  } | null;
+  /** when the narration said "let go" (or its word in the spoken language) after the observer's start, the window starts there */
+  voiceWindow?: { at: number; word: string; turn: string } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
   extras?: {
     /** the fair version of the memory test: one clip at a time, both together, and with Ansatz's measurements as tools */
@@ -77,6 +95,12 @@ export type Experiment = {
       /** the one-clip question asked n times per clip: how often it called each clip slowed */
       repeats?: { n: number; note: string; clips: { clip: string; truth: string; answers: { playback_accel: number; real_speed: boolean; factor: number }[]; calledSlowed: number }[]; usd: number };
     };
+    /** g against the ruler's percentile: the person's height read at p50, p75 (the published choice), p90 or the tallest frame */
+    rulerPercentiles?: { note: string; method: string; rows: { at: string; px: number; g: number; sigma: number; chosen?: boolean }[] };
+    /** the 24 fps film under the 30 fps broadcast: repeated frames dropped, unique frames retimed to k/24 s, refitted */
+    telecine?: { g: number; sigma: number; note: string; method: string; cadence?: { period: number; phase: number; repeats: number; frames: number }; jumps?: { jump: number; g: number; sigma: number; n: number }[]; subpixel?: { g: number; sigma: number; note: string } };
+    /** a second ruler nobody tuned: the flag, at its documented size */
+    flagRuler?: { note: string; source: string; sizeM: { width: number; height: number; rel: number }; px: { width: number; height: number; sigma: number; frames: number }; g: number; sigma: number; gHeightRuler: number; sam?: { usd: number; frames: number } };
     toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
@@ -92,6 +116,15 @@ export type Experiment = {
 export const PIPELINE = "2026-10-27c";
 
 const TRAIN = 0.7;
+
+/** One referee's verdict as it stood: what it saw in the leader's misses on the fitted frames, and what it asked for. */
+export type CritiqueVerdict = Pick<Critique, "verdict" | "residual_feature" | "strength" | "revision_idea" | "winnerId">;
+const verdictOf = (c: Critique): CritiqueVerdict => ({ verdict: c.verdict, residual_feature: c.residual_feature, strength: c.strength, revision_idea: c.revision_idea, winnerId: c.winnerId });
+
+/** A ruler's scale as measure() takes it, with how it was read (px and its σ from the masks, how many, video or stills). */
+type Scale = { value: number; kind: "reference" | "stated"; note: string; px?: number; sigmaPx?: number; frames?: number; how?: "video" | "image" };
+/** The id of a ruler read from still frames by SAM 3.1's image mode rather than tracked through the video. */
+const STILL_RULER = "still-frames";
 
 export class ExperimentError extends Error {
   constructor(message: string, readonly step: Step) {
@@ -174,7 +207,7 @@ export function lag1(r: number[]) {
 /** A candidate's misses on the fitted frames only, per channel, in units of that channel's measurement noise. */
 export function fittedResiduals(fit: Fit, m: Pick<Measured, "series" | "noise">, frac = TRAIN) {
   const N = m.series.t.length;
-  const n = Math.max(3, Math.min(N - 1, Math.round(N * frac)));
+  const n = splitIndex(N, frac);
   const out: Record<string, { t: number[]; r: number[] }> = {};
   for (const [ch, pred] of Object.entries(fit.predicted)) {
     const ob = m.series.ch[ch];
@@ -200,12 +233,14 @@ const byFittedFit = (cands: Candidate[], noise: Record<string, number>) => [...c
 /**
  * The table the referee and the theorist read. Fitted frames only: no rank, no held-out error, and the order is by
  * the fit to the fitted frames, so neither the order nor a field says how the laws did on the frames held back.
- * The law code chose is named, nothing more. Misses are in units of each channel's measurement noise.
+ * The law code chose is named, nothing more, and labelled as what it is: the one fact on the board that comes from the
+ * held-out frames. Misses are in units of each channel's measurement noise.
  */
 export function refereeBoard(cands: Candidate[], m: Pick<Measured, "series" | "noise">, frac = TRAIN) {
   const chosen = cands.reduce<Candidate | null>((best, c) => (!best || c.rank < best.rank ? c : best), null);
   return {
     the_law_code_chose: chosen?.law.id ?? null,
+    where_that_choice_comes_from: "Code chose it by how well each law predicted the held-out frames (the last 30% of the motion). Its name is the only thing on this board derived from those frames; no number from them is given here.",
     how_to_read_the_residual_tests: "Computed by code on each law's misses over the fitted frames, per channel, in noise units. runs_z below about -2 means the misses keep one sign in long stretches (structure); lag1_autocorr near 0 means noise, towards 1 a smooth drift.",
     candidates: byFittedFit(cands, m.noise).map((c) => ({
       id: c.law.id,
@@ -287,6 +322,37 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
   cands.forEach((c, i) => (c.rank = i + 1));
 }
 
+/**
+ * The ruler's relative uncertainty, which moves every length-carrying constant. A ruler in view: how well its size is
+ * known, and how well SAM's mask measured it in pixels (calibration.sigmaPx), in quadrature. When gravity is the ruler
+ * (a given g, or a fall that sets the scale), the ruler is good to the spread of g over Earth's surface (9.78 to 9.83,
+ * ±0.26%), or ±0.05% where the latitude is known.
+ */
+export function rulerShare(obs: Pick<Observation, "body" | "location" | "reference">, cal: Calibration, gUsed: number | null) {
+  const gRel = obs.location.latitude_deg != null ? 0.0005 : 0.0026;
+  const sizeRel = Math.max(0, obs.reference.relative_uncertainty ?? 0.03);
+  const pxRel = cal.kind === "reference" && cal.px && cal.sigmaPx && Number.isFinite(cal.sigmaPx / cal.px) ? cal.sigmaPx / cal.px : 0;
+  const rulerRel = cal.kind === "reference" ? Math.hypot(sizeRel, pxRel) : obs.body === "earth" && (cal.kind === "gravity" || gUsed !== null) ? gRel : 0;
+  return { rulerRel, gRel, sizeRel, pxRel };
+}
+
+/** Adds the ruler's share to each length-carrying constant's statistical σ (once per fit). */
+export function inflateForRuler(c: Candidate, share: { rulerRel: number; gRel: number }, body: string, arcRel = 0) {
+  // a law that holds Earth's g fixed (a swing measured as an angle) turns time into length through g, so its lengths
+  // carry g's spread even with no ruler in view
+  const holdsG = body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
+  // a length taken from the swing's radius carries that radius's own spread too
+  const rel = Math.hypot(share.rulerRel || (holdsG ? share.gRel : 0), arcRel);
+  if (!rel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
+  for (const p of c.law.params) {
+    if (p.fixed) continue;
+    const pw = metrePower(p.unit);
+    const v = c.fit.theta[p.name], sStat = c.fit.sigma[p.name];
+    if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rel * Math.abs(v));
+  }
+  (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded = true;
+}
+
 /** the uncertainty a stated length carries into g = ω²L */
 const STATED_REL = Number(process.env.STATED_LENGTH_REL ?? 0.01);
 
@@ -305,7 +371,7 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
   const ruled = m?.pivot && (m.calibration.kind === "reference" || m.calibration.kind === "stated") && m.pivot.lengthOk !== false && m.pivot.arcDeg > 15;
   const Lm = stated.l ?? (ruled ? m!.pivot!.r * m!.calibration.metresPerPixel : undefined);
   // a spoken or typed length is rounded ("fifty centimetres"): it carries 1% unless the arc measured it
-  const relL = stated.l !== undefined ? STATED_REL : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
+  const relL = stated.l !== undefined ? STATED_REL : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05, rulerShare(obs, m!.calibration, null).pxRel) : 0;
   if (w && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
     const v = fit.theta[w.name] ** 2 * Lm, s = Math.hypot(2 * fit.theta[w.name] * Lm * (fit.sigma[w.name] || 0), v * relL);
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
@@ -344,6 +410,9 @@ export type RunInput = {
   language?: string;
   hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
+  /** lite mode (lib/lite.ts): the person says what kind of experiment it is and names the moving thing (hints.noun);
+   * no Muse Spark, Muse Wonder or Muse Voice call is made, and Earth, real time and the whole clip are assumed */
+  lite?: { type: LiteType };
   /** the caller's ledger, so what a run spent can be counted even when it throws */
   ledger?: Ledger;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
@@ -392,21 +461,37 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 2. narration
     let narration: Experiment["narration"];
     const wav = input.narrationWav?.length ? input.narrationWav : prep.wav;
-    if (wav?.length) {
-      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: ["pendulum", "metre", "centimetre", "slow motion", "fps", "drop", "bounce"], languages: input.language ? [input.language] : undefined }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
+    if (input.lite) {
+      // lite mode: logged in the run's notebook, so the record says which models it skipped
+      ledger.add({ model: "lite mode", purpose: `${NO_SPARK} (observe, propose, referee, Muse Wonder and the by-eye baseline skipped; narration not transcribed)`, ms: 0, usd: 0 });
+      emit({ step: "listen", state: "done", detail: "lite mode: the narration isn’t transcribed", at: Date.now() - t0 });
+    } else if (wav?.length) {
+      // the words to listen for in the language the person speaks (and English, which narrators mix in)
+      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: asrKeywords(input.language), languages: input.language ? [input.language] : undefined }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
       narration = { transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) };
     } else {
       if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };
       emit({ step: "listen", state: "done", detail: input.narrationText ? "typed notes used; the clip has no sound" : "the clip has no sound", at: Date.now() - t0 });
     }
-    const narr = narration?.transcript ?? "";
+    // the observer reads the narration as timed turns ("[2.3 s] …"), so it can place the release in the clip
+    const narr = narration?.turns.length ? timedTurns(narration.turns) : narration?.transcript ?? "";
 
     // 3. observe
-    const { obs, sources } = await step("observe", () => observe(fileId, narr, ledger, vi.duration, vi.fps), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
+    const { obs, sources } = input.lite
+      ? await step("observe", async () => ({ obs: liteObservation(input.lite!.type, input.hints?.noun || "ball", vi.duration), sources: [] as { url: string; title: string }[] }), () => `${NO_SPARK}: a ${input.lite!.type}, as you said, on Earth, in real time, over the whole clip`, (r) => r.obs)
+      : await step("observe", () => observe(fileId, narr, ledger, vi.duration, vi.fps), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
     if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "given with the clip" };
     if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "given with the clip" }];
     if (input.hints?.window) obs.window = input.hints.window;
-    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "given with the clip", relative_uncertainty: input.hints.ruler.relUncertainty ?? obs.reference.relative_uncertainty ?? 0.03 };
+    // a preset the person picked carries the uncertainty of that object's standard (an A4 sheet they named is A4 to ±0.3%)
+    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "given with the clip", relative_uncertainty: input.hints.ruler.relUncertainty ?? presetUncertainty(input.hints.ruler.noun, input.hints.ruler.metres) ?? obs.reference.relative_uncertainty ?? 0.03 };
+    // a release word heard after the observer's start moves the start to it: the person said when they let go
+    let voiceWindow: Experiment["voiceWindow"] = null;
+    const rel = !input.hints?.window && narration?.turns.length ? releaseTurn(narration.turns, input.language) : null;
+    if (rel && rel.at > obs.window.start_s && rel.at < (obs.window.end_s > obs.window.start_s ? obs.window.end_s : vi.duration) - 0.5) {
+      obs.window = { ...obs.window, start_s: rel.at };
+      voiceWindow = rel;
+    }
 
     // 4. track: cut the motion window (+0.4 s each side), then SAM follows the subject (and the ruler) through every frame
     const subjectNoun = obs.subjects[0]?.noun_phrase || "ball";
@@ -459,7 +544,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // with the subject, so the run doesn't wait twice)
       const findRuler = async (): Promise<SamResult | null> => {
         const byName = await trackNoun(trackFile, obs.reference.noun_phrase, ledger, frames).catch(() => null);
-        if (byName?.tracks.length) return byName;
+        if (byName?.tracks.length || input.lite) return byName;
         const png = await frameAt(trackBytes, trackTimes[0] ?? 0);
         const box = await pointAt(png, { width: vi.width, height: vi.height }, obs.reference.noun_phrase, `a reference object of known size, ${obs.reference.real_length_m} m along its ${obs.reference.dimension}; it does not move`, ledger, true).catch(() => null);
         if (!box) return byName;
@@ -468,7 +553,24 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         for (const t of r2.tracks) t.noun = `${obs.reference.noun_phrase} (pointed out by Muse Spark)`;
         return r2;
       };
-      jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? findRuler() : Promise.resolve(null));
+      // a ruler that never moves, filmed by a camera that doesn't, needs no tracking: SAM 3.1's image mode reads it in
+      // three still frames (start, middle, end: one the subject hides still leaves two), $0.0025 a frame against
+      // $0.0002 for every frame of the video. Nothing found in the stills falls back to tracking it
+      const stillRuler = async (): Promise<SamResult | null> => {
+        // (the very last frame is not seekable as a still: the end one is a few frames before it)
+        const ks = [...new Set([0, Math.floor((trackTimes.length - 1) / 2), Math.max(0, trackTimes.length - 3)])];
+        const found = await Promise.all(
+          ks.map(async (k) => {
+            const png = await frameAt(trackBytes, trackTimes[k] ?? 0).catch(() => null);
+            const res = png ? await segmentImage(png, obs.reference.noun_phrase, ledger, k).catch(() => null) : null;
+            return res?.tracks.flatMap((t) => t.samples).sort((a, b) => (b.conf ?? 0) - (a.conf ?? 0) || b.area - a.area)[0] ?? null;
+          }),
+        );
+        const samples = found.filter((x): x is Sample => !!x);
+        return samples.length ? { width: vi.width, height: vi.height, frames, raw: "", tracks: [{ id: STILL_RULER, noun: `${obs.reference.noun_phrase} (${samples.length} still frame${samples.length > 1 ? "s" : ""})`, samples }] } : null;
+      };
+      const rulerJob = async () => (obs.camera_static && process.env.RULER_STILLS !== "0" ? ((await stillRuler().catch(() => null)) ?? findRuler()) : findRuler());
+      jobs.push(obs.reference.present && obs.reference.noun_phrase && !selfRuler ? rulerJob() : Promise.resolve(null));
       let [s, r] = await Promise.all(jobs);
       if (selfRuler) r = s;
       const moving = (res: SamResult | null) => !!res && res.tracks.some((t) => pathPx(t) > 20);
@@ -479,7 +581,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           if (moving(s2)) { s = s2; break; }
         }
       }
-      if (!s || !moving(s)) {
+      if ((!s || !moving(s)) && !input.lite) {
         // no noun phrase found it: Muse Spark points at the object in one frame and SAM 3.1 follows that box
         const k = Math.max(0, trackTimes.findIndex((t) => t >= (useCut ? padS : obs.window.start_s)));
         const png = await frameAt(trackBytes, trackTimes[k] ?? 0);
@@ -508,31 +610,47 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     if (!track) throw new ExperimentError("No track inside the motion window.", "measure");
     const gBody = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
     // a jumping person: follow the head (top of the mask); arms and legs move the body's centroid around
-    const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1] ?? 0;
-    const tall = med(track.samples.map((s) => s.box[3] - s.box[1])) / Math.max(1, med(track.samples.map((s) => s.box[2] - s.box[0]))) > 1.8;
+    const tall = median(track.samples.map((s) => s.box[3] - s.box[1])) / Math.max(1, median(track.samples.map((s) => s.box[2] - s.box[0]))) > 1.8;
     const person = /\b(astronaut|person|man|woman|boy|girl|child|kid|jumper|athlete|player|dancer|student|human|spacesuit|suit)\b/i.test(`${subjectNoun} ${obs.subjects[0]?.description ?? ""}`);
     const point: "centroid" | "top" = person && tall && obs.motion_kind === "flight" ? "top" : "centroid";
-    let scale: { value: number; kind: "reference" | "stated"; note: string } | null = null;
-    if (ref && ref.tracks.length && obs.reference.real_length_m > 0) {
-      const selfRuler = sameThing(obs.reference.noun_phrase, subjectNoun);
-      const rt = selfRuler ? track : mainTrack(ref.tracks)!;
+    let scale: Scale | null = null;
+    const selfRuler = sameThing(obs.reference.noun_phrase, subjectNoun);
+    const rulerTrack = ref && ref.tracks.length && obs.reference.real_length_m > 0 ? (selfRuler ? track : mainTrack(ref.tracks)!) : null;
+    // the ruler read from these samples: its length in px is the median of the per-frame mask extents (a standing
+    // person's height their tallest quarter), and its σ in px is their frame-to-frame scatter with a 1 px edge
+    const scaleFrom = (samples: Sample[]): Scale | null => {
+      if (!rulerTrack || !samples.length) return null;
       // a moving ball smears along its path, so a round subject's true diameter is its mask's short axis;
       // anything elongated (a person, a stick) is measured along the side the observer named
-      const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1] ?? 0;
-      const round = med(rt.samples.map((s) => s.major)) / Math.max(1e-9, med(rt.samples.map((s) => s.minor))) < 1.35;
+      const round = median(samples.map((s) => s.major)) / Math.max(1e-9, median(samples.map((s) => s.minor))) < 1.35;
       const useMinor = obs.reference.dimension === "shortest side" || (selfRuler && round);
       // the mask's true extent along its axes (a moment-based size overstates a rectangle by 15%)
       // a standing person's height is the box's vertical extent in the frames where they stand tallest
       // (a crouch or tucked legs only ever make the box shorter), not the length of a tilted mask axis
       const personRuler = selfRuler && person && !useMinor;
-      const lens = rt.samples.map((s) => (personRuler ? s.box[3] - s.box[1] : useMinor ? s.wid ?? s.minor : s.len ?? s.major)).sort((a, b) => a - b);
-      const px = personRuler ? lens[Math.floor(lens.length * 0.75)] : lens[lens.length >> 1];
-      if (px > 8) scale = { value: obs.reference.real_length_m / px, kind: "reference", note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${px.toFixed(0)} px in SAM's mask` };
-    }
+      const ext = rulerExtent(samples.map((s) => (personRuler ? s.box[3] - s.box[1] : useMinor ? s.wid ?? s.minor : s.len ?? s.major)), personRuler ? 0.75 : 0.5);
+      if (!(ext.px > 8)) return null;
+      const how = rulerTrack.id === STILL_RULER ? "image" : "video";
+      return { value: obs.reference.real_length_m / ext.px, kind: "reference", px: ext.px, sigmaPx: ext.sigmaPx, frames: ext.n, how, note: `${obs.reference.noun_phrase} = ${obs.reference.real_length_m} m (${obs.reference.basis}) spans ${ext.px.toFixed(0)} ± ${ext.sigmaPx.toFixed(1)} px in SAM's mask${how === "image" ? ` (read in ${ext.n} still frame${ext.n > 1 ? "s" : ""})` : ` (${ext.n} frames)`}` };
+    };
+    if (rulerTrack) scale = scaleFrom(rulerTrack.samples);
     const m = await step("measure", async () => {
       // gravity can only stand in for a ruler when the body flies freely: a ball rolling down a ramp accelerates at less than g
-      let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind === "swing" || obs.motion_kind === "oscillation" });
-      if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind, { point, noGravityRuler: true });
+      const once = () => {
+        let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind === "swing" || obs.motion_kind === "oscillation", trainFrac: TRAIN });
+        if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind, { point, noGravityRuler: true });
+        return mm;
+      };
+      let mm = once();
+      // a subject that is its own ruler is read only on frames before the held-out ones, so they set nothing
+      const heldFrom = mm.px[mm.split ?? mm.px.length]?.f;
+      if (selfRuler && scale && heldFrom !== undefined) {
+        const sealed = scaleFrom(rulerTrack!.samples.filter((s) => s.f < heldFrom));
+        if (sealed && sealed.value !== scale.value) {
+          scale = sealed;
+          mm = once();
+        }
+      }
       // a pendulum's angle needs no ruler: without one, measure only theta (lengths in pixels would mislead the theorist)
       if (mm.series.ch.theta && (mm.calibration.kind === "none" || mm.calibration.kind === "gravity")) {
         mm = { ...mm, calibration: { kind: "none", metresPerPixel: 1, note: "no ruler needed: the swing is measured as an angle" }, series: { t: mm.series.t, ch: { theta: mm.series.ch.theta } }, noise: { theta: mm.noise.theta } };
@@ -548,9 +666,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const stated: Record<string, number> = {};
     if (m.calibration.kind === "gravity") given.push(`g = ${m.calibration.g.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}); it set the scale, so treat g as known and fixed`);
     if (m.calibration.kind === "reference") {
-      const ru = obs.reference.relative_uncertainty ?? 0.03;
-      given.push(`scale: ${m.calibration.note}, ${ru < 0.005 ? "its length taken as exact" : `known to ±${+(ru * 100).toPrecision(2)}%`}`);
+      const { rulerRel: ru, sizeRel, pxRel } = rulerShare(obs, m.calibration, null);
+      given.push(`scale: ${m.calibration.note}, ${ru < 0.005 ? "its length taken as exact" : `known to ±${+(ru * 100).toPrecision(2)}%${pxRel ? ` (its size ±${+(sizeRel * 100).toPrecision(2)}%, its length in pixels ±${+(pxRel * 100).toPrecision(2)}%)` : ""}`}`);
     }
+    if (voiceWindow) given.push(`window set from your voice at ${voiceWindow.at.toFixed(1)} s (“${voiceWindow.word}” in “${voiceWindow.turn}”)`);
     if (slow > 1) given.push(`the clip plays ${slow}× slower than real life (${obs.slow_motion.evidence}); times are already corrected to real seconds`);
     for (const f of obs.stated_facts) {
       given.push(`${f.quantity} = ${f.value} ${f.unit} (“${f.said}”)`);
@@ -574,7 +693,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 6. hypothesise
     // the theorist sees only the frames the laws are fitted to: the last 30% stays unseen by every model
     const dig = digest(m, 40, TRAIN);
-    const hyp = await step("hypothesise", () => hypothesise(obs, dig, given, ledger), (r) => r.laws.map((l) => l.title).join("; "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary, latex: safeLatex(l) })) }));
+    const hyp = await step("hypothesise", () => (input.lite
+      ? Promise.resolve({ reasoning: `${NO_SPARK}: the textbook laws for a ${input.lite.type}.`, laws: liteLaws(input.lite.type, m.series, { g: gUsed ?? 9.81, gFixed: gUsed !== null, pendulumG: m.calibration.kind === "none" && m.series.ch.theta ? gBody : undefined, pixels: m.calibration.kind === "none" }), ifItWins: {} as Record<string, string> } as Awaited<ReturnType<typeof hypothesise>>)
+      : hypothesise(obs, dig, given, ledger)), (r) => r.laws.map((l) => l.title).join("; "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary, latex: safeLatex(l) })) }));
 
     // 7. fit every candidate on the first 70%, predict the rest
     const channels = Object.keys(m.series.ch);
@@ -593,8 +714,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         const { law: law2, fitted, fit } = fitWithRoom(l, m.series, wrap);
         list.push({ law: law2, fitted, fit, origin, ifItWins, rank: 0 });
       };
-      for (const l of hyp.laws) add(l, "muse", hyp.ifItWins[l.id]);
-      for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
+      for (const l of hyp.laws) add(l, input.lite ? "control" : "muse", hyp.ifItWins[l.id]);
+      if (!input.lite) for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
       rankCandidates(list, noiseFloor);
       return list;
     }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`, (r) => ({
@@ -604,30 +725,15 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // the ruler's own uncertainty moves every length-carrying constant: add it to the fit's statistical error. When
     // gravity is the ruler (a given g, or a fall that sets the scale), the ruler is good to the spread of g over
     // Earth's surface (9.78 to 9.83, ±0.26%), or ±0.05% where the latitude is known
-    const gRel = obs.location.latitude_deg != null ? 0.0005 : 0.0026;
-    const rulerRel = m.calibration.kind === "reference" ? Math.max(0, obs.reference.relative_uncertainty ?? 0.03) : obs.body === "earth" && (m.calibration.kind === "gravity" || gUsed !== null) ? gRel : 0;
-    const inflate = (c: Candidate) => {
-      // a law that holds Earth's g fixed (a swing measured as an angle) turns time into length through g, so its lengths
-      // carry g's spread even with no ruler in view
-      const holdsG = obs.body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
-      // a length taken from the swing's radius carries that radius's own spread too
-      const rel = Math.hypot(rulerRel || (holdsG ? gRel : 0), arcRel);
-      if (!rel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
-      for (const p of c.law.params) {
-        if (p.fixed) continue;
-        const pw = metrePower(p.unit);
-        const v = c.fit.theta[p.name], sStat = c.fit.sigma[p.name];
-        if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rel * Math.abs(v));
-      }
-      (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded = true;
-    };
+    const share = rulerShare(obs, m.calibration, gUsed);
+    const inflate = (c: Candidate) => inflateForRuler(c, share, obs.body, arcRel);
     cands.forEach(inflate);
 
     // 8. referee (and one revision), with the eyeball baseline in parallel
     // the table the referee and the theorist read holds the fitted frames only: no rank, no held-out error
     const tableOf = () => ({ units: dig.units, given, ...refereeBoard(cands, m, TRAIN) });
     const winnerFirst = cands[0];
-    const eyePromise: Promise<(Eyeball & { seen?: { fps: number; frames: number } }) | null> = input.skipEyeball
+    const eyePromise: Promise<(Eyeball & { seen?: { fps: number; frames: number } }) | null> = input.skipEyeball || input.lite
       ? Promise.resolve(null)
       : winnerFirst.law.params.some((p) => !p.fixed && p.name !== "cal") === false
         ? Promise.resolve(null)
@@ -638,11 +744,11 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           }).catch(() => null);
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
-    const crit = await step("referee", async () => {
+    const crit = input.lite ? await step("referee", async () => null as Critique | null, () => "lite mode: no referee and no Muse Wonder; the ranking stands") : await step("referee", async () => {
       // the three best-fitting laws' misses over the fitted frames, drawn as a picture for the referee (best effort):
       // in noise units, so the dashed band is ±1, and ordered by the fit to the fitted frames
       const plot = await residualPlot(refereePlotSeries(cands, m, TRAIN), 1).catch(() => undefined);
-      let c = await critique(obs, tableOf(), ledger, undefined, plot).catch(() => null);
+      let c: Experiment["critique"] = await critique(obs, tableOf(), ledger, undefined, plot).catch(() => null);
       if (c) c.winnerId = cands[0].law.id;
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)
@@ -651,30 +757,38 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const poorFit = lead.fit.ok && (lead.fit.trainZ ?? lead.fit.trainRms / noiseFloor) > Number(process.env.WONDER_POOR_FIT ?? 6);
       // how far the leader misses the frames it was fitted to, in units of each channel's noise (the same figure the
       // poor-fit test uses and the page prints)
-      const leadMiss = Number.isFinite(lead.fit.trainZ) ? lead.fit.trainZ! : lead.fit.trainRms / noiseFloor;
+      // rounded once, to one decimal, so the stored figure and the sentence Muse Wonder reads are the same number
+      const leadMiss = +(Number.isFinite(lead.fit.trainZ) ? lead.fit.trainZ! : lead.fit.trainRms / noiseFloor).toFixed(1);
       const trigger: "referee" | "code" = c?.verdict === "revise" && c.revision_idea ? "referee" : "code";
       const idea = trigger === "referee" ? c!.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${leadMiss.toFixed(1)} times the measurement noise; some effect is missing.` : "";
+      // what the first referee saw and asked for, kept whatever happens next
+      const pre = c ? verdictOf(c) : null;
       // a run must finish inside the 300 s function limit (the watchdog fires at 285 s)
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
       // two theorist turns take about a minute; more turns only when there's room
       if (idea && budgetLeft > 75_000) {
         try {
-          const tryLaw = (law: Law) => {
+          const tryLaw = async (law: Law) => {
             const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
             if (gUsed !== null) for (const p of l2.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
             const wrapped = gUsed !== null ? withScaleCorrection(l2) : l2;
             const f = fitLaw(wrapped, m.series, { trainFrac: TRAIN });
+            // the attempt's misses on the fitted frames as a picture, the same kind the referee reads (best effort)
+            const per = f.ok ? Object.values(fittedResiduals(f, m, TRAIN)) : [];
+            const plot = per.length ? await residualPlot([{ title: law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) }], 1).catch(() => undefined) : undefined;
             return {
               ok: f.ok,
               error: f.why,
               train_rms: f.trainRms,
               fitted: Object.fromEntries(Object.keys(f.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(f.theta[k])} ± ${fmtNum(f.sigma[k], 2)}${atBound(l2, k, f.theta[k]) ? " (stuck at its bound)" : ""}`])),
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
+              ...(plot ? { [WONDER_PLOT]: plot } : {}),
             };
           };
           // the theorist reads the same table as the referee: fitted frames only, no rank, sorted by the fit to them
-          const { law: revised, attempts, auto } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2), t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
-          wonder = { idea, trigger, ...(trigger === "code" ? { missZ: +leadMiss.toFixed(2) } : {}), attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
+          const maxTurns = Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2);
+          const { law: revised, attempts, auto, turns } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, maxTurns, t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
+          wonder = { idea, trigger, ...(trigger === "code" ? { missZ: leadMiss } : {}), attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null, turns, budget: { turns: maxTurns, effort: WONDER_EFFORT() } };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
           compileLaw(law);
@@ -690,8 +804,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         // the revision won: the referee's words were about a law that no longer leads, so it writes up the new winner
         const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
         if (cands[0].law.id !== winnerAtReferee && left > 25_000) {
-          const c2 = await critique(obs, tableOf(), ledger).catch(() => null);
-          if (c2) c = { ...c2, verdict: "accept", revision_idea: c?.revision_idea ?? "", winnerId: cands[0].law.id };
+          const plot2 = await residualPlot(refereePlotSeries(cands, m, TRAIN), 1).catch(() => undefined);
+          const c2 = await critique(obs, tableOf(), ledger, undefined, plot2).catch(() => null);
+          // the second referee's own verdict stands in the record; the first one's is kept beside it
+          if (c2) c = { ...c2, winnerId: cands[0].law.id, ...(pre ? { preRevision: pre } : {}), postRevision: verdictOf({ ...c2, winnerId: cands[0].law.id }) };
         }
       }
       return c;
@@ -739,11 +855,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         const sr = gc.sigma > 0 ? gc.sigma / gc.reference : 0;
         if (r > 0 && Math.abs(r - 1) > Math.max(0.15, 3 * sr)) {
           const f = Math.sqrt(1 / r);
-          clock = { factor: f, sigma: 0.5 * f * (gc.sigma > 0 ? gc.sigma / gc.measured : 0), note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${fmtNum(f, 2)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${fmtNum(1 / f, 2)}× faster than real life (time-lapse or dropped frames).` };
+          // a g with no error bar (a rough fit) gives a factor with none either: a range in words, never a ±
+          const rough = !(gc.sigma > 0 && Number.isFinite(gc.sigma));
+          const say = (x: number) => (rough ? roughFactor(x) : fmtNum(x, 2));
+          clock = { factor: f, ...(rough ? {} : { sigma: 0.5 * f * (gc.sigma / gc.measured) }), note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${say(f)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${say(1 / f)}× faster than real life (time-lapse or dropped frames).` };
         }
       }
       // a number the clock casts doubt on is never left standing on its own
-      if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body)}`;
+      if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body, clock.sigma === undefined)}`;
       const headline = crit?.headline && refereedWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
       return { comps, finding, whatIf, clock, headline };
     }, (r) => r.finding);
@@ -763,7 +882,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       observation: obs,
       observationSources: sources,
       tracking: { noun: subj.tracks[0]?.noun ?? subjectNoun, tracks: subj.tracks.length, framesSeen: track.samples.length, meanConfidence: track.samples.reduce((s, x) => s + (x.conf ?? 0), 0) / track.samples.length },
-      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin, point },
+      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin, point, split: m.split },
+      ...(voiceWindow ? { voiceWindow } : {}),
       given,
       reasoning: hyp.reasoning,
       candidates: cands.map((c) => ({ ...c, fit: { ...c.fit } })),
@@ -788,11 +908,54 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 }
 
 /** One sentence for the finding when the measured gravity says the clip's clock isn't real time. */
-export function clockSentence(r: number, factor: number, body: string) {
+export function clockSentence(r: number, factor: number, body: string, rough = false) {
   const world = body === "earth" ? "Earth’s" : body === "moon" ? "the Moon’s" : `${body}’s`;
+  const say = (x: number) => (rough ? roughFactor(x) : fmtNum(x, 2));
   return r < 1
-    ? `That is ${fmtNum(1 / r, 2)}× weaker than ${world} gravity, so the clip most likely plays about ${fmtNum(factor, 2)}× slower than real life.`
-    : `That is ${fmtNum(r, 2)}× stronger than ${world} gravity, so the clip most likely plays about ${fmtNum(1 / factor, 2)}× faster than real life.`;
+    ? `That is ${fmtNum(1 / r, 2)}× weaker than ${world} gravity, so the clip most likely plays about ${say(factor)}× slower than real life.`
+    : `That is ${fmtNum(r, 2)}× stronger than ${world} gravity, so the clip most likely plays about ${say(1 / factor)}× faster than real life.`;
+}
+
+/**
+ * A factor derived from a value with no error bar, as a range in words: 4.27 → "4 to 4.5", 1.46 → "1.4 to 1.5",
+ * 12.3 → "12 to 13". Half-steps above 2, tenths below, whole numbers from 10.
+ */
+export function roughFactor(x: number) {
+  const step = x < 2 ? 0.1 : x < 10 ? 0.5 : 1;
+  const lo = Math.floor(x / step + 1e-9) * step;
+  const p = (v: number) => (+v.toFixed(1)).toString();
+  return `${p(lo)} to ${p(lo + step)}`;
+}
+
+/**
+ * How many frames the by-eye call saw, from its input tokens when the record predates eyeball.seen: about 130 tokens a
+ * frame at 1280×720 and about 56 at broadcast size (321×240), measured on the records that store both (±1 frame or so),
+ * after about 120 tokens of question.
+ */
+export function framesFromTokens(inputTokens: number, video: Pick<Experiment["video"], "width" | "height">) {
+  const perFrame = video.width * video.height >= 300_000 ? 130 : 56;
+  return Math.max(1, Math.round((inputTokens - 120) / perFrame));
+}
+
+/** A SAM ledger row with no time on it came from a pipeline that didn't record SAM's timing. */
+export const samUntimed = (c: Call) => c.model.startsWith("sam") && !c.ms && !c.totalMs;
+
+/**
+ * What a stored record shows of the current method, so a page can disclose an older record instead of hiding it:
+ * SAM calls with no time recorded, a by-eye call whose frame count was never stored (estimated from its tokens), and a
+ * referee who named no residual feature. `older` is true when any of these holds, or the pipeline stamp is not today's.
+ */
+export function recordAge(e: Pick<Experiment, "pipeline" | "ledger" | "eyeball" | "critique" | "video">) {
+  const samRows = e.ledger.calls.filter((c) => c.model.startsWith("sam"));
+  const untimed = samRows.filter(samUntimed).length;
+  const eyeCall = e.ledger.calls.find((c) => /^eyeball/.test(c.purpose));
+  const eyeball = e.eyeball?.seen ? { frames: e.eyeball.seen.frames, estimated: false } : eyeCall?.inputTokens ? { frames: framesFromTokens(eyeCall.inputTokens, e.video), estimated: true } : null;
+  const reasons: string[] = [];
+  if (e.pipeline !== PIPELINE) reasons.push(`run on ${e.pipeline ? `pipeline ${e.pipeline}` : "a pipeline before version stamps"}, not ${PIPELINE}`);
+  if (untimed) reasons.push(`SAM 3.1's time not recorded on ${untimed} of ${samRows.length} call${samRows.length === 1 ? "" : "s"} (older pipeline)`);
+  if (eyeball?.estimated) reasons.push(`by eye: saw ~${eyeball.frames} frames (older pipeline; estimated from the call's input tokens)`);
+  if (e.critique && !e.critique.residual_feature) reasons.push("the referee named no residual feature (older pipeline)");
+  return { older: reasons.length > 0, reasons, samUntimed: untimed, eyeball, residualFeature: !!e.critique?.residual_feature };
 }
 
 /** The finding written by code when the referee is missing or typed its own numbers. */
@@ -867,7 +1030,7 @@ export function withScaleCorrection(law: Law): Law {
 /** Strobe instants spaced by distance travelled (about one body-width apart), like a multiflash photograph. */
 export function pickStrobe(samples: Sample[], f0: number, f1: number, times: number[]) {
   const inWin = samples.filter((s) => s.f >= f0 && s.f <= f1);
-  const size = [...inWin.map((s) => s.minor)].sort((a, b) => a - b)[inWin.length >> 1] || 20;
+  const size = median(inWin.map((s) => s.minor)) || 20;
   let pathLen = 0;
   for (let i = 1; i < inWin.length; i++) pathLen += Math.hypot(inWin[i].cx - inWin[i - 1].cx, inWin[i].cy - inWin[i - 1].cy);
   // one body-width apart for things that travel; a jump in place still gets about eight exposures
@@ -927,7 +1090,7 @@ function fmtErr(v: number, cal: Calibration, angle = false) {
 }
 
 /** Drops the frames at either end where the body sits still (held in a hand, resting on the floor). */
-function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number; t1: number }, slow: number, scale: { value: number; kind: "reference" | "stated"; note: string } | null, g: number, kind: Observation["motion_kind"], extra: { point?: "centroid" | "top"; noGravityRuler?: boolean } = {}): Measured {
+function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number; t1: number }, slow: number, scale: Scale | null, g: number, kind: Observation["motion_kind"], extra: { point?: "centroid" | "top"; noGravityRuler?: boolean } = {}): Measured {
   const px = m.px;
   if (px.length < 12) return m;
   const sp = px.map((p, i) => (i ? Math.hypot(p.x - px[i - 1].x, p.y - px[i - 1].y) : 0));
@@ -940,7 +1103,7 @@ function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number;
   if (b - a < 10 || (a < 2 && b > px.length - 3)) return m;
   const fa = px[a].f, fb = px[b].f;
   const T = (f: number) => vi.times[f] ?? 0;
-  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind, ...extra });
+  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind, trainFrac: TRAIN, ...extra });
 }
 
 export type { Pivot };

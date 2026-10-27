@@ -1,4 +1,4 @@
-import { META_BASE } from "@/lib/meta/client";
+import { lastSuccess, META_BASE } from "@/lib/meta/client";
 import { usageToday } from "@/lib/limits";
 import { sameSecret } from "@/lib/secret";
 import { getExperiment, recentIds, showcaseIds } from "@/lib/experiments";
@@ -45,10 +45,34 @@ async function modelStatus() {
   return value;
 }
 
+let lastCache: { at: number; value: Record<string, { at: string; seen: string } | null> } | null = null;
+
+/**
+ * Each model's last successful call: the latest of this server's own calls and the newest stored record whose ledger
+ * shows the model answering (a call with a time on it; SAM rows from older pipelines carry none). Cached 5 minutes.
+ */
+async function lastCalls() {
+  if (lastCache && Date.now() - lastCache.at < 300_000) return lastCache.value;
+  const best: Record<string, { at: string; seen: string } | null> = Object.fromEntries(USED.map((id) => [id, null]));
+  const offer = (id: string, at: string, seen: string) => {
+    if (!best[id] || Date.parse(at) > Date.parse(best[id]!.at)) best[id] = { at, seen };
+  };
+  for (const id of USED) if (lastSuccess[id]) offer(id, lastSuccess[id], "this server");
+  const ids = [...(await recentIds(8).catch(() => [] as string[])), ...(await showcaseIds().catch(() => [] as string[]))];
+  for (const eid of ids) {
+    const e = await getExperiment(eid).catch(() => null);
+    if (!e) continue;
+    for (const id of USED) if (e.ledger.calls.some((c) => c.model.startsWith(id) && (c.ms > 0 || (c.totalMs ?? 0) > 0))) offer(id, e.createdAt, `experiment ${e.id}`);
+  }
+  lastCache = { at: Date.now(), value: best };
+  return best;
+}
+
 /** What this deployment can reach right now: Meta's model list, storage, ffmpeg, today's usage. */
 export async function GET(req: Request) {
   const out: Record<string, unknown> = { at: new Date().toISOString(), region: process.env.VERCEL_REGION ?? "local" };
   out.models = await modelStatus();
+  out.lastSuccess = await lastCalls();
   try {
     // usage is the builder's business: shown only with the admin token
     const u = await usageToday();

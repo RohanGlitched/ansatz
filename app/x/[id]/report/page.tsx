@@ -6,6 +6,7 @@ import PrintButton from "@/components/PrintButton";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import { prettyUnit } from "@/lib/units";
+import { fmtParam, fmtProse } from "@/lib/format";
 import { tr } from "@/lib/i18n";
 import { LANGUAGES, translation } from "@/lib/translate";
 import styles from "./report.module.css";
@@ -17,7 +18,13 @@ type Params = { params: Promise<{ id: string }>; searchParams?: Promise<{ lang?:
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const e = await getExperiment(id);
-  return { title: e ? `Lab report: ${e.title}` : "Lab report" };
+  // a missing record is a real 404, rendered on the server
+  if (!e) notFound();
+  return {
+    title: `Lab report: ${e.title}`,
+    description: `The printable lab report for “${e.title}”: aim, method, observations, the winning law, every constant with its error bar against the known value, and what was given rather than measured, with spaces for a student’s name.`,
+    alternates: { canonical: `/x/${e.id}/report` },
+  };
 }
 
 /** A one-page lab report in the form a physics practical asks for: aim, method, observations, result, errors. */
@@ -122,7 +129,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
                   <Tex>{paramLatex(p.name)}</Tex> {p.meaning}
                 </td>
                 <td>
-                  {fmt(win.fit.theta[p.name])} ± {fmt(win.fit.sigma[p.name], 2)} {prettyUnit(p.unit)}
+                  {fmtParam(win.fit.theta[p.name], win.fit.sigma[p.name])} {prettyUnit(p.unit)}
                 </td>
                 <td>{c ? `${fmt(c.reference)} ${prettyUnit(p.unit)}` : "—"}</td>
                 <td>{c ? `${c.errorPct >= 0 ? "+" : ""}${c.errorPct.toFixed(1)}%` : "—"}</td>
@@ -131,7 +138,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
           })}
         </tbody>
       </table>
-      <p>{trans?.finding ?? e.finding}</p>
+      <p>{fmtProse(trans?.finding ?? e.finding, Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }])))}</p>
 
       <h2>{t("conclusion")}</h2>
       <p>{conclusion(e, win.law.title, t)}</p>

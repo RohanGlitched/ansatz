@@ -17,6 +17,10 @@ export default function StripCard({ e }: { e: Experiment }) {
   return (
     <div className={styles.plate} style={{ ["--fast" as string]: `${fast.toFixed(3)}s` }}>
       <div className={styles.strip}>
+        {/* the first paint: a small copy of the strip (scripts/stills.mjs), loaded at once, so the card shows its print
+            before the full-size strip below the fold is fetched */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.first} src={`/slits/thumb/${e.id}.webp`} alt="" decoding="async" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className={styles.latent} src={`/slits/${e.id}.webp`} alt="" loading="lazy" decoding="async" />
         <span className={styles.develop}>

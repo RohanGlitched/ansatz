@@ -1,0 +1,187 @@
+{
+ "generatedAt": "2026-10-27T07:37:24.473Z",
+ "pipeline": "2026-10-27c",
+ "note": "One spoken pendulum length per language, each a synthetic voice (TTS: Microsoft Edge neural voices via edge-tts, not a real speaker), with one second of silence before it. Muse Voice Transcribe heard each with that language's keywords and language bias, as a run sends them; code then read the length (a number in digits or words, then a centimetre or metre word: lib/i18n.ts spokenLength) and the word for letting go (releaseTurn, which sets a run's window start). Heard and checked in 6 of 7.",
+ "summary": {
+  "languages": 7,
+  "lengthChecked": 6,
+  "releaseHeard": 7,
+  "usd": 0.002332,
+  "label": "heard and checked in 6 of 7 (TTS)"
+ },
+ "rows": [
+  {
+   "language": "English",
+   "speech": "TTS",
+   "voice": "en-IN-NeerjaNeural (edge-tts)",
+   "said": "The string is fifty centimetres long. Now I let go.",
+   "truth_m": 0.5,
+   "heard": "The string is fifty centimetres long. Now I let go.",
+   "turns": [
+    {
+     "startMs": 860,
+     "endMs": 6300,
+     "transcript": "The string is fifty centimetres long. Now I let go."
+    }
+   ],
+   "length": {
+    "metres": 0.5,
+    "said": "fifty centimetres"
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 0.86,
+    "word": "let go"
+   },
+   "usd": 0.00034
+  },
+  {
+   "language": "Hindi",
+   "speech": "TTS",
+   "voice": "hi-IN-SwaraNeural (edge-tts)",
+   "said": "धागे की लंबाई साठ सेंटीमीटर है। अब मैं छोड़ रहा हूँ।",
+   "truth_m": 0.6,
+   "heard": "धागे की लंबाई साठ centimetre है। अब मैं छोड़ रहा हूँ",
+   "turns": [
+    {
+     "startMs": 940,
+     "endMs": 6380,
+     "transcript": "धागे की लंबाई साठ centimetre है। अब मैं छोड़ रहा हूँ"
+    }
+   ],
+   "length": {
+    "metres": 0.6,
+    "said": "साठ centimetre"
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 0.94,
+    "word": "छोड़"
+   },
+   "usd": 0.00038
+  },
+  {
+   "language": "Tamil",
+   "speech": "TTS",
+   "voice": "ta-IN-PallaviNeural (edge-tts)",
+   "said": "நூலின் நீளம் நாற்பது சென்டிமீட்டர். இப்போது விடுகிறேன்.",
+   "truth_m": 0.4,
+   "heard": "Nolan நீளம் நாற்பது centimetre. இப்போது விடுகிறேன்.",
+   "turns": [
+    {
+     "startMs": 860,
+     "endMs": 5740,
+     "transcript": "Nolan நீளம் நாற்பது centimetre. இப்போது விடுகிறேன்."
+    }
+   ],
+   "length": {
+    "metres": 0.4,
+    "said": "நாற்பது centimetre."
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 0.86,
+    "word": "விடு"
+   },
+   "usd": 0.000312
+  },
+  {
+   "language": "Bengali",
+   "speech": "TTS",
+   "voice": "bn-IN-TanishaaNeural (edge-tts)",
+   "said": "সুতোর দৈর্ঘ্য সত্তর সেন্টিমিটার। এবার ছেড়ে দিচ্ছি।",
+   "truth_m": 0.7,
+   "heard": "সুতোর দৈর্ঘ্য সতর centimeter এবার ছেড়ে দিচ্ছি",
+   "turns": [
+    {
+     "startMs": 860,
+     "endMs": 6060,
+     "transcript": "সুতোর দৈর্ঘ্য সতর centimeter এবার ছেড়ে দিচ্ছি"
+    }
+   ],
+   "length": null,
+   "lengthOk": false,
+   "release": {
+    "at": 0.86,
+    "word": "ছেড"
+   },
+   "usd": 0.000332
+  },
+  {
+   "language": "Marathi",
+   "speech": "TTS",
+   "voice": "mr-IN-AarohiNeural (edge-tts)",
+   "said": "दोऱ्याची लांबी ऐंशी सेंटीमीटर आहे. आता मी सोडतो.",
+   "truth_m": 0.8,
+   "heard": "दोयाची लांबी ऐंशी centimetre centimetre आहे. आता मी सोडतो.",
+   "turns": [
+    {
+     "startMs": 1340,
+     "endMs": 6540,
+     "transcript": "दोयाची लांबी ऐंशी centimetre centimetre आहे. आता मी सोडतो."
+    }
+   ],
+   "length": {
+    "metres": 0.8,
+    "said": "ऐंशी centimetre"
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 1.34,
+    "word": "सोड"
+   },
+   "usd": 0.000352
+  },
+  {
+   "language": "Telugu",
+   "speech": "TTS",
+   "voice": "te-IN-ShrutiNeural (edge-tts)",
+   "said": "దారం పొడవు ముప్పై సెంటీమీటర్లు. ఇప్పుడు వదులుతున్నాను.",
+   "truth_m": 0.3,
+   "heard": "దారం పడవ ముప్పై centimeter లు. ఇప్పుడు వదలుతున్నాను.",
+   "turns": [
+    {
+     "startMs": 780,
+     "endMs": 5500,
+     "transcript": "దారం పడవ ముప్పై centimeter లు. ఇప్పుడు వదలుతున్నాను."
+    }
+   ],
+   "length": {
+    "metres": 0.3,
+    "said": "ముప్పై centimeter"
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 0.78,
+    "word": "వదల"
+   },
+   "usd": 0.0003
+  },
+  {
+   "language": "Spanish",
+   "speech": "TTS",
+   "voice": "es-ES-ElviraNeural (edge-tts)",
+   "said": "La cuerda mide noventa centímetros. Ahora la suelto.",
+   "truth_m": 0.9,
+   "heard": "La cuerda mide noventa centímetros. Ahora la la suelto",
+   "turns": [
+    {
+     "startMs": 860,
+     "endMs": 5820,
+     "transcript": "La cuerda mide noventa centímetros. Ahora la la suelto"
+    }
+   ],
+   "length": {
+    "metres": 0.9,
+    "said": "noventa centímetros."
+   },
+   "lengthOk": true,
+   "release": {
+    "at": 0.86,
+    "word": "suelto"
+   },
+   "usd": 0.000316
+  }
+ ],
+ "reparsedAt": "2026-10-27T07:37:45.139Z"
+}

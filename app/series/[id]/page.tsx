@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const s = await series((await params).id);
-  return { title: s ? s.title : "Series", description: "A pendulum at several lengths: g from the slope of L against T², the school practical done by video." };
+  // a missing series is a real 404, rendered on the server
+  if (!s) notFound();
+  return { title: s.title, description: "A pendulum at several lengths: g from the slope of L against T², the school practical done by video.", alternates: { canonical: `/series/${s.id}` } };
 }
 
 const pct = (x: number, d = 2) => `${(x * 100).toFixed(d)}%`;

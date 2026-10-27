@@ -34,6 +34,17 @@
   inset: 0;
 }
 
+/* the small first-paint copy, under the full strip; hidden while a hover re-develops the print */
+.strip img.first {
+  filter: saturate(0.8);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(a:hover, a:focus-visible) .strip img.first {
+    opacity: 0;
+  }
+}
+
 /* the frames no law saw */
 .unseen {
   fill: rgba(8, 9, 11, 0.42);

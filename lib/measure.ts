@@ -5,10 +5,13 @@
  * pivot found by fitting a circle to the path) and `s` (distance along the path's best-fit line).
  */
 import type { Sample, Track } from "./meta/sam";
-import { noiseScale, type Series } from "./physics/law";
+import { median } from "./median";
+import { noiseScale, splitIndex, type Series } from "./physics/law";
 
 export type Calibration =
-  | { kind: "reference"; metresPerPixel: number; note: string }
+  /** px: the ruler's length in pixels; sigmaPx: its 1σ, from the frame-to-frame spread of SAM's mask (1.4826·MAD/√n) and
+   * a 1 px edge, in quadrature; frames: how many masks it was read from; how: "image" when SAM 3.1 read still frames */
+  | { kind: "reference"; metresPerPixel: number; note: string; px?: number; sigmaPx?: number; frames?: number; how?: "video" | "image" }
   | { kind: "stated"; metresPerPixel: number; note: string }
   | { kind: "gravity"; metresPerPixel: number; note: string; g: number }
   | { kind: "pendulum"; metresPerPixel: number; note: string }
@@ -42,7 +45,25 @@ export type Measured = {
   noise: Record<string, number>;
   window: { f0: number; f1: number; t0: number; t1: number };
   slowMotion: number;
+  /** how many of the samples the laws are fitted to. The scale, the pivot, the line and the noise unit come from these
+   * alone, and the flight window was chosen from them, so nothing measured on the held-out frames reaches a law */
+  split?: number;
 };
+
+/**
+ * A ruler's length in pixels from its per-frame mask extents: the median, with a 1σ of 1.4826·MAD/√n (the scatter of
+ * SAM's mask from frame to frame) and a 1 px edge term (where a mask's boundary falls), in quadrature. `at` picks a
+ * percentile instead of the median (a standing person's height is their tallest frames, not their typical one).
+ */
+export function rulerExtent(lens: number[], at = 0.5): { px: number; sigmaPx: number; n: number } {
+  const v = lens.filter((x) => Number.isFinite(x) && x > 0).sort((a, b) => a - b);
+  const n = v.length;
+  if (!n) return { px: NaN, sigmaPx: NaN, n: 0 };
+  const mid = median(v);
+  const px = at === 0.5 ? mid : v[Math.min(n - 1, Math.floor(n * at))];
+  const mad = median(v.map((x) => Math.abs(x - mid)));
+  return { px, sigmaPx: Math.hypot((1.4826 * mad) / Math.sqrt(n), 1), n };
+}
 
 /** Picks the track SAM followed longest (and most confidently): the experiment's subject. */
 export function mainTrack(tracks: Track[], f0 = 0, f1 = Infinity): Track | null {
@@ -338,7 +359,7 @@ export function flightWindow(t: number[], ypx: number[]): { a: number; b: number
   const A0 = pos[Math.floor(pos.length * 0.6)];
   const near = pos.filter((x) => x > 0.5 * A0 && x < 1.5 * A0);
   if (near.length < 5) return null;
-  const A = near[near.length >> 1];
+  const A = median(near);
   const flight = acc.map((x) => Number.isFinite(x) && Math.abs(x - A) < 0.4 * A);
   // group flight samples, bridging short gaps: a bounce smears the local fit over ~2h samples, so allow
   // 6 samples or 0.08 s, whichever is longer (high frame rates make a bounce span more samples)
@@ -380,7 +401,7 @@ export function parabolicSegment(t: number[], y: number[], opts: { minLen?: numb
   const d: number[] = [];
   for (let i = 2; i < n; i++) d.push(Math.abs(y[i] - 2 * y[i - 1] + y[i - 2]));
   d.sort((p, q) => p - q);
-  const noise = Math.max(0.5, ((d[d.length >> 1] ?? 1) * 1.4826) / Math.sqrt(6));
+  const noise = Math.max(0.5, ((d.length ? median(d) : 1) * 1.4826) / Math.sqrt(6));
   const tol = opts.tolPx ?? Math.max(1.0, 1.8 * noise);
   let best: { a: number; b: number; rms: number; aPx: number } | null = null;
   for (let a = 0; a + minLen <= n; a++) {
@@ -461,7 +482,7 @@ export function measure(args: {
   times: number[];
   window?: { t0: number; t1: number };
   slowMotion?: number;
-  metresPerPixel?: { value: number; kind: "reference" | "stated"; note: string } | null;
+  metresPerPixel?: { value: number; kind: "reference" | "stated"; note: string; px?: number; sigmaPx?: number; frames?: number; how?: "video" | "image" } | null;
   gravity?: number;
   wantPivot?: boolean;
   /** "flight": keep only the free-flight stretch (drop rolling, resting, being carried) */
@@ -470,7 +491,11 @@ export function measure(args: {
   point?: "centroid" | "top";
   /** never use gravity as the ruler (the motion isn't free flight) */
   noGravityRuler?: boolean;
+  /** the share of the samples the laws will be fitted to (the rest are held out): only these may set the scale, the
+   * pivot, the line, the noise unit and the flight window */
+  trainFrac?: number;
 }): Measured {
+  const frac = args.trainFrac ?? 0.7;
   const slow = args.slowMotion && args.slowMotion > 1 ? args.slowMotion : 1;
   const T = (f: number) => (args.times[f] ?? args.times[args.times.length - 1] + (f - args.times.length + 1) * (args.times[1] - args.times[0] || 1 / 30)) / slow;
   const w0 = args.window ? args.window.t0 / slow : -Infinity, w1 = args.window ? args.window.t1 / slow : Infinity;
@@ -504,14 +529,18 @@ export function measure(args: {
   const repeated = samples.length - dedup.length;
   if (repeated >= Math.max(2, samples.length * 0.08)) samples = dedup;
   if (!airborne && (args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
-    const ts = samples.map((s) => T(s.f)), ysPx = samples.map((s) => s.cy);
+    // sealed: the flight is looked for in the first `frac` of the window's frames only, and the stretch found there
+    // becomes the fitted part; the held-out part is the frames after it, which the search never looked at. A flight
+    // that ends early leaves its landing in the held-out frames, where every law is judged on predicting it
+    const nP = Math.max(12, splitIndex(samples.length, frac));
+    const ts = samples.slice(0, nP).map((s) => T(s.f)), ysPx = samples.slice(0, nP).map((s) => s.cy);
     const fw = flightWindow(ts, ysPx);
     // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
     const ps = parabolicSegment(ts, ysPx);
     // the global search only overrides the local one when that clearly failed; it is trimmed by a frame at
     // each end, where a take-off or a landing bends the path
     const pick = ps && (!fw || ps.b - ps.a > 1.4 * (fw.b - fw.a)) ? { a: ps.a + 1, b: ps.b - 1 } : fw;
-    if (pick) samples = samples.slice(pick.a, pick.b + 1);
+    if (pick) samples = samples.slice(pick.a, Math.min(samples.length, pick.a + Math.round((pick.b - pick.a + 1) / frac)));
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);
   const f0 = samples[0].f, f1 = samples[samples.length - 1].f;
@@ -519,18 +548,22 @@ export function measure(args: {
   const t = samples.map((s) => T(s.f) - T(f0));
   const xs = samples.map((s) => s.cx), ys = samples.map((s) => s.cy);
   const origin = { x: xs[0], y: ys[0] };
+  // the fitted frames: everything below that is measured from the path (scale, pivot, line, noise) reads these only
+  const split = splitIndex(samples.length, frac);
+  const fitted = samples.slice(0, split);
 
   let cal: Calibration;
-  if (args.metresPerPixel) cal = { kind: args.metresPerPixel.kind, metresPerPixel: args.metresPerPixel.value, note: args.metresPerPixel.note };
+  const given = args.metresPerPixel;
+  if (given) cal = given.kind === "reference" ? { kind: "reference", metresPerPixel: given.value, note: given.note, ...(given.px !== undefined ? { px: given.px, sigmaPx: given.sigmaPx, frames: given.frames, how: given.how } : {}) } : { kind: "stated", metresPerPixel: given.value, note: given.note };
   else {
     // a body on a straight track (a ramp) accelerates at less than g, so its fall can't be the ruler; a curved path can
-    const straight = args.kind === "along a path" && fitLine(samples.map((s) => ({ x: s.cx, y: s.cy }))).rmsOffPx < 3;
-    const pg = args.noGravityRuler || straight ? null : pixelGravity(t, ys);
+    const straight = args.kind === "along a path" && fitLine(fitted.map((s) => ({ x: s.cx, y: s.cy }))).rmsOffPx < 3;
+    const pg = args.noGravityRuler || straight ? null : pixelGravity(t.slice(0, split), ys.slice(0, split));
     const g = args.gravity ?? 9.80665;
     // gravity as the ruler only when the result is physically plausible: the object must come out between 5 mm and 3 m
-    const sizePx = [...samples.map((s) => s.minor)].sort((a, b) => a - b)[samples.length >> 1] ?? 0;
+    const sizePx = median(fitted.map((s) => s.minor)) || 0;
     const plausible = pg && pg.aPx > 0 && pg.arcs > 0 && sizePx * (g / pg.aPx) > 0.005 && sizePx * (g / pg.aPx) < 3;
-    if (pg && plausible) cal = { kind: "gravity", metresPerPixel: g / pg.aPx, g, note: `scale from the fall itself: ${pg.aPx.toFixed(0)} px/s² over ${pg.arcs} arc${pg.arcs > 1 ? "s" : ""} = g of ${g.toFixed(3)} m/s²` };
+    if (pg && plausible) cal = { kind: "gravity", metresPerPixel: g / pg.aPx, g, note: `scale from the fall itself (fitted frames only): ${pg.aPx.toFixed(0)} px/s² over ${pg.arcs} arc${pg.arcs > 1 ? "s" : ""} = g of ${g.toFixed(3)} m/s²` };
     else cal = { kind: "none", metresPerPixel: 1, note: "no scale: lengths are in pixels" };
   }
   const k = cal.metresPerPixel;
@@ -539,19 +572,19 @@ export function measure(args: {
     y: ys.map((y) => -(y - origin.y) * k),
   };
   let pivot: Pivot | undefined;
-  const pc = args.wantPivot === true || (args.wantPivot === undefined && (args.kind === "swing" || args.kind === undefined)) ? fitCircle(samples.map((s) => ({ x: s.cx, y: s.cy }))) : null;
+  const pc = args.wantPivot === true || (args.wantPivot === undefined && (args.kind === "swing" || args.kind === undefined)) ? fitCircle(fitted.map((s) => ({ x: s.cx, y: s.cy }))) : null;
   // a pendulum: the path hugs a circle whose centre sits above the body, over a real arc. Two arcs of different
   // radius (an interrupted pendulum) have no one pivot to measure an angle about
   let pivotNote: string | undefined;
   if (pc?.twoRadii) pivotNote = pc.why;
-  else if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys)) {
+  else if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys.slice(0, split))) {
     pivot = pc;
     ch.theta = samples.map((s) => Math.atan2(s.cx - pc.x, s.cy - pc.y));
     ch.r = samples.map((s) => Math.hypot(s.cx - pc.x, s.cy - pc.y) * k);
   }
-  const line = fitLine(samples.map((s) => ({ x: s.cx, y: s.cy })));
+  const line = fitLine(fitted.map((s) => ({ x: s.cx, y: s.cy })));
   if (line.rmsOffPx < 3) ch.s = samples.map((s) => ((s.cx - line.x0) * line.ux + (s.cy - line.y0) * line.uy) * k);
-  const noise = Object.fromEntries(Object.entries(ch).map(([c, v]) => [c, noiseScale(v, t)]));
+  const noise = Object.fromEntries(Object.entries(ch).map(([c, v]) => [c, noiseScale(v.slice(0, split), t.slice(0, split))]));
   return {
     series: { t, ch },
     px: samples.map((s) => ({ f: s.f, x: s.cx, y: s.cy })),
@@ -564,6 +597,7 @@ export function measure(args: {
     noise,
     window: { f0, f1, t0: T(f0), t1: T(f1) },
     slowMotion: slow,
+    split,
   };
 }
 

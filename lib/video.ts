@@ -3,6 +3,7 @@
  * sample table). Phones record variable frame rates, so "frame i at i/30 s" can be off by whole frames;
  * physics needs the real clock. Also returns the display size and rotation.
  */
+import { median } from "./median";
 
 export type VideoInfo = {
   width: number; // display width (after rotation)
@@ -99,7 +100,7 @@ export function readVideoInfo(buf: Uint8Array): VideoInfo {
     const times = pts.map((p) => (p - t0) / timescale);
     const intervals = times.slice(1).map((t, i) => t - times[i]).filter((x) => x > 0);
     const sorted = [...intervals].sort((x, y) => x - y);
-    const med = sorted[sorted.length >> 1] || 1 / 30;
+    const med = median(sorted) || 1 / 30;
     const rot = rotation === 90 || rotation === 270;
     return {
       width: Math.round(rot ? h : w),

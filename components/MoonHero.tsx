@@ -3,6 +3,7 @@ import type { Experiment } from "@/lib/experiment";
 import { toPixels } from "@/lib/pixels";
 import ReplayScope from "./ReplayScope";
 import { slitOf } from "./strip";
+import { fmtPair } from "@/lib/format";
 import styles from "./MoonHero.module.css";
 
 type Repeat = { playback_accel: number; real_speed: boolean; factor: number };
@@ -30,6 +31,9 @@ const rangeOf = (a: Repeat[]) => {
  */
 export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experiment | null }) {
   const g = e.comparisons.find((x) => x.param === "g");
+  // the quoted ± is statistical and ruler; which point of the body is followed is listed apart (the error budget)
+  const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
+  const height = e.observation.reference.present ? e.observation.reference.real_length_m : null;
   const mt = e.extras?.memoryTest;
   const st = e.extras?.speedTest;
   const rp = st?.repeats;
@@ -47,7 +51,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
   const repA = rp?.clips.find((c) => c.clip === "A"), repB = rp?.clips.find((c) => c.clip === "B");
   const wrongB = repB ? repB.answers.filter((x) => x.real_speed).length : 0;
   const strips = [
-    { id: "moon-jump", e, meta: metaA, key: "A", title: "Apollo 16, as broadcast", verdict: g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², real speed` : "" },
+    { id: "moon-jump", e, meta: metaA, key: "A", title: "Apollo 16, as broadcast", verdict: g ? `${fmtPair(g.measured, g.sigma)} m/s², consistent with real speed if this is the Moon` : "" },
     ...(slowed && metaB ? [{ id: "moon-jump-slowed", e: slowed, meta: metaB, key: "B", title: `The same clip, slowed ${truth ?? ""}${truth ? "× " : ""}in secret`, verdict: mt ? `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s² as played` : "" }] : []),
   ];
   // both jumps, measured the same way in both clips: helmet-top pixels and the fitted parabola, frame by frame
@@ -67,18 +71,27 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
     <section className={styles.hero}>
       <div className={`wrap ${styles.head}`}>
         <p className={styles.tagline}>Film anything that moves. Ansatz finds the law that moves it.</p>
-        <h1>
-          From 1972 television, SAM 3.1 tracked every frame and Ansatz measured the Moon’s gravity{g ? `: ${g.measured.toFixed(2)}\u00a0±\u00a0${g.sigma.toFixed(2)}\u00a0m/s²` : ""}.
-        </h1>
+        <h1>One of these clips was slowed in secret.</h1>
         <div className={styles.intro}>
-          <p className={styles.lead}>Is this footage real time? Muse Spark, watching alone, can’t tell. With SAM 3.1 measuring every frame, the clips come apart.</p>
-          <p className={styles.lede}>
-            {g ? `The true value is ${g.reference}. ` : ""}Below, every frame of John Young’s jump cut to one thin slice and laid side by side, so his two jumps draw their own arches; under it, the same clip slowed {truth ? `${truth}× ` : ""}in secret.{" "}
-            {repB && rp
-              ? `Asked ${word(rp.n)} times about the slowed copy alone, Muse Spark called it real speed ${wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}. `
-              : "Shown one clip at a time, a language model gives both the same answer. "}
-            SAM 3.1 times every fall, Muse Spark recognises the Moon and proposes the laws, code fits them with the astronaut’s height (1.88 m, given by us) as the ruler, and the two clips come apart by exactly the slowdown.
-          </p>
+          {/* the whole argument in two rows: the model watching alone, and the model with SAM 3.1 measuring */}
+          <dl className={styles.score}>
+            {repB && rp && (
+              <div>
+                <dt>Muse Spark, watching each clip alone</dt>
+                <dd>
+                  “real speed”, <span>{wrongB === rp.n ? `${rp.n} of ${rp.n}` : `${wrongB} of ${rp.n}`} times</span>
+                </dd>
+              </div>
+            )}
+            {sj && (
+              <div className={styles.scoreWin}>
+                <dt>With SAM 3.1 timing every fall</dt>
+                <dd>
+                  {sj.combined.ratio.toFixed(3)}× slower <span>{truth ? `truth ${truth}×` : ""}</span>
+                </dd>
+              </div>
+            )}
+          </dl>
           <div className={styles.cta}>
             <Link className="btn" href="/new">
               Run an experiment
@@ -147,13 +160,13 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                       data-dur={sec(meta.duration)}
                       data-clip={s.id}
                       style={{ width: pct(meta.duration / maxS) }}
-                      aria-label={`${s.title}: slit-scan of every frame`}
+                      aria-label={`Open the experiment: ${s.title}, a slit-scan of all ${meta.frames} frames`}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img className={styles.latent} src={`/slits/${s.id}.webp`} alt="" />
                       <span className={styles.develop}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`/slits/${s.id}.webp`} alt="" />
+                        <img src={`/slits/${s.id}.webp`} alt={`Slit-scan of ${s.key === "A" ? "the broadcast" : "the slowed copy"}: one ${meta.slice}-pixel column from each of its ${meta.frames} frames, laid side by side over ${meta.duration.toFixed(1)} s, so John Young’s two jumps draw two arches`} />
                         {dots.map((p, i) => (
                           <i key={i} className={styles.dot} data-at={at(p.f)} style={pos(p.f, p.y)} />
                         ))}
@@ -319,25 +332,14 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                 })}
               </tbody>
             </table>
-            {repB && rp && sj ? (
-              <p className={styles.punch}>
-                Asked {word(rp.n)} times, Muse Spark called the secretly slowed copy real speed {wrongB === rp.n ? "every time" : `${wrongB} of ${rp.n} times`}, answering {rangeOf(repB.answers)} m/s², the Moon’s textbook value. With SAM 3.1 timing every fall, the same copy measures {sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}× slow, jump for jump{truth ? ` (truth ${truth}×)` : ""}.
-              </p>
-            ) : (
-              st && (
-                <p className={styles.punch}>
-                  Same frames, same ruler: Muse Spark’s estimate of the fall in the broadcast was {st.single[0].playback_accel} m/s², about {Math.round(mt.rows[0].g / Number(st.single[0].playback_accel))}× too small, so it called the real broadcast slowed. SAM 3.1 measured it.
-                </p>
-              )
-            )}
           </div>
           <div className={styles.side}>
             {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt.rows[1]} />}
-            <p className={styles.sideNote}>Gravity in m/s². Blue: the broadcast, on the Moon’s tick. Orange: the slowed copy, which a fall alone would place on a world with half the Moon’s pull.</p>
+            <p className={styles.sideNote}>Gravity in m/s². Blue: the broadcast. Orange: the slowed copy, which a fall alone would put on a world with half the Moon’s pull.</p>
             {st && (
               <p className={styles.sideNote}>
-                Side by side, Muse Spark can count frames and say B is about {st.pair.factor}× slower. Given SAM 3.1’s measurements as tools, Muse Spark answers{" "}
-                <Link href="/x/moon-jump#speed-test">{ratio.toFixed(2)}× (the ratio of the two whole runs)</Link>, which needs no reference value.
+                Side by side, Muse Spark counts frames: about {st.pair.factor}× slower. With SAM 3.1’s measurements as tools:{" "}
+                <Link href="/x/moon-jump#speed-test">{ratio.toFixed(2)}×, the whole-run ratio</Link>.
               </p>
             )}
           </div>

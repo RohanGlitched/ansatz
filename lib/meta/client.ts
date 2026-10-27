@@ -41,6 +41,12 @@ export type Call = {
   usd: number;
 };
 
+/** When each model last answered successfully in this server instance (ISO time), for /api/health. */
+export const lastSuccess: Record<string, string> = {};
+const answered = (model: string) => {
+  lastSuccess[model] = new Date().toISOString();
+};
+
 export class Ledger {
   calls: Call[] = [];
   add(c: Call) {
@@ -145,6 +151,7 @@ export async function respond(body: Record<string, unknown>, ledger: Ledger | nu
   const text = await r.text();
   if (!r.ok) throw new MetaError(`${purpose}: HTTP ${r.status} ${text.slice(0, 300)}`, r.status, text);
   const j = JSON.parse(text) as ResponseJson;
+  answered(String(body.model));
   const model = String(body.model);
   ledger?.add({
     model,
@@ -309,6 +316,7 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
   // a stream that just ends, with no completed event, may have lost its tail (for SAM: the last frames)
   if (!completed) throw new IncompleteStream(`${purpose}: the stream ended before the response completed`);
   const totalMs = Date.now() - t;
+  answered(String(body.model));
   ledger?.add({ model: String(body.model), purpose, ms: totalMs, totalMs, usd: 0 });
   return { text: out, firstEventMs: Math.max(0, firstEventMs), totalMs, usage };
 }
@@ -332,6 +340,7 @@ export async function transcribe(wav: Uint8Array, ledger: Ledger | null, opts: {
   const text = await r.text();
   if (!r.ok) throw new MetaError(`transcribe: HTTP ${r.status} ${text.slice(0, 300)}`, r.status, text);
   const j = JSON.parse(text) as Transcript;
+  answered("muse-voice-transcribe-1.0");
   const sec = (j.audioDurationMs ?? 0) / 1000;
   ledger?.add({ model: "muse-voice-transcribe-1.0", purpose: "narration", ms: Date.now() - t, audioSeconds: sec, usd: (sec / 3600) * PRICE.transcribeHour });
   return j;

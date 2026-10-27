@@ -1,3 +1,4 @@
+import { byteRange } from "@/lib/guards";
 import { getObject } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -19,12 +20,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const size = buf.byteLength;
   const range = req.headers.get("range");
   const headers: Record<string, string> = { "content-type": "video/mp4", "accept-ranges": "bytes", "cache-control": "public, max-age=31536000, immutable" };
-  if (range) {
-    const m = /bytes=(\d*)-(\d*)/.exec(range);
-    const start = m && m[1] ? Number(m[1]) : 0;
-    const end = m && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
-    if (start >= size || start > end) return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
-    return new Response(buf.slice(start, end + 1) as BodyInit, { status: 206, headers: { ...headers, "content-range": `bytes ${start}-${end}/${size}`, "content-length": String(end - start + 1) } });
-  }
+  // "bytes=a-b", "bytes=a-" and the suffix "bytes=-n" (the last n bytes), parsed in lib/guards.ts
+  const r = byteRange(range, size);
+  if (r === null) return new Response(null, { status: 416, headers: { "content-range": `bytes */${size}` } });
+  if (r !== "all") return new Response(buf.slice(r.start, r.end + 1) as BodyInit, { status: 206, headers: { ...headers, "content-range": `bytes ${r.start}-${r.end}/${size}`, "content-length": String(r.end - r.start + 1) } });
   return new Response(buf as BodyInit, { headers: { ...headers, "content-length": String(size) } });
 }

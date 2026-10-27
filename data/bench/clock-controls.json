@@ -1,5 +1,6 @@
 {
  "generatedAt": "2026-10-27T05:44:07.547Z",
+ "pipeline": "2026-10-27c (scored before the held-out 30% was sealed in measurement: scale, pivot, line and noise unit then read every frame)",
  "note": "Clock-check controls: three real-time renders with a ruler in view (a false alarm would be a flag) and two small slowdowns (1.25x, 1.5x), run through the full pipeline. The check flags only a gravity miss over 15% and over 3 sigma, the ruler’s uncertainty included.",
  "rows": [
   {

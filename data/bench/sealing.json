@@ -1,0 +1,1307 @@
+{
+ "generatedAt": "2026-10-27T07:27:52.790Z",
+ "pipeline": "2026-10-27c with the held-out 30% sealed in measurement (lib/measure.ts measured.split)",
+ "note": "Sealing the held-out 30%: the scale from a fall (pixelGravity), the pendulum pivot (fitCircle), the line of a straight path (fitLine) and every channel's noise unit (noiseScale, also the fit weights in lib/physics/law.ts) now read the fitted 70% of the frames only, and the flight window is chosen from the first 70% of the observer's window. Re-scored offline from the 28 cached benchmark runs (.probe/bench_r7, scripts/seal-bench.ts then scripts/score.ts; no model calls). Three columns: published = data/bench/synth.json before this change (kept as data/bench/synth.before-sealing.json); unsealed = the same cached runs re-measured from every frame with today's noise estimator, refitted, with the current ruler inflate; sealed = the same with the fitted frames only. Unsealed against sealed isolates the sealing; published against unsealed is the refit and the current inflate (it moves the pendulum pe01 row from 12.8 sigma to 0.6 sigma). Not re-scored offline: the flight-window choice (the cached runs keep their windows; SAM tracks are not cached for the benchmark) and anything a model chose.",
+ "coverageNote": "Coverage counts physical constants with an error bar (camera scales have none): how often the truth lies within 1 and 2 sigma. Sealing itself moves it by one row (18 to 19 of 27 within 1 sigma). The drop from the published 20 and 24 comes from refitting with today's fitter: the bounce rows' restitution sigma is 3 to 4 times smaller than in the original runs (which used an older noise estimate and covariance), so e, right to 0.03%, now sits 1.3 to 5.6 sigma out. The published file also had the pendulum pe01 L at 12.8 sigma, which the current ruler inflate fixes (0.7 sigma).",
+ "summary": {
+  "published": {
+   "lawCorrect": 24,
+   "lawJudged": 26,
+   "constantsWithin5pct": 42,
+   "constantsChecked": 44,
+   "medianConstErrPct": 0.133,
+   "medianPredictionRel": 0.0005582,
+   "coverage": {
+    "checked": 27,
+    "within1": 20,
+    "within2": 24,
+    "worst": 12.77
+   }
+  },
+  "unsealed": {
+   "lawCorrect": 24,
+   "lawJudged": 26,
+   "constantsWithin5pct": 42,
+   "constantsChecked": 44,
+   "medianConstErrPct": 0.1322,
+   "medianPredictionRel": 0.0005114,
+   "coverage": {
+    "checked": 27,
+    "within1": 18,
+    "within2": 22,
+    "worst": 5.59
+   }
+  },
+  "sealed": {
+   "lawCorrect": 24,
+   "lawJudged": 26,
+   "constantsWithin5pct": 42,
+   "constantsChecked": 44,
+   "medianConstErrPct": 0.1377,
+   "medianPredictionRel": 0.0005115,
+   "coverage": {
+    "checked": 27,
+    "within1": 19,
+    "within2": 22,
+    "worst": 5.59
+   }
+  }
+ },
+ "eyeball": {
+  "note": "By-eye medians now leave out readings from runs whose by-eye call predates eyeball.seen (an older pipeline that sampled about 2 frames a second instead of every frame).",
+  "current": {
+   "median": 46.100917431192656,
+   "readings": 6
+  },
+  "leftOut": 20,
+  "allReadings": {
+   "median": 31.75
+  }
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "winner": {
+    "published": "vacuum-bounce",
+    "unsealed": "vacuum-bounce",
+    "sealed": "vacuum-bounce"
+   },
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.72,
+     "published": {
+      "measured": 0.71976,
+      "sigma": 0.000342,
+      "errPct": -0.033,
+      "withinSigma": 0.7
+     },
+     "unsealed": {
+      "measured": 0.71976,
+      "sigma": 0.000081,
+      "errPct": -0.033,
+      "withinSigma": 2.96
+     },
+     "sealed": {
+      "measured": 0.71976,
+      "sigma": 0.000081,
+      "errPct": -0.033,
+      "withinSigma": 2.96
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00299,
+     "published": {
+      "measured": 0.00299291,
+      "sigma": null,
+      "errPct": 0.097,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00299291,
+      "sigma": null,
+      "errPct": 0.097,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00299291,
+      "sigma": null,
+      "errPct": 0.097,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "winner": {
+    "published": "vacuum-bounce",
+    "unsealed": "vacuum-bounce",
+    "sealed": "vacuum-bounce"
+   },
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.88,
+     "published": {
+      "measured": 0.879905,
+      "sigma": 0.000229,
+      "errPct": -0.011,
+      "withinSigma": 0.42
+     },
+     "unsealed": {
+      "measured": 0.879905,
+      "sigma": 0.0000276,
+      "errPct": -0.011,
+      "withinSigma": 3.45
+     },
+     "sealed": {
+      "measured": 0.879905,
+      "sigma": 0.0000276,
+      "errPct": -0.011,
+      "withinSigma": 3.45
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.0014,
+     "published": {
+      "measured": 0.00140042,
+      "sigma": null,
+      "errPct": 0.03,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00140042,
+      "sigma": null,
+      "errPct": 0.03,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00140042,
+      "sigma": null,
+      "errPct": 0.03,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "winner": {
+    "published": "vacuum-bounce",
+    "unsealed": "vacuum-bounce",
+    "sealed": "vacuum-bounce"
+   },
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.6,
+     "published": {
+      "measured": 0.599831,
+      "sigma": 0.000266,
+      "errPct": -0.028,
+      "withinSigma": 0.63
+     },
+     "unsealed": {
+      "measured": 0.599831,
+      "sigma": 0.00013,
+      "errPct": -0.028,
+      "withinSigma": 1.3
+     },
+     "sealed": {
+      "measured": 0.599831,
+      "sigma": 0.00013,
+      "errPct": -0.028,
+      "withinSigma": 1.3
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00235,
+     "published": {
+      "measured": 0.00235067,
+      "sigma": null,
+      "errPct": 0.029,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00235067,
+      "sigma": null,
+      "errPct": 0.029,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00235067,
+      "sigma": null,
+      "errPct": 0.029,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "winner": {
+    "published": "uniform-glide",
+    "unsealed": "uniform-glide",
+    "sealed": "uniform-glide"
+   },
+   "checks": []
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "winner": {
+    "published": "uniform-bounce",
+    "unsealed": "uniform-bounce",
+    "sealed": "uniform-bounce"
+   },
+   "checks": []
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "quadratic-drag",
+    "sealed": "quadratic-drag"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00372,
+     "published": {
+      "measured": 0.0037147,
+      "sigma": null,
+      "errPct": -0.142,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00372179,
+      "sigma": null,
+      "errPct": 0.048,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00372171,
+      "sigma": null,
+      "errPct": 0.046,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "winner": {
+    "published": "free-fall",
+    "unsealed": "textbook-vacuum",
+    "sealed": "textbook-vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00194,
+     "published": {
+      "measured": 0.00194531,
+      "sigma": null,
+      "errPct": 0.274,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00194531,
+      "sigma": null,
+      "errPct": 0.274,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00194531,
+      "sigma": null,
+      "errPct": 0.274,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "winner": {
+    "published": "vacuum-1d",
+    "unsealed": "vacuum-1d",
+    "sealed": "vacuum-1d"
+   },
+   "checks": [
+    {
+     "quantity": "g",
+     "truth": 1.62,
+     "published": {
+      "measured": 1.54456,
+      "sigma": 0.0772,
+      "errPct": -4.657,
+      "withinSigma": 0.98
+     },
+     "unsealed": {
+      "measured": 1.54456,
+      "sigma": 0.0773,
+      "errPct": -4.657,
+      "withinSigma": 0.98
+     },
+     "sealed": {
+      "measured": 1.54456,
+      "sigma": 0.0773,
+      "errPct": -4.657,
+      "withinSigma": 0.98
+     }
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00326,
+     "published": {
+      "measured": 0.00311444,
+      "sigma": null,
+      "errPct": -4.465,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00311444,
+      "sigma": null,
+      "errPct": -4.465,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00311444,
+      "sigma": null,
+      "errPct": -4.465,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "vacuum",
+    "sealed": "vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00416,
+     "published": {
+      "measured": 0.00417915,
+      "sigma": null,
+      "errPct": 0.46,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00417915,
+      "sigma": null,
+      "errPct": 0.46,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00417915,
+      "sigma": null,
+      "errPct": 0.46,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "winner": {
+    "published": "constant-accel",
+    "unsealed": "constant-accel",
+    "sealed": "constant-accel"
+   },
+   "checks": []
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "winner": {
+    "published": "const-accel",
+    "unsealed": "const-accel",
+    "sealed": "const-accel"
+   },
+   "checks": []
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "winner": {
+    "published": "quadratic-drag",
+    "unsealed": "quadratic-drag",
+    "sealed": "quadratic-drag"
+   },
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.25,
+     "published": {
+      "measured": 0.2495,
+      "sigma": 0.000497,
+      "errPct": -0.2,
+      "withinSigma": 1.01
+     },
+     "unsealed": {
+      "measured": 0.250626,
+      "sigma": 0.00122,
+      "errPct": 0.25,
+      "withinSigma": 0.51
+     },
+     "sealed": {
+      "measured": 0.250626,
+      "sigma": 0.00122,
+      "errPct": 0.25,
+      "withinSigma": 0.51
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00419,
+     "published": {
+      "measured": 0.00418522,
+      "sigma": null,
+      "errPct": -0.114,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.0041841,
+      "sigma": null,
+      "errPct": -0.141,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.0041841,
+      "sigma": null,
+      "errPct": -0.141,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "winner": {
+    "published": "quadratic-drag",
+    "unsealed": "quadratic-drag",
+    "sealed": "quadratic-drag"
+   },
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.45,
+     "published": {
+      "measured": 0.461077,
+      "sigma": 0.00477,
+      "errPct": 2.462,
+      "withinSigma": 2.32
+     },
+     "unsealed": {
+      "measured": 0.46094,
+      "sigma": 0.00515,
+      "errPct": 2.431,
+      "withinSigma": 2.12
+     },
+     "sealed": {
+      "measured": 0.46094,
+      "sigma": 0.00515,
+      "errPct": 2.431,
+      "withinSigma": 2.12
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.0023,
+     "published": {
+      "measured": 0.00228615,
+      "sigma": null,
+      "errPct": -0.602,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00228597,
+      "sigma": null,
+      "errPct": -0.61,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00228597,
+      "sigma": null,
+      "errPct": -0.61,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "winner": {
+    "published": "quadratic-drag",
+    "unsealed": "quadratic-drag",
+    "sealed": "quadratic-drag"
+   },
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.15,
+     "published": {
+      "measured": 0.150817,
+      "sigma": 0.00132,
+      "errPct": 0.544,
+      "withinSigma": 0.62
+     },
+     "unsealed": {
+      "measured": 0.150673,
+      "sigma": 0.00167,
+      "errPct": 0.449,
+      "withinSigma": 0.4
+     },
+     "sealed": {
+      "measured": 0.150673,
+      "sigma": 0.00167,
+      "errPct": 0.449,
+      "withinSigma": 0.4
+     }
+    },
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00472,
+     "published": {
+      "measured": 0.00472991,
+      "sigma": null,
+      "errPct": 0.21,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00472833,
+      "sigma": null,
+      "errPct": 0.177,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00472833,
+      "sigma": null,
+      "errPct": 0.177,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "winner": {
+    "published": "viscous-damped",
+    "unsealed": "viscous-damped",
+    "sealed": "viscous-damped"
+   },
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.6,
+     "published": {
+      "measured": 0.600989,
+      "sigma": 0.0000775,
+      "errPct": 0.165,
+      "withinSigma": 12.77
+     },
+     "unsealed": {
+      "measured": 0.600989,
+      "sigma": 0.00156,
+      "errPct": 0.165,
+      "withinSigma": 0.63
+     },
+     "sealed": {
+      "measured": 0.60115,
+      "sigma": 0.00158,
+      "errPct": 0.192,
+      "withinSigma": 0.73
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.05,
+     "published": {
+      "measured": 0.0490562,
+      "sigma": 0.000554,
+      "errPct": -1.888,
+      "withinSigma": 1.7
+     },
+     "unsealed": {
+      "measured": 0.0490571,
+      "sigma": 0.000603,
+      "errPct": -1.886,
+      "withinSigma": 1.56
+     },
+     "sealed": {
+      "measured": 0.0488656,
+      "sigma": 0.00135,
+      "errPct": -2.269,
+      "withinSigma": 0.84
+     }
+    }
+   ]
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "winner": {
+    "published": "viscous-damped",
+    "unsealed": "viscous-damped",
+    "sealed": "viscous-damped"
+   },
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.8,
+     "published": {
+      "measured": 0.799948,
+      "sigma": 0.000054,
+      "errPct": -0.007,
+      "withinSigma": 0.96
+     },
+     "unsealed": {
+      "measured": 0.799948,
+      "sigma": 0.00208,
+      "errPct": -0.006,
+      "withinSigma": 0.02
+     },
+     "sealed": {
+      "measured": 0.799929,
+      "sigma": 0.00208,
+      "errPct": -0.009,
+      "withinSigma": 0.03
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.06,
+     "published": {
+      "measured": 0.0601103,
+      "sigma": 0.000174,
+      "errPct": 0.184,
+      "withinSigma": 0.63
+     },
+     "unsealed": {
+      "measured": 0.0601104,
+      "sigma": 0.000303,
+      "errPct": 0.184,
+      "withinSigma": 0.36
+     },
+     "sealed": {
+      "measured": 0.0600961,
+      "sigma": 0.000296,
+      "errPct": 0.16,
+      "withinSigma": 0.32
+     }
+    }
+   ]
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "winner": {
+    "published": "pendulum-viscous",
+    "unsealed": "pendulum-viscous",
+    "sealed": "pendulum-viscous"
+   },
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.35,
+     "published": {
+      "measured": 0.350045,
+      "sigma": 0.000154,
+      "errPct": 0.013,
+      "withinSigma": 0.29
+     },
+     "unsealed": {
+      "measured": 0.350064,
+      "sigma": 0.000935,
+      "errPct": 0.018,
+      "withinSigma": 0.07
+     },
+     "sealed": {
+      "measured": 0.350057,
+      "sigma": 0.000939,
+      "errPct": 0.016,
+      "withinSigma": 0.06
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.08,
+     "published": {
+      "measured": 0.0792389,
+      "sigma": 0.00229,
+      "errPct": -0.951,
+      "withinSigma": 0.33
+     },
+     "unsealed": {
+      "measured": 0.079207,
+      "sigma": 0.00312,
+      "errPct": -0.991,
+      "withinSigma": 0.25
+     },
+     "sealed": {
+      "measured": 0.0791023,
+      "sigma": 0.00341,
+      "errPct": -1.122,
+      "withinSigma": 0.26
+     }
+    }
+   ]
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "winner": {
+    "published": "viscous-damped",
+    "unsealed": "viscous-damped",
+    "sealed": "viscous-damped"
+   },
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 1.2,
+     "published": {
+      "measured": 1.20024,
+      "sigma": 0.000162,
+      "errPct": 0.02,
+      "withinSigma": 1.5
+     },
+     "unsealed": {
+      "measured": 1.20024,
+      "sigma": 0.00313,
+      "errPct": 0.02,
+      "withinSigma": 0.08
+     },
+     "sealed": {
+      "measured": 1.2002,
+      "sigma": 0.00313,
+      "errPct": 0.016,
+      "withinSigma": 0.06
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.03,
+     "published": {
+      "measured": 0.0299672,
+      "sigma": 0.000291,
+      "errPct": -0.109,
+      "withinSigma": 0.11
+     },
+     "unsealed": {
+      "measured": 0.0299673,
+      "sigma": 0.000429,
+      "errPct": -0.109,
+      "withinSigma": 0.08
+     },
+     "sealed": {
+      "measured": 0.0299596,
+      "sigma": 0.000423,
+      "errPct": -0.135,
+      "withinSigma": 0.1
+     }
+    }
+   ]
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "vacuum",
+    "sealed": "vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00373,
+     "published": {
+      "measured": 0.00373031,
+      "sigma": null,
+      "errPct": 0.008,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00373031,
+      "sigma": null,
+      "errPct": 0.008,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00373031,
+      "sigma": null,
+      "errPct": 0.008,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "vacuum",
+    "sealed": "vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00429,
+     "published": {
+      "measured": 0.00428469,
+      "sigma": null,
+      "errPct": -0.124,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00428469,
+      "sigma": null,
+      "errPct": -0.124,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00428469,
+      "sigma": null,
+      "errPct": -0.124,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "winner": {
+    "published": "vacuum-bounce",
+    "unsealed": "vacuum-bounce",
+    "sealed": "vacuum-bounce"
+   },
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 0.15328125,
+     "published": {
+      "measured": 1.01401,
+      "sigma": 0.304,
+      "errPct": 561.532,
+      "withinSigma": 2.83
+     },
+     "unsealed": {
+      "measured": 1.01401,
+      "sigma": 0.304,
+      "errPct": 561.532,
+      "withinSigma": 2.83
+     },
+     "sealed": {
+      "measured": 1.01401,
+      "sigma": 0.304,
+      "errPct": 561.532,
+      "withinSigma": 2.83
+     }
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.85,
+     "published": {
+      "measured": 0.849772,
+      "sigma": 0.000199,
+      "errPct": -0.027,
+      "withinSigma": 1.15
+     },
+     "unsealed": {
+      "measured": 0.849772,
+      "sigma": 0.0000408,
+      "errPct": -0.027,
+      "withinSigma": 5.59
+     },
+     "sealed": {
+      "measured": 0.849772,
+      "sigma": 0.0000408,
+      "errPct": -0.027,
+      "withinSigma": 5.59
+     }
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00043,
+     "published": {
+      "measured": 0.002849,
+      "sigma": null,
+      "errPct": 562.557,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.002849,
+      "sigma": null,
+      "errPct": 562.557,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.002849,
+      "sigma": null,
+      "errPct": 562.557,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "winner": {
+    "published": "vacuum-bounce",
+    "unsealed": "vacuum-bounce",
+    "sealed": "vacuum-bounce"
+   },
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 0.613125,
+     "published": {
+      "measured": 0.592945,
+      "sigma": 0.0356,
+      "errPct": -3.291,
+      "withinSigma": 0.57
+     },
+     "unsealed": {
+      "measured": 0.592945,
+      "sigma": 0.0356,
+      "errPct": -3.291,
+      "withinSigma": 0.57
+     },
+     "sealed": {
+      "measured": 0.592945,
+      "sigma": 0.0356,
+      "errPct": -3.291,
+      "withinSigma": 0.57
+     }
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.78,
+     "published": {
+      "measured": 0.780153,
+      "sigma": 0.000289,
+      "errPct": 0.02,
+      "withinSigma": 0.53
+     },
+     "unsealed": {
+      "measured": 0.780153,
+      "sigma": 0.000113,
+      "errPct": 0.02,
+      "withinSigma": 1.35
+     },
+     "sealed": {
+      "measured": 0.780153,
+      "sigma": 0.000113,
+      "errPct": 0.02,
+      "withinSigma": 1.35
+     }
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.0018,
+     "published": {
+      "measured": 0.00174171,
+      "sigma": null,
+      "errPct": -3.238,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00174171,
+      "sigma": null,
+      "errPct": -3.238,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00174171,
+      "sigma": null,
+      "errPct": -3.238,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "winner": {
+    "published": "bounce-vacuum",
+    "unsealed": "bounce-vacuum",
+    "sealed": "bounce-vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 2.4525,
+     "published": {
+      "measured": 2.43937,
+      "sigma": 0.025,
+      "errPct": -0.536,
+      "withinSigma": 0.53
+     },
+     "unsealed": {
+      "measured": 2.43937,
+      "sigma": 0.0245,
+      "errPct": -0.536,
+      "withinSigma": 0.54
+     },
+     "sealed": {
+      "measured": 2.43937,
+      "sigma": 0.0245,
+      "errPct": -0.536,
+      "withinSigma": 0.54
+     }
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.7,
+     "published": {
+      "measured": 0.699584,
+      "sigma": 0.000561,
+      "errPct": -0.059,
+      "withinSigma": 0.74
+     },
+     "unsealed": {
+      "measured": 0.699584,
+      "sigma": 0.000222,
+      "errPct": -0.059,
+      "withinSigma": 1.88
+     },
+     "sealed": {
+      "measured": 0.699584,
+      "sigma": 0.000222,
+      "errPct": -0.059,
+      "withinSigma": 1.88
+     }
+    },
+    {
+     "quantity": "scale (from a ruler)",
+     "truth": 0.00209,
+     "published": {
+      "measured": 0.00208331,
+      "sigma": null,
+      "errPct": -0.32,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00208331,
+      "sigma": null,
+      "errPct": -0.32,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00208331,
+      "sigma": null,
+      "errPct": -0.32,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "winner": {
+    "published": "viscous-damped",
+    "unsealed": "viscous-damped",
+    "sealed": "viscous-damped"
+   },
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 11.180339887498949,
+     "published": {
+      "measured": 11.1808,
+      "sigma": 0.000742,
+      "errPct": 0.004,
+      "withinSigma": 0.66
+     },
+     "unsealed": {
+      "measured": 11.1808,
+      "sigma": 0.000939,
+      "errPct": 0.004,
+      "withinSigma": 0.52
+     },
+     "sealed": {
+      "measured": 11.1808,
+      "sigma": 0.000939,
+      "errPct": 0.004,
+      "withinSigma": 0.52
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.35,
+     "published": {
+      "measured": 0.350379,
+      "sigma": 0.00142,
+      "errPct": 0.108,
+      "withinSigma": 0.27
+     },
+     "unsealed": {
+      "measured": 0.350379,
+      "sigma": 0.0017,
+      "errPct": 0.108,
+      "withinSigma": 0.22
+     },
+     "sealed": {
+      "measured": 0.350379,
+      "sigma": 0.0017,
+      "errPct": 0.108,
+      "withinSigma": 0.22
+     }
+    }
+   ]
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "winner": {
+    "published": "viscous-spring",
+    "unsealed": "viscous-spring",
+    "sealed": "viscous-spring"
+   },
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 20,
+     "published": {
+      "measured": 20.0001,
+      "sigma": 0.00151,
+      "errPct": 0,
+      "withinSigma": 0.06
+     },
+     "unsealed": {
+      "measured": 20.0001,
+      "sigma": 0.00163,
+      "errPct": 0,
+      "withinSigma": 0.05
+     },
+     "sealed": {
+      "measured": 20.0001,
+      "sigma": 0.00163,
+      "errPct": 0,
+      "withinSigma": 0.05
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 1,
+     "published": {
+      "measured": 1.00114,
+      "sigma": 0.003,
+      "errPct": 0.114,
+      "withinSigma": 0.38
+     },
+     "unsealed": {
+      "measured": 1.00114,
+      "sigma": 0.00306,
+      "errPct": 0.114,
+      "withinSigma": 0.37
+     },
+     "sealed": {
+      "measured": 1.00114,
+      "sigma": 0.00306,
+      "errPct": 0.114,
+      "withinSigma": 0.37
+     }
+    }
+   ]
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "winner": {
+    "published": "viscous-damped",
+    "unsealed": "viscous-damped",
+    "sealed": "viscous-damped"
+   },
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 4,
+     "published": {
+      "measured": 3.9999,
+      "sigma": 0.000182,
+      "errPct": -0.002,
+      "withinSigma": 0.55
+     },
+     "unsealed": {
+      "measured": 3.9999,
+      "sigma": 0.000257,
+      "errPct": -0.002,
+      "withinSigma": 0.39
+     },
+     "sealed": {
+      "measured": 3.9999,
+      "sigma": 0.000257,
+      "errPct": -0.002,
+      "withinSigma": 0.39
+     }
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.12,
+     "published": {
+      "measured": 0.11994,
+      "sigma": 0.000364,
+      "errPct": -0.05,
+      "withinSigma": 0.16
+     },
+     "unsealed": {
+      "measured": 0.11994,
+      "sigma": 0.000513,
+      "errPct": -0.05,
+      "withinSigma": 0.12
+     },
+     "sealed": {
+      "measured": 0.11994,
+      "sigma": 0.000513,
+      "errPct": -0.05,
+      "withinSigma": 0.12
+     }
+    }
+   ]
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "vacuum",
+    "sealed": "vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00183,
+     "published": {
+      "measured": 0.00183329,
+      "sigma": null,
+      "errPct": 0.18,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00183329,
+      "sigma": null,
+      "errPct": 0.18,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00183329,
+      "sigma": null,
+      "errPct": 0.18,
+      "withinSigma": null
+     }
+    }
+   ]
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "winner": {
+    "published": "vacuum",
+    "unsealed": "vacuum",
+    "sealed": "vacuum"
+   },
+   "checks": [
+    {
+     "quantity": "scale (from the fall)",
+     "truth": 0.00329,
+     "published": {
+      "measured": 0.00330179,
+      "sigma": null,
+      "errPct": 0.358,
+      "withinSigma": null
+     },
+     "unsealed": {
+      "measured": 0.00330179,
+      "sigma": null,
+      "errPct": 0.358,
+      "withinSigma": null
+     },
+     "sealed": {
+      "measured": 0.00330179,
+      "sigma": null,
+      "errPct": 0.358,
+      "withinSigma": null
+     }
+    }
+   ]
+  }
+ ]
+}

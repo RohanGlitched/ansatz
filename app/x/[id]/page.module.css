@@ -662,3 +662,103 @@
     gap: 2px;
   }
 }
+
+/* comparison tables scroll inside their own box on a phone, so the page itself never scrolls sideways */
+.vsWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vsWrap > .vs {
+  min-width: 520px;
+}
+
+.ownPick {
+  margin-top: 10px;
+  max-width: 80ch;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+.crumb {
+  font-family: var(--font);
+  font-size: 13.5px;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+
+.crumb a {
+  color: inherit;
+}
+
+/* previous and next plates at the foot of the page */
+.plates {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #2c3036;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  font-family: var(--font);
+}
+
+/* the plates sit on the dark closing band */
+.plates a {
+  color: var(--plate-ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.plates a span {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #8b929b;
+  margin-bottom: 2px;
+}
+
+.plates a[rel="next"] {
+  text-align: right;
+}
+
+.plates a:hover {
+  text-decoration: underline;
+}
+
+.plates .platesAll {
+  font-weight: 500;
+  color: #b8bec6;
+  align-self: center;
+}
+
+@media (max-width: 600px) {
+  .plates {
+    grid-template-columns: 1fr 1fr;
+  }
+  .plates .platesAll {
+    display: none;
+  }
+}
+
+/* any comparison table scrolls inside itself on a phone, wrapped or not */
+@media (max-width: 600px) {
+  .vs {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+/* the tool-call transcript wraps, and its equations scroll inside the box on a phone */
+.toolTest {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.toolTest pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

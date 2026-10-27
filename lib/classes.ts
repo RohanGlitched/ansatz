@@ -1,11 +1,12 @@
 import "server-only";
 import { getObject, putObject, updateJson } from "./store";
+import { sameSecret } from "./secret";
 
 /**
  * Class links: a teacher makes a code, and every run made with it counts against the class's own quota instead of
  * the school's one shared IP address. The class page gathers every student's result in one place.
  */
-export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[]; demo?: boolean; students?: Record<string, string> };
+export type ClassRecord = { code: string; name: string; createdAt: string; expiresAt: string; quota: number; used: number; runs: string[]; demo?: boolean; students?: Record<string, string>; tape?: Record<string, number> };
 
 /** The demo class ships with the app: what a teacher's page looks like, filled with the showcase experiments. */
 const DEMO: ClassRecord = {
@@ -19,6 +20,9 @@ const DEMO: ClassRecord = {
   // every row measures g on Earth, so the grading columns are filled for each
   runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing"],
   students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F" },
+  // string lengths as each student would read them with a metre scale (here the renders' true lengths), stated as
+  // givens: g then comes from Ansatz's measured period and this length, and the A4 sheet's length is the fallback
+  tape: { "pendulum-40cm": 0.4, "pendulum-60cm": 0.6, "pendulum-80cm": 0.8, "pendulum-100cm": 1.0 },
 };
 
 /** The judges' lane: runs reserved for the hackathon's judges, so a busy day for visitors can't lock them out. */
@@ -32,6 +36,16 @@ const JUDGES: ClassRecord = {
   runs: [],
 };
 export const JUDGES_CODE = JUDGES.code;
+
+/**
+ * The judges' lane also needs a passphrase (?class=jdgs26&k=…), given only in the hackathon's private testing
+ * instructions, so the code on its own can't spend the lane. Read at run time from JUDGES_KEY; a local dev server with
+ * no key set accepts "local", and production with no key set accepts nothing.
+ */
+export function judgesKeyOk(given: string | null | undefined): boolean {
+  const secret = process.env.JUDGES_KEY || (process.env.NODE_ENV !== "production" ? "local" : undefined);
+  return sameSecret(given, secret);
+}
 
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);
 const DAYS = 7;
@@ -75,7 +89,7 @@ export async function useClassRun(code: string): Promise<{ ok: true; cls: ClassR
   if (!cls) return { ok: false, why: "That class link isn't valid. Ask your teacher for the link again." };
   if (cls.demo) return { ok: false, why: "That's the demo class page; it doesn't run experiments. Make your own class link at /class/new." };
   if (Date.now() > Date.parse(cls.expiresAt)) return { ok: false, why: "That class link has expired (they last a week). Ask your teacher for a new one." };
-  // the judges' lane has its own quota and doesn't share the class links' daily allowance (the site's spend ceiling still holds)
+  // the judges' lane has its own quota and its own dollar reserve, and doesn't share the class links' daily allowance
   const day = code === JUDGES.code ? { total: 0 } : await updateJson<{ total: number }>(`classes/runs-${today()}.json`, { total: 0 }, (d) => (d.total >= CLASS_RUNS_PER_DAY ? null : { total: d.total + 1 })).catch(() => null);
   if (!day) return { ok: false, why: `Class links have used today's ${CLASS_RUNS_PER_DAY} runs. The limit resets at midnight UTC.` };
   let full = false;
