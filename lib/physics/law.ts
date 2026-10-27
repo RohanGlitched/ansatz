@@ -295,7 +295,7 @@ export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIt
   const nFree = law.params.filter((p) => !p.fixed).length;
   if (!nFree || opts.theta0) return best;
   // deterministic multi-start: each extra start scales every free parameter's guess by a log-spaced factor
-  const factors = [0.35, 2.5, 0.6, 1.6, 0.15, 6];
+  const factors = [0.35, 2.5, 0.15, 6, 0.6, 1.6];
   for (let k = 0; k < starts - 1 && k < factors.length; k++) {
     const law2: Law = { ...law, params: law.params.map((p, i) => (p.fixed ? p : { ...p, guess: clampTo(p, p.guess === 0 ? (p.max !== undefined && Number.isFinite(p.max) ? p.max * 0.1 * factors[(k + i) % factors.length] : factors[(k + i) % factors.length] - 1) : p.guess * factors[(k + i) % factors.length]) })) };
     const f = fitOnce(law2, data, opts);

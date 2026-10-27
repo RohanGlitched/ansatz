@@ -5,9 +5,9 @@
  * the model calls and their cost.
  */
 import { deleteFile, Ledger, transcribe, uploadFile, type Call } from "./meta/client";
-import { trackBoxes, trackNoun, type SamResult, type Sample, type Track } from "./meta/sam";
+import { trackBoxes, trackNoun, type LiveMask, type SamResult, type Sample, type Track } from "./meta/sam";
 import { digest, localGravity, mainTrack, measure, type Calibration, type Measured, type Pivot } from "./measure";
-import { compileLaw, fitLaw, type Fit, type Law } from "./physics/law";
+import { compileLaw, fitLaw, type Fit, type Law, type Series } from "./physics/law";
 import { controls } from "./physics/library";
 import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, reviseAgentic, type Critique, type Eyeball, type Observation, type WonderAttempt } from "./scientist";
 import { readVideoInfo, type VideoInfo } from "./video";
@@ -19,7 +19,7 @@ import { cut, frameAt, prepare } from "./transcode";
 
 export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
 
-export type Progress = { step: Step; state: "start" | "done" | "fail"; detail?: string; at: number; data?: unknown };
+export type Progress = { step: Step; state: "start" | "done" | "fail" | "update"; detail?: string; at: number; data?: unknown };
 
 export type Candidate = {
   /** the law as proposed (what pages and models see) */
@@ -44,7 +44,7 @@ export type Experiment = {
   observation: Observation;
   observationSources: { url: string; title: string }[];
   tracking: { noun: string; tracks: number; framesSeen: number; meanConfidence: number };
-  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin"> & { series: Measured["series"]; px: Measured["px"] };
+  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin"> & { series: Measured["series"]; px: Measured["px"]; point?: "centroid" | "top" };
   given: string[];
   reasoning: string;
   candidates: Candidate[];
@@ -263,10 +263,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
     // 3. observe
     const { obs, sources } = await step("observe", () => observe(fileId, narr, ledger, vi.duration), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
-    if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "set by the person filming" };
-    if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "set by the person filming" }];
+    if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "given with the clip" };
+    if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "given with the clip" }];
     if (input.hints?.window) obs.window = input.hints.window;
-    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "set by the person filming", relative_uncertainty: input.hints.ruler.relUncertainty ?? obs.reference.relative_uncertainty ?? 0.03 };
+    if (input.hints?.ruler) obs.reference = { present: true, noun_phrase: input.hints.ruler.noun, real_length_m: input.hints.ruler.metres, dimension: input.hints.ruler.dimension ?? "longest side", basis: "given with the clip", relative_uncertainty: input.hints.ruler.relUncertainty ?? obs.reference.relative_uncertainty ?? 0.03 };
 
     // 4. track: cut the motion window (+0.4 s each side), then SAM follows the subject (and the ruler) through every frame
     const subjectNoun = obs.subjects[0]?.noun_phrase || "ball";
@@ -301,7 +301,19 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         trackBytes = clip;
         trackTimes = ci.times;
       }
-      const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames)];
+      // SAM's masks are drawn on the clip as they stream in, a few times a second
+      let buf: [number, number, number][] = [], last = 0;
+      const flush = () => {
+        if (!buf.length) return;
+        emit({ step: "track", state: "update", at: Date.now() - t0, data: { width: vi.width, height: vi.height, frames, pts: buf } });
+        buf = [];
+        last = Date.now();
+      };
+      const onMask = (k: LiveMask) => {
+        buf.push([k.f, Math.round(k.cx * 10) / 10, Math.round(k.cy * 10) / 10]);
+        if (Date.now() - last > 300) flush();
+      };
+      const jobs: Promise<SamResult | null>[] = [trackNoun(trackFile, subjectNoun, ledger, frames, onMask).finally(flush)];
       const selfRuler = obs.reference.present && sameThing(obs.reference.noun_phrase, subjectNoun);
       // the ruler, found by name; failing that, Muse Spark points at it and SAM 3.1 follows the box (in parallel
       // with the subject, so the run doesn't wait twice)
@@ -429,28 +441,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
         // the scale correction is the measurement's business, not the law's: fit the wrapped law, show the inner one
         const wrap = (x: Law) => (gUsed !== null ? withScaleCorrection(x) : x);
-        let fitted = wrap(l), fit = fitLaw(fitted, m.series, { trainFrac: TRAIN });
-        let law2: Law = l;
-        // a theorist's bounds are guesses: a fit pressed against one gets ten times the room (twice at most), and
-        // keeps it if it fits the seen frames better
-        for (let round = 0; round < 2 && fit.ok; round++) {
-          const stuck = law2.params.filter((p) => !p.fixed && p.name !== "cal" && atBound(law2, p.name, fit.theta[p.name]));
-          if (!stuck.length) break;
-          const wider: Law = {
-            ...law2,
-            params: law2.params.map((p) => {
-              if (!stuck.includes(p)) return p;
-              const v = fit.theta[p.name];
-              const atMax = p.max !== undefined && (p.min === undefined || Math.abs(v - p.max) < Math.abs(v - p.min));
-              return atMax ? { ...p, max: p.max! > 0 ? p.max! * 10 : p.max! / 10 } : { ...p, min: p.min! < 0 ? p.min! * 10 : p.min! / 10 };
-            }),
-          };
-          const fitted2 = wrap(wider), fit2 = fitLaw(fitted2, m.series, { trainFrac: TRAIN });
-          if (!fit2.ok || !(fit2.trainCost < fit.trainCost)) break;
-          law2 = wider;
-          fitted = fitted2;
-          fit = fit2;
-        }
+        const { law: law2, fitted, fit } = fitWithRoom(l, m.series, wrap);
         list.push({ law: law2, fitted, fit, origin, ifItWins, rank: 0 });
       };
       for (const l of hyp.laws) add(l, "muse", hyp.ifItWins[l.id]);
@@ -615,7 +606,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       observation: obs,
       observationSources: sources,
       tracking: { noun: subj.tracks[0]?.noun ?? subjectNoun, tracks: subj.tracks.length, framesSeen: track.samples.length, meanConfidence: track.samples.reduce((s, x) => s + (x.conf ?? 0), 0) / track.samples.length },
-      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin },
+      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin, point },
       given,
       reasoning: hyp.reasoning,
       candidates: cands.map((c) => ({ ...c, fit: { ...c.fit } })),
@@ -663,6 +654,37 @@ export function atBound(law: Law, name: string, v: number) {
   const span = (p.max ?? Infinity) - (p.min ?? -Infinity);
   const tol = Number.isFinite(span) ? span * 0.005 : Math.abs(v) * 0.005;
   return (p.max !== undefined && Math.abs(v - p.max) <= tol && p.max !== 0) || (p.min !== undefined && p.min !== 0 && Math.abs(v - p.min) <= tol);
+}
+
+/**
+ * Fits a law; a theorist's bounds are guesses, so a fit pressed against one gets ten times the room (twice at most),
+ * restarting from where it stopped, and keeps the wider law unless that fits the seen frames worse.
+ */
+export function fitWithRoom(l: Law, series: Series, wrap: (x: Law) => Law = (x) => x) {
+  let law2 = l, fitted = wrap(l), fit = fitLaw(fitted, series, { trainFrac: TRAIN });
+  for (let round = 0; round < 2 && fit.ok; round++) {
+    const stuck = law2.params.filter((p) => !p.fixed && p.name !== "cal" && atBound(law2, p.name, fit.theta[p.name]));
+    if (!stuck.length) break;
+    const wider: Law = {
+      ...law2,
+      params: law2.params.map((p) => {
+        // a warm start: every parameter begins where the last fit left it
+        const at = Number.isFinite(fit.theta[p.name]) && !p.fixed ? { ...p, guess: fit.theta[p.name] } : p;
+        if (!stuck.includes(p)) return at;
+        const v = fit.theta[p.name];
+        const atMax = p.max !== undefined && (p.min === undefined || Math.abs(v - p.max) < Math.abs(v - p.min));
+        return atMax ? { ...at, max: p.max! > 0 ? p.max! * 10 : p.max! / 10 } : { ...at, min: p.min! < 0 ? p.min! * 10 : p.min! / 10 };
+      }),
+      initialGuess: { ...(law2.initialGuess ?? {}), ...Object.fromEntries(Object.entries(fit.theta).filter(([k]) => k.endsWith("@0")).map(([k, v]) => [k.slice(0, -2), v])) },
+    };
+    const fitted2 = wrap(wider), fit2 = fitLaw(fitted2, series, { trainFrac: TRAIN });
+    // the wider law stands if it fits no worse: then the old bound wasn't what held the value there
+    if (!fit2.ok || !(fit2.trainCost <= fit.trainCost * (1 + 1e-6))) break;
+    law2 = wider;
+    fitted = fitted2;
+    fit = fit2;
+  }
+  return { law: law2, fitted, fit };
 }
 
 /**

@@ -3,6 +3,9 @@ import { getExperiment, winnerOf } from "@/lib/experiments";
 export const runtime = "nodejs";
 
 const q = (s: string) => (/[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
+// a comment line never spans two lines, whatever a title or a meaning contains
+const one = (s: string) => s.replace(/[\r\n]+/g, " ");
+const sig2 = (v: number) => (Number.isFinite(v) ? String(+v.toPrecision(2)) : "");
 
 /** The experiment's data as CSV: every measured frame, the winning law's prediction, and which frames it was fitted on. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -14,11 +17,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const chans = Object.keys(s.ch);
   const nFit = Math.max(3, Math.round(s.t.length * e.trainFrac));
   const lines: string[] = [];
-  lines.push(`# Ansatz experiment ${e.id}: ${e.title}`);
-  lines.push(`# law: ${win.law.title} (${win.law.id})`);
+  lines.push(one(`# Ansatz experiment ${e.id}: ${e.title}`));
+  lines.push(one(`# law: ${win.law.title} (${win.law.id})`));
   for (const p of win.law.params) {
     const v = win.fit.theta[p.name], sg = win.fit.sigma[p.name];
-    lines.push(`# ${p.name} = ${v}${!p.fixed && Number.isFinite(sg) ? ` ± ${sg}` : " (given)"} ${p.unit ?? ""} : ${p.meaning ?? ""}`.trimEnd());
+    lines.push(one(`# ${p.name} = ${!p.fixed && Number.isFinite(sg) ? `${+v.toPrecision(6)} ± ${sig2(sg)}` : `${v} (given)`} ${p.unit ?? ""} : ${p.meaning ?? ""}`.trimEnd()));
   }
   lines.push(`# scale: ${e.measured.calibration.metresPerPixel} m per pixel (${e.measured.calibration.kind})`);
   lines.push(`# fitted on the first ${nFit} of ${s.t.length} frames; the rest were predicted unseen`);

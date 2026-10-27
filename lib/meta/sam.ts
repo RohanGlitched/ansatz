@@ -100,8 +100,34 @@ export function parseSam(raw: string, noun: string, keepRle = true): Omit<SamRes
   return { width, height, tracks, frames: maxF + 1, raw };
 }
 
+/** One mask as it streams in: enough to draw a dot while SAM is still working. */
+export type LiveMask = { f: number; cx: number; cy: number; id: string };
+
+/** A stream listener that decodes masks as they arrive, for a live view; it never interferes with the real parse. */
+function liveListener(onMask?: (m: LiveMask) => void) {
+  if (!onMask) return undefined;
+  const parser = formats.segmentation.video().createParser();
+  let seen = 0;
+  return (delta: string) => {
+    try {
+      const snaps = parser.push(delta, { emit: true });
+      const last = snaps[snaps.length - 1];
+      if (!last) return;
+      for (let i = seen; i < last.records.length; i++) {
+        const rec = last.records[i];
+        if (rec.kind !== "mask" || !rec.frame) continue;
+        const mom = moments(rec);
+        if (mom) onMask({ f: rec.frame.frameIndex, cx: mom.cx, cy: mom.cy, id: rec.objectId });
+      }
+      seen = last.records.length;
+    } catch {
+      /* the live view is a nicety */
+    }
+  };
+}
+
 /** Tracks every match of `noun` through the clip. */
-export async function trackNoun(fileId: string, noun: string, ledger: Ledger | null, frameCount?: number): Promise<SamResult> {
+export async function trackNoun(fileId: string, noun: string, ledger: Ledger | null, frameCount?: number, onMask?: (m: LiveMask) => void): Promise<SamResult> {
   const raw = await respondStreamText(
     {
       model: "sam-3.1",
@@ -110,6 +136,7 @@ export async function trackNoun(fileId: string, noun: string, ledger: Ledger | n
     },
     null,
     `track "${noun}"`,
+    liveListener(onMask),
   );
   if (process.env.SAM_DUMP_DIR) {
     const { writeFileSync, mkdirSync } = await import("node:fs");

@@ -70,7 +70,7 @@ export default function MoonHero({ e }: { e: Experiment }) {
                     <td className="num">{r.eye != null ? r.eye.toFixed(1) : "—"}</td>
                     <td className="num">
                       <strong className={i === 0 ? styles.num : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
-                      {i > 0 && <span className={styles.flag}>flags slow motion</span>}
+                      {i > 0 && <span className={styles.flag}>so the clip runs {Math.sqrt(mt.rows[0].g / r.g).toFixed(2)}× slow (it does: 1.5×)</span>}
                     </td>
                   </tr>
                 ))}

@@ -82,14 +82,31 @@ export async function getObject(key: string): Promise<Uint8Array | null> {
   return new Uint8Array(await r.arrayBuffer());
 }
 
+/** An object's size in bytes without downloading it (null if it isn't there). */
+export async function objectSize(key: string): Promise<number | null> {
+  const b = bucket();
+  if (!b) {
+    const { stat } = await import("node:fs/promises");
+    return stat(path.join(LOCAL, key)).then((s) => s.size, () => null);
+  }
+  const r = await fetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(b)}/o/${encodeURIComponent(key)}?fields=size`, {
+    headers: { authorization: `Bearer ${await gcsToken()}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GCS stat ${key}: HTTP ${r.status}`);
+  return Number(((await r.json()) as { size?: string }).size ?? NaN);
+}
+
 /** Starts a resumable upload the browser finishes itself (the session URL is the only capability it gets). */
-export async function startResumableUpload(key: string, contentType: string, origin: string): Promise<string | null> {
+export async function startResumableUpload(key: string, contentType: string, origin: string, size?: number): Promise<string | null> {
   const b = bucket();
   if (!b) return null;
   const q = new URLSearchParams({ uploadType: "resumable", name: key });
   const r = await fetch(`https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(b)}/o?${q}`, {
     method: "POST",
-    headers: { authorization: `Bearer ${await gcsToken()}`, "content-type": "application/json", "x-upload-content-type": contentType, origin },
+    headers: { authorization: `Bearer ${await gcsToken()}`, "content-type": "application/json", "x-upload-content-type": contentType, ...(size ? { "x-upload-content-length": String(size) } : {}), origin },
     body: JSON.stringify({ name: key, contentType }),
     signal: AbortSignal.timeout(15_000),
   });

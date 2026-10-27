@@ -116,6 +116,11 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
   }
 
   function apply(d: Event) {
+    if (d.state === "update") {
+      const u = d.data as { width: number; height: number; frames: number; pts: [number, number, number][] };
+      if (d.step === "track" && u?.pts) setLive((l) => ({ ...l, tracking: { width: u.width, height: u.height, frames: u.frames, pts: [...(l.tracking?.pts ?? []), ...u.pts] } }));
+      return;
+    }
     if (d.state === "done" && d.data) {
       if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data as LiveData["measure"] }));
       if (d.step === "hypothesise") setLive((l) => ({ ...l, laws: (d.data as { laws: LiveData["laws"] }).laws }));

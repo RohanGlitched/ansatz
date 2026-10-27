@@ -46,7 +46,7 @@ export function winnerOf(e: Experiment) {
   return e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
 }
 
-export function plateData(e: Experiment, opts: { caption?: string } = {}): PlateData {
+export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: boolean } = {}): PlateData {
   const m = e.measured;
   const win = winnerOf(e);
   const lawPx = toPixels(win.fit.predicted, m);
@@ -58,7 +58,8 @@ export function plateData(e: Experiment, opts: { caption?: string } = {}): Plate
     width: e.video.width,
     height: e.video.height,
     baseT,
-    strobe: e.strobe.filter((s) => s.rle).map((s) => ({ t: s.t, box: s.box, rle: s.rle ? { size: s.rle.size, counts: s.rle.counts } : undefined })),
+    strobe: opts.lazyStrobe ? [] : strobeOf(e),
+    strobeSrc: opts.lazyStrobe ? `/x/${e.id}/strobe.json` : undefined,
     measured: m.px.map((p) => ({ x: p.x, y: p.y })),
     split,
     law: lawPx,
@@ -97,4 +98,9 @@ export async function recentExperiments(limit = 6) {
     .map((e) => ({ id: e.id, title: e.title, headline: e.headline ?? e.finding, createdAt: e.createdAt }));
   recentCache = { at: Date.now(), items };
   return items;
+}
+
+/** The strobe instants with SAM's masks: the heavy part of a print. */
+export function strobeOf(e: Experiment): PlateData["strobe"] {
+  return e.strobe.filter((s) => s.rle).map((s) => ({ t: s.t, box: s.box, rle: s.rle ? { size: s.rle.size, counts: s.rle.counts } : undefined }));
 }

@@ -1,3 +1,4 @@
+import { sameSecret } from "@/lib/secret";
 import { META_BASE } from "@/lib/meta/client";
 
 export const runtime = "nodejs";
@@ -5,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /** Admin-only: tries small Responses calls from this region, one feature at a time. */
 export async function POST(req: Request) {
-  if (!process.env.ADMIN_TOKEN || req.headers.get("x-admin-token") !== process.env.ADMIN_TOKEN) return new Response("Not found", { status: 404 });
+  if (!sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN)) return new Response("Not found", { status: 404 });
   const key = (process.env.META_API_KEY ?? "").trim();
   const base = { model: "muse-spark-1.3", reasoning: { effort: "minimal" }, max_output_tokens: 400, input: [{ role: "user", content: [{ type: "input_text", text: "Say ok." }] }] };
   const variants: Record<string, unknown> = {

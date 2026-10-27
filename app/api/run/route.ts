@@ -1,6 +1,7 @@
 import { newId, runExperiment, type Progress } from "@/lib/experiment";
 import { checkAndCount, visitorOf } from "@/lib/limits";
-import { getObject, putObject } from "@/lib/store";
+import { getObject, objectSize, putObject } from "@/lib/store";
+import { sameSecret } from "@/lib/secret";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -19,13 +20,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Send JSON." }, { status: 400 });
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
-  const admin = !!process.env.ADMIN_TOKEN && req.headers.get("x-admin-token") === process.env.ADMIN_TOKEN;
+  const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
   const gate = await checkAndCount(visitorOf(req), admin);
   if (!gate.ok) return Response.json({ error: gate.why }, { status: 429 });
 
+  // look at the size before downloading anything
+  const size = await objectSize(body.key).catch(() => null);
+  if (size === null) return Response.json({ error: "The upload didn't arrive. Try again." }, { status: 404 });
+  if (!(size <= 200 * 1024 * 1024)) return Response.json({ error: "That clip is over 200 MB. Trim it to the motion." }, { status: 413 });
   const video = await getObject(body.key);
   if (!video) return Response.json({ error: "The upload didn't arrive. Try again." }, { status: 404 });
-  if (video.byteLength > 200 * 1024 * 1024) return Response.json({ error: "That clip is over 200 MB. Trim it to the motion." }, { status: 413 });
 
   const id = newId();
   const enc = new TextEncoder();
@@ -77,7 +81,9 @@ export async function POST(req: Request) {
           (p: Progress) => {
             send("progress", p);
             // keep the progress server-side too, so a page whose live feed drops can pick it up again
-            log.push(p);
+            if (p.state !== "update") log.push(p);
+            // live tracking updates go to the page only; the stored log keeps the steps
+            if (p.state === "update") return;
             if (p.state !== "start") void putObject(`progress/${id}.json`, JSON.stringify(log), "application/json").catch(() => {});
           },
         );

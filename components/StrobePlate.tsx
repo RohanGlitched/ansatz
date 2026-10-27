@@ -17,6 +17,8 @@ export type PlateData = {
   pivot?: { x: number; y: number } | null;
   whatIf?: { label: string; px: { x: number; y: number }[] }[];
   caption?: string;
+  /** where to fetch `strobe` from when the page shipped without it (keeps listing pages light) */
+  strobeSrc?: string;
 };
 
 type Props = { data: PlateData; showWhatIf?: number | null; compact?: boolean; priority?: boolean };
@@ -77,7 +79,8 @@ export default function StrobePlate({ data, showWhatIf = null, compact = false, 
         ctx.filter = "none";
         setDrawn(1);
         let i = 0;
-        for (const s of data.strobe) {
+        const strobe: PlateData["strobe"] = data.strobe.length || !data.strobeSrc ? data.strobe : await fetch(data.strobeSrc).then((r) => (r.ok ? r.json() : []));
+        for (const s of strobe) {
           if (cancelled) return;
           if (!s.rle) continue;
           await seek(s.t);

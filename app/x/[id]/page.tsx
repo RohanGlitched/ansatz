@@ -328,9 +328,18 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 ))}
               </tbody>
             </table>
-            <p style={{ marginTop: 16, maxWidth: "75ch" }}>
-              The language model gives the same answer to both, because it recognises the footage and recalls the textbook. Ansatz’s answer moves with the pixels, by the factor the slowdown predicts (2.25× would give {(e.extras.memoryTest.rows[0].g / 2.25).toFixed(2)}), and its clock check says why.
-            </p>
+            {(() => {
+              const [a, b] = e.extras!.memoryTest!.rows;
+              // gravity scales with 1/time², so the two runs give the slowdown with no reference value; the ruler is the
+              // same astronaut in both, so its ±5% cancels and only the statistical errors remain (conservatively, all of them)
+              const f = Math.sqrt(a.g / b.g);
+              const sf = 0.5 * f * Math.hypot(a.sigma / a.g, b.sigma / b.g);
+              return (
+                <p style={{ marginTop: 16, maxWidth: "75ch" }}>
+                  The language model gives the same answer to both, because it recognises the footage and recalls the textbook. Ansatz’s answer moves with the pixels. Taken together, the two measurements say the second clip plays {f.toFixed(2)} ± {sf.toFixed(2)}× slower than the first; we slowed it 1.5×. That needs no textbook value and no ruler, since gravity scales as one over time squared and the same astronaut is the ruler in both. On its own, each run’s clock check can only compare against the Moon value it assumes, so it says “slow motion, or a weaker world”.
+                </p>
+              );
+            })()}
           </div>
         </section>
       )}

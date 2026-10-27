@@ -41,6 +41,13 @@ export default async function ReportPage({ params }: Params) {
       <header>
         <p className={styles.small}>Lab report, made with Ansatz from a video clip ({new Date(e.createdAt).toDateString()})</p>
         <h1>{e.title}</h1>
+        <div className={styles.student}>
+          {["Name", "Class", "Roll no.", "Date"].map((f) => (
+            <label key={f}>
+              {f} <input aria-label={f} />
+            </label>
+          ))}
+        </div>
       </header>
 
       <h2>Aim</h2>
@@ -53,7 +60,7 @@ export default async function ReportPage({ params }: Params) {
 
       <h2>Method</h2>
       <ol>
-        <li>The object (“{e.tracking.noun}”) was located in every frame; its position was taken as the centre of its mask. Frame times were read from the video file.</li>
+        <li>The object (“{e.tracking.noun}”) was located in every frame; its position was taken as {e.measured.point === "top" ? "the top of its mask (for a jumper, the head, which arms and legs can’t drag around)" : "the centre of its mask"}. Frame times were read from the video file.</li>
         <li>{e.candidates.length} candidate laws were written as equations of motion and each was fitted to the first {Math.round(e.trainFrac * 100)}% of the motion.</li>
         <li>Each fitted law predicted the remaining {Math.round((1 - e.trainFrac) * 100)}% of the motion, which it had not seen. The law with the smallest prediction error was kept.</li>
       </ol>
@@ -79,7 +86,7 @@ export default async function ReportPage({ params }: Params) {
           ))}
         </tbody>
       </table>
-      <p className={styles.small}>Every {step === 1 ? "" : `${step}th `}measurement of {m.series.t.length}; the full series is on the experiment page.</p>
+      <p className={styles.small}>{step === 1 ? "Every" : `Every ${ordinal(step)}`} measurement of {m.series.t.length}; the full series is on the experiment page.</p>
       {channels.slice(0, 2).map((ch) => (
         <SeriesChart key={ch} t={m.series.t} measured={m.series.ch[ch]} law={win.fit.predicted[ch]} split={plate.split} label={ch === "theta" ? "angle" : ch} unit={ch === "theta" ? "rad" : lengthUnit} height={200} />
       ))}
@@ -122,6 +129,18 @@ export default async function ReportPage({ params }: Params) {
       </table>
       <p>{e.finding}</p>
 
+      <h2>Conclusion</h2>
+      <p>{conclusion(e, win.law.title)}</p>
+
+      <h2>Precautions</h2>
+      <ul>
+        <li>Keep the camera still, resting on a support, and film the motion side-on so it crosses the frame.</li>
+        <li>Keep the object of known size in the same plane as the motion, so one scale holds for both.</li>
+        <li>Use bright light, so each frame is sharp and the object’s outline is clear.</li>
+        {e.observation.motion_kind === "swing" && <li>Release the pendulum without pushing it, and keep the string taut.</li>}
+        <li>Note whether the phone films in slow motion; the clip’s clock must be real time, or the factor stated.</li>
+      </ul>
+
       <h2>Sources of error</h2>
       <ul>
         <li>Scale: {m.calibration.note}.</li>
@@ -132,4 +151,24 @@ export default async function ReportPage({ params }: Params) {
       </ul>
     </article>
   );
+}
+
+function ordinal(n: number) {
+  const t = n % 100;
+  return `${n}${t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+}
+
+/** One paragraph a student can stand behind: the law, how well its constants agree with accepted values, and any clock doubt. */
+function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string) {
+  const parts = [`The motion is described by the law “${law}”, which predicted the part of the motion it had not seen better than every alternative tested.`];
+  for (const c of e.comparisons.slice(0, 2)) {
+    const n = c.withinSigma;
+    parts.push(
+      Number.isFinite(n) && n <= 2
+        ? `The measured ${c.param} agrees with the accepted value (${c.label}) within ${Math.abs(c.errorPct).toFixed(1)}%, inside its uncertainty.`
+        : `The measured ${c.param} differs from the accepted value (${c.label}) by ${Math.abs(c.errorPct).toFixed(1)}%, more than its uncertainty allows.`,
+    );
+  }
+  if (e.clock) parts.push(`This points to the clip’s clock rather than the physics: ${e.clock.note}`);
+  return parts.join(" ");
 }

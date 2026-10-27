@@ -41,7 +41,7 @@ export default async function Home() {
         </div>
         {hero && heroWin && (
           <div className={styles.heroPlate}>
-            <PlateWithControls data={plateData(hero)} priority />
+            <PlateWithControls data={plateData(hero, { lazyStrobe: true })} priority />
             <div className={styles.heroLaw}>
               <div className="eqn">
                 {lawLatex(heroWin.law).slice(0, 2).map((l, i) => (
@@ -127,7 +127,7 @@ export default async function Home() {
               const w = winnerOf(e);
               return (
                 <Link key={e.id} href={`/x/${e.id}`} className={styles.card}>
-                  <StrobePlate data={plateData(e)} compact />
+                  <StrobePlate data={plateData(e, { lazyStrobe: true })} compact />
                   <div className={styles.cardBody}>
                     <p className={styles.cardTitle}>{e.title}</p>
                     <div className={styles.cardEq}>

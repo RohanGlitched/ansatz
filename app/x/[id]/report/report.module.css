@@ -68,3 +68,27 @@
     width: 100%;
   }
 }
+
+.student {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 20px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.student label {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.student input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid var(--ink-3);
+  background: transparent;
+  font: inherit;
+  padding: 2px 0;
+}

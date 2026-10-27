@@ -77,6 +77,13 @@ export default async function ProofPage() {
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
   const s = b?.summary;
+  // physical constants and camera scales are different claims, so they are counted apart
+  const all = b?.rows.flatMap((r) => r.checks) ?? [];
+  const group = (cs: typeof all) => {
+    const e = cs.map((c) => Math.abs(c.errPct)).sort((x, y) => x - y);
+    return { n: cs.length, within: e.filter((x) => x <= 5).length, median: e.length ? e[(e.length - 1) >> 1] * 0.5 + e[e.length >> 1] * 0.5 : NaN };
+  };
+  const split = { phys: group(all.filter((c) => !c.quantity.startsWith("scale"))), scale: group(all.filter((c) => c.quantity.startsWith("scale"))) };
   const pct = (v: number, d = 1) => `${v.toFixed(d)}%`;
   return (
     <article>
@@ -90,8 +97,10 @@ export default async function ProofPage() {
       {s && (
         <section className={`wrap ${styles.stats}`}>
           <div>
-            <p className={styles.big}>{pct(s.medianConstErrPct, 2)}</p>
-            <p>median error on the {s.constantsChecked} physical constants Ansatz measured (g, string length, drag, restitution, damping, frequency); {s.constantsWithin5pct} within 5%</p>
+            <p className={styles.big}>{pct(split.phys.median, 2)}</p>
+            <p>
+              median error on the {split.phys.n} physical constants Ansatz measured (g, string length, drag, restitution, damping, frequency); {split.phys.within} within 5%. Separately, the {split.scale.n} camera scales it worked out (metres per pixel, from a fall or a ruler): median {pct(split.scale.median, 2)}, {split.scale.within} within 5%.
+            </p>
           </div>
           <div>
             <p className={styles.big}>{pct(s.medianEyeballErrPct, 0)}</p>
@@ -128,7 +137,7 @@ export default async function ProofPage() {
               <Link href="/x/sample-pendulum" className={styles.realCard}>
                 <p className={styles.realBig}>{slow.clock.factor.toFixed(1)}× slow motion</p>
                 <p>
-                  <strong>A clip that hides its slow motion, caught.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
+                  <strong>A clip that hides its slow motion, flagged.</strong> A pendulum filmed in slow motion. With the tennis ball as the ruler, the swing implied a gravity of {slow.comparisons.find((c) => c.param === "g")?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth’s gravity, or the clip plays about {slow.clock.factor.toFixed(1)}× slower than life. Nothing in the video says so; its uploader titled it “slow motion”.
                 </p>
               </Link>
             )}
@@ -172,11 +181,23 @@ export default async function ProofPage() {
                       </td>
                       <td className="num">
                         {r.checks.filter((c) => !c.quantity.startsWith("scale")).length === 0 && <span className="small">no constant to compare</span>}
-                        {r.checks.map((c) => (
-                          <span key={c.quantity} className={styles.check}>
-                            {c.quantity}: {fmt(c.measured)} vs {fmt(c.truth)} <em className={Math.abs(c.errPct) <= 5 ? styles.good : styles.bad}>{c.errPct >= 0 ? "+" : ""}{c.errPct.toFixed(Math.abs(c.errPct) < 1 ? 2 : 1)}%</em>
-                          </span>
-                        ))}
+                        {r.checks.map((c) => {
+                          // a fall sets the scale assuming real time: on a clip slowed n×, it comes out n² too big, as it must
+                          const n = r.slowMotion ?? 1, ratio = c.measured / c.truth;
+                          const clock = c.quantity.startsWith("scale") && n > 1 && Math.abs(ratio / (n * n) - 1) < 0.05;
+                          return (
+                            <span key={c.quantity} className={styles.check}>
+                              {c.quantity}: {fmt(c.measured)} vs {fmt(c.truth)}{" "}
+                              {clock ? (
+                                <em className={styles.bad}>
+                                  {ratio.toFixed(1)}× = {Math.sqrt(ratio).toFixed(2)}², as an {n}× slow clip must give when the fall sets the scale; only a ruler in view can catch it
+                                </em>
+                              ) : (
+                                <em className={Math.abs(c.errPct) <= 5 ? styles.good : styles.bad}>{c.errPct >= 0 ? "+" : ""}{c.errPct.toFixed(Math.abs(c.errPct) < 1 ? 2 : 1)}%</em>
+                              )}
+                            </span>
+                          );
+                        })}
                       </td>
                       <td className="num">
                         {r.checks.filter((c) => c.eyeballErrPct !== undefined).map((c) => (

@@ -4,6 +4,8 @@ import katex from "katex";
 import styles from "./LiveRun.module.css";
 
 export type LiveData = {
+  /** SAM's masks as they stream in: [frame, x, y] in the clip's pixels */
+  tracking?: { width: number; height: number; frames: number; pts: [number, number, number][] };
   measure?: { width: number; height: number; px: [number, number][]; pivot: [number, number] | null };
   laws?: { id: string; title: string; summary: string; latex: string[] }[];
   board?: { id: string; title: string; origin: string; rank: number; miss: string; rel: number; latex: string[]; path: [number, number][] }[];
@@ -16,7 +18,8 @@ function tex(s: string) {
 /** What the experiment has found so far, drawn on the clip itself as each step lands. */
 export default function LiveRun({ src, live }: { src: string | null; live: LiveData }) {
   const m = live.measure;
-  const W = m?.width ?? 16, H = m?.height ?? 9;
+  const tr = live.tracking;
+  const W = m?.width ?? tr?.width ?? 16, H = m?.height ?? tr?.height ?? 9;
   const r = Math.max(2, W / 240);
   const path = (pts: [number, number][]) => pts.map((p, i) => `${i ? "L" : "M"}${p[0]} ${p[1]}`).join("");
   const winner = live.board?.[0];
@@ -34,7 +37,18 @@ export default function LiveRun({ src, live }: { src: string | null; live: LiveD
             {m.pivot && <circle cx={m.pivot[0]} cy={m.pivot[1]} r={r * 1.4} fill="none" stroke="#e9ebe6" strokeWidth={r * 0.4} />}
           </svg>
         )}
-        {!m && <p className={styles.wait}>Measuring…</p>}
+        {!m && tr && (
+          <svg className={styles.overlay} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-label="SAM 3.1's masks as they arrive">
+            {tr.pts.map((p, i) => (
+              <circle key={i} cx={p[1]} cy={p[2]} r={r * 0.7} fill="#ff5a1f" />
+            ))}
+          </svg>
+        )}
+        {!m && (
+          <p className={styles.wait}>
+            {tr ? `SAM 3.1: ${new Set(tr.pts.map((p) => p[0])).size} of ${tr.frames} frames measured` : "Measuring…"}
+          </p>
+        )}
       </div>
       {(live.board || live.laws) && (
         <div className={styles.laws}>
