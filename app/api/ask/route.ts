@@ -1,16 +1,19 @@
 import { crossOrigin, sameOrigin } from "@/lib/origin";
 import { getExperiment, winnerOf } from "@/lib/experiments";
 import { addSpend, DAILY_USD, spentToday, visitorOf } from "@/lib/limits";
-import { Ledger, outputText, respond } from "@/lib/meta/client";
+import { Ledger, respondJson } from "@/lib/meta/client";
+import { ASK_SCHEMA, checkAnswer, type Quote } from "@/lib/askcheck";
 import { updateJson } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PER_VISITOR = 15;
-const nums = (s: string) => [...s.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
 
-/** Muse Spark answers a question about one experiment from its stored record; numbers it quotes are checked against it. */
+/**
+ * Muse Spark answers a question about one experiment from its stored record, and quotes the record's path for every
+ * number it writes. Code reads each path; a number without a verified quote is removed from the answer.
+ */
 export async function POST(req: Request) {
   if (!sameOrigin(req)) return crossOrigin();
   const { id = "", question = "" } = (await req.json().catch(() => ({}))) as { id?: string; question?: string };
@@ -24,13 +27,15 @@ export async function POST(req: Request) {
   if ((await spentToday()) >= DAILY_USD) return Response.json({ error: "Today's allowance of Meta credits is spent. Try again tomorrow." }, { status: 429 });
 
   const w = winnerOf(e);
+  const rough = Number.isFinite(w.fit.testZ) && w.fit.testZ! > 5;
   const record = {
     experiment: e.title,
     what_happens: e.observation.what_happens,
     world: e.observation.body,
     scale: e.measured.calibration.note,
+    train_fraction: e.trainFrac,
     given: e.given,
-    winning_law: { title: w.law.title, equations: w.law.derivatives, constants: Object.fromEntries(w.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => [p.name, { value: +w.fit.theta[p.name].toPrecision(4), sigma: +(w.fit.sigma[p.name] ?? 0).toPrecision(2), unit: p.unit, meaning: p.meaning }])) },
+    winning_law: { title: w.law.title, equations: w.law.derivatives, constants: Object.fromEntries(w.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => [p.name, rough ? { value_approx: +w.fit.theta[p.name].toPrecision(2), error_bar: "none: the law misses the unseen frames by far more than the noise", unit: p.unit, meaning: p.meaning } : { value: +w.fit.theta[p.name].toPrecision(4), sigma: +(w.fit.sigma[p.name] ?? 0).toPrecision(2), unit: p.unit, meaning: p.meaning }])) },
     trial: e.candidates.map((c) => ({ rank: c.rank, law: c.law.title, by: c.origin, unseen_miss: +c.fit.testRms.toPrecision(3), seen_miss: +c.fit.trainRms.toPrecision(3), noise_units_unseen: c.fit.testZ != null ? +c.fit.testZ.toPrecision(3) : null })),
     compared_with: e.comparisons.map((c) => ({ quantity: c.param, measured: +c.measured.toPrecision(4), sigma: +c.sigma.toPrecision(2), reference: c.reference, label: c.label })),
     clock: e.clock
@@ -44,22 +49,22 @@ export async function POST(req: Request) {
     finding: e.finding,
   };
   const ledger = new Ledger();
-  const r = await respond(
+  const r = await respondJson<{ text: string; quotes: Quote[] }>(
     {
       model: "muse-spark-1.3",
-      reasoning: { effort: "low" },
-      max_output_tokens: 3000,
-      instructions: "You answer questions about one physics experiment measured by Ansatz, using only its record below. Quote numbers only as they appear in the record, with their uncertainties. If the record can't answer, say what would be needed. At most 120 words, plain sentences.",
+      effort: "low",
+      maxOutput: 3000,
+      schema: ASK_SCHEMA,
+      name: "answer",
+      instructions: "You answer questions about one physics experiment measured by Ansatz, using only its record below. Write every number in your answer exactly as the record holds it (rounding to the record's own digits is fine; never compute a new number), with its uncertainty where the record has one, and add a quote for each: the number as written and the JSON path from the root of the record to where it comes from, e.g. winning_law.constants.g.value or trial[0].unseen_miss. A number you can't point to will be struck from your answer. If the record can't answer, say what would be needed. At most 120 words, plain sentences.",
       input: [{ role: "user", content: [{ type: "input_text", text: `Record:\n${JSON.stringify(record)}\n\nQuestion: ${q}` }] }],
     },
     ledger,
     "ask about a run",
   ).catch(() => null);
-  if (!r) return Response.json({ error: "Muse Spark didn't answer just now. Try again." }, { status: 502 });
+  if (!r || typeof r.value?.text !== "string") return Response.json({ error: "Muse Spark didn't answer just now. Try again." }, { status: 502 });
   await addSpend(ledger.usd).catch(() => {});
-  const answer = outputText(r).trim();
-  // every number in the answer must be one the record holds (allowing for rounding); otherwise say so
-  const have = nums(JSON.stringify(record));
-  const unknown = nums(answer).filter((n) => !have.some((h) => Math.abs(h - n) <= Math.max(0.005 * Math.abs(h), 0.051)));
-  return Response.json({ answer, unchecked: unknown.length ? unknown : undefined, usd: +ledger.usd.toFixed(4) });
+  // every number in the answer must have a quote that reads true at its path in the record; the rest are struck out
+  const { answer, verified, replaced } = checkAnswer(r.value.text.trim(), r.value.quotes, record);
+  return Response.json({ answer, verified, replaced, usd: +ledger.usd.toFixed(4) });
 }

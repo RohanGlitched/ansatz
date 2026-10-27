@@ -3,7 +3,8 @@
  * (hypothesise), and reads the scoreboard to explain it (critique). When the referee sees drift the winner
  * can't explain, Muse Wonder works as a theorist with a fit_law tool and submits one more law (reviseAgentic).
  * A by-eye baseline (eyeball) answers the same questions from the video alone. The model never decides which
- * law wins and never writes a number into the report: code fits, code scores, code fills the numbers.
+ * law wins, and every measured number comes from the fit: code fits, code scores, code fills the numbers. Two
+ * inputs do come from Muse Spark, and reports list them as given: the size of the ruler it picked, and the world.
  */
 import { citations, Ledger, outputText, parseJsonLoose, respond, respondJson } from "./meta/client";
 import type { Law } from "./physics/law";
@@ -119,7 +120,7 @@ export async function observe(fileId: string, narration: string, ledger: Ledger,
   const prompt = [
     `You are the observing scientist in a physics lab. Watch this ${durationS.toFixed(1)} s clip. Another model will track the moving object frame by frame and fit equations of motion to it, so your job is to say WHAT to track, WHEN the free motion happens, and WHAT is known for certain.`,
     narration ? `The person filming said (transcribed, may be Hindi, English or mixed):\n"""${narration.slice(0, 3000)}"""` : "There is no narration.",
-    "Read any on-screen text too (captions often state the slow-motion factor, frame rate or lengths). If you need the real size of a standard object to use as a ruler, look it up.",
+    "Read any on-screen text too (captions often state the slow-motion factor, frame rate or lengths). If a standard object (an A4 sheet, a tennis ball, a door) can serve as a ruler, give its usual size and say it is an estimate.",
     "Rulers: people are asked to tape a sheet of paper to the wall or lay a metre stick down, so take such objects at their standard size rather than declining them. A plain sheet of white paper is A4 (0.297 m long side; say relative_uncertainty 0.06, since it could be US Letter, 0.279 m); a banded stick is a metre stick (1.0 m) only when the scene around it fits that size (a table, a person, a doorway); in a close-up of a small object it is more likely a 15 or 30 cm ruler, so judge its length from the objects around it, and set relative_uncertainty to 0.3 if you can't tell. Decline a ruler only when nothing of standard size is in the plane of the motion. A ruler matters even when the object falls freely: comparing it with the fall is how a slowed-down clip gets caught.",
   ].join("\n\n");
   const { value, raw } = await respondJson<Observation>(
@@ -129,7 +130,8 @@ export async function observe(fileId: string, narration: string, ledger: Ledger,
       input: [{ role: "user", content: [vid.part, { type: "input_text", text: prompt }] }],
       schema: OBS_SCHEMA,
       name: "observation",
-      tools: [{ type: "web_search" }],
+      // no web search: across every published run it was never used, and a ruler's size must come from the clip,
+      // the narration or a preset the visitor can see, not an unseen lookup
       maxOutput: 12000,
     },
     ledger,
@@ -257,7 +259,12 @@ export async function hypothesise(obs: Observation, digest: unknown, given: stri
 
 /* ───────────────────────────── critique ───────────────────────────── */
 
+export const RESIDUAL_FEATURES = ["none", "drift", "oscillating", "growing", "step", "dead-band"] as const;
+
 export type Critique = {
+  /** what the referee sees in the leading law's misses on the fitted frames, and how strongly (0 none … 3 unmistakable); written before the verdict */
+  residual_feature?: (typeof RESIDUAL_FEATURES)[number];
+  strength?: 0 | 1 | 2 | 3;
   verdict: "accept" | "revise";
   headline: string; // at most a dozen plain words, no numbers
   finding: string; // plain words, numbers as {param} placeholders
@@ -273,12 +280,14 @@ export type Critique = {
 export const CRITIQUE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["verdict", "headline", "finding", "why_it_won", "caveats", "revision_idea", "what_if"],
+  required: ["residual_feature", "strength", "verdict", "headline", "finding", "why_it_won", "caveats", "revision_idea", "what_if"],
   properties: {
+    residual_feature: { type: "string", enum: [...RESIDUAL_FEATURES], description: "Look at the misses of the law code chose on the fitted frames (the picture, the bin means, the runs test and the lag-1 autocorrelation) and name the one structure you see: none (noise), drift (a slow trend), oscillating (a regular wave), growing (swings that widen with time), step (a jump), dead-band (misses vanish near zero then grow)." },
+    strength: { type: "integer", enum: [0, 1, 2, 3], description: "How clear that structure is: 0 none, 1 faint, 2 clear, 3 unmistakable. 0 whenever residual_feature is none." },
     verdict: { type: "string", enum: ["accept", "revise"], description: "revise only if the winner's residuals drift systematically in time and a specific physical effect would explain the drift." },
     headline: { type: "string", description: "The discovery as a headline of at most 12 plain words, no numbers, about the object (e.g. 'The ball falls freely; the air barely touches it.')." },
-    finding: { type: "string", description: "What the WINNING law says about this object, in at most two short sentences a 15-year-old understands, like a science teacher announcing a result. Name the winning law's fitted parameters only as placeholders in braces, e.g. 'falls with g = {g}' or 'loses {e} of its speed'. Never type digits. Do not mention ranks, RMS, BIC or code. If even the winner predicts the unseen frames badly, say plainly that no candidate law captured the motion." },
-    why_it_won: { type: "string", description: "One plain sentence on what the winner gets right that the runner-up misses, without digits." },
+    finding: { type: "string", description: "What the WINNING law says about this object, in at most two short sentences a 15-year-old understands, like a science teacher announcing a result. Name the winning law's fitted parameters only as placeholders in braces, e.g. 'falls with g = {g}' or 'loses {e} of its speed'. Never type digits. Do not mention ranks, RMS, BIC or code. If the law code chose leaves clear structure in its misses on the fitted frames, say plainly that it only partly captures the motion." },
+    why_it_won: { type: "string", description: "One plain sentence on what the law code chose gets right that the other candidates on the table miss, judged from their equations and their misses on the fitted frames, without digits." },
     caveats: { type: "array", items: { type: "string" }, maxItems: 4 },
     revision_idea: { type: "string", description: "If revise: the one physical effect to add and why the residuals point to it, in two sentences. Empty if accept." },
     what_if: {
@@ -292,9 +301,9 @@ export const CRITIQUE_SCHEMA = {
 
 export async function critique(obs: Observation, board: unknown, ledger: Ledger, model = MODELS.critique, plot?: Uint8Array): Promise<Critique> {
   const text = [
-    "You are the referee in a physics lab. Several candidate laws were fitted to the first 70% of a tracked motion and then asked to predict the last 30%, which they never saw. Code has already ranked them by that prediction error; the winner (rank 1) is decided and you cannot change it. Explain the result honestly and briefly, and decide whether one more law is worth testing. Ask for a revision only when the winner's residuals drift systematically in time (not just noise) and a specific physical effect would explain the drift.",
+    "You are the referee in a physics lab. Several candidate laws were fitted to the first 70% of a tracked motion; the last 30% was held back and code used it to choose one law (named below as the law code chose). You see only how each candidate fits the frames it was fitted to, listed from the smallest miss to the largest, so the order says nothing about which one code chose, and you cannot change the choice. Explain the result honestly and briefly, and decide whether one more law is worth testing. Misses are given in units of the measurement noise (1 means no more than noise). Ask for a revision only when the chosen law's misses show structure in time (not just noise) and a specific physical effect would explain it: name the structure in residual_feature and its strength first, judging from the picture, the bin means, and the runs test and lag-1 autocorrelation that code computed for you.",
     `Experiment: ${obs.phenomenon}. ${obs.what_happens}`,
-    `Scoreboard and residuals:\n${JSON.stringify(board, null, 1)}`,
+    `Table of fits (fitted frames only) and residuals:\n${JSON.stringify(board, null, 1)}`,
     METHOD,
   ].join("\n\n");
   const { value } = await respondJson<Critique>(
@@ -307,7 +316,7 @@ export async function critique(obs: Observation, board: unknown, ledger: Ledger,
           content: [
             // the residuals as a picture too: law minus measurement against time over the fitted frames, the leading laws
             // in blue, orange and green, with the measurement noise as a dashed band
-            ...(plot ? [{ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(plot).toString("base64")}` }, { type: "input_text", text: "The image plots each leading law's misses (law minus measurement) against time over the fitted frames: rank 1 blue, rank 2 orange, rank 3 green; the dashed band is ± the measurement noise. Misses that wander outside the band in a pattern point to a missing effect." }] : []),
+            ...(plot ? [{ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(plot).toString("base64")}` }, { type: "input_text", text: "The image plots the misses (law minus measurement, divided by each channel's noise) against time over the fitted frames for the three candidates that fit them best: blue is the best fit, orange the next, green the third (their names are in the table, in that order); the dashed band is ±1, one measurement noise. Misses that wander outside the band in a pattern point to a missing effect." }] : []),
             { type: "input_text", text },
           ],
         },
@@ -346,10 +355,10 @@ export async function reviseAgentic(
   deadline = Infinity,
 ): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean }> {
   const text = [
-    "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion; the rest is held back to test them and you will not see it. The referee thinks the winner misses a physical effect.",
-    `Referee's note: ${idea}`,
+    "You are the senior theorist in a physics lab. The candidate laws below were fitted to the first 70% of a tracked motion; the rest is held back to test them and you will not see it. The law code chose (named in the table) is thought to miss a physical effect.",
+    `Why you were called in: ${idea}`,
     `Experiment: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body}.`,
-    `Scoreboard (fitted frames only):\n${JSON.stringify(board, null, 1)}`,
+    `Table of fits (fitted frames only, smallest miss first):\n${JSON.stringify(board, null, 1)}`,
     METHOD,
     "Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound. Try at most four laws. If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test.",
   ].join("\n\n");

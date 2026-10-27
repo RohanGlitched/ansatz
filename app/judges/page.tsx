@@ -7,6 +7,7 @@ import type { Experiment } from "@/lib/experiment";
 import { LANGUAGES } from "@/lib/translate";
 import slits from "@/data/slits.json";
 import { costText, headline, timeText } from "@/lib/headline";
+import { JUDGES_CODE } from "@/lib/classes";
 import styles from "./judges.module.css";
 
 export const metadata: Metadata = {
@@ -46,6 +47,8 @@ export default async function JudgesPage() {
   const moon = by("moon-jump");
   const mt = moon?.extras?.memoryTest;
   const st = moon?.extras?.speedTest;
+  const rp = st?.repeats;
+  const rep = rp ? { n: rp.n, a: rp.clips.find((c) => c.clip === "A")!, b: rp.clips.find((c) => c.clip === "B")! } : null;
   const ratio = mt ? Math.sqrt(mt.rows[0].g / mt.rows[1].g) : NaN;
   const g = moon?.comparisons.find((c) => c.param === "g");
   const spring = by("hardening-spring");
@@ -140,7 +143,7 @@ export default async function JudgesPage() {
   ];
 
   const tour = [
-    { t: "0:00", title: "The first screen", body: "Two strips of the same Moon jump, one slowed in secret. Muse Spark gave both the same answer; Ansatz’s two measurements differ by the slowdown.", href: "/", go: "Home" },
+    { t: "0:00", title: "The first screen", body: "Two strips of the same Moon jump, one slowed in secret. Asked about the slowed copy on its own five times, Muse Spark called it real speed every time; Ansatz’s two measurements differ by the slowdown.", href: "/", go: "Home" },
     { t: "0:30", title: "The Moon experiment", body: `Gravity measured from the pixels of 1972 television, with a ruler we chose (Young’s suited height, 1.88 m ± 5%): ${g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)}` : "1.72"} m/s² against the Moon’s 1.625, with a further ±0.2 depending on which point of the body is followed. Scroll to “Can it tell the speed?” for the fair test.`, href: "/x/moon-jump", go: "Open it" },
     { t: "1:15", title: "A law Muse Spark didn’t propose", body: "A spring we rendered to stiffen as it stretches: Muse Spark’s laws miss, Muse Wonder’s notebook shows four attempts, and the cubic law it submitted wins on frames it never saw.", href: "/x/hardening-spring", go: "Open it" },
     { t: "2:00", title: "The scoreboard", body: "Every number Ansatz reported on clips with known answers, beside Muse Spark’s guess by eye.", href: "/proof", go: "Proof" },
@@ -148,7 +151,7 @@ export default async function JudgesPage() {
   ];
 
   const novel = [
-    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, one clip at a time: ${st ? `“${st.single[0].playback_accel} m/s², slowed ${st.single[0].factor}×” for both` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
+    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, asked about each clip on its own: ${rep ? `it called the secretly slowed copy real speed ${rep.n - rep.b.calledSlowed} times out of ${rep.n}, answering ${rep.b.answers[0].playback_accel} m/s², the textbook value; it called the real broadcast slowed ${rep.a.calledSlowed} of ${rep.n} times` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
     { title: "Laws judged on frames no model saw", body: "No fit, law choice or theorist sees the last 30% of the motion: Muse Spark writes its laws from the first 70%, and Muse Wonder’s fitting tool only has those frames. A law wins by predicting the rest, not by sounding right.", href: "/how" },
     { title: "A clock check from physics", body: "Gravity scales with the square of time. When a ruler makes gravity a measurement, a value far from the planet’s says the clip isn’t real time, and by how much.", href: "/x/sample-pendulum" },
     { title: "An agent that does science with a tool", body: "Muse Wonder doesn’t answer; it experiments. It fits laws to the seen frames, reads the residuals, revises, and submits one law to a trial it can’t see.", href: "/x/dry-friction-spring" },
@@ -214,7 +217,7 @@ export default async function JudgesPage() {
               <b>
                 {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}×
               </b>
-              <span>how much slower the secretly slowed copy runs, measured jump for jump (true 1.5×); Muse Spark, one clip at a time, gave both the same answer</span>
+              <span>how much slower the secretly slowed copy runs, measured jump for jump (true 1.5×); Muse Spark, asked about it alone five times, called it real speed every time</span>
             </Link>
           )}
           <Link href="/proof">
@@ -398,11 +401,11 @@ export default async function JudgesPage() {
         <div className="wrap">
           <h2>Bring a clip</h2>
           <p className="lede" style={{ marginTop: 12 }}>
-            Anything that falls, swings, bounces or rolls, filmed from a phone that stays still. Say what you know while you film.
+            Anything that falls, swings, bounces or rolls, filmed from a phone that stays still. Say what you know while you film. This link has runs reserved for judges until November 10, so a busy day for visitors won’t lock you out; every run made with it is listed on <Link href={`/class/${JUDGES_CODE}`}>one page</Link>.
           </p>
           <p style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <Link className="btn" href="/new">
-              Run an experiment
+            <Link className="btn" href={`/new?class=${JUDGES_CODE}`}>
+              Run your own clip
             </Link>
             <Link className="btn ghost" href="/how">
               How it works

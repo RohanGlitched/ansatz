@@ -67,7 +67,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ id: str
           g = {g.toFixed(2)} ± {sg.toFixed(2)} ± {sgShared.toFixed(2)} m/s²
         </p>
         <p className="small">
-          The first ± is the scatter between runs, which shrinks as you add lengths. The second is what every run shares, the ruler’s true size ({Math.round(relShared * 100)}%: a plain sheet could be A4 or US Letter), which no number of runs removes; measure the sheet once and it goes away.
+          The first ± is the scatter between runs, which shrinks as you add lengths. The second is what every run shares, the ruler’s true size ({Math.round(relShared * 100)}%: a sheet’s size is assumed, and SAM 3.1 reads its edge a few percent short), which no number of runs removes; measure the sheet once and it goes away.
         </p>
         <p className="small">
           From the slope of L against T² ({(k * 1000).toFixed(1)} mm/s²), g = 4π² × slope.{s.truth ? ` True value: ${s.truth.g} m/s², off by ${Math.abs(((g - s.truth.g) / s.truth.g) * 100).toFixed(1)}%.` : ""} The single runs gave {pts.map((p) => p.g.toFixed(2)).join(", ")}: each one’s ruler error is its own, and the line averages them.

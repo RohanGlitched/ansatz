@@ -3,11 +3,11 @@
 import { useState } from "react";
 import styles from "./AskRun.module.css";
 
-/** Ask Muse Spark about this run: it answers from the stored record, and any number not in the record is flagged. */
+/** Ask Muse Spark about this run: it answers from the stored record with a quote for every number, and code strikes any number whose quote doesn't read true. */
 export default function AskRun({ id, examples }: { id: string; examples: string[] }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const [a, setA] = useState<{ answer?: string; unchecked?: number[]; error?: string } | null>(null);
+  const [a, setA] = useState<{ answer?: string; verified?: number; replaced?: number; error?: string } | null>(null);
   async function ask(text: string) {
     if (!text.trim()) return;
     setQ(text);
@@ -41,7 +41,13 @@ export default function AskRun({ id, examples }: { id: string; examples: string[
       {a?.answer && (
         <div className={styles.answer} aria-live="polite">
           <p>{a.answer}</p>
-          <p className="small">{a.unchecked ? `Check: ${a.unchecked.join(", ")} ${a.unchecked.length === 1 ? "isn’t a number" : "aren’t numbers"} in this run’s record.` : "Every number above is in this run’s record."}</p>
+          <p className="small">
+            {a.replaced
+              ? `${a.replaced} ${a.replaced === 1 ? "number wasn’t" : "numbers weren’t"} in the record and ${a.replaced === 1 ? "was" : "were"} removed.${a.verified ? ` The other ${a.verified === 1 ? "quote was" : `${a.verified} quotes were`} checked against this run’s record.` : ""}`
+              : a.verified
+                ? `Every number above was checked against this run’s record (${a.verified} ${a.verified === 1 ? "quote" : "quotes"}).`
+                : "This answer states no measured numbers."}
+          </p>
         </div>
       )}
       {a?.error && <p role="alert">{a.error}</p>}

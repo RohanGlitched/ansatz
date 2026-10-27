@@ -5,7 +5,7 @@
  * the stroboscopic print from the very pixels that were measured.
  */
 import { buildObjectPrompt, decodeMaskToRaster, decodeMaskToRLE, formats, type SegmentationMaskRecord } from "@meta-sam/parser";
-import { IncompleteStream, Ledger, PRICE, respondStreamText } from "./client";
+import { IncompleteStream, Ledger, PRICE, respondStreamText, type StreamResult } from "./client";
 
 /** One retry when a stream ends without completing; any other failure goes straight up. */
 const once = async <T,>(f: () => Promise<T>): Promise<T> => {
@@ -35,7 +35,33 @@ export type Sample = {
 
 export type Track = { id: string; noun: string; samples: Sample[] };
 
-export type SamResult = { width: number; height: number; tracks: Track[]; frames: number; raw: string };
+export type SamResult = { width: number; height: number; tracks: Track[]; frames: number; raw: string; timing?: { firstMaskMs: number; totalMs: number } };
+
+/** Frames the response says it billed, when its usage names them (the field's name is not documented: take the usual spellings). */
+export function framesFromUsage(usage?: Record<string, unknown>): number | undefined {
+  if (!usage) return undefined;
+  const details = (usage.input_tokens_details ?? usage.input_details) as Record<string, unknown> | undefined;
+  for (const v of [usage.frames, usage.video_frames, usage.input_frames, usage.billed_frames, details?.video_frames, details?.frames]) if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.round(v);
+  return undefined;
+}
+
+/**
+ * Bills a SAM call and notes how long it took. The frame count comes from the response's usage when the completed
+ * event carries one; otherwise it is estimated (the longer of 50 and the frames sent, SAM's minimum) and the entry
+ * says so.
+ */
+export function billSam(ledger: Ledger | null, purpose: string, res: StreamResult, firstMaskMs: number, sent: number) {
+  const billed = framesFromUsage(res.usage);
+  const frames = billed ?? Math.max(50, sent);
+  ledger?.add({ model: "sam-3.1", purpose: billed === undefined ? `${purpose} (est.)` : purpose, ms: res.totalMs, firstMaskMs, totalMs: res.totalMs, frames, usd: frames * PRICE.samFrame, ...(billed === undefined ? { est: true } : {}) });
+}
+
+/** Watches the stream for the first mask record, so the page can say how long SAM took to show one. */
+function maskClock() {
+  const t = Date.now();
+  let first = -1;
+  return { onDelta: (d: string) => { if (first < 0 && d.includes("<|mask;")) first = Date.now() - t; }, first: (res: StreamResult) => (first >= 0 ? first : res.firstEventMs) };
+}
 
 function moments(rec: SegmentationMaskRecord): Omit<Sample, "f" | "conf" | "rle"> | null {
   const { width: W, height: H } = rec.mask;
@@ -138,25 +164,34 @@ function liveListener(onMask?: (m: LiveMask) => void) {
 
 /** Tracks every match of `noun` through the clip. */
 export async function trackNoun(fileId: string, noun: string, ledger: Ledger | null, frameCount?: number, onMask?: (m: LiveMask) => void): Promise<SamResult> {
-  const raw = await once(() => respondStreamText(
-    {
-      model: "sam-3.1",
-      input: [{ type: "message", role: "user", content: [{ type: "input_text", text: noun }, { type: "input_video", file_id: fileId }] }],
-      metadata: { include_confidence: "true", mask_encoding: "one_bit" },
-    },
-    null,
-    `track "${noun}"`,
-    liveListener(onMask),
-  ));
+  const live = liveListener(onMask);
+  let clock = maskClock();
+  const res0 = await once(() => {
+    clock = maskClock();
+    return respondStreamText(
+      {
+        model: "sam-3.1",
+        input: [{ type: "message", role: "user", content: [{ type: "input_text", text: noun }, { type: "input_video", file_id: fileId }] }],
+        metadata: { include_confidence: "true", mask_encoding: "one_bit" },
+      },
+      null,
+      `track "${noun}"`,
+      (d) => {
+        clock.onDelta(d);
+        live?.(d);
+      },
+    );
+  });
+  const raw = res0.text;
   if (process.env.SAM_DUMP_DIR) {
     const { writeFileSync, mkdirSync } = await import("node:fs");
     mkdirSync(process.env.SAM_DUMP_DIR, { recursive: true });
     writeFileSync(`${process.env.SAM_DUMP_DIR}/${noun.replace(/\W+/g, "_")}-${Date.now()}.txt`, raw);
   }
   const res = parseSam(raw, noun);
-  const frames = Math.max(50, frameCount ?? res.frames);
-  ledger?.add({ model: "sam-3.1", purpose: `track "${noun}"`, ms: 0, frames, usd: frames * PRICE.samFrame });
-  return res;
+  const firstMaskMs = clock.first(res0);
+  billSam(ledger, `track "${noun}"`, res0, firstMaskMs, frameCount ?? res.frames);
+  return { ...res, timing: { firstMaskMs, totalMs: res0.totalMs } };
 }
 
 /** Tracks specific objects from boxes (e.g. where Muse Spark pointed) on given frames. */
@@ -168,17 +203,22 @@ export async function trackBoxes(
   frameCount?: number,
 ): Promise<SamResult> {
   const text = buildObjectPrompt({ size, objects: objects.map((o) => ({ id: o.id, prompts: [{ frame: o.frame, box: o.box }] })) });
-  const raw = await once(() => respondStreamText(
-    {
-      model: "sam-3.1",
-      input: [{ type: "message", role: "user", content: [{ type: "input_text", text }, { type: "input_video", file_id: fileId }] }],
-      metadata: { include_confidence: "true", mask_encoding: "one_bit" },
-    },
-    null,
-    "track pointed objects",
-  ));
-  const res = parseSam(raw, "pointed object");
-  const frames = Math.max(50, frameCount ?? res.frames);
-  ledger?.add({ model: "sam-3.1", purpose: "track pointed objects", ms: 0, frames, usd: frames * PRICE.samFrame });
-  return res;
+  let clock = maskClock();
+  const res0 = await once(() => {
+    clock = maskClock();
+    return respondStreamText(
+      {
+        model: "sam-3.1",
+        input: [{ type: "message", role: "user", content: [{ type: "input_text", text }, { type: "input_video", file_id: fileId }] }],
+        metadata: { include_confidence: "true", mask_encoding: "one_bit" },
+      },
+      null,
+      "track pointed objects",
+      clock.onDelta,
+    );
+  });
+  const res = parseSam(res0.text, "pointed object");
+  const firstMaskMs = clock.first(res0);
+  billSam(ledger, "track pointed objects", res0, firstMaskMs, frameCount ?? res.frames);
+  return { ...res, timing: { firstMaskMs, totalMs: res0.totalMs } };
 }

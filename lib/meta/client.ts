@@ -33,6 +33,11 @@ export type Call = {
   reasoningTokens?: number;
   frames?: number;
   audioSeconds?: number;
+  /** SAM: seconds from the request to the first mask, and to the end of the stream */
+  firstMaskMs?: number;
+  totalMs?: number;
+  /** the price is an estimate (the response carried no usage to bill from) */
+  est?: boolean;
   usd: number;
 };
 
@@ -249,8 +254,14 @@ export function parseJsonLoose<T>(text: string): T | undefined {
 
 export class IncompleteStream extends Error {}
 
-/** POST /v1/responses with stream: true; returns the concatenated output_text (SAM's wire lines). */
-export async function respondStreamText(body: Record<string, unknown>, ledger: Ledger | null, purpose: string, onDelta?: (d: string) => void): Promise<string> {
+/** What a streamed response reports besides its text: when the first event and the last one arrived, and the completed event's usage if it had any. */
+export type StreamResult = { text: string; firstEventMs: number; totalMs: number; usage?: Record<string, unknown> };
+
+/**
+ * POST /v1/responses with stream: true; returns the concatenated output_text (SAM's wire lines) with its timing.
+ * firstEventMs is the first server event of any kind, totalMs the whole call; usage is the completed event's, when it carries one.
+ */
+export async function respondStreamText(body: Record<string, unknown>, ledger: Ledger | null, purpose: string, onDelta?: (d: string) => void): Promise<StreamResult> {
   const t = Date.now();
   const r = await metaFetch("/responses", { method: "POST", headers: { "content-type": "application/json", accept: "text/event-stream" }, body: JSON.stringify({ ...body, stream: true }) });
   if (!r.ok || !r.body) {
@@ -262,6 +273,8 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
   let out = "";
   let failure: string | null = null;
   let completed = false;
+  let usage: Record<string, unknown> | undefined;
+  let firstEventMs = -1;
   const reader = r.body.getReader();
   for (;;) {
     const { value, done } = await reader.read();
@@ -274,17 +287,20 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
       if (!line.startsWith("data:")) continue;
       const data = line.slice(5).trim();
       if (data === "[DONE]") continue;
-      let ev: { type?: string; delta?: string; message?: string; response?: { error?: { message?: string } } };
+      let ev: { type?: string; delta?: string; message?: string; response?: { error?: { message?: string }; usage?: Record<string, unknown> | null } };
       try {
         ev = JSON.parse(data);
       } catch {
         continue;
       }
+      if (firstEventMs < 0) firstEventMs = Date.now() - t;
       if (ev.type === "response.output_text.delta" && ev.delta) {
         out += ev.delta;
         onDelta?.(ev.delta);
-      } else if (ev.type === "response.completed") completed = true;
-      else if (ev.type === "response.incomplete") failure = "the response stopped before it finished";
+      } else if (ev.type === "response.completed") {
+        completed = true;
+        if (ev.response?.usage && typeof ev.response.usage === "object") usage = ev.response.usage;
+      } else if (ev.type === "response.incomplete") failure = "the response stopped before it finished";
       else if (ev.type === "response.failed") failure = ev.response?.error?.message ?? "response failed";
       else if (ev.type === "error") failure = ev.message ?? "stream error";
     }
@@ -292,8 +308,9 @@ export async function respondStreamText(body: Record<string, unknown>, ledger: L
   if (failure) throw new Error(`${purpose}: ${failure}`);
   // a stream that just ends, with no completed event, may have lost its tail (for SAM: the last frames)
   if (!completed) throw new IncompleteStream(`${purpose}: the stream ended before the response completed`);
-  ledger?.add({ model: String(body.model), purpose, ms: Date.now() - t, usd: 0 });
-  return out;
+  const totalMs = Date.now() - t;
+  ledger?.add({ model: String(body.model), purpose, ms: totalMs, totalMs, usd: 0 });
+  return { text: out, firstEventMs: Math.max(0, firstEventMs), totalMs, usage };
 }
 
 export type Transcript = { transcript: string; audioDurationMs: number; turns: { turnId: number; startMs: number; endMs: number; transcript: string; speaker?: string }[] };

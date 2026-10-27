@@ -151,7 +151,7 @@ export default async function Home() {
           <div className={styles.who}>
             <div>
               <h3>A student with a phone</h3>
-              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in Hindi or English, and get g, the law, the error against the textbook value and a lab report to hand in, in seven languages. Film it at four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.</p>
+              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in any of seven languages, and get g, the law, the error against the textbook value and a lab report to hand in, in seven languages. Film it at four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.</p>
             </div>
             <div>
               <h3>A teacher with a class of forty</h3>
@@ -251,7 +251,7 @@ export default async function Home() {
         <div className="wrap">
           <h2 className={styles.h2}>A physics lab in every pocket</h2>
           <p className="lede" style={{ marginTop: 12 }}>
-            Motion experiments need a stopwatch you can’t start fast enough, or a light gate, a ticker timer and a lab. Ansatz needs a phone propped on some books. A student films a ball, says “the string is fifty centimetres” in Hindi or English, and gets back the law, the constants and how far off the textbook value they are.
+            Motion experiments need a stopwatch you can’t start fast enough, or a light gate, a ticker timer and a lab. Ansatz needs a phone propped on some books. A student films a ball, says “the string is fifty centimetres” in any of seven languages, and gets back the law, the constants and how far off the textbook value they are.
           </p>
           <div className={styles.ctaRow} style={{ marginTop: 28 }}>
             <Link className="btn" href="/new">

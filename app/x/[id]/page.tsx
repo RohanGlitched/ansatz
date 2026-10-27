@@ -174,6 +174,9 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             ))}
           </div>
           <p className={styles.summary}>{win.law.summary}</p>
+          {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 10 && (
+            <p className={styles.caution}>Misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise: read this as a description, not a law.</p>
+          )}
 
           <h3 className={styles.h3}>Measured</h3>
           <dl className={styles.consts}>
@@ -187,7 +190,12 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     <span>{p.meaning}</span>
                   </dt>
                   <dd className="num">
-                    {Number.isFinite(s) && s > 0 ? (
+                    {rough ? (
+                      <>
+                        <strong>about {fmt(v, 2)}</strong>
+                        <span className={styles.nd}> (no error bar: the law misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise)</span>
+                      </>
+                    ) : Number.isFinite(s) && s > 0 ? (
                       <>
                         <strong>{fmtPair(v, s).split(" ± ")[0]}</strong>
                         <span> ± {fmtPair(v, s).split(" ± ")[1]}</span>
@@ -265,7 +273,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
           {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5 && (
             <p className={styles.caution}>
               Even the winner misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the measurement noise, so something none of these laws include matters there
-              {e.observation.caveats[0] ? ` (the observer noted: ${e.observation.caveats[0]})` : ""}. Read its constants as the best available description, not a closed case.
+              {e.observation.caveats[0] ? ` (the observer noted: ${e.observation.caveats[0]})` : ""}.{win.fit.testZ! > 10 ? "" : " Read its constants as the best available description, not a closed case."}
             </p>
           )}
           <ol className={styles.trial}>
@@ -307,6 +315,13 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
               <p>
                 <strong>Muse Wonder’s notebook.</strong> Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one. It never saw the held-out frames.
               </p>
+              {e.wonder.trigger && (
+                <p className="small">
+                  {e.wonder.trigger === "referee"
+                    ? "Called in by the referee."
+                    : `Called in by code: the winner missed the fitted frames${e.wonder.missZ !== undefined ? ` by ${fmt(e.wonder.missZ, 1)}× the noise` : ""}.`}
+                </p>
+              )}
               <ol>
                 {e.wonder.attempts.map((a, i) => (
                   <li key={i}>
@@ -412,6 +427,42 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 ))}
               </tbody>
             </table>
+            {e.extras.errorBudget && (
+              <>
+                <h3 className={styles.h3}>Error budget</h3>
+                <p style={{ maxWidth: "75ch" }}>{e.extras.errorBudget.note}</p>
+                <table className={styles.vs}>
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Size in g (m/s²)</th>
+                      <th>In the quoted ±</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {e.extras.errorBudget.rows.map((r) => (
+                      <tr key={r.source}>
+                        <td>{r.source}</td>
+                        <td className="num">
+                          {r.signed ?? "±"}
+                          {r.value.toFixed(r.value < 0.1 ? 3 : 2)}
+                        </td>
+                        <td>{r.included ? "yes" : "no, listed separately"}</td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td>
+                        <strong>{e.extras.errorBudget.total.label}</strong>
+                      </td>
+                      <td className="num">
+                        <strong>±{e.extras.errorBudget.total.value.toFixed(3)}</strong>
+                      </td>
+                      <td />
+                    </tr>
+                  </tbody>
+                </table>
+              </>
+            )}
             {e.extras.crossCheck && <p style={{ marginTop: 16, maxWidth: "75ch" }}>{e.extras.crossCheck}</p>}
             {e.extras.ruler && <p className="small" style={{ marginTop: 8 }}>Ruler: {e.extras.ruler}</p>}
           </div>
@@ -534,6 +585,22 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>
               The fair version of the test: we asked Muse Spark about the playback itself, not the Moon. It saw up to 300 frames of each clip and was told the astronaut’s height. Clip B is clip A slowed 1.5× with interpolated frames.
             </p>
+            {e.extras.speedTest.repeats && (
+              <div className={styles.repeats}>
+                {e.extras.speedTest.repeats.clips.map((c) => (
+                  <p key={c.clip}>
+                    <strong>
+                      Clip {c.clip} ({c.truth}): called slowed {c.calledSlowed} of {e.extras!.speedTest!.repeats!.n} times
+                    </strong>
+                    <span>
+                      {" "}
+                      answers, as played: {c.answers.map((a) => `${a.playback_accel} m/s²${a.real_speed ? "" : ` (“slowed ${a.factor}×”)`}`).join(", ")}
+                    </span>
+                  </p>
+                ))}
+                <p className="small">{e.extras.speedTest.repeats.note} Answering 1.6 is answering with the Moon’s textbook gravity; the one row below is a single sample of the same question.</p>
+              </div>
+            )}
             <table className={styles.vs}>
               <thead>
                 <tr>
@@ -566,7 +633,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
               </tbody>
             </table>
             <p style={{ marginTop: 16, maxWidth: "75ch" }}>
-              One clip at a time, the model gives both clips the same answer, and calls the real-speed one slowed too. Side by side it can count frames and see that B is slower, which is impressive. Ansatz needs no second clip: each one’s measured fall says how fast it plays.
+              One clip at a time, the model called the slowed copy real speed every time it was asked, and the real-speed one slowed in some answers. Side by side it can count frames and see that B is slower, which is impressive. Ansatz needs no second clip: each one’s measured fall says how fast it plays.
             </p>
             <div className={styles.toolTest}>
               <p>
@@ -664,6 +731,16 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             <p className="lede" style={{ marginTop: 12 }}>
               Every model call this experiment made, what it was for, how long it took and what it cost.
             </p>
+            {(() => {
+              // SAM 3.1's timing for the subject's track (records from before it was measured have none)
+              const sams = e.ledger.calls.filter((c) => c.model === "sam-3.1" && c.firstMaskMs !== undefined && c.totalMs !== undefined);
+              const sam = sams.find((c) => c.purpose.startsWith(`track "${e.tracking.noun}"`)) ?? sams[0];
+              return sam ? (
+                <p className="small num">
+                  SAM 3.1: first mask {(sam.firstMaskMs! / 1000).toFixed(1)} s, {sam.frames ?? e.tracking.framesSeen} frames in {(sam.totalMs! / 1000).toFixed(1)} s
+                </p>
+              ) : null;
+            })()}
             <ol className={styles.calls}>
               {e.ledger.calls.map((c, i) => (
                 <li key={i}>

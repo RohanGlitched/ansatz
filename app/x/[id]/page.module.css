@@ -599,3 +599,15 @@
   color: var(--ink-2);
   font-family: var(--font);
 }
+
+.repeats {
+  margin-top: 18px;
+  display: grid;
+  gap: 6px;
+  font-family: var(--font);
+  font-size: 15px;
+}
+
+.repeats span {
+  color: var(--ink-2);
+}

@@ -21,7 +21,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   lines.push(one(`# law: ${win.law.title} (${win.law.id})`));
   for (const p of win.law.params) {
     const v = win.fit.theta[p.name], sg = win.fit.sigma[p.name];
-    lines.push(one(`# ${p.name} = ${!p.fixed && Number.isFinite(sg) ? `${+v.toPrecision(6)} ± ${sig2(sg)}` : `${v} (given)`} ${p.unit ?? ""} : ${p.meaning ?? ""}`.trimEnd()));
+    // no error bar when even the winner misses the unseen frames by far more than the noise
+    const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+    const val = p.fixed || !Number.isFinite(sg) ? `${v} (given)` : rough ? `about ${+v.toPrecision(3)} (no error bar: the law misses the unseen frames by ${+win.fit.testZ!.toPrecision(2)}x the noise)` : `${+v.toPrecision(6)} ± ${sig2(sg)}`;
+    lines.push(one(`# ${p.name} = ${val} ${p.unit ?? ""} : ${p.meaning ?? ""}`.trimEnd()));
   }
   lines.push(`# scale: ${e.measured.calibration.metresPerPixel} m per pixel (${e.measured.calibration.kind})`);
   lines.push(`# fitted on the first ${nFit} of ${s.t.length} frames; the rest were predicted unseen`);

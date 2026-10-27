@@ -21,6 +21,18 @@ const DEMO: ClassRecord = {
   students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F" },
 };
 
+/** The judges' lane: runs reserved for the hackathon's judges, so a busy day for visitors can't lock them out. */
+const JUDGES: ClassRecord = {
+  code: "jdgs26",
+  name: "Judges’ lane",
+  createdAt: "2026-10-27T00:00:00Z",
+  expiresAt: "2026-11-10T00:00:00Z",
+  quota: Number(process.env.JUDGE_QUOTA ?? 60),
+  used: 0,
+  runs: [],
+};
+export const JUDGES_CODE = JUDGES.code;
+
 const QUOTA = Number(process.env.CLASS_QUOTA ?? 45);
 const DAYS = 7;
 const CLASSES_PER_DAY = Number(process.env.CLASSES_PER_DAY ?? 3);
@@ -35,6 +47,7 @@ export async function getClass(code: string): Promise<ClassRecord | null> {
   if (!/^[a-z2-9]{6}$/.test(code)) return null;
   if (code === DEMO.code) return DEMO;
   const raw = await getObject(key(code)).catch(() => null);
+  if (!raw && code === JUDGES.code) return JUDGES;
   return raw ? (JSON.parse(new TextDecoder().decode(raw)) as ClassRecord) : null;
 }
 
@@ -62,7 +75,8 @@ export async function useClassRun(code: string): Promise<{ ok: true; cls: ClassR
   if (!cls) return { ok: false, why: "That class link isn't valid. Ask your teacher for the link again." };
   if (cls.demo) return { ok: false, why: "That's the demo class page; it doesn't run experiments. Make your own class link at /class/new." };
   if (Date.now() > Date.parse(cls.expiresAt)) return { ok: false, why: "That class link has expired (they last a week). Ask your teacher for a new one." };
-  const day = await updateJson<{ total: number }>(`classes/runs-${today()}.json`, { total: 0 }, (d) => (d.total >= CLASS_RUNS_PER_DAY ? null : { total: d.total + 1 })).catch(() => null);
+  // the judges' lane has its own quota and doesn't share the class links' daily allowance (the site's spend ceiling still holds)
+  const day = code === JUDGES.code ? { total: 0 } : await updateJson<{ total: number }>(`classes/runs-${today()}.json`, { total: 0 }, (d) => (d.total >= CLASS_RUNS_PER_DAY ? null : { total: d.total + 1 })).catch(() => null);
   if (!day) return { ok: false, why: `Class links have used today's ${CLASS_RUNS_PER_DAY} runs. The limit resets at midnight UTC.` };
   let full = false;
   const next = await updateJson<ClassRecord>(key(code), cls, (c) => {

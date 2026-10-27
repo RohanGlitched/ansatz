@@ -63,7 +63,7 @@ export type Experiment = {
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
-  wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
+  wonder?: { idea: string; /** who called Muse Wonder in (absent on older records) */ trigger?: "referee" | "code"; /** for a call by code: how far the winner missed the fitted frames, in noise units */ missZ?: number; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
   extras?: {
     /** the fair version of the memory test: one clip at a time, both together, and with Ansatz's measurements as tools */
@@ -73,8 +73,10 @@ export type Experiment = {
       pair: { slower: string; factor: number; reasoning: string };
       withTools: { calls: { name: string; result: unknown }[]; answer: string };
       usd: number;
+      /** the one-clip question asked n times per clip: how often it called each clip slowed */
+      repeats?: { n: number; note: string; clips: { clip: string; truth: string; answers: { playback_accel: number; real_speed: boolean; factor: number }[]; calledSlowed: number }[]; usd: number };
     };
-    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } } } };
+    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -117,23 +119,121 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
   });
 }
 
-/** Residual pattern the referee reads: mean residual in eight time bins per channel, over the fitted frames only. */
-export function residualPattern(fit: Fit, m: Measured, frac = 1) {
+/** Residual pattern the referee reads: mean residual in eight time bins per channel, over the fitted frames only (in noise units when asked). */
+export function residualPattern(fit: Fit, m: Pick<Measured, "series" | "noise">, frac = 1, inNoise = false) {
   const out: Record<string, number[]> = {};
   const n = Math.max(3, Math.round(m.series.t.length * frac));
   for (const [ch, pred] of Object.entries(fit.predicted)) {
     const ob = m.series.ch[ch];
     if (!ob) continue;
+    const unit = inNoise ? noiseOf(m.noise, ch) : 1;
     const bins = new Array(8).fill(0), cnt = new Array(8).fill(0);
     for (let i = 0; i < n; i++) {
       if (!Number.isFinite(ob[i]) || !Number.isFinite(pred[i])) continue;
       const b = Math.min(7, Math.floor((i / n) * 8));
-      bins[b] += pred[i] - ob[i];
+      bins[b] += (pred[i] - ob[i]) / unit;
       cnt[b]++;
     }
     out[ch] = bins.map((s, i) => +(cnt[i] ? s / cnt[i] : 0).toPrecision(3));
   }
   return out;
+}
+
+/** A channel's measurement noise, never zero (it divides). */
+const noiseOf = (noise: Record<string, number>, ch: string) => (noise[ch] > 0 ? noise[ch] : 1);
+
+/** One noise unit for laws that observe different channels: the RMS of the channels' noises. */
+export const noiseFloorOf = (noise: Record<string, number>) => Math.sqrt(Object.values(noise).reduce((s, v) => s + v * v, 0) / Math.max(1, Object.keys(noise).length));
+
+/** Wald–Wolfowitz runs test on the signs of a residual series: z well below 0 means the misses keep one sign in long stretches. */
+export function runsTest(r: number[]) {
+  const s = r.filter((v) => Number.isFinite(v) && v !== 0).map((v) => (v > 0 ? 1 : -1));
+  const n = s.length, pos = s.filter((v) => v > 0).length, neg = n - pos;
+  let runs = n ? 1 : 0;
+  for (let i = 1; i < n; i++) if (s[i] !== s[i - 1]) runs++;
+  if (n < 8 || !pos || !neg) return { n, runs, expected: pos && neg ? +(1 + (2 * pos * neg) / n).toFixed(1) : null, z: null as number | null, sameSign: n >= 8 && (!pos || !neg) };
+  const mu = 1 + (2 * pos * neg) / n;
+  const variance = (2 * pos * neg * (2 * pos * neg - n)) / (n * n * (n - 1));
+  return { n, runs, expected: +mu.toFixed(1), z: variance > 0 ? +((runs - mu) / Math.sqrt(variance)).toFixed(2) : null, sameSign: false };
+}
+
+/** Lag-1 autocorrelation of a residual series (mean removed): near 0 for noise, towards 1 for a smooth drift. */
+export function lag1(r: number[]) {
+  const v = r.filter(Number.isFinite);
+  if (v.length < 4) return null;
+  const mean = v.reduce((a, b) => a + b, 0) / v.length;
+  let num = 0, den = 0;
+  for (let i = 0; i < v.length; i++) {
+    den += (v[i] - mean) ** 2;
+    if (i) num += (v[i] - mean) * (v[i - 1] - mean);
+  }
+  return den > 0 ? +(num / den).toFixed(2) : null;
+}
+
+/** A candidate's misses on the fitted frames only, per channel, in units of that channel's measurement noise. */
+export function fittedResiduals(fit: Fit, m: Pick<Measured, "series" | "noise">, frac = TRAIN) {
+  const N = m.series.t.length;
+  const n = Math.max(3, Math.min(N - 1, Math.round(N * frac)));
+  const out: Record<string, { t: number[]; r: number[] }> = {};
+  for (const [ch, pred] of Object.entries(fit.predicted)) {
+    const ob = m.series.ch[ch];
+    if (!ob) continue;
+    const unit = noiseOf(m.noise, ch);
+    const t: number[] = [], r: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (!Number.isFinite(ob[i]) || !Number.isFinite(pred[i])) continue;
+      t.push(m.series.t[i]);
+      r.push((pred[i] - ob[i]) / unit);
+    }
+    out[ch] = { t, r };
+  }
+  return out;
+}
+
+/** How far a candidate misses the frames it was fitted to, in noise units (the held-out frames play no part). */
+const trainMiss = (c: Candidate, noise: Record<string, number>) => (!c.fit.ok ? Infinity : Number.isFinite(c.fit.trainZ) ? c.fit.trainZ! : c.fit.trainRms / noiseFloorOf(noise));
+
+/** The candidates by their fit to the fitted frames, best first: what the referee and the theorist may see. */
+const byFittedFit = (cands: Candidate[], noise: Record<string, number>) => [...cands].sort((a, b) => trainMiss(a, noise) - trainMiss(b, noise) || a.law.id.localeCompare(b.law.id));
+
+/**
+ * The table the referee and the theorist read. Fitted frames only: no rank, no held-out error, and the order is by
+ * the fit to the fitted frames, so neither the order nor a field says how the laws did on the frames held back.
+ * The law code chose is named, nothing more. Misses are in units of each channel's measurement noise.
+ */
+export function refereeBoard(cands: Candidate[], m: Pick<Measured, "series" | "noise">, frac = TRAIN) {
+  const chosen = cands.reduce<Candidate | null>((best, c) => (!best || c.rank < best.rank ? c : best), null);
+  return {
+    the_law_code_chose: chosen?.law.id ?? null,
+    how_to_read_the_residual_tests: "Computed by code on each law's misses over the fitted frames, per channel, in noise units. runs_z below about -2 means the misses keep one sign in long stretches (structure); lag1_autocorr near 0 means noise, towards 1 a smooth drift.",
+    candidates: byFittedFit(cands, m.noise).map((c) => ({
+      id: c.law.id,
+      title: c.law.title,
+      origin: c.origin,
+      equations: c.law.derivatives,
+      observes: c.law.observe,
+      events: c.law.events ?? [],
+      fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}${atBound(c.law, k, c.fit.theta[k]) ? " (stuck at its limit)" : ""}`])),
+      train_rms: c.fit.trainRms,
+      misses_the_fitted_frames_by_noise_units: Number.isFinite(trainMiss(c, m.noise)) ? +trainMiss(c, m.noise).toFixed(2) : null,
+      bic: c.fit.bic,
+      ok: c.fit.ok,
+      error: c.fit.why,
+      residual_by_time_bin_in_noise_units: residualPattern(c.fit, m, frac, true),
+      residual_tests: Object.fromEntries(Object.entries(fittedResiduals(c.fit, m, frac)).map(([ch, { r }]) => {
+        const t = runsTest(r);
+        return [ch, { n: t.n, runs: t.runs, expected_runs: t.expected, runs_z: t.z, lag1_autocorr: lag1(r), ...(t.sameSign ? { note: "every miss has the same sign" } : {}) }];
+      })),
+    })),
+  };
+}
+
+/** The referee's picture: the three best-fitting candidates' misses in noise units (every channel in one colour), best fit first. */
+export function refereePlotSeries(cands: Candidate[], m: Pick<Measured, "series" | "noise">, frac = TRAIN) {
+  return byFittedFit(cands.filter((c) => c.fit.ok), m.noise).slice(0, 3).map((c) => {
+    const per = Object.values(fittedResiduals(c.fit, m, frac));
+    return { title: c.law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) };
+  });
 }
 
 /**
@@ -467,7 +567,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
     // 7. fit every candidate on the first 70%, predict the rest
     const channels = Object.keys(m.series.ch);
-    const noiseFloor = Math.sqrt(Object.values(m.noise).reduce((s2, v) => s2 + v * v, 0) / Math.max(1, Object.keys(m.noise).length));
+    const noiseFloor = noiseFloorOf(m.noise);
     const cands: Candidate[] = await step("fit", async () => {
       const list: Candidate[] = [];
       const seen = new Set<string>();
@@ -512,22 +612,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     cands.forEach(inflate);
 
     // 8. referee (and one revision), with the eyeball baseline in parallel
-    const boardOf = () => cands.map((c) => ({
-      id: c.law.id,
-      title: c.law.title,
-      origin: c.origin,
-      rank: c.rank,
-      equations: c.law.derivatives,
-      observes: c.law.observe,
-      events: c.law.events ?? [],
-      fitted: Object.fromEntries(Object.keys(c.fit.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(c.fit.theta[k])} ± ${fmtNum(c.fit.sigma[k], 2)}${atBound(c.law, k, c.fit.theta[k]) ? " (stuck at its limit)" : ""}`])),
-      train_rms: c.fit.trainRms,
-      bic: c.fit.bic,
-      ok: c.fit.ok,
-      error: c.fit.why,
-      residual_by_time_bin_on_fitted_frames: residualPattern(c.fit, m, TRAIN),
-    }));
-    const board = boardOf();
+    // the table the referee and the theorist read holds the fitted frames only: no rank, no held-out error
+    const tableOf = () => ({ units: dig.units, given, ...refereeBoard(cands, m, TRAIN) });
     const winnerFirst = cands[0];
     const eyePromise: Promise<(Eyeball & { seen?: { fps: number; frames: number } }) | null> = input.skipEyeball
       ? Promise.resolve(null)
@@ -541,23 +627,21 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
     const crit = await step("referee", async () => {
-      // the leading laws' misses over the fitted frames, drawn as a picture for the referee (best effort)
-      const plot = await residualPlot(
-        cands.filter((c) => c.fit.ok).slice(0, 3).map((c) => {
-          const ch = Object.keys(c.fit.predicted).find((k) => m.series.ch[k]) ?? "";
-          const n = Math.max(3, Math.round(m.series.t.length * TRAIN));
-          return { title: c.law.title, t: m.series.t.slice(0, n), r: m.series.t.slice(0, n).map((_, i) => (c.fit.predicted[ch]?.[i] ?? NaN) - (m.series.ch[ch]?.[i] ?? NaN)) };
-        }),
-        noiseFloor,
-      ).catch(() => undefined);
-      let c = await critique(obs, { units: dig.units, given, candidates: board }, ledger, undefined, plot).catch(() => null);
+      // the three best-fitting laws' misses over the fitted frames, drawn as a picture for the referee (best effort):
+      // in noise units, so the dashed band is ±1, and ordered by the fit to the fitted frames
+      const plot = await residualPlot(refereePlotSeries(cands, m, TRAIN), 1).catch(() => undefined);
+      let c = await critique(obs, tableOf(), ledger, undefined, plot).catch(() => null);
       if (c) c.winnerId = cands[0].law.id;
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)
       const lead = cands[0];
       // (judged on the fitted frames only: whether to look for a new law must not depend on the held-out frames)
       const poorFit = lead.fit.ok && (lead.fit.trainZ ?? lead.fit.trainRms / noiseFloor) > Number(process.env.WONDER_POOR_FIT ?? 6);
-      const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
+      // how far the leader misses the frames it was fitted to, in units of each channel's noise (the same figure the
+      // poor-fit test uses and the page prints)
+      const leadMiss = Number.isFinite(lead.fit.trainZ) ? lead.fit.trainZ! : lead.fit.trainRms / noiseFloor;
+      const trigger: "referee" | "code" = c?.verdict === "revise" && c.revision_idea ? "referee" : "code";
+      const idea = trigger === "referee" ? c!.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${leadMiss.toFixed(1)} times the measurement noise; some effect is missing.` : "";
       // a run must finish inside the 300 s function limit (the watchdog fires at 285 s)
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
       // two theorist turns take about a minute; more turns only when there's room
@@ -576,10 +660,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
             };
           };
-          // the theorist's scoreboard carries no rank (the ranks encode the held-out misses): sorted by the fitted frames only
-          const sealed = board.map(({ rank: _rank, ...rest }) => rest).sort((a, b) => (a.ok ? a.train_rms : Infinity) - (b.ok ? b.train_rms : Infinity));
-          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: sealed }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2), t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
-          wonder = { idea, attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
+          // the theorist reads the same table as the referee: fitted frames only, no rank, sorted by the fit to them
+          const { law: revised, attempts, auto } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2), t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
+          wonder = { idea, trigger, ...(trigger === "code" ? { missZ: +leadMiss.toFixed(2) } : {}), attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
           compileLaw(law);
@@ -595,7 +678,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         // the revision won: the referee's words were about a law that no longer leads, so it writes up the new winner
         const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
         if (cands[0].law.id !== winnerAtReferee && left > 25_000) {
-          const c2 = await critique(obs, { units: dig.units, given, candidates: boardOf() }, ledger).catch(() => null);
+          const c2 = await critique(obs, tableOf(), ledger).catch(() => null);
           if (c2) c = { ...c2, verdict: "accept", revision_idea: c?.revision_idea ?? "", winnerId: cands[0].law.id };
         }
       }

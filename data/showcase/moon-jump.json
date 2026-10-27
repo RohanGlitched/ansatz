@@ -2941,7 +2941,113 @@
     ],
     "answer": "Same motion, different playback time.\n\nSAM tracking of the left-hand astronaut, John Young, scaled with\nhis suited height $\\approx 1.88$ m gives for\nacceleration in playback-time:\n\n* Clip A: Lunar vertical free-fall\n> $a_A = 1.716 \\pm 0.114\\ \\rm m/s^2$ of playback time\n\n* Clip B: \n> $a_B = 0.718 \\pm 0.045\\ \\rm m/s^2$ of playback time\n\nFor free fall, distance $s = \\tfrac12 a t^2$.\n\nThe real distance $s$ is the same, the astronaut is the same.\nIf playback time $t_{play} = S\\, t_{real}$ where\n$S$ is slow-down factor:\n\n$$a_{play} = a_{real} / S^2$$\n\nso $S \\propto 1/\\sqrt{a_{play}}$.\n\nAbsolute:\n\nTrue lunar $a_{real} \\approx 1.62\\ \\rm m/s^2$.\n\nClip A $1.72\\pm0.11$ is consistent with $1.62$:\n$$S_A = \\sqrt{1.62 / 1.716} \\approx 0.97 \\pm 0.03$$\ni.e. essentially real-time.\n\nClip B $0.72\\pm0.05 \\ll 1.62$:\n$$S_B = \\sqrt{1.62 / 0.718} \\approx 1.50 \\pm 0.05$$\ni.e. slow motion.\n\nRatio, height cancels, measured directly:\n\n> Clip B is slower than Clip A by\n\n$$S_B/S_A = \\sqrt{a_A / a_B} = 1.55 \\pm 0.04$$\n\nIn other words it is the same jump, played about\n$1.55\\times$ slower in B, about $2/3$ speed."
    },
-   "usd": 0.195
+   "usd": 0.195,
+   "repeats": {
+    "n": 5,
+    "note": "The one-clip question asked 5 times per clip with the same prompt (it names no world, only the ruler).",
+    "clips": [
+     {
+      "clip": "A",
+      "truth": "real speed",
+      "answers": [
+       {
+        "playback_accel": 0.4,
+        "real_speed": false,
+        "factor": 2
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 0.4,
+        "real_speed": false,
+        "factor": 2
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       }
+      ],
+      "calledSlowed": 2
+     },
+     {
+      "clip": "B",
+      "truth": "slowed 1.5×",
+      "answers": [
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 1.6,
+        "real_speed": true,
+        "factor": 1
+       },
+       {
+        "playback_accel": 1.62,
+        "real_speed": true,
+        "factor": 1
+       }
+      ],
+      "calledSlowed": 0
+     }
+    ],
+    "usd": 0.232
+   }
+  },
+  "errorBudget": {
+   "note": "Where the uncertainty in g comes from. The first two are combined in the quoted ±; the others are listed so a reader can weigh them.",
+   "rows": [
+    {
+     "source": "Statistical: the scatter of the helmet top about the fitted fall",
+     "value": 0.075,
+     "included": true
+    },
+    {
+     "source": "The ruler: Young’s suited height taken as 1.88 m ± 5%",
+     "value": 0.086,
+     "included": true
+    },
+    {
+     "source": "Which point of the body is followed (helmet top, box middle, mask centroid: 1.64 to 2.12)",
+     "value": 0.2,
+     "included": false
+    },
+    {
+     "source": "Repeated film frames (24 fps shown at 30): dropping them moves g by",
+     "value": 0.03,
+     "included": false,
+     "signed": "+"
+    },
+    {
+     "source": "Camera motion: the planted flag, tracked by SAM 3.1 through each jump, moves under 0.7 px and accelerates by at most",
+     "value": 0.009,
+     "included": false
+    }
+   ],
+   "total": {
+    "value": 0.114,
+    "label": "quoted ± (statistical and ruler, in quadrature)"
+   }
   }
  }
 }

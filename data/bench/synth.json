@@ -5,15 +5,15 @@
   "lawCorrect": 24,
   "lawJudged": 26,
   "lawCorrectIfChosenByFit": 24,
-  "medianTrackingErrPx": 0.5086934236239643,
-  "medianConstErrPct": 0.14238681585574245,
+  "medianTrackingErrPx": 0.5081040481377214,
+  "medianConstErrPct": 0.13303827301902477,
   "constantsWithin5pct": 42,
   "constantsChecked": 44,
-  "medianEyeballErrPct": 37.5,
+  "medianEyeballErrPct": 31.75,
   "eyeballChecked": 26,
-  "medianPredictionRel": 0.0005590440498210049,
-  "medianPredictionRelControl": 0.04757684762013033,
-  "medianPredictionRelByFit": 0.0005656877735665053,
+  "medianPredictionRel": 0.0005581556426767773,
+  "medianPredictionRelControl": 0.04438108823183437,
+  "medianPredictionRelByFit": 0.0005614775045495275,
   "slowClips": 3,
   "slowFlagged": 3,
   "slowFactorErrPct": [
@@ -22,7 +22,7 @@
    0.3
   ],
   "totalUsd": 3.041609249999999,
-  "medianSeconds": 87.572
+  "medianSeconds": 87.464
  },
  "rows": [
   {

@@ -1,6 +1,7 @@
 // Scores benchmark runs against the synthetic suite's exact truth. No model calls.
 // usage: tsx scripts/score.ts [--runs ../bench/runs/synth] [--out data/bench/synth.json]
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { median } from "../lib/median";
 import path from "node:path";
 import type { Candidate, Experiment } from "../lib/experiment";
 import { names, parse } from "../lib/physics/expr";
@@ -176,7 +177,7 @@ for (const f of files.sort()) {
 }
 
 const R = rows as { family: { ok: boolean | null }; familyIfChosenByFit: boolean | null; checks: Check[]; trackingErrPx: number | null; predictionRel: number; predictionRelControl: number | null; predictionRelByFit: number | null; usd: number; seconds: number }[];
-const med = (a: number[]) => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[s.length >> 1] : NaN; };
+const med = median;
 // every measured number counts, the camera's scale included (a wrong scale is a wrong measurement)
 const checks = R.flatMap((r) => r.checks);
 const summary = {
