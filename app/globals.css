@@ -1,7 +1,7 @@
 :root {
-  --paper: #f2f3f0;
-  --paper-2: #e7e9e4;
-  --ink: #15171a;
+  --paper: #f1f2ee;
+  --paper-2: #e6e8e2;
+  --ink: #121417;
   --ink-2: #44484f;
   --ink-3: #6b7078;
   --rule: #c9cdd1;
@@ -14,7 +14,8 @@
   --warn: #b25a00;
   --radius: 4px;
   --max: 1240px;
-  --font: var(--font-host), ui-sans-serif, system-ui, sans-serif;
+  --font: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --serif: var(--font-serif), "Iowan Old Style", Georgia, serif;
   color-scheme: light;
 }
 
@@ -32,11 +33,33 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font);
-  font-size: 17px;
-  line-height: 1.55;
-  font-feature-settings: "tnum" 1, "ss01" 1;
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.6;
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+}
+
+/* the interface, numbers and figures speak in the grotesque; prose reads in the serif */
+h1,
+h2,
+h3,
+h4,
+.btn,
+button,
+input,
+select,
+textarea,
+label,
+table,
+nav,
+figcaption,
+.small,
+.num,
+.key,
+.ui {
+  font-family: var(--font);
+  font-feature-settings: "tnum" 1;
 }
 
 a {
@@ -64,7 +87,8 @@ svg {
 }
 
 button {
-  font: inherit;
+  font-size: inherit;
+  line-height: inherit;
   cursor: pointer;
 }
 
@@ -72,19 +96,22 @@ h1,
 h2,
 h3 {
   font-weight: 600;
-  letter-spacing: -0.015em;
-  line-height: 1.15;
+  font-variation-settings: "wdth" 92;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   margin: 0;
 }
 
 h1 {
-  font-size: clamp(34px, 5.2vw, 60px);
-  letter-spacing: -0.03em;
-  line-height: 1.02;
+  font-size: clamp(34px, 4.6vw, 56px);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1;
 }
 
 h2 {
-  font-size: clamp(24px, 2.6vw, 32px);
+  font-size: clamp(25px, 2.7vw, 34px);
+  letter-spacing: -0.028em;
 }
 
 h3 {
@@ -101,13 +128,15 @@ p {
 }
 
 .lede {
-  font-size: clamp(18px, 1.6vw, 21px);
+  font-size: clamp(19px, 1.7vw, 22px);
+  line-height: 1.5;
   color: var(--ink-2);
-  max-width: 62ch;
+  max-width: 60ch;
 }
 
 .small {
   font-size: 14px;
+  line-height: 1.5;
   color: var(--ink-3);
 }
 

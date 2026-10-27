@@ -1,4 +1,5 @@
 .live {
+  font-family: var(--font);
   min-width: 0;
 }
 

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AskRun from "@/components/AskRun";
+import PhotoFinish from "@/components/PhotoFinish";
+import slits from "@/data/slits.json";
 import ExperimentVisual from "@/components/ExperimentVisual";
 import SeriesChart from "@/components/SeriesChart";
 import Tex from "@/components/Tex";
@@ -31,6 +33,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
   if (!e) notFound();
   const tr = lang && LANGUAGES[lang] ? await translation(e, lang).catch(() => null) : null;
   const win = winnerOf(e);
+  const hasSlit = e.id in slits;
   // the ranking's own score (the worse of the fitted and unseen misses, in noise units), and why a law sits where it does
   const scoreOf = (c: (typeof e.candidates)[number]) => (Number.isFinite(c.fit.testZ) ? Math.max(c.fit.testZ!, Number.isFinite(c.fit.trainZ) ? c.fit.trainZ! : 0) : c.fit.testRms);
   const maxScore = Math.max(1e-9, ...e.candidates.filter((c) => c.fit.ok && Number.isFinite(scoreOf(c))).map(scoreOf));
@@ -56,7 +59,9 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
 
   return (
     <article>
-      <header className={`wrap ${styles.head}`}>
+      <header className={styles.top}>
+       <div className={`wrap ${styles.head}`}>
+        <div className={styles.headText}>
         <p className={styles.kicker}>
           {e.observation.phenomenon.charAt(0).toUpperCase() + e.observation.phenomenon.slice(1)}
           {e.source.kind === "showcase" && e.source.credit ? `, ${e.source.credit.split(" (")[0].split(",")[0]}` : `, run ${new Date(e.createdAt).toUTCString().slice(5, 16)}`}
@@ -72,7 +77,42 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
         {lang && LANGUAGES[lang] && !tr && <p className="small">That translation would have changed a number, so it isn’t shown. Here is the English.</p>}
         <h1 className={styles.finding} lang={tr ? lang : undefined}>{tr?.headline ?? e.headline ?? e.finding}</h1>
         {(tr || e.headline) && <p className={styles.detailFinding} lang={tr ? lang : undefined}>{tr?.finding ?? e.finding}</p>}
-        <p className="lede" lang={tr ? lang : undefined}>{tr?.what_happens ?? e.observation.what_happens}</p>
+        </div>
+        <div className={styles.readout}>
+          <p className={styles.readLabel}>Average miss on the {unseenFrames} frames no law saw</p>
+          <p className={styles.bigNum}>{fmtLen(win.fit.testRms, lengthUnit, channels)}</p>
+          <dl className={styles.readRows}>
+            <div>
+              <dt>Winner</dt>
+              <dd>{win.law.title}</dd>
+            </div>
+            <div>
+              <dt>Worst frame</dt>
+              <dd>{fmtLen(win.fit.testMax, lengthUnit, channels)}</dd>
+            </div>
+            {runnerUp && (
+              <div>
+                <dt>Runner-up</dt>
+                <dd>{fmtLen(runnerUp.fit.testRms, lengthUnit, channels)}</dd>
+              </div>
+            )}
+            <div>
+              <dt>Laws tried</dt>
+              <dd>{e.candidates.length}</dd>
+            </div>
+          </dl>
+        </div>
+       </div>
+       {hasSlit && (
+         <div className={`wrap ${styles.bandFinish}`}>
+           <PhotoFinish e={e} />
+         </div>
+       )}
+       <div className="wrap">
+         <blockquote className={styles.watched} lang={tr ? lang : undefined}>
+           <span>Muse Spark, watching the clip:</span> “{tr?.what_happens ?? e.observation.what_happens}”
+         </blockquote>
+       </div>
       </header>
 
       <section className={`wrap ${styles.main}`}>
@@ -136,14 +176,6 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             })}
           </dl>
 
-          <div className={styles.predict}>
-            <p className={styles.bigNum}>
-              {fmtLen(win.fit.testRms, lengthUnit, channels)}
-            </p>
-            <p className="small">
-              average miss on the {unseenFrames} frames the law never saw (worst {fmtLen(win.fit.testMax, lengthUnit, channels)}). The runner-up missed by {runnerUp ? fmtLen(runnerUp.fit.testRms, lengthUnit, channels) : "—"}.
-            </p>
-          </div>
 
           {(e.given.length > 0 || fixedParams.length > 0) && (
             <>
@@ -182,6 +214,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
           )}
         </aside>
       </section>
+
 
       <section className={`section ${styles.band}`}>
         <div className="wrap">

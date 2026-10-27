@@ -16,6 +16,7 @@
 }
 
 .brand {
+  font-family: var(--font);
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -55,11 +56,37 @@
 }
 
 .foot {
+  --ink: #eceee9;
+  --ink-2: #b8bec6;
+  --ink-3: #8b929b;
+  --rule: #2b3036;
   margin-top: 0;
-  border-top: 1px solid var(--rule);
-  background: var(--paper-2);
-  padding-block: 48px 56px;
+  background: var(--plate);
+  color: var(--ink);
+  padding-bottom: 56px;
+  font-family: var(--font);
   font-size: 15px;
+}
+
+.footStrip {
+  display: block;
+  height: clamp(44px, 5vw, 72px);
+  margin-bottom: 44px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+}
+
+.footStrip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 40%;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.footStrip:hover img {
+  opacity: 1;
 }
 
 .footGrid {
@@ -78,6 +105,10 @@
 .footGrid a {
   text-decoration: none;
   color: var(--ink-2);
+}
+
+.footGrid a:hover {
+  color: #8fa0ff;
 }
 
 .footGrid span {

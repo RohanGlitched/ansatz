@@ -15,6 +15,7 @@
 }
 
 .wiLabel {
+  font-family: var(--font);
   font-size: 14px;
   color: var(--ink-3);
 }

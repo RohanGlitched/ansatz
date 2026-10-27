@@ -1,6 +1,18 @@
+.top {
+  --ink: #eceee9;
+  --ink-2: #b8bec6;
+  --ink-3: #8b929b;
+  background: var(--plate);
+  color: var(--ink);
+}
+
+.top a:hover {
+  color: #8fa0ff;
+}
+
 .head {
   padding-top: clamp(32px, 5vw, 64px);
-  padding-bottom: 20px;
+  padding-bottom: clamp(36px, 5vw, 64px);
 }
 
 .steps {
@@ -9,14 +21,99 @@
 
 .step {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 18px;
-  padding-block: 28px;
+  grid-template-columns: 64px minmax(0, 1fr) minmax(0, 360px);
+  gap: 18px clamp(24px, 4vw, 56px);
+  padding-block: 32px;
   border-top: 1px solid var(--rule);
-  max-width: 920px;
+}
+
+.steps > .step:first-child {
+  border-top: 0;
+}
+
+/* beside each step, the specimen it produced on the Moon run */
+.spec {
+  align-self: start;
+  padding: 14px 16px;
+  background: var(--plate);
+  color: #b8bec6;
+  border-radius: 3px;
+  font-family: var(--font);
+  font-size: 13.5px;
+  line-height: 1.5;
+  display: grid;
+  gap: 8px;
+}
+
+.specBig {
+  font-size: 30px;
+  font-weight: 650;
+  font-variation-settings: "wdth" 88;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #8fa0ff;
+}
+
+.specQuote {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15px;
+  color: #dfe2dc;
+}
+
+.specImg {
+  width: 100%;
+  height: 84px;
+  object-fit: fill;
+  border-radius: 2px;
+}
+
+.specLaw {
+  display: grid;
+  gap: 2px;
+  color: #e9ebe6;
+  overflow-x: auto;
+}
+
+.specLaw span {
+  color: #8b929b;
+  font-size: 12.5px;
+}
+
+.specBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.specBarLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.specBarTrack i {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: #4a5058;
+}
+
+.specBarTrack i.specWin {
+  background: #8fa0ff;
+}
+
+.specBar em {
+  font-style: normal;
+  color: #e9ebe6;
+  font-variant-numeric: tabular-nums;
 }
 
 .n {
+  font-family: var(--font);
   font-size: 34px;
   font-weight: 650;
   color: var(--law);
@@ -28,6 +125,7 @@
 }
 
 .who {
+  font-family: var(--font);
   font-size: 14px;
   color: var(--ink-3);
   margin-top: 4px;
@@ -75,10 +173,24 @@
   color: var(--ink-2);
 }
 
+@media (max-width: 1100px) {
+  .step {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .spec {
+    grid-column: 2;
+    max-width: 480px;
+  }
+}
+
 @media (max-width: 760px) {
   .step {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+  .spec {
+    grid-column: 1;
+    margin-top: 10px;
   }
   .two {
     grid-template-columns: 1fr;

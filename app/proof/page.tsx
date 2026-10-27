@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getExperiment, showcaseIds } from "@/lib/experiments";
+import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
+import slits from "@/data/slits.json";
 import styles from "./proof.module.css";
 
 export const metadata: Metadata = {
@@ -95,13 +96,41 @@ export default async function ProofPage() {
   };
   const split = { phys: group(all.filter((c) => !c.quantity.startsWith("scale"))), scale: group(all.filter((c) => c.quantity.startsWith("scale"))) };
   const pct = (v: number, d = 1) => `${v.toFixed(d)}%`;
+  // the winner's miss on the unseen frames as a share of how far the object moved (same units, so no scale is needed)
+  const relMiss = (e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>) => {
+    const w = winnerOf(e);
+    const ch = Object.keys(w.fit.predicted).find((c) => e.measured.series.ch[c]);
+    const v = ch ? e.measured.series.ch[ch] : [];
+    const range = v.length ? Math.max(...v) - Math.min(...v) : NaN;
+    const r = (w.fit.testRms / range) * 100;
+    return Number.isFinite(r) ? r.toFixed(r < 1 ? 2 : 1) : "—";
+  };
+  // a contact sheet of the rendered clips that move along one line: each as a photo-finish, every frame one slice
+  const sheet = (await Promise.all(["spring", "hardening-spring", "dry-friction-spring"].filter((id) => id in slits).map((id) => getExperiment(id).catch(() => null)))).filter((e) => e != null);
   return (
     <article>
+     <div className={styles.top}>
       <header className={`wrap ${styles.head}`}>
-        <h1>Proof</h1>
-        <p className="lede" style={{ marginTop: 16 }}>
-          A tool that claims to find laws must be checked against laws we already know. We rendered {s?.cases ?? "a set of"} clips with exactly known physics, ran each through Ansatz with no hints, and compared every number it reported with the truth. We also asked Muse Spark to read the same numbers off the same clips by eye.
-        </p>
+        <div>
+          <h1>Proof</h1>
+          <p className="lede" style={{ marginTop: 16 }}>
+            A tool that claims to find laws must be checked against laws we already know. We rendered {s?.cases ?? "a set of"} clips with exactly known physics, ran each through Ansatz with no hints, and compared every number it reported with the truth. We also asked Muse Spark to read the same numbers off the same clips by eye.
+          </p>
+        </div>
+        {sheet.length > 0 && (
+          <figure className={styles.sheet}>
+            {sheet.map((e) => (
+              <Link key={e.id} href={`/x/${e.id}`} className={styles.sheetRow}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/slits/${e.id}.webp`} alt="" />
+                <span>
+                  {e.title}: the frames no law saw, predicted to {relMiss(e)}% of the motion
+                </span>
+              </Link>
+            ))}
+            <figcaption>Three of the rendered clips, every frame cut to one slice and laid side by side.</figcaption>
+          </figure>
+        )}
       </header>
 
       {phone.length > 0 && (
@@ -154,6 +183,7 @@ export default async function ProofPage() {
           </div>
         </section>
       )}
+     </div>
 
       <section className={`section ${styles.band}`}>
         <div className="wrap">

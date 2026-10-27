@@ -1,116 +1,34 @@
 import Link from "next/link";
 import type { Experiment } from "@/lib/experiment";
+import { toPixels } from "@/lib/pixels";
+import slits from "@/data/slits.json";
 import styles from "./MoonHero.module.css";
 
+type Slit = { slice: number; x: number; frames: number; height: number; fps: number; duration: number };
+
 /**
- * The home page's first screen: the 1972 clip beside what Ansatz made of it, the helmet's height against time,
- * the lunar arc that fits it, and the same take-off on Earth. One glance says why this can only be the Moon.
+ * The home page's first screen: a photo-finish of the Moon. One thin slice through John Young from every frame of the
+ * 1972 broadcast, laid side by side, so his two jumps draw their own arches in real pixels; beneath it, the same clip
+ * slowed 1.5× in secret, 1.5× longer on the same clock. On each, what SAM 3.1 measured and the law that won.
  */
-export default function MoonHero({ e }: { e: Experiment }) {
-  const m = e.measured;
-  const k = m.calibration.metresPerPixel;
-  const t0 = m.series.t[0] ?? 0;
-  const pts = m.px.map((p, i) => ({ t: (m.series.t[i] ?? 0) - t0, h: (m.px[0].y - p.y) * k }));
-  // least-squares parabola through the measured heights: h = a + b t + c t²
-  const S = [0, 0, 0, 0, 0], Y = [0, 0, 0];
-  for (const p of pts) {
-    const q = [1, p.t, p.t ** 2, p.t ** 3, p.t ** 4];
-    for (let i = 0; i < 5; i++) S[i] += q[i];
-    for (let i = 0; i < 3; i++) Y[i] += q[i] * p.h;
-  }
-  const M = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]];
-  const det = (A: number[][]) => A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
-  const D = det(M) || 1;
-  const sol = [0, 1, 2].map((j) => det(M.map((row, i) => row.map((v, c) => (c === j ? Y[i] : v)))) / D);
-  const [a, b, c] = sol;
+export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experiment | null }) {
   const g = e.comparisons.find((x) => x.param === "g");
   const mt = e.extras?.memoryTest;
   const st = e.extras?.speedTest;
-  const tEnd = Math.max(...pts.map((p) => p.t)) * 1.05;
-  const hMax = Math.max(0.05, ...pts.map((p) => p.h)) * 1.25;
-  const W = 640, H = 380, L = 46, R = 16, T = 18, B = 34;
-  const X = (t: number) => L + (t / tEnd) * (W - L - R);
-  const Yp = (h: number) => T + (1 - (h + 0.02) / (hMax + 0.02)) * (H - T - B);
-  const curve = (f: (t: number) => number, until = tEnd) => {
-    let d = "";
-    for (let i = 0; i <= 120; i++) {
-      const t = (i / 120) * until;
-      const h = f(t);
-      if (h < -0.02) break;
-      d += `${i ? "L" : "M"}${X(t).toFixed(1)} ${Yp(h).toFixed(1)}`;
-    }
-    return d;
-  };
-  const moon = (t: number) => a + b * t + c * t * t;
-  const earth = (t: number) => a + b * t - 0.5 * 9.81 * t * t;
-  const tEarthLand = (b + Math.sqrt(b * b + 2 * 9.81 * a)) / 9.81;
-  const ticksT = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5].filter((x) => x <= tEnd);
-  const ticksH = [0, 0.1, 0.2, 0.3, 0.4, 0.5].filter((x) => x <= hMax);
-
+  const ratio = mt ? Math.sqrt(mt.rows[0].g / mt.rows[1].g) : NaN;
+  const maxS = Math.max(...Object.values(slits as Record<string, Slit>).map((s) => s.duration));
+  const strips = [
+    { id: "moon-jump", e, title: "Apollo 16, as broadcast", verdict: g ? `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²: real speed` : "" },
+    ...(slowed ? [{ id: "moon-jump-slowed", e: slowed, title: "The same clip, slowed 1.5× in secret", verdict: mt ? `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²: runs ${ratio.toFixed(2)}× slow` : "" }] : []),
+  ];
   return (
     <section className={styles.hero}>
-      <div className={`wrap ${styles.grid}`}>
-        <div className={styles.text}>
-          <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
-          <p className="lede">
-            We slowed this 1972 clip by 1.5× and told no one. Shown one clip at a time, a language model gives both the same answer. Ansatz measures each clip frame by frame with SAM 3.1 and Muse Spark, and tells them apart.
+      <div className={`wrap ${styles.head}`}>
+        <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
+        <div className={styles.intro}>
+          <p className={styles.lede}>
+            Below, every frame of John Young’s 1972 jump on the Moon, cut to one thin slice and laid side by side: his two jumps draw their own arches. The second strip is the same clip, slowed 1.5× in secret. Shown one clip at a time, a language model gives both the same answer. Ansatz measures each, and tells them apart.
           </p>
-          {mt ? (
-            <table className={styles.memory}>
-              <thead>
-                <tr>
-                  <th />
-                  <th>Muse Spark, one clip at a time</th>
-                  <th>Ansatz, one clip at a time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mt.rows.map((r, i) => (
-                  <tr key={r.clip}>
-                    <th scope="row">{i === 0 ? "Apollo 16, 1972" : "Same clip, secretly slowed 1.5×"}</th>
-                    <td className="num">
-                      {st ? `${st.single[i].playback_accel} as played` : r.eye != null ? r.eye.toFixed(2) : "—"}
-                      <span className={styles.note}>{st ? (st.single[i].real_speed ? "“real speed”" : `“slowed ${st.single[i].factor}×”`) : "recalled"}</span>
-                    </td>
-                    <td className="num">
-                      <strong className={i === 0 ? styles.num : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)}
-                      {i === 0 ? <span className={styles.note}>real speed: the Moon is 1.625</span> : <span className={styles.flag}>so the clip runs {Math.sqrt(mt.rows[0].g / r.g).toFixed(2)}× slow (it does: 1.5×)</span>}
-                    </td>
-                  </tr>
-                ))}
-                {mt.renders && (
-                  <tr>
-                    <th scope="row">
-                      <Link href="/proof">3 new renders, slowed {mt.renders.slows.join("×, ")}× in secret</Link>
-                    </th>
-                    <td className="num">
-                      g {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
-                      <span className={styles.note}>Earth’s 9.8, mostly</span>
-                    </td>
-                    <td className="num">
-                      all {mt.renders.slows.length} flagged
-                      <span className={styles.flag}>at {mt.renders.clocks.map((v) => v.toFixed(1)).join("×, ")}× (one ruler misread)</span>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          ) : (
-            g && (
-              <p className={styles.result}>
-                <span className={styles.num}>
-                  g = {g.measured.toFixed(2)} ± {g.sigma.toFixed(2)} m/s²
-                </span>
-              </p>
-            )
-          )}
-          {st && (
-            <p className={styles.ref}>
-              Shown both clips side by side, Muse Spark can tell B is about {st.pair.factor}× slower by counting frames. Given Ansatz’s measurements as tools, it answers <Link href="/x/moon-jump#speed-test">B is {mt?.rows ? Math.sqrt(mt.rows[0].g / mt.rows[1].g).toFixed(2) : "1.55"}× slower</Link>, from a ratio that needs no reference value.
-            </p>
-          )}
-          {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt?.rows[1]} />}
-          <p className={styles.ref}>Gravity in m/s². The Moon’s is {g?.reference ?? 1.625}; Earth’s is 9.81.</p>
           <div className={styles.cta}>
             <Link className="btn" href="/new">
               Run an experiment
@@ -120,62 +38,107 @@ export default function MoonHero({ e }: { e: Experiment }) {
             </Link>
           </div>
         </div>
-        <div className={styles.visual}>
-          {!mt && (
-            <div className={styles.clip}>
-              <video src="/showcase/moon-jump.mp4" muted autoPlay loop playsInline aria-label="Apollo 16: John Young's jump salute, April 1972" />
-              <span className={styles.caption}>NASA, Apollo 16, 21 April 1972</span>
-            </div>
-          )}
-          <figure className={styles.chart}>
-            <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Height of the astronaut's helmet against time: measured points, the fitted lunar arc, and the same take-off under Earth's gravity">
-              {ticksH.map((h) => (
-                <g key={`h${h}`}>
-                  <line x1={L} x2={W - R} y1={Yp(h)} y2={Yp(h)} stroke="#2a2e34" strokeWidth="1" />
-                  <text x={L - 8} y={Yp(h) + 4} fontSize="13" textAnchor="end" fill="#8b929b">
-                    {h.toFixed(1)}
-                  </text>
-                </g>
-              ))}
-              {ticksT.map((t) => (
-                <text key={`t${t}`} x={X(t)} y={H - 12} fontSize="12" textAnchor="middle" fill="#8b929b">
-                  {t} s
-                </text>
-              ))}
-              <text x={L - 38} y={T + 2} fontSize="12" fill="#b8bec6">m</text>
-              <path d={curve(earth, Math.min(tEnd, tEarthLand))} fill="none" stroke="#e9ebe6" strokeWidth="2" strokeDasharray="6 5" opacity="0.7" />
-              <text x={X(Math.min(tEnd, tEarthLand)) + 8} y={Yp(earth(Math.min(tEnd, tEarthLand) * 0.5)) - 4} fontSize="15" fill="#e9ebe6">
-                the same jump on Earth: over in {tEarthLand.toFixed(2)} s
-              </text>
-              <path d={curve(moon)} fill="none" stroke="#8fa0ff" strokeWidth="3" />
-              {pts.map((p, i) => (
-                <circle key={i} cx={X(p.t)} cy={Yp(p.h)} r="3.2" fill="#ff5a1f" />
-              ))}
-              <text x={X(tEnd * 0.5)} y={Yp(moon(tEnd * 0.5)) - 16} fontSize="15" fill="#8fa0ff" textAnchor="middle">
-                the law that won: the Moon
-              </text>
-            </svg>
-            <figcaption>
-              <span className="key">
-                <i className="m" /> helmet height, measured by SAM 3.1 in each frame
-              </span>
-            </figcaption>
-          </figure>
-          {mt && (
-            <div className={styles.pair}>
-              {[
-                { src: "/showcase/moon-jump.mp4", label: "NASA, Apollo 16, 1972: real speed", href: "/x/moon-jump" },
-                { src: "/showcase/moon-jump-slowed.mp4", label: "slowed 1.5× in secret", href: "/x/moon-jump-slowed" },
-              ].map((c) => (
-                <Link key={c.src} href={c.href} className={styles.pairClip}>
-                  <video src={c.src} muted autoPlay loop playsInline preload="metadata" aria-label={`Apollo 16 jump, ${c.label}`} />
-                  <span>{c.label}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
+
+      <figure className={`wrap ${styles.plate}`}>
+        <div className={styles.ruler} aria-hidden="true">
+          {Array.from({ length: Math.floor(maxS) + 1 }, (_, s) => (
+            <span key={s} style={{ left: `${(s / maxS) * 100}%` }}>
+              {s === 0 ? "0 s" : s}
+            </span>
+          ))}
+        </div>
+        {strips.map((s) => {
+          const meta = (slits as Record<string, Slit>)[s.id];
+          const m = s.e.measured;
+          const W = meta.frames * meta.slice, H = meta.height;
+          const win = s.e.candidates.find((c) => c.law.id === s.e.winner) ?? s.e.candidates[0];
+          const law = toPixels(win.fit.predicted, m);
+          const pos = (f: number, y: number) => ({ left: `${((f + 0.5) * meta.slice / W) * 100}%`, top: `${(y / H) * 100}%` });
+          const lawPath = m.px.map((p, i) => (law[i] ? `${i ? "L" : "M"}${((p.f + 0.5) * meta.slice).toFixed(1)} ${law[i].y.toFixed(1)}` : "")).join("");
+          return (
+            <div key={s.id} className={styles.stripRow}>
+              <Link href={`/x/${s.id}`} className={styles.strip} style={{ width: `${(meta.duration / maxS) * 100}%` }} aria-label={`${s.title}: slit-scan of every frame`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/slits/${s.id}.webp`} alt="" />
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
+                  <path d={lawPath} className={styles.law} vectorEffect="non-scaling-stroke" />
+                </svg>
+                {m.px.map((p, i) => (
+                  <i key={i} className={styles.dot} style={pos(p.f, p.y)} />
+                ))}
+              </Link>
+              <figcaption className={styles.cap}>
+                <strong>{s.title}</strong>
+                <span>{meta.duration.toFixed(1)} s of playback</span>
+                <span className={styles.verdict}>Ansatz: {s.verdict}</span>
+              </figcaption>
+            </div>
+          );
+        })}
+        <p className={styles.legend}>
+          <span>
+            <i className={styles.kDot} /> the helmet top, measured by SAM 3.1 in each frame
+          </span>
+          <span>
+            <i className={styles.kLaw} /> the law that won
+          </span>
+        </p>
+      </figure>
+
+      {mt && (
+        <div className={`wrap ${styles.lower}`}>
+          <table className={styles.memory}>
+            <thead>
+              <tr>
+                <th />
+                <th>Muse Spark, one clip at a time</th>
+                <th>Ansatz, one clip at a time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mt.rows.map((r, i) => (
+                <tr key={r.clip}>
+                  <th scope="row">{i === 0 ? "Apollo 16, as broadcast" : "Same clip, slowed 1.5× in secret"}</th>
+                  <td>
+                    {st ? `${st.single[i].playback_accel} m/s² as played` : r.eye != null ? r.eye.toFixed(2) : "—"}
+                    <span className={styles.note}>{st ? (st.single[i].real_speed ? "“real speed”" : `“slowed ${st.single[i].factor}×”`) : "recalled"}</span>
+                  </td>
+                  <td>
+                    <strong className={i === 0 ? styles.big : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)} m/s²
+                    {i === 0 ? <span className={styles.note}>real speed: the Moon is 1.625</span> : <span className={styles.flag}>so it runs {ratio.toFixed(2)}× slow (it does: 1.5×)</span>}
+                  </td>
+                </tr>
+              ))}
+              {mt.renders && (
+                <tr>
+                  <th scope="row">
+                    <Link href="/proof">3 new renders, slowed {mt.renders.slows.join("×, ")}× in secret</Link>
+                  </th>
+                  <td>
+                    g {mt.renders.eye.map((v) => +v.toPrecision(2)).join(", ")}
+                    <span className={styles.note}>Earth’s 9.8, mostly</span>
+                  </td>
+                  <td>
+                    all {mt.renders.slows.length} flagged
+                    <span className={styles.flag}>at {mt.renders.clocks.map((v) => v.toFixed(1)).join("×, ")}× (one ruler misread)</span>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <div className={styles.side}>
+            {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt.rows[1]} />}
+            <p className={styles.sideNote}>Gravity in m/s². Blue: the broadcast, on the Moon’s tick. Orange: the slowed copy, which a fall alone would place on a world with half the Moon’s pull.</p>
+            {st && (
+              <p className={styles.sideNote}>
+                Side by side, Muse Spark can count frames and say B is about {st.pair.factor}× slower. Given Ansatz’s measurements as tools, it answers{" "}
+                <Link href="/x/moon-jump#speed-test">{ratio.toFixed(2)}×</Link>, from a ratio that needs no reference value.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -190,7 +153,7 @@ function GravityLine({ g, sigma, slowed }: { g: number; sigma: number; slowed?: 
     { name: "Earth", v: 9.81 },
   ];
   return (
-    <svg className={styles.line} viewBox={`0 0 ${W} 64`} role="img" aria-label={`The measurement, ${g.toFixed(2)} plus or minus ${sigma.toFixed(2)} metres per second squared, on a line from 0 to 10 with the Moon, Mars and Earth marked`}>
+    <svg className={styles.line} viewBox={`0 0 ${W} 64`} role="img" aria-label={`The broadcast measured ${g.toFixed(2)} plus or minus ${sigma.toFixed(2)} metres per second squared, on a line from 0 to 10 with the Moon, Mars and Earth marked`}>
       <line x1={L} x2={W - R} y1={30} y2={30} stroke="#3a3f46" strokeWidth="2" />
       {[0, 2, 4, 6, 8, 10].map((v) => (
         <text key={v} x={X(v)} y={60} fontSize="12" textAnchor="middle" fill="#8b929b">

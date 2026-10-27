@@ -100,38 +100,57 @@
   background: var(--paper-2);
 }
 
+/* a catalogue of plates: each print on its dark mat, its caption set beneath like a museum label */
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
-  gap: 22px;
-  margin-top: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  gap: 40px 28px;
+  margin-top: 36px;
+  counter-reset: plate;
 }
 
 .card {
-  display: block;
+  display: grid;
+  gap: 12px;
   text-decoration: none;
   color: inherit;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  overflow: hidden;
-  transition: border-color 0.15s, transform 0.15s;
+  counter-increment: plate;
+}
+
+.card > :first-child {
+  padding: 10px;
+  background: var(--plate);
+  border-radius: 2px;
+  transition: outline-color 0.15s;
+  outline: 1px solid transparent;
+  outline-offset: 3px;
+}
+
+.card:hover > :first-child {
+  outline-color: var(--ink);
 }
 
 .card:hover {
-  border-color: var(--ink);
   color: inherit;
 }
 
 .cardBody {
-  padding: 14px 16px 16px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  padding-inline: 2px;
 }
 
 .cardTitle {
+  font-family: var(--font);
   font-weight: 600;
-  font-size: 18px;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.cardTitle::before {
+  content: "Plate " counter(plate) ". ";
+  color: var(--ink-3);
+  font-weight: 500;
 }
 
 .cardEq {
@@ -139,6 +158,7 @@
   overflow-y: hidden;
   scrollbar-width: none;
   font-size: 15px;
+  color: var(--law);
 }
 
 .cardEq::-webkit-scrollbar {
@@ -187,7 +207,8 @@
 }
 
 .cardFinding {
-  font-size: 14.5px;
+  font-size: 15.5px;
+  line-height: 1.45;
   color: var(--ink-2);
 }
 
@@ -352,4 +373,91 @@
 
 .recent em {
   font-style: normal;
+}
+
+/* under each method step, what it produced on one real run */
+.specimen {
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px dashed var(--rule);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink-2);
+  list-style: none;
+}
+
+blockquote.specimen {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+.specimen svg {
+  width: 100%;
+  height: 54px;
+}
+
+.specimen figcaption {
+  margin-top: 4px;
+  color: var(--ink-3);
+}
+
+ol.specimen {
+  padding-left: 0;
+  display: grid;
+  gap: 4px;
+}
+
+ol.specimen li {
+  padding: 0;
+  border: 0;
+  color: var(--ink-3);
+}
+
+ol.specimen li::before {
+  content: "tried: ";
+}
+
+ol.specimen li.specPick {
+  color: var(--law);
+  font-weight: 600;
+}
+
+ol.specimen li.specPick::before {
+  content: "submitted: ";
+}
+
+.specLaw {
+  overflow-x: auto;
+  font-size: 13px;
+  padding-block: 2px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.bar span {
+  height: 7px;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.bar span.barWin {
+  background: var(--law);
+}
+
+.bar em {
+  font-style: normal;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.specNote {
+  color: var(--ink-3);
+  margin-top: 4px;
 }

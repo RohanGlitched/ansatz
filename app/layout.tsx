@@ -1,12 +1,15 @@
 import { headers } from "next/headers";
 import type { Metadata, Viewport } from "next";
-import { Host_Grotesk } from "next/font/google";
+import { Bricolage_Grotesque, Newsreader } from "next/font/google";
 import Link from "next/link";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import styles from "./layout.module.css";
 
-const host = Host_Grotesk({ subsets: ["latin"], variable: "--font-host", display: "swap" });
+// a science journal's pair: a characterful grotesque for display, figures and interface; a reading serif that sits
+// naturally beside the Computer Modern of the equations
+const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", display: "swap", axes: ["opsz", "wdth"] });
+const serif = Newsreader({ subsets: ["latin"], variable: "--font-serif", display: "swap", axes: ["opsz"], style: ["normal", "italic"] });
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ansatz-lab.vercel.app";
 
@@ -25,7 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // set by middleware.ts on experiment pages read in another language
   const lang = (await headers()).get("x-lang") ?? "en";
   return (
-    <html lang={lang} className={host.variable}>
+    <html lang={lang} className={`${display.variable} ${serif.variable}`}>
       <body>
         <header className={styles.top}>
           <div className={`wrap ${styles.bar}`}>
@@ -45,6 +48,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </header>
         <main>{children}</main>
         <footer className={styles.foot}>
+          {/* the page ends on a photo-finish: every frame of the 1972 Moon jump, one slice each */}
+          <Link href="/x/moon-jump" className={styles.footStrip} aria-label="The Moon experiment: every frame of John Young's jump, one slice each">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/slits/moon-jump.webp" alt="" />
+          </Link>
           <div className={`wrap ${styles.footGrid}`}>
             <div>
               <Link href="/" className={styles.brand}>
