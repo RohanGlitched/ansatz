@@ -13,7 +13,7 @@ import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, revi
 import { readVideoInfo, type VideoInfo } from "./video";
 import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
-import { metrePower, prettyUnit, secondPower } from "./units";
+import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
 import { fmtPair } from "./format";
 import { lawLatex } from "./latex";
 export { toPixels };
@@ -442,7 +442,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     for (const f of obs.stated_facts) {
       given.push(`${f.quantity} = ${f.value} ${f.unit} (“${f.said}”)`);
       const q = f.quantity.toLowerCase();
-      if (/length|string|rope/.test(q) && /^m|metre|meter|cm/.test(f.unit.toLowerCase())) stated.l = /cm/.test(f.unit) ? f.value / 100 : f.value;
+      const metres = toMetres(f.value, f.unit);
+      if (/length|string|rope|thread|dhaga|dhaage/.test(q) && metres !== undefined && metres > 0.02 && metres < 30) stated.l = metres;
     }
     if (m.series.ch.theta && m.pivot && m.calibration.kind === "reference" && stated.l === undefined) {
       const lGeo = m.pivot.r * m.calibration.metresPerPixel;
@@ -549,8 +550,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // Muse Wonder steps in when the referee names a missing effect, or when even the winner misses the frames it
       // was fitted to by more than six times the measurement noise (WONDER_POOR_FIT; judged on fitted frames only)
       const lead = cands[0];
-      // or when the leader fits the seen frames but badly mispredicts the unseen ones (in noise units)
-      const poorFit = lead.fit.ok && (lead.fit.trainRms > Number(process.env.WONDER_POOR_FIT ?? 6) * noiseFloor || (lead.fit.testZ ?? 0) > Number(process.env.WONDER_POOR_PREDICTION ?? 5));
+      // (judged on the fitted frames only: whether to look for a new law must not depend on the held-out frames)
+      const poorFit = lead.fit.ok && (lead.fit.trainZ ?? lead.fit.trainRms / noiseFloor) > Number(process.env.WONDER_POOR_FIT ?? 6);
       const idea = c?.verdict === "revise" && c.revision_idea ? c.revision_idea : poorFit ? `The winner misses even the frames it was fitted to by ${(lead.fit.trainRms / noiseFloor).toFixed(1)} times the measurement noise; some effect is missing.` : "";
       // a run must finish inside the 300 s function limit (the watchdog fires at 285 s)
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
@@ -570,7 +571,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
             };
           };
-          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: board }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : budgetLeft > 110_000 ? 3 : 2));
+          // the theorist's scoreboard carries no rank (the ranks encode the held-out misses): sorted by the fitted frames only
+          const sealed = board.map(({ rank: _rank, ...rest }) => rest).sort((a, b) => (a.ok ? a.train_rms : Infinity) - (b.ok ? b.train_rms : Infinity));
+          const { law: revised, attempts, auto } = await reviseAgentic(obs, { units: dig.units, given, candidates: sealed }, idea, tryLaw, ledger, undefined, Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 6 : budgetLeft > 110_000 ? 3 : 2));
           wonder = { idea, attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
@@ -719,7 +722,9 @@ export function atBound(law: Law, name: string, v: number) {
 export function fitWithRoom(l: Law, series: Series, wrap: (x: Law) => Law = (x) => x) {
   let law2 = l, fitted = wrap(l), fit = fitLaw(fitted, series, { trainFrac: TRAIN });
   for (let round = 0; round < 2 && fit.ok; round++) {
-    const stuck = law2.params.filter((p) => !p.fixed && p.name !== "cal" && atBound(law2, p.name, fit.theta[p.name]));
+    // a ratio that physics caps at 1 (restitution, a fraction kept) is never widened past it
+    const capped = (p: Law["params"][number]) => p.max !== undefined && p.max <= 1 && Math.abs(fit.theta[p.name] - p.max) < Math.abs(fit.theta[p.name] - (p.min ?? -Infinity)) && (/restitution|fraction|ratio|kept/i.test(p.meaning ?? "") || /^e(_r)?$/i.test(p.name));
+    const stuck = law2.params.filter((p) => !p.fixed && p.name !== "cal" && atBound(law2, p.name, fit.theta[p.name]) && !capped(p));
     if (!stuck.length) break;
     const wider: Law = {
       ...law2,

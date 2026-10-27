@@ -38,3 +38,12 @@ test("unit powers however a model writes them", () => {
   assert.equal(metrePower("1/(m^2 s^2)"), -2);
   assert.equal(metrePower("1/m"), -1);
 });
+
+import { toMetres } from "../lib/units";
+
+test("stated lengths convert from the units people say, and nothing else", () => {
+  assert.equal(toMetres(600, "mm"), 0.6);
+  assert.equal(toMetres(60, "centimetres"), 0.6);
+  assert.equal(toMetres(2, "ft"), 0.6096);
+  assert.equal(toMetres(5, "parsecs"), undefined);
+});

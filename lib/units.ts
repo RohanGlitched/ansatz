@@ -44,3 +44,10 @@ export function prettyUnit(unit: string | undefined): string {
 export function secondPower(unit: string | undefined): number {
   return power(unit, /^(s|sec|seconds?)$/i);
 }
+
+/** A stated length in metres, from the units people say; undefined for anything else (so a misheard unit is never a ruler). */
+export function toMetres(value: number, unit: string): number | undefined {
+  const u = unit.trim().toLowerCase().replace(/\.$/, "");
+  const scale: Record<string, number> = { m: 1, metre: 1, metres: 1, meter: 1, meters: 1, cm: 0.01, centimetre: 0.01, centimetres: 0.01, centimeter: 0.01, centimeters: 0.01, mm: 0.001, millimetre: 0.001, millimetres: 0.001, millimeter: 0.001, millimeters: 0.001, in: 0.0254, inch: 0.0254, inches: 0.0254, ft: 0.3048, foot: 0.3048, feet: 0.3048 };
+  return Number.isFinite(value) && u in scale ? value * scale[u] : undefined;
+}

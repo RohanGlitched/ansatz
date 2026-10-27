@@ -277,7 +277,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
             ))}
           </div>
           <p className="small" style={{ marginTop: 10 }}>
-            Dots: SAM 3.1 mask centroids, {e.measured.px.length} frames, times read from the video file{e.measured.slowMotion > 1 ? ` and divided by the ${e.measured.slowMotion}× slow motion` : ""}. Blue: the winning law. Grey dashes: the runner-up.
+            Dots: {e.measured.point === "top" ? "the top of SAM 3.1’s mask (the helmet)" : "SAM 3.1 mask centroids"}, {e.measured.px.length} frames, times read from the video file{e.measured.slowMotion > 1 ? ` and divided by the ${e.measured.slowMotion}× slow motion` : ""}. Blue: the winning law. Grey dashes: the runner-up.
           </p>
         </div>
       </section>
@@ -481,7 +481,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
       {e.eyeball && (
         <section className={`section ${styles.band}`}>
           <div className="wrap">
-            <h2>The same model, without a ruler</h2>
+            <h2>The same model, by eye (no SAM measurements)</h2>
             <p className="lede" style={{ marginTop: 12 }}>
               We showed {e.eyeball.model} the same clip and narration and asked for the same numbers, by eye. This is what SAM’s measurements add.
             </p>
@@ -501,11 +501,11 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                   return (
                     <tr key={p.name}>
                       <td>
-                        <Tex>{paramLatex(p.name)}</Tex> <span className="small">{p.meaning}</span>
+                        <Tex>{paramLatex(p.name)}</Tex> <span className="small">{cmp && /accelerates at g/.test(cmp.label) ? `g, the size of ${p.name}` : p.meaning}</span>
                       </td>
                       <td className="num">{eye ? `${fmt(eye.value)} ${prettyUnit(eye.unit)}` : "—"}</td>
                       <td className="num">
-                        <strong>{fmt(win.fit.theta[p.name])}</strong> ± {fmt(win.fit.sigma[p.name], 2)} {prettyUnit(p.unit)}
+                        <strong>{fmtPair(cmp && /accelerates at g/.test(cmp.label) ? Math.abs(win.fit.theta[p.name]) : win.fit.theta[p.name], win.fit.sigma[p.name])}</strong> {prettyUnit(p.unit)}
                       </td>
                       {e.comparisons.length > 0 && <td className="num">{cmp ? `${fmt(cmp.reference)} ${prettyUnit(p.unit)}` : "—"}</td>}
                     </tr>
