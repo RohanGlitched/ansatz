@@ -117,7 +117,7 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                         <span className={styles.nd}> (not pinned down)</span>
                       </>
                     )} {p.unit && p.unit !== "1" ? prettyUnit(p.unit) : ""}
-                    {cmp && e.clock && (cmp.param === "g" || /accelerates at g/.test(cmp.label)) ? (
+                    {cmp && e.clock && (cmp.param === "g" || /accelerates at g|gravity/i.test(cmp.label)) ? (
                       // a clock problem explains the miss: say so first, and what the value is at the detected speed
                       <span className={styles.ref}>
                         Clock check: the clip plays about {e.clock.factor.toFixed(2)}× slower than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(e.clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
@@ -395,6 +395,29 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                 </p>
               );
             })()}
+          </div>
+        </section>
+      )}
+
+      {e.extras?.toolTest && (
+        <section className={`section ${styles.band}`}>
+          <div className="wrap">
+            <h2>The same model, with Ansatz as its tool</h2>
+            <p className="lede" style={{ marginTop: 12, maxWidth: "75ch" }}>
+              We asked Muse Spark the same question with one function it could call, measure_motion, which runs this whole pipeline on the clip. It called it, and its answer changed.
+            </p>
+            <div className={styles.toolTest}>
+              <p>
+                <strong>Question:</strong> {e.extras.toolTest.question}
+              </p>
+              <p>
+                <strong>Muse Spark called</strong> measure_motion({e.extras.toolTest.calledWith})
+              </p>
+              <pre>{JSON.stringify(e.extras.toolTest.toolResult, null, 1)}</pre>
+              <p>
+                <strong>Its answer:</strong> {e.extras.toolTest.answer}
+              </p>
+            </div>
           </div>
         </section>
       )}

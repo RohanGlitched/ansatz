@@ -64,7 +64,7 @@ export type Experiment = {
   /** what Muse Wonder did when it was asked for one more law: the laws it tried on the fitted frames, and what it submitted */
   wonder?: { idea: string; attempts: WonderAttempt[]; submitted: string | null } | null;
   /** hand-made notes for a showcase: a robustness table, an independent cross-check, caveats on the ruler */
-  extras?: { truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] } } };
+  extras?: { toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -594,7 +594,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       });
       // the clock check: a g far from the planet's says the clip's clock is not real time
       let clock: Experiment["clock"] = null;
-      const gc = comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g/.test(c.label)) && c.label !== "what the narrator said");
+      // any comparison against a world's gravity, whatever the law called its parameter (g, gmoon, a)
+      const gc = comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g|gravity/i.test(c.label)) && c.label !== "what the narrator said");
       if (gc && slow === 1) {
         const r = gc.measured / gc.reference;
         if (r > 0 && (r < 0.6 || r > 1.7)) {

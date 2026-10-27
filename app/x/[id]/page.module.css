@@ -462,3 +462,20 @@
   background: var(--paper-2);
   max-width: 75ch;
 }
+
+.toolTest {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+  max-width: 80ch;
+}
+
+.toolTest pre {
+  font-size: 12.5px;
+  background: var(--plate);
+  color: var(--plate-ink);
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}

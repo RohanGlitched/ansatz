@@ -103,6 +103,11 @@ export default function MoonHero({ e }: { e: Experiment }) {
               </p>
             )
           )}
+          {mt?.tool && (
+            <p className={styles.ref}>
+              Give Muse Spark Ansatz as a tool and it answers <Link href={mt.tool.href}>{mt.tool.answer}</Link>.
+            </p>
+          )}
           {g && <GravityLine g={g.measured} sigma={g.sigma} slowed={mt?.rows[1]} />}
           <p className={styles.ref}>Gravity in m/s². The Moon’s is {g?.reference ?? 1.625}; Earth’s is 9.81.</p>
           <div className={styles.cta}>

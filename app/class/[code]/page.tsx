@@ -13,7 +13,7 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
   const cls = await getClass(code);
   if (!cls) notFound();
   const runs = (await Promise.all(cls.runs.map((id) => getExperiment(id).catch(() => null)))).filter((e) => !!e);
-  const gs = runs.flatMap((e) => e.comparisons.filter((c) => c.param === "g" || /accelerates at g/.test(c.label)).map((c) => ({ id: e.id, g: c.measured, s: c.sigma })));
+  const gs = runs.flatMap((e) => e.comparisons.filter((c) => c.param === "g" || /accelerates at g|gravity/i.test(c.label)).map((c) => ({ id: e.id, g: c.measured, s: c.sigma })));
   const W = 640, L = 16, R = 16, max = Math.max(12, ...gs.map((x) => x.g + x.s));
   const X = (v: number) => L + (v / max) * (W - L - R);
   return (
