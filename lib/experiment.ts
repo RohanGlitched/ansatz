@@ -212,6 +212,8 @@ export type RunInput = {
   source?: Experiment["source"];
   /** the clip is one of the site's bundled samples */
   sample?: boolean;
+  /** the narration's language, as a name ("Hindi"), when the person filming says which */
+  language?: string;
   hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
@@ -253,7 +255,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     let narration: Experiment["narration"];
     const wav = input.narrationWav?.length ? input.narrationWav : prep.wav;
     if (wav?.length) {
-      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: ["pendulum", "metre", "centimetre", "slow motion", "fps", "drop", "bounce"] }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
+      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: ["pendulum", "metre", "centimetre", "slow motion", "fps", "drop", "bounce"], languages: input.language ? [input.language] : undefined }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
       narration = { transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) };
     } else {
       if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };

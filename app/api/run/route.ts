@@ -4,10 +4,13 @@ import { getObject, objectSize, putObject } from "@/lib/store";
 import { sameSecret } from "@/lib/secret";
 
 export const runtime = "nodejs";
+
+// narration languages offered on /new (Muse Voice Transcribe's languageBias takes language names)
+const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spanish"];
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string };
 
 /** Runs one experiment and streams its progress as server-sent events; the last event carries the id. */
 export async function POST(req: Request) {
@@ -68,6 +71,7 @@ export async function POST(req: Request) {
             filename: body.key!.split("/").pop()!,
             narrationText: body.narration?.slice(0, 2000) || undefined,
             sample: body.sample === true,
+            language: LANGS.includes(String(body.language)) ? String(body.language) : undefined,
             hints: {
               noun: body.noun?.trim().slice(0, 60) || undefined,
               slowMotion: body.slowMotion && body.slowMotion > 1 && body.slowMotion <= 64 ? body.slowMotion : undefined,

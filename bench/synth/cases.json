@@ -1,7 +1,7 @@
 {
  "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
  "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
- "n_cases": 27,
+ "n_cases": 29,
  "cases": [
   {
    "case_id": "ff01_earth_orange_ball",
@@ -3482,6 +3482,283 @@
    "encoding": "H.264, yuv420p, CRF 20, +faststart",
    "integration": "RK4, step 0.0001 s, bisection events",
    "truth_file": "clips/sm01_bounce_240fps_x8.json"
+  },
+  {
+   "case_id": "sm02_bounce_120fps_x4_a4",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.78",
+   "description": "Red ball (r = 3.5 cm) dropped from 0.6 m, e = 0.78, filmed at 120 fps and played at 30 fps (4x slow motion); A4 sheet on the wall.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.78,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 0.6,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.25,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.035,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 120,
+   "slow_motion_factor": 4,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 180,
+   "duration_s": 6.0,
+   "physics_duration_s": 1.5,
+   "metres_per_pixel": 0.0018,
+   "pixels_per_metre": 555.5555555555555,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     583.056,
+     604.533
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.2,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "red ball",
+     "kind": "ball",
+     "colour_rgb": [
+      215,
+      35,
+      45
+     ],
+     "radius_m": 0.035,
+     "radius_px": 19.44
+    }
+   ],
+   "reference": {
+    "noun_phrase": "A4 sheet of paper",
+    "kind": "white rectangular sheet lying flat in the motion plane",
+    "size_m": [
+     0.21,
+     0.297
+    ],
+    "length_m": 0.297,
+    "length_px": 165.0,
+    "short_side_m": 0.21,
+    "short_side_px": 116.667,
+    "size_px": [
+     116.67,
+     165.0
+    ],
+    "corners_px_tl_tr_br_bl": [
+     [
+      615.0,
+      53.42
+     ],
+     [
+      731.67,
+      53.42
+     ],
+     [
+      731.67,
+      218.42
+     ],
+     [
+      615.0,
+      218.42
+     ]
+    ],
+    "orientation": "portrait (long side vertical)"
+   },
+   "events": {
+    "release_time_s": 0.2,
+    "bounce_times_physics_s": [
+     0.53939,
+     1.06885,
+     1.48182
+    ],
+    "bounce_times_video_s": [
+     2.15758,
+     4.2754,
+     5.9273
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 3,
+    "impact_speeds_m_s_numeric": [
+     3.3294594057706983,
+     2.5969783343429453,
+     2.025643098629296
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     0.6,
+     0.3787459962473145,
+     0.2441350656427306,
+     0.062096390585196
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/sm02_bounce_120fps_x4_a4.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sm02_bounce_120fps_x4_a4.json"
+  },
+  {
+   "case_id": "sm03_bounce_60fps_x2_stick",
+   "phenomenon": "bouncing_ball",
+   "variant": "e=0.7",
+   "description": "Blue ball (r = 4 cm) dropped from 1.0 m, e = 0.70, filmed at 60 fps and played at 30 fps (2x slow motion); metre stick on the floor.",
+   "body": "earth",
+   "params": {
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "coefficient_of_restitution_e": {
+     "value": 0.7,
+     "unit": "dimensionless (v_after = -e v_before at the floor)"
+    },
+    "initial_height_of_centre_above_floor": {
+     "value": 1.0,
+     "unit": "m"
+    },
+    "horizontal_velocity": {
+     "value": 0.2,
+     "unit": "m/s (unchanged by bounces, frictionless floor)"
+    },
+    "ball_radius": {
+     "value": 0.04,
+     "unit": "m"
+    },
+    "air_drag": {
+     "value": 0.0,
+     "unit": "none"
+    }
+   },
+   "fps": 30,
+   "capture_fps": 60,
+   "slow_motion_factor": 2,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 150,
+   "duration_s": 5.0,
+   "physics_duration_s": 2.5,
+   "metres_per_pixel": 0.00209,
+   "pixels_per_metre": 478.4688995215311,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     558.66,
+     585.937
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.2,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "ball",
+     "noun_phrase": "blue ball",
+     "kind": "ball",
+     "colour_rgb": [
+      35,
+      105,
+      215
+     ],
+     "radius_m": 0.04,
+     "radius_px": 19.14
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 478.469,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      429.47,
+      59.62
+     ],
+     [
+      907.94,
+      59.62
+     ]
+    ],
+    "thickness_px": 16.75,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.2,
+    "bounce_times_physics_s": [
+     0.6424,
+     1.26176,
+     1.69532,
+     1.9988,
+     2.21124,
+     2.35995,
+     2.46405
+    ],
+    "bounce_times_video_s": [
+     1.2848,
+     2.52352,
+     3.39063,
+     3.99761,
+     4.42249,
+     4.7199,
+     4.9281
+    ]
+   },
+   "expected_numeric": {
+    "n_bounces_in_clip": 7,
+    "impact_speeds_m_s_numeric": [
+     4.339953906995967,
+     3.0379677319541782,
+     2.1265774094249257,
+     1.4886041836544484,
+     1.0420229256151134,
+     0.7294160449875793,
+     0.5105912285483052
+    ],
+    "apex_heights_of_centre_m_numeric": [
+     1.0,
+     0.5103999981744088,
+     0.2704959972901499,
+     0.1529430306985628,
+     0.09534208754214711,
+     0.0671176136769397,
+     0.0532876243946318,
+     0.04650980265868005
+    ],
+    "note": "Floor contact when ball centre is at y=R. Ball released from rest at release_time_s. All times are on the PHYSICS clock (frame i = i/capture_fps)."
+   },
+   "notes": [],
+   "video_file": "clips/sm03_bounce_60fps_x2_stick.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sm03_bounce_60fps_x2_stick.json"
   }
  ]
 }

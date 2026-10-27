@@ -31,7 +31,7 @@ export type Observation = {
   caveats: string[];
 };
 
-const OBS_SCHEMA = {
+export const OBS_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["phenomenon", "motion_kind", "what_happens", "subjects", "reference", "stated_facts", "window", "slow_motion", "body", "location", "camera_static", "caveats"],
@@ -142,7 +142,7 @@ type WireLaw = {
   if_it_wins: string;
 };
 
-const LAW_SCHEMA = {
+export const LAW_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["id", "title", "summary", "state", "derivatives", "params", "observe", "events", "if_it_wins"],
@@ -196,7 +196,7 @@ const LAW_SCHEMA = {
   },
 };
 
-const LAWS_SCHEMA = {
+export const LAWS_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["reasoning", "laws"],
@@ -260,7 +260,7 @@ export type Critique = {
   winnerId?: string;
 };
 
-const CRITIQUE_SCHEMA = {
+export const CRITIQUE_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["verdict", "headline", "finding", "why_it_won", "caveats", "revision_idea", "what_if"],

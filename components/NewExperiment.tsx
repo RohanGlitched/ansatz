@@ -33,6 +33,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
   const [noun, setNoun] = useState("");
   const [narration, setNarration] = useState("");
   const [slow, setSlow] = useState("1");
+  const [language, setLanguage] = useState("");
   const [ruler, setRuler] = useState("");
   const [rulerLen, setRulerLen] = useState("");
   const [busy, setBusy] = useState(false);
@@ -171,6 +172,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
           slowMotion: Number(slow) > 1 ? Number(slow) : undefined,
           ruler: ruler && Number(rulerLen) > 0 ? { noun: ruler, metres: Number(rulerLen) } : undefined,
           sample: fromSample || undefined,
+          language: language || undefined,
         }),
       });
       if (!r.ok || !r.body) {
@@ -356,7 +358,7 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
         <label className={styles.field}>
           <span>What do you know? (optional)</span>
           <textarea value={narration} onChange={(e) => setNarration(e.target.value)} rows={3} placeholder="e.g. the string is 50 cm long; dropped from about one metre" disabled={busy} maxLength={2000} />
-          <small>Anything you say in the clip is transcribed too, in English, Hindi or both.</small>
+          <small>Anything you say in the clip is transcribed too: English, Hindi, Tamil, Bengali, Marathi, Telugu or Spanish.</small>
         </label>
         <div className={styles.field}>
           <span>Something of known size in view? (optional)</span>
@@ -379,6 +381,17 @@ export default function NewExperiment({ samples, replay }: { samples: Sample[]; 
           </select>
           <small>A ruler in the same plane as the motion lets Ansatz measure g instead of assuming it.</small>
         </div>
+        <label className={styles.field}>
+          <span>What language do you speak in the clip?</span>
+          <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={busy}>
+            <option value="">Muse Voice Transcribe should work it out</option>
+            {["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spanish"].map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className={styles.field}>
           <span>Does it play in slow motion?</span>
           <select value={slow} onChange={(e) => setSlow(e.target.value)} disabled={busy}>

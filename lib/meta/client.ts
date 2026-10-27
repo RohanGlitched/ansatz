@@ -202,12 +202,27 @@ function respondOnce(
       ...(args.instructions ? { instructions: args.instructions } : {}),
       reasoning: { effort: args.effort ?? "low" },
       max_output_tokens: args.maxOutput ?? 16000,
-      text: { format: { type: "json_schema", name: args.name, schema: args.schema, strict: false } },
+      text: { format: { type: "json_schema", name: args.name, schema: args.schema, strict: strictable(args.schema) } },
       ...(args.tools ? { tools: args.tools } : {}),
     },
     ledger,
     purpose,
   );
+}
+
+/**
+ * Whether a schema meets strict structured output's rules (every object closed, every property required), so the
+ * decoder can be held to it exactly. Schemas with optional fields are sent non-strict and parsed loosely.
+ */
+export function strictable(schema: unknown): boolean {
+  if (!schema || typeof schema !== "object") return true;
+  const s = schema as Record<string, unknown>;
+  if (s.type === "object" || s.properties) {
+    const props = Object.keys((s.properties as Record<string, unknown>) ?? {});
+    const req = new Set((s.required as string[]) ?? []);
+    if (s.additionalProperties !== false || props.some((k) => !req.has(k))) return false;
+  }
+  return Object.values(s).every((v) => (Array.isArray(v) ? v.every(strictable) : typeof v === "object" ? strictable(v) : true));
 }
 
 export function parseJsonLoose<T>(text: string): T | undefined {

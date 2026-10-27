@@ -1010,6 +1010,13 @@ CASES = [
     ("sm01_bounce_240fps_x8", build_bounce, dict(g=9.81, e=0.85, h0=0.14, vx=0.30, R=0.02, col=COL["orange"], W=1280, H=720, fps=30, capture_fps=240, slow=8, dur=7.5,
         bgk="wall", bgkw=B["wall_blue"], ref="stick_h", ref_len=0.15, ref_nb=10, ref_noun="15 cm ruler", lead=0.12, seed=1001, noun="orange ball",
         desc="Macro shot of a small orange ball (r = 2 cm) bouncing, e = 0.85; physics captured at 240 fps and encoded at 30 fps (8x slow motion); 15 cm ruler with 1.5 cm bands.")),
+    # phone-style slow motion with a plain ruler in view: the clock check should name the factor
+    ("sm02_bounce_120fps_x4_a4", build_bounce, dict(g=9.81, e=0.78, h0=0.6, vx=0.25, R=0.035, col=COL["red"], W=1280, H=720, fps=30, capture_fps=120, slow=4, dur=6.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="a4", lead=0.2, seed=1002, noun="red ball",
+        desc="Red ball (r = 3.5 cm) dropped from 0.6 m, e = 0.78, filmed at 120 fps and played at 30 fps (4x slow motion); A4 sheet on the wall.")),
+    ("sm03_bounce_60fps_x2_stick", build_bounce, dict(g=9.81, e=0.7, h0=1.0, vx=0.2, R=0.04, col=COL["blue"], W=1280, H=720, fps=30, capture_fps=60, slow=2, dur=5.0,
+        bgk="tiles", bgkw=B["tiles_dark"], ref="stick_h", lead=0.2, seed=1003, noun="blue ball",
+        desc="Blue ball (r = 4 cm) dropped from 1.0 m, e = 0.70, filmed at 60 fps and played at 30 fps (2x slow motion); metre stick on the floor.")),
 ]
 CASE_IDS = [c[0] for c in CASES]
 
