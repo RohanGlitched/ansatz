@@ -33,7 +33,14 @@ export async function POST(req: Request) {
     winning_law: { title: w.law.title, equations: w.law.derivatives, constants: Object.fromEntries(w.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => [p.name, { value: +w.fit.theta[p.name].toPrecision(4), sigma: +(w.fit.sigma[p.name] ?? 0).toPrecision(2), unit: p.unit, meaning: p.meaning }])) },
     trial: e.candidates.map((c) => ({ rank: c.rank, law: c.law.title, by: c.origin, unseen_miss: +c.fit.testRms.toPrecision(3), seen_miss: +c.fit.trainRms.toPrecision(3), noise_units_unseen: c.fit.testZ != null ? +c.fit.testZ.toPrecision(3) : null })),
     compared_with: e.comparisons.map((c) => ({ quantity: c.param, measured: +c.measured.toPrecision(4), sigma: +c.sigma.toPrecision(2), reference: c.reference, label: c.label })),
-    clock: e.clock ? { slower_by: +e.clock.factor.toPrecision(3), note: e.clock.note } : "consistent with real time, or not checked",
+    clock: e.clock
+      ? { slower_by: +e.clock.factor.toPrecision(3), note: e.clock.note }
+      : e.comparisons.some((c) => c.param === "g" || /gravity|accelerates at g/i.test(c.label))
+        ? `checked: the measured gravity agrees with ${e.comparisons[0].label}, so no slow motion was found (gravity would come out weaker by the square of any slowdown)`
+        : "not checked (no gravity was measured against a ruler)",
+    speed_test: e.extras?.speedTest
+      ? { note: "the same clip slowed 1.5× in secret was measured too", slowed_clip_accel: e.extras.memoryTest?.rows[1]?.g, measured_slowdown_of_slowed_clip: e.extras.memoryTest ? +Math.sqrt(e.extras.memoryTest.rows[0].g / e.extras.memoryTest.rows[1].g).toFixed(2) : null }
+      : undefined,
     finding: e.finding,
   };
   const ledger = new Ledger();
