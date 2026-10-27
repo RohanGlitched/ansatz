@@ -106,7 +106,19 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
                   </td>
                   <td>
                     <strong className={i === 0 ? styles.big : undefined}>{r.g.toFixed(2)}</strong> ± {r.sigma.toFixed(2)} m/s²
-                    {i === 0 ? <span className={styles.note}>real speed: the Moon is 1.625</span> : <span className={styles.flag}>so it runs {ratio.toFixed(2)}× slow (it does: 1.5×)</span>}
+                    {i === 0 ? (
+                      <span className={styles.note}>real speed: the Moon is 1.625</span>
+                    ) : (
+                      <span className={styles.flag}>
+                        so it runs {ratio.toFixed(2)}× slow
+                        {mt.sameJump ? (
+                          <>
+                            ; jump for jump, <Link href="/x/moon-jump#same-jump">{mt.sameJump.combined.ratio.toFixed(2)} ± {mt.sameJump.combined.sigma.toFixed(2)}×</Link>
+                          </>
+                        ) : null}{" "}
+                        (it is 1.5×)
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

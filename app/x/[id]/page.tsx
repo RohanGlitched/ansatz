@@ -428,10 +428,64 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
               const sf = 0.5 * f * Math.hypot((a.sigmaStat ?? a.sigma) / a.g, (b.sigmaStat ?? b.sigma) / b.g);
               return (
                 <p style={{ marginTop: 16, maxWidth: "75ch" }}>
-                  The language model gives the same answer to both, because it recognises the footage and recalls the textbook; on the real clip that recalled value is closer to the truth than our measurement, and on the slowed clip it is simply wrong. Ansatz’s answer moves with the pixels. Taken together, the two measurements say the second clip plays {f.toFixed(2)} ± {sf.toFixed(2)}× slower than the first; we slowed it 1.5×. That needs no textbook value and no ruler, since gravity scales as one over time squared and the same astronaut is the ruler in both. On its own, each run’s clock check can only compare against the Moon value it assumes, so it says “slow motion, or a weaker world”.
+                  The language model gives the same answer to both, because it recognises the footage and recalls the textbook; on the real clip that recalled value is closer to the truth than our measurement, and on the slowed clip it is simply wrong. Ansatz’s answer moves with the pixels. Taken together, the two runs say the second clip plays {f.toFixed(2)} ± {sf.toFixed(2)}× slower than the first; we slowed it 1.5×. That needs no textbook value and no ruler, since gravity scales as one over time squared and the same astronaut is the ruler in both. On its own, each run’s clock check can only compare against the Moon value it assumes, so it says “slow motion, or a weaker world”.
                 </p>
               );
             })()}
+            {e.extras.memoryTest.sameJump && (
+              <div className={styles.sameJump} id="same-jump">
+                <h3 className={styles.h3}>The same jump in both clips</h3>
+                <p style={{ maxWidth: "75ch" }}>{e.extras.memoryTest.sameJump.note}</p>
+                <table className={styles.vs}>
+                  <thead>
+                    <tr>
+                      <th>Jump</th>
+                      <th>Broadcast</th>
+                      <th>Slowed copy</th>
+                      <th>Slowdown, from the ratio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {e.extras.memoryTest.sameJump.jumps.map((j) => (
+                      <tr key={j.jump}>
+                        <td>
+                          {j.jump === 1 ? "First" : "Second"} jump
+                          <span className="small" style={{ display: "block" }}>
+                            {j.real.n} and {j.slowed.n} airborne frames
+                          </span>
+                        </td>
+                        <td className="num">
+                          {j.real.g.toFixed(2)} ± {j.real.sigma.toFixed(2)} m/s²
+                          <span className="small" style={{ display: "block" }}>
+                            {j.real.t0.toFixed(2)}–{j.real.t1.toFixed(2)} s
+                          </span>
+                        </td>
+                        <td className="num">
+                          {j.slowed.g.toFixed(2)} ± {j.slowed.sigma.toFixed(2)} m/s²
+                          <span className="small" style={{ display: "block" }}>
+                            {j.slowed.t0.toFixed(2)}–{j.slowed.t1.toFixed(2)} s
+                          </span>
+                        </td>
+                        <td className="num">
+                          <strong>{j.ratio.toFixed(2)}</strong> ± {j.sigma.toFixed(2)}×
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td>Both jumps, weighted</td>
+                      <td />
+                      <td />
+                      <td className="num">
+                        <strong>{e.extras.memoryTest.sameJump.combined.ratio.toFixed(3)}</strong> ± {e.extras.memoryTest.sameJump.combined.sigma.toFixed(3)}× (we slowed it 1.5×)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="small" style={{ marginTop: 8, maxWidth: "90ch" }}>
+                  Measured offline from one SAM 3.1 track of each whole clip, with the jump windows set by us (they bracket each jump with a margin; the airborne frames inside are found by the same rule as in a run). The quadratic over the whole flight is a different estimator from a run’s, which fits 70% and predicts the rest, so these values differ slightly from the runs above.
+                </p>
+              </div>
+            )}
           </div>
         </section>
       )}

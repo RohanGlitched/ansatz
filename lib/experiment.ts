@@ -74,7 +74,7 @@ export type Experiment = {
       withTools: { calls: { name: string; result: unknown }[]; answer: string };
       usd: number;
     };
-    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string } } };
+    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -386,7 +386,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         }
       }
       if (!s || !moving(s)) throw new ExperimentError(`SAM 3.1 couldn't find a moving “${subjectNoun}” in the clip. Name the moving object yourself and run it again.`, "track");
-      for (const res of [s, r]) if (res) for (const t of res.tracks) for (const smp of t.samples) smp.f = map(smp.f);
+      // map each result once: when the subject is its own ruler, s and r are the same object, and mapping it twice
+      // sent every frame of a cut clip to the wrong place (a windowed run then found the subject in 0 frames)
+      for (const res of new Set([s, r])) if (res) for (const t of res.tracks) for (const smp of t.samples) smp.f = map(smp.f);
       return [s, r, frames] as const;
     }, ([s, , n]) => `${s.tracks.length} object${s.tracks.length > 1 ? "s" : ""} named “${s.tracks[0].noun}”, ${Math.max(...s.tracks.map((t) => t.samples.length))} of ${n} frames with a mask${useCut ? ` (window ${w0.toFixed(1)}–${w1.toFixed(1)} s)` : ""}`);
     void frameMap;
@@ -845,3 +847,6 @@ function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number;
 }
 
 export type { Pivot };
+
+/** One jump measured by the same code in one clip: |a| from a quadratic over every airborne frame (helmet top). */
+export type SameJumpFit = { g: number; sigma: number; f0: number; f1: number; t0: number; t1: number; n: number };

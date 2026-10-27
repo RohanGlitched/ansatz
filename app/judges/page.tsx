@@ -140,7 +140,7 @@ export default async function JudgesPage() {
   ];
 
   const novel = [
-    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, one clip at a time: ${st ? `“${st.single[0].playback_accel} m/s², slowed ${st.single[0].factor}×” for both` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
+    { title: "A test of memory against measurement", body: `We slowed a famous clip and told no one. A model that recognises footage answers from memory; one that measures can’t be fooled. Muse Spark, one clip at a time: ${st ? `“${st.single[0].playback_accel} m/s², slowed ${st.single[0].factor}×” for both` : "the same answer for both"}. Ansatz: ${mt ? `${mt.rows[0].g.toFixed(2)} and ${mt.rows[1].g.toFixed(2)} m/s², so the second runs ${ratio.toFixed(2)}× slow` : "two different values"}; measured jump for jump, ${mt?.sameJump ? `${mt.sameJump.combined.ratio.toFixed(2)} ± ${mt.sameJump.combined.sigma.toFixed(2)}×` : "the same"} (truth: 1.5×).`, href: "/x/moon-jump#speed-test" },
     { title: "Laws judged on frames no model saw", body: "The last 30% of the motion is sealed from every model, Muse Wonder included. A law wins by predicting it, not by sounding right.", href: "/how" },
     { title: "A clock check from physics", body: "Gravity scales with the square of time. When a ruler makes gravity a measurement, a value far from the planet’s says the clip isn’t real time, and by how much.", href: "/x/sample-pendulum" },
     { title: "An agent that does science with a tool", body: "Muse Wonder doesn’t answer; it experiments. It fits laws to the seen frames, reads the residuals, revises, and submits one law to a trial it can’t see.", href: "/x/dry-friction-spring" },
@@ -159,6 +159,7 @@ export default async function JudgesPage() {
   const numbers: { what: string; value: string; href: string }[] = [
     ...(g ? [{ what: "Moon gravity from Apollo 16 television", value: `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s² (true 1.625)`, href: "/x/moon-jump" }] : []),
     ...(mt ? [{ what: "The same clip slowed 1.5× in secret", value: `${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} m/s²: ${ratio.toFixed(2)}× slow`, href: "/x/moon-jump-slowed" }] : []),
+    ...(mt?.sameJump ? [{ what: "Slowdown measured jump for jump (truth 1.5×)", value: `${mt.sameJump.combined.ratio.toFixed(3)} ± ${mt.sameJump.combined.sigma.toFixed(3)}×`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring" }] : []),
     { what: "Physical constants within 5% on rendered clips", value: `${physWithin} of ${phys.length}, median ${physMedian.toFixed(2)}%`, href: "/proof" },
     ...(s ? [{ what: "Muse Spark reading the same constants by eye", value: `median ${s.medianEyeballErrPct.toFixed(0)}% off`, href: "/proof" }] : []),
