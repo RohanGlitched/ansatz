@@ -32,3 +32,24 @@ test("a clearly better prediction beats a simpler law", () => {
   rankCandidates(list);
   assert.equal(list[0].law.id, "rich");
 });
+
+test("500 random candidate sets rank the same however they are shuffled", () => {
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  for (let n = 0; n < 500; n++) {
+    const size = 2 + Math.floor(rnd() * 6);
+    // scores cluster near noise level so ties are common, the hard case for a ranking
+    const base = Array.from({ length: size }, (_, i) => ({ id: `l${i}`, z: 0.6 + rnd() * (rnd() < 0.5 ? 1.2 : 6), k: 1 + Math.floor(rnd() * 5), bic: Math.round(rnd() * 40), origin: (rnd() < 0.3 ? "control" : "muse") as Candidate["origin"] }));
+    const orders = new Set<string>();
+    for (let p = 0; p < 6; p++) {
+      const list = base.map((b) => cand(b.id, b.z, b.k, b.bic, b.origin));
+      for (let j = list.length - 1; j > 0; j--) {
+        const r = Math.floor(rnd() * (j + 1));
+        [list[j], list[r]] = [list[r], list[j]];
+      }
+      rankCandidates(list);
+      orders.add(list.map((c) => c.law.id).join(","));
+    }
+    assert.equal(orders.size, 1, `set ${n}: ${[...orders].join(" | ")}`);
+  }
+});
