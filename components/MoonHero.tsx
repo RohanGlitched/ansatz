@@ -97,7 +97,7 @@ export default function MoonHero({ e, slowed }: { e: Experiment; slowed?: Experi
               {strips.map((s) => (
                 <div key={s.id} className={styles.still}>
                   <video src={s.e.source.video} data-clip={s.id} poster={`/slits/${s.id}-still.webp`} muted playsInline preload="metadata" />
-                  <i style={{ left: `${(((s.meta.x ?? 0) + s.meta.slice / 2) / s.e.video.width) * 100}%` }} />
+                  <i style={{ left: `${(((s.meta.x ?? 0) + s.meta.slice / 2) / (s.e.video.codedWidth ?? s.e.video.width)) * 100}%` }} />
                   <span className={styles.stillCap}>
                     {s.key}, {s.key === "A" ? "as broadcast" : "slowed"}: the orange line is the column cut from every frame
                   </span>

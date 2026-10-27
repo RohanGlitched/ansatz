@@ -5,6 +5,7 @@
  * written from it has predicted the future of the clip.
  */
 import { compile, names, parse, type Compiled } from "./expr";
+import { paramCovariance, type CovMethod } from "../stats/covariance";
 
 export type ParamSpec = {
   name: string;
@@ -212,23 +213,38 @@ export type Fit = {
   events: { t: number; name: string }[];
   /** the law's prediction at every observed time (whole clip), per channel */
   predicted: Record<string, number[]>;
+  /** how sigma was estimated, and the frame-to-frame correlation of the residuals it allowed for */
+  cov?: { method: CovMethod; rho: number; lag?: number; whiteShare?: number };
+  /** sigma under every estimator (only when asked for: the coverage Monte Carlo compares them) */
+  sigmaBy?: Partial<Record<CovMethod, Record<string, number>>>;
 };
 
 /**
- * Robust per-channel noise: MAD of third differences / sqrt(20). Third differences cancel a constant acceleration,
- * so a fall filmed at 24 fps doesn't pass its own curvature off as noise (second differences overstated the noise
- * 17-fold there; this stays within about 20% for falls, swings and springs from 24 to 240 fps).
+ * Robust per-channel noise: MAD of normalised third divided differences. Third differences cancel a constant
+ * acceleration, so a fall filmed at 24 fps doesn't pass its own curvature off as noise (second differences
+ * overstated the noise 17-fold there; this stays within about 20% for falls, swings and springs from 24 to 240
+ * fps). Divided on the real timestamps, so a dropped frame, a gap where the body was hidden or a variable frame
+ * rate doesn't read as a jolt; each difference is scaled by its own white-noise spread, which on an even clock
+ * is the old Δ³/√20.
  */
-export function noiseScale(v: number[]): number {
+export function noiseScale(v: number[], t?: number[]): number {
+  const pts: [number, number][] = [];
+  for (let i = 0; i < v.length; i++) if (Number.isFinite(v[i]) && (!t || Number.isFinite(t[i]))) pts.push([t ? t[i] : i, v[i]]);
   const d: number[] = [];
-  for (let i = 3; i < v.length; i++) {
-    const x = v[i] - 3 * v[i - 1] + 3 * v[i - 2] - v[i - 3];
-    if (Number.isFinite(x)) d.push(Math.abs(x));
+  for (let i = 3; i < pts.length; i++) {
+    let x = 0, s2 = 0;
+    for (let j = i - 3; j <= i; j++) {
+      let den = 1;
+      for (let m = i - 3; m <= i; m++) if (m !== j) den *= pts[j][0] - pts[m][0];
+      if (!den) { s2 = NaN; break; }
+      x += pts[j][1] / den;
+      s2 += 1 / (den * den);
+    }
+    if (Number.isFinite(x) && s2 > 0) d.push(Math.abs(x) / Math.sqrt(s2));
   }
   if (d.length < 3) return 1e-3;
   d.sort((a, b) => a - b);
-  const mad = d[Math.floor(d.length / 2)] * 1.4826;
-  return Math.max(mad / Math.sqrt(20), 1e-5);
+  return Math.max(d[Math.floor(d.length / 2)] * 1.4826, 1e-5);
 }
 
 function slopeAtStart(t: number[], v: number[], n = 6) {
@@ -281,23 +297,16 @@ function solve(A: number[][], b: number[]): number[] | null {
   return M.map((r, i) => r[n] / r[i]);
 }
 
-function invert(A: number[][]): number[][] | null {
-  const n = A.length;
-  const cols: number[][] = [];
-  for (let j = 0; j < n; j++) {
-    const e = Array.from({ length: n }, (_, i) => (i === j ? 1 : 0));
-    const x = solve(A, e);
-    if (!x) return null;
-    cols.push(x);
-  }
-  return Array.from({ length: n }, (_, i) => cols.map((c) => c[i]));
-}
-
 /**
  * Fits a law to the first `trainFrac` of the clip and predicts the rest. Residuals are weighted per channel
  * by that channel's measured noise, so pixels-to-metres scale doesn't decide which channel matters.
  */
-export function fitLaw(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number } = {}): Fit {
+type FitOpts = { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number; covariance?: CovMethod; allCovariances?: boolean };
+
+/** Chosen by scripts/coverage.ts: the estimator whose 1σ intervals hold ~68% under white and AR(0.8) noise. */
+export const COVARIANCE: CovMethod = "ar1-white";
+
+export function fitLaw(law: Law, data: Series, opts: FitOpts = {}): Fit {
   const starts = opts.starts ?? Number(process.env.FIT_STARTS ?? 6);
   let best = fitOnce(law, data, opts);
   const nFree = law.params.filter((p) => !p.fixed).length;
@@ -316,7 +325,7 @@ function clampTo(p: ParamSpec, v: number) {
   return Math.min(p.max ?? Infinity, Math.max(p.min ?? -Infinity, v));
 }
 
-function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: number; theta0?: Float64Array } = {}): Fit {
+function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
   const fail = (why: string): Fit => ({ lawId: law.id, ok: false, why, theta: {}, sigma: {}, trainCost: Infinity, trainRms: Infinity, testRms: Infinity, testMax: Infinity, bic: Infinity, n: 0, k: 0, iterations: 0, events: [], predicted: {} });
   let c: CompiledLaw;
   try {
@@ -329,7 +338,7 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
   const N = data.t.length;
   const split = Math.max(3, Math.min(N - 1, Math.round(N * (opts.trainFrac ?? 0.7))));
   const trainT = data.t.slice(0, split);
-  const w = Object.fromEntries(chans.map((k) => [k, 1 / noiseScale(data.ch[k])]));
+  const w = Object.fromEntries(chans.map((k) => [k, 1 / noiseScale(data.ch[k], data.t)]));
   const free = law.params.filter((p) => !p.fixed);
   const lo = c.free.map((_, i) => (i < free.length ? free[i].min ?? -Infinity : -Infinity));
   const hi = c.free.map((_, i) => (i < free.length ? free[i].max ?? Infinity : Infinity));
@@ -346,6 +355,9 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
     return out.some((x) => !Number.isFinite(x)) ? null : out;
   };
   const ss = (r: number[]) => r.reduce((s, x) => s + x * x, 0);
+  // residual rows run channel by channel, in time order: the covariance needs where each channel starts and each row's frame
+  const seg: number[] = [0], frame: number[] = [];
+  for (const k of chans) { for (let i = 0; i < split; i++) if (Number.isFinite(data.ch[k][i])) frame.push(i); seg.push(frame.length); }
 
   let theta = clamp(opts.theta0 ? Float64Array.from(opts.theta0) : initialTheta(c, data));
   let r = residuals(theta);
@@ -389,28 +401,23 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
   }
   const n = r.length;
   const k = P;
-  const dof = Math.max(1, n - k);
-  const s2 = cost / dof;
-  const JtJ = Array.from({ length: P }, (_, a) => Array.from({ length: P }, (_, b) => { let s = 0; for (let i = 0; i < n; i++) s += (J[i]?.[a] ?? 0) * (J[i]?.[b] ?? 0); return s; }));
-  const cov = invert(JtJ);
   const theta2: Record<string, number> = {};
-  const sigma: Record<string, number> = {};
-  // residuals of a smooth track are correlated frame to frame, so n samples carry fewer than n independent
-  // pieces of information: inflate by sqrt((1+rho)/(1-rho)) from the lag-1 autocorrelation of the residuals
-  let rho = 0;
-  {
-    let num = 0, den = 0;
-    for (let i = 1; i < r.length; i++) num += r[i] * r[i - 1];
-    for (let i = 0; i < r.length; i++) den += r[i] * r[i];
-    rho = den > 0 ? Math.max(0, Math.min(0.95, num / den)) : 0;
-  }
-  const inflate = Math.sqrt((1 + rho) / (1 - rho));
-  c.free.forEach((name, i) => {
-    theta2[name] = theta[i];
+  // residuals of a tracked body are correlated frame to frame, so n samples carry fewer than n independent pieces
+  // of information; see lib/stats/covariance.ts for the estimators and data/bench/coverage.json for their calibration
+  // FIT_COVARIANCE picks another estimator for offline comparisons (re-scoring stored runs)
+  const method = opts.covariance ?? ((process.env.FIT_COVARIANCE as CovMethod | undefined) || COVARIANCE);
+  const sigmaOf = (m: CovMethod) => {
+    const cv = paramCovariance(J, r!, seg, frame, m);
+    const out: Record<string, number> = {};
     // a negative or non-finite variance means the parameter isn't identifiable from this data: say so, never ±0
-    const v = cov ? cov[i][i] * s2 : NaN;
-    sigma[name] = Number.isFinite(v) && v > 0 ? Math.sqrt(v) * inflate : NaN;
-  });
+    c.free.forEach((name, i) => { const v = cv.cov ? cv.cov[i][i] : NaN; out[name] = Number.isFinite(v) && v > 0 ? Math.sqrt(v) : NaN; });
+    return { sigma: out, cv };
+  };
+  const main = sigmaOf(method);
+  const sigma = main.sigma;
+  c.free.forEach((name, i) => (theta2[name] = theta[i]));
+  let sigmaBy: Fit["sigmaBy"];
+  if (opts.allCovariances) sigmaBy = Object.fromEntries((["ols", "ar1-inflate", "newey-west", "ar1-sandwich", "ar1-white"] as CovMethod[]).map((m) => [m, sigmaOf(m).sigma]));
   for (const p of law.params) if (p.fixed) { theta2[p.name] = p.guess; sigma[p.name] = 0; }
 
   const full = c.run(theta, data.t);
@@ -440,5 +447,7 @@ function fitOnce(law: Law, data: Series, opts: { trainFrac?: number; maxIter?: n
     iterations: Math.min(iter, 9999),
     events: full.events,
     predicted: full.obs,
+    cov: { method, rho: main.cv.rho, ...(main.cv.lag !== undefined ? { lag: main.cv.lag } : {}), ...(main.cv.whiteShare !== undefined ? { whiteShare: main.cv.whiteShare } : {}) },
+    ...(sigmaBy ? { sigmaBy } : {}),
   };
 }

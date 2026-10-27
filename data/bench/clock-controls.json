@@ -1,0 +1,57 @@
+{
+ "generatedAt": "2026-10-27T05:44:07.547Z",
+ "note": "Clock-check controls: three real-time renders with a ruler in view (a false alarm would be a flag) and two small slowdowns (1.25x, 1.5x), run through the full pipeline. The check flags only a gravity miss over 15% and over 3 sigma, the ruler’s uncertainty included.",
+ "rows": [
+  {
+   "id": "ck01_rt_bounce_60fps_stick",
+   "slow": 1,
+   "ruler": null,
+   "g": null,
+   "sigma": null,
+   "clock": null,
+   "outcome": "not checkable: Muse Spark did not trust the ruler, so gravity set the scale",
+   "usd": 0.168
+  },
+  {
+   "id": "ck02_rt_bounce_30fps_a4",
+   "slow": 1,
+   "ruler": "white paper = 0.297 m (plain white sheet on wall taken as A4 standard)",
+   "g": 9.43,
+   "sigma": 0.566,
+   "clock": null,
+   "outcome": "not flagged (right)",
+   "usd": 0.144
+  },
+  {
+   "id": "ck03_rt_bounce_120fps_stick",
+   "slow": 1,
+   "ruler": "striped scale bar = 1 m (banded black-and-white stick taken as 1.0 m metre stick with ~10 segments in a room-scale scene)",
+   "g": 9.779,
+   "sigma": 2.934,
+   "clock": null,
+   "outcome": "not flagged (right)",
+   "usd": 0.377
+  },
+  {
+   "id": "ck04_bounce_x1.25_stick",
+   "slow": 1.25,
+   "ruler": "black and white striped bar = 1 m (ten alternating black-white segments typical of a 1 m metre stick with 10 cm divisions)",
+   "g": 6.235,
+   "sigma": 1.87,
+   "clock": null,
+   "outcome": "missed: within the ruler’s error",
+   "usd": 0.182
+  },
+  {
+   "id": "ck05_bounce_x1.5_stick",
+   "slow": 1.5,
+   "ruler": null,
+   "g": null,
+   "sigma": null,
+   "clock": null,
+   "outcome": "not checkable: Muse Spark did not trust the ruler, so gravity set the scale",
+   "usd": 0.148
+  }
+ ],
+ "usd": 1.019
+}

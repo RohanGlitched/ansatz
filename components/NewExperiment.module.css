@@ -263,3 +263,67 @@
     aspect-ratio: 16 / 7;
   }
 }
+
+/* at phone width during a run, the left column dissolves into the grid so the stage can pin over the step list */
+@media (max-width: 900px) {
+  .leftRun {
+    display: contents;
+  }
+  .leftRun > * {
+    min-width: 0;
+  }
+}
+
+/* the held end of a run: open the result, or watch it again */
+.held {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 20px;
+}
+
+.held :global(.btn) {
+  background: var(--plate-ink);
+  border-color: var(--plate-ink);
+  color: var(--plate);
+}
+
+.held :global(.btn:hover) {
+  background: #8fa0ff;
+  border-color: #8fa0ff;
+  color: var(--plate);
+}
+
+.held :global(.btn.ghost) {
+  background: transparent;
+  color: var(--plate-ink);
+}
+
+.held :global(.btn.ghost:hover) {
+  border-color: #8fa0ff;
+  color: #8fa0ff;
+  background: transparent;
+}
+
+.textBtn {
+  font: inherit;
+  font-family: var(--font);
+  font-size: 14px;
+  background: none;
+  border: 0;
+  padding: 8px 0;
+  min-height: 44px;
+  color: #b8bec6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.textBtn:hover {
+  color: var(--plate-ink);
+}
+
+.heldNote {
+  margin-top: 14px;
+}

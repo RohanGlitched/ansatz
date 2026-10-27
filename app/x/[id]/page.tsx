@@ -569,6 +569,38 @@ export default async function ExperimentPage({ params, searchParams }: Params) {
                     </tr>
                   </tbody>
                 </table>
+                {e.extras.memoryTest.controls && (
+                  <>
+                    <h3 className={styles.h3}>Controls the clip’s length can’t answer</h3>
+                    <p style={{ maxWidth: "75ch" }}>{e.extras.memoryTest.controls.note}</p>
+                    <table className={styles.vs}>
+                      <thead>
+                        <tr>
+                          <th>Copy</th>
+                          <th>Jump</th>
+                          <th>Ansatz, against the broadcast</th>
+                          <th>Truth</th>
+                          <th>Counting airborne frames</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {e.extras.memoryTest.controls.clips.flatMap((c) =>
+                          c.jumps.map((j, i) => (
+                            <tr key={`${c.id}-${j.jump}`}>
+                              <td>{i === 0 ? <>{c.id === "ramp" ? "Speed ramp" : "Real time, 23.976 fps"}<span className="small" style={{ display: "block" }}>{c.made}</span></> : ""}</td>
+                              <td>{j.jump === 1 ? "First" : "Second"}</td>
+                              <td className="num">
+                                <strong>{j.ratio.toFixed(3)}</strong> ± {j.sigma.toFixed(3)}×
+                              </td>
+                              <td className="num">{j.truth}×</td>
+                              <td className="num">{j.hangRatio !== undefined ? `${j.hangRatio.toFixed(2)}×` : "—"}</td>
+                            </tr>
+                          )),
+                        )}
+                      </tbody>
+                    </table>
+                  </>
+                )}
                 <p className="small" style={{ marginTop: 8, maxWidth: "90ch" }}>
                   Measured offline from one SAM 3.1 track of each whole clip, with the jump windows set by us (they bracket each jump with a margin; the airborne frames inside are found by the same rule as in a run). The quadratic over the whole flight is a different estimator from a run’s, which fits 70% and predicts the rest, so these values differ slightly from the runs above.
                 </p>

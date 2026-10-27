@@ -1,0 +1,92 @@
+{
+ "generatedAt": "2026-10-27T05:29:07.847Z",
+ "series": "pendulum-lengths",
+ "sheet": {
+  "g": 9.52004441190751,
+  "sgScatter": 0.09571111463559226,
+  "sgShared": 0.5712026647144506,
+  "offPct": -2.955714455580949
+ },
+ "tape": {
+  "g": 9.812550793263613,
+  "sgScatter": 0.0018519226167476983,
+  "sgTape": 0.016703167815113065,
+  "offPct": 0.026001970067404744,
+  "tapeSigmaM": 0.002
+ },
+ "rows": [
+  {
+   "id": "pendulum-40cm",
+   "L": 0.4,
+   "T": 1.269,
+   "sTms": 0.385,
+   "relTpct": 0.0303,
+   "g": 9.8061,
+   "sg": 0.0494,
+   "gSheet": 9.855,
+   "stopwatch": {
+    "sTms": 10,
+    "relTpct": 0.79,
+    "relGpct": 1.58
+   }
+  },
+  {
+   "id": "pendulum-60cm",
+   "L": 0.6,
+   "T": 1.55367,
+   "sTms": 0.176,
+   "relTpct": 0.0113,
+   "g": 9.8128,
+   "sg": 0.0328,
+   "gSheet": 9.404,
+   "stopwatch": {
+    "sTms": 10,
+    "relTpct": 0.64,
+    "relGpct": 1.29
+   }
+  },
+  {
+   "id": "pendulum-80cm",
+   "L": 0.8,
+   "T": 1.79434,
+   "sTms": 0.099,
+   "relTpct": 0.0055,
+   "g": 9.8094,
+   "sg": 0.0245,
+   "gSheet": 9.699,
+   "stopwatch": {
+    "sTms": 10,
+    "relTpct": 0.56,
+    "relGpct": 1.11
+   }
+  },
+  {
+   "id": "pendulum-100cm",
+   "L": 1,
+   "T": 2.0055,
+   "sTms": 1.134,
+   "relTpct": 0.0565,
+   "g": 9.8155,
+   "sg": 0.0226,
+   "gSheet": 9.393,
+   "stopwatch": {
+    "sTms": 10,
+    "relTpct": 0.5,
+    "relGpct": 1
+   }
+  }
+ ],
+ "ansatzRelTpct": {
+  "min": 0.0055,
+  "max": 0.0565
+ },
+ "stopwatch": {
+  "swings": 20,
+  "reactionS": 0.2,
+  "at": "T = 1.42 s (a 50 cm string)",
+  "relTpct": 0.7,
+  "relGpct": 1.41,
+  "note": "a typical-reaction-time estimate (0.2 s spread over 20 swings), not a measurement"
+ },
+ "note": "Lengths from a tape are the renders' true lengths (0.40, 0.60, 0.80, 1.00 m), read to ±2 mm by assumption; each period is the stored run's fitted ω₀ (T = 2π/ω₀, the small-swing period, as in the textbook formula), its σ the fit's statistical error with the ruler's share removed. The renders are cleaner than phone footage, so real periods will be less precise than these."
+}

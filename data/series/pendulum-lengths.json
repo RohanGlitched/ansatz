@@ -1,7 +1,7 @@
 {
  "id": "pendulum-lengths",
  "title": "One pendulum, four lengths",
- "note": "The school practical: the same pendulum filmed at four string lengths, each clip measured on its own (an A4 sheet on the wall is the ruler). The slope of L against T² gives g, as in the NCERT experiment. These clips are rendered with a true g of 9.81 m/s², so the answer can be checked.",
+ "note": "The school practical: the same pendulum filmed at four string lengths, each clip measured on its own. Each length is the one measured with a tape (here the renders’ true lengths), and each period is the one Ansatz measured from the swing; the slope of L against T² gives g, as in the NCERT experiment. No tape? The A4 sheet on the wall gives the lengths instead, within about 6%. These clips are rendered with a true g of 9.81 m/s², so the answer can be checked.",
  "truth": {
   "g": 9.81,
   "lengths": [
@@ -11,6 +11,13 @@
    1
   ]
  },
+ "tape": {
+  "pendulum-40cm": 0.4,
+  "pendulum-60cm": 0.6,
+  "pendulum-80cm": 0.8,
+  "pendulum-100cm": 1.0
+ },
+ "tapeNote": "Tape lengths here are the renders’ true lengths, standing in for a student’s metre scale.",
  "ids": [
   "pendulum-40cm",
   "pendulum-60cm",

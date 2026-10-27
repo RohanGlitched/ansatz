@@ -32,6 +32,7 @@
 }
 
 .splitTag {
+  font-family: var(--font);
   position: absolute;
   transform: translate(-50%, calc(-100% - 28px));
   display: flex;

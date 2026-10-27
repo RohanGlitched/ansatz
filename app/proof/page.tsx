@@ -83,6 +83,9 @@ export default async function ProofPage() {
   const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as Ref, () => null);
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
   const worse = wonb?.rows.filter((r) => r.verdict === "worse" && Number.isFinite(r.ratio)).map((r) => r.ratio!) ?? [];
+  const lite = await readFile(path.join(process.cwd(), "data", "bench", "lite.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; constantsWithin5: number; constantsChecked: number; medianPhysErrPct: number; lawCorrect: number; lawJudged: number; medianSamUsd: number } }, () => null);
+  const cov = await readFile(path.join(process.cwd(), "data", "bench", "coverage.json"), "utf8").then((t) => JSON.parse(t) as { trials: number; cases: { law: string; noise: string; "coverage1σ": number; "coverage2σ": number }[] }, () => null);
+  const clockc = await readFile(path.join(process.cwd(), "data", "bench", "clock-controls.json"), "utf8").then((t) => JSON.parse(t) as { note: string; rows: { id: string; slow: number; ruler: string | null; g: number | null; sigma: number | null; clock: number | null; outcome: string }[] }, () => null);
   const ab = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then(
     (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number; unit?: string }[] },
     () => null,
@@ -309,8 +312,38 @@ export default async function ProofPage() {
                 <strong>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</strong> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn’t there; each such law missed the frames it never saw by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is only called in when the referee asks, which on these clips it didn’t.
               </li>
               <li>
-                <strong>Where a law really was missing</strong>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames.
+                <strong>Where a law really was missing</strong>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
               </li>
+            </ul>
+          </div>
+        </section>
+      )}
+
+      {(lite || cov || clockc) && (
+        <section className="section" id="checks">
+          <div className={`wrap ${styles.two}`}>
+            <div>
+              <h2>Checks on the method itself</h2>
+              <p className="lede" style={{ marginTop: 12 }}>
+                Are the error bars honest, does the clock check raise false alarms, and how much of this needs a language model at all?
+              </p>
+            </div>
+            <ul className={styles.ablation}>
+              {cov && (
+                <li>
+                  <strong>Error bars.</strong> On {cov.cases.length} sets of {cov.trials} synthetic tracks with known answers (a projectile, a damped spring and a pendulum, each with white noise, smoothly wandering noise, and a mix of the two), the ±1σ intervals held the true value {Math.round(Math.min(...cov.cases.map((c) => c["coverage1σ"])) * 100)}–{Math.round(Math.max(...cov.cases.map((c) => c["coverage1σ"])) * 100)}% of the time and ±2σ {Math.round(Math.min(...cov.cases.map((c) => c["coverage2σ"])) * 100)}–{Math.round(Math.max(...cov.cases.map((c) => c["coverage2σ"])) * 100)}% (ideal: 68% and 95%).
+                </li>
+              )}
+              {clockc && (
+                <li>
+                  <strong>Clock-check controls.</strong> {clockc.rows.filter((r) => r.slow === 1 && r.ruler).length} real-time clips with a trusted ruler: {clockc.rows.filter((r) => r.slow === 1 && r.ruler && !r.clock).length} not flagged, no false alarm. Two small slowdowns: 1.25× was missed, because Muse Spark took the striped bar for a metre stick only as a guess (±30%), so the 36% shortfall in gravity sat inside the error bar; 1.5× couldn’t be checked, because it didn’t trust the bar at all. The check catches a slowdown when the ruler’s size is known, which the run form lets you state.
+                </li>
+              )}
+              {lite && (
+                <li>
+                  <strong>A lite mode with no language model</strong>, measured offline on the same stored runs: the student names the experiment, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
+                </li>
+              )}
             </ul>
           </div>
         </section>

@@ -60,6 +60,8 @@ export default async function JudgesPage() {
 
   const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as { summary: { reviseWhenNeeded: number; needed: number; reviseWhenRight: number; right: number } }, () => null);
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; tie: number; worse: number } }, () => null);
+  const lite = await readFile(path.join(process.cwd(), "data", "bench", "lite.json"), "utf8").then((t) => JSON.parse(t) as { summary: { constantsWithin5: number; constantsChecked: number; medianPhysErrPct: number; medianSamUsd: number } }, () => null);
+  const sw = await readFile(path.join(process.cwd(), "data", "bench", "pendulum-stopwatch.json"), "utf8").then((t) => JSON.parse(t) as { tape: { g: number; sgScatter: number; sgTape: number; offPct: number }; rows: { relTpct: number; stopwatch: { relTpct: number } }[] }, () => null);
   const bench = await readFile(path.join(process.cwd(), "data", "bench", "synth.json"), "utf8").then((t) => JSON.parse(t) as { summary: Summary; rows: { checks: Check[] }[] }, () => null);
   const ablation = await readFile(path.join(process.cwd(), "data", "bench", "ablation.json"), "utf8").then((t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number } }, () => null);
   const s = bench?.summary;
@@ -139,7 +141,7 @@ export default async function JudgesPage() {
       points: [
         <>The home page opens on the experiment: every frame of the 1972 Moon broadcast cut to one slice, so John Young’s jumps draw their own arches, above the same clip slowed in secret, 1.5× longer on the same clock.</>,
         <>
-          <Link href="/new">Run an experiment</Link> replays recorded runs, SAM masks included, with no model called. Or film something: a phone propped on books is enough.
+          <Link href="/new">Run an experiment</Link> replays recorded runs, SAM’s measurements included, with no model called. Or film something: a phone propped on books is enough.
         </>,
         <>Every experiment has an ask box: Muse Spark answers from the run’s record, and code checks each number it quotes against that record.</>,
         <>The flagship experiments open on their own photo-finish strip, with the fitted part and the predicted part split by a dashed line.</>,
@@ -179,6 +181,9 @@ export default async function JudgesPage() {
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring" }] : []),
     ...(refb ? [{ what: "Referee asked for a new law: when one was missing / when it wasn’t", value: `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed} / ${refb.summary.reviseWhenRight} of ${refb.summary.right}`, href: "/proof#models" }] : []),
     ...(wonb ? [{ what: "Muse Wonder challenged on every benchmark clip: kept the right law", value: `${wonb.summary.tie} of ${wonb.summary.clips}; ${wonb.summary.worse} overreaches, all rejected by the held-out test`, href: "/proof#models" }] : []),
+    ...(mt?.controls ? [{ what: "A copy slowed 1.5× through jump 1 only, real speed through jump 2 (same length as the broadcast)", value: mt.controls.clips.find((c) => c.id === "ramp")!.jumps.map((j) => `${j.ratio.toFixed(3)} ± ${j.sigma.toFixed(3)}× (true ${j.truth}×)`).join(", then "), href: "/x/moon-jump#same-jump" }] : []),
+    ...(sw ? [{ what: "Pendulum practical: tape lengths with Ansatz’s periods", value: `g = ${sw.tape.g.toFixed(3)} ± ${Math.hypot(sw.tape.sgScatter, sw.tape.sgTape).toFixed(3)} m/s² (${Math.abs(sw.tape.offPct).toFixed(2)}% off); period to ${Math.min(...sw.rows.map((r) => r.relTpct)).toFixed(3)}–${Math.max(...sw.rows.map((r) => r.relTpct)).toFixed(2)}% vs about ${sw.rows[0].stopwatch.relTpct.toFixed(1)}% for a 20-swing stopwatch (estimate)`, href: "/series/pendulum-lengths" }] : []),
+    ...(lite ? [{ what: "Lite mode, no language model (measured offline on stored runs)", value: `${lite.summary.constantsWithin5} of ${lite.summary.constantsChecked} constants within 5%, median ${lite.summary.medianPhysErrPct.toFixed(2)}%; about ${Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip`, href: "/proof#checks" }] : []),
     { what: "Physical constants within 5% on rendered clips", value: `${physWithin} of ${phys.length}, median ${physMedian.toFixed(2)}%`, href: "/proof" },
     ...(gRuler.length ? [{ what: "Of those, g measured against a ruler in view (the hardest case)", value: `${gRuler.filter((x) => x <= 5).length} of ${gRuler.length}, median ${median(gRuler).toFixed(1)}%`, href: "/proof" }] : []),
     ...(s ? [{ what: "Muse Spark reading the same constants by eye", value: `median ${s.medianEyeballErrPct.toFixed(0)}% off`, href: "/proof" }] : []),
@@ -349,7 +354,7 @@ export default async function JudgesPage() {
             <li>
               Today a run costs {costText(hl)}, which we pay, with daily limits per visitor and per class. Of that, SAM 3.1’s measurement is the median {samMedianCents} cents; the rest is Muse Spark watching, proposing and refereeing, and Muse Wonder when it is called in.
             </li>
-            <li>A lite mode for school practicals: the student names the object and the experiment from a list, SAM 3.1 measures, and code fits the textbook laws. No Muse Spark call, so a run costs about what SAM does.</li>
+            <li>A lite mode for school practicals: the student names the experiment, SAM 3.1 measures, and code fits the textbook laws. Measured offline on the stored benchmark runs (not yet a button on the site): {lite ? `${lite.summary.constantsWithin5} of ${lite.summary.constantsChecked} constants within 5% at about ${Math.round(lite.summary.medianSamUsd * 100)} cents a clip` : "the same accuracy at the cost of SAM alone"}.</li>
             <li>Muse Spark Open, the open-weight model, could watch and referee on a school’s own machine; we have not tried it yet, and will publish how often it agrees with Muse Spark on the benchmark before relying on it.</li>
             <li>The code, the benchmark clips and their true values stay public, so a teacher or a board can check the method without trusting us.</li>
           </ul>
@@ -366,10 +371,10 @@ export default async function JudgesPage() {
           </div>
           <ul className={styles.gaps}>
             <li>Every clip here was filmed or rendered by us, or found online. No outside student or teacher has run it yet.</li>
-            <li>Muse Wonder’s two wins are on renders we built to need a law outside the textbook. It has not yet been run as a challenger across the whole benchmark.</li>
+            <li>Muse Wonder’s two wins are on renders we built to need a law outside the base textbook library, and both laws (a cubic spring, dry friction) are ones a physicist knows: a library extended with them ties it. A law nobody planted is still to be shown.</li>
             <li>The benchmark clips are rendered, so the physics is clean. Real footage adds motion blur, rolling shutter and lens distortion that the renders only partly imitate.</li>
             <li>One object at a time: two bodies colliding, or anything moving toward the camera, isn’t measured.</li>
-            <li>When the only ruler is misread, the clock check is wrong too: on the 8× slowed render a 15 cm ruler was taken for a metre stick and the factor came out 3.1×.</li>
+            <li>The clock check is only as good as the ruler: on the 8× slowed render a 15 cm ruler was taken for a metre stick and the factor came out 3.1×; on a 1.25× render the ruler’s size was only guessed, so the slowdown sat inside the error bar and wasn’t flagged. Stating the ruler’s size fixes both.</li>
             <li>Without a ruler, a slowed clip and a weaker world look the same: the report says both are possible.</li>
           </ul>
         </div>

@@ -41,7 +41,8 @@ export type Experiment = {
   createdAt: string;
   title: string;
   source: { kind: "upload" | "showcase"; video: string; credit?: string; license?: string; page?: string; phone?: string };
-  video: Pick<VideoInfo, "width" | "height" | "fps" | "duration" | "codec" | "rotation"> & { frames: number; jitter: number };
+  // codedWidth: the stored frame width, when pixels aren't square (old broadcast TV); SAM's coordinates live in it
+  video: Pick<VideoInfo, "width" | "height" | "fps" | "duration" | "codec" | "rotation"> & { frames: number; jitter: number; codedWidth?: number };
   narration?: { transcript: string; turns: { startMs: number; endMs: number; transcript: string }[] };
   observation: Observation;
   observationSources: { url: string; title: string }[];
@@ -76,7 +77,7 @@ export type Experiment = {
       /** the one-clip question asked n times per clip: how often it called each clip slowed */
       repeats?: { n: number; note: string; clips: { clip: string; truth: string; answers: { playback_accel: number; real_speed: boolean; factor: number }[]; calledSlowed: number }[]; usd: number };
     };
-    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } } } };
+    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -298,9 +299,9 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
   // a pendulum written with an angular frequency w0 = sqrt(g/L): with L known, g = w0² L is a measurement too
   const w = law.params.find((p) => !p.fixed && (/^(w0|w|omega0|omega)$/i.test(p.name) || /angular frequency/i.test(p.meaning ?? "")));
   // L is the narrator's figure, or else the radius of the swing's circle measured against the ruler in view
-  const ruled = m?.pivot && (m.calibration.kind === "reference" || m.calibration.kind === "stated") && m.pivot.arcDeg > 15;
+  const ruled = m?.pivot && (m.calibration.kind === "reference" || m.calibration.kind === "stated") && m.pivot.lengthOk !== false && m.pivot.arcDeg > 15;
   const Lm = stated.l ?? (ruled ? m!.pivot!.r * m!.calibration.metresPerPixel : undefined);
-  const relL = stated.l !== undefined ? 0 : ruled ? Math.hypot(m!.pivot!.rmsPx / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
+  const relL = stated.l !== undefined ? 0 : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05) : 0;
   if (w && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
     const v = fit.theta[w.name] ** 2 * Lm, s = Math.hypot(2 * fit.theta[w.name] * Lm * (fit.sigma[w.name] || 0), v * relL);
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
@@ -550,13 +551,16 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const metres = toMetres(f.value, f.unit);
       if (/length|string|rope|thread|dhaga|dhaage/.test(q) && metres !== undefined && metres > 0.02 && metres < 30) stated.l = metres;
     }
-    if (m.series.ch.theta && m.pivot && m.calibration.kind === "reference" && stated.l === undefined) {
+    // the swing's radius is a length only when the arc is wide enough and the path is one circle (measure.ts decides)
+    let arcRel = 0;
+    if (m.series.ch.theta && m.pivot && m.pivot.lengthOk !== false && m.calibration.kind === "reference" && stated.l === undefined) {
       const lGeo = m.pivot.r * m.calibration.metresPerPixel;
       stated.l = lGeo;
+      arcRel = (m.pivot.sigmaR ?? 0) / m.pivot.r;
       given.push(`pendulum length L = ${lGeo.toFixed(3)} m, measured from the radius of the swing with the ruler: hold L fixed and measure g`);
     } else if (m.series.ch.theta && !m.series.ch.x) {
       if (stated.l !== undefined) given.push(`pendulum length L = ${stated.l} m (stated): hold L fixed and measure g`);
-      else given.push(`g = ${gBody.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}): hold g fixed and measure the pendulum's length L in metres from its swing`);
+      else given.push(`g = ${gBody.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}): hold g fixed and measure the pendulum's length L in metres from its swing${m.pivot?.lengthOk === false && m.pivot.why ? ` (L isn't determined from the arc: ${m.pivot.why})` : ""}`);
     }
     const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
 
@@ -599,7 +603,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // a law that holds Earth's g fixed (a swing measured as an angle) turns time into length through g, so its lengths
       // carry g's spread even with no ruler in view
       const holdsG = obs.body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
-      const rel = rulerRel || (holdsG ? gRel : 0);
+      // a length taken from the swing's radius carries that radius's own spread too
+      const rel = Math.hypot(rulerRel || (holdsG ? gRel : 0), arcRel);
       if (!rel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
       for (const p of c.law.params) {
         if (p.fixed) continue;

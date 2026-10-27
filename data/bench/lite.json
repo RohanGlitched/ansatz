@@ -1,0 +1,742 @@
+{
+ "generatedAt": "2026-10-27T05:33:18.350Z",
+ "summary": {
+  "clips": 28,
+  "constantsWithin5": 26,
+  "constantsChecked": 27,
+  "medianPhysErrPct": 0.06,
+  "lawCorrect": 24,
+  "lawJudged": 26,
+  "full": {
+   "constantsWithin5": 26,
+   "constantsChecked": 27,
+   "medianPhysErrPct": 0.108,
+   "lawCorrect": 24
+  },
+  "medianSamUsd": 0.0432,
+  "modelUsd": 0
+ },
+ "rows": [
+  {
+   "id": "bb01_e0.72_orange",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.72,
+     "measured": 0.7197602381496994,
+     "sigma": 0.00008105884620612791,
+     "errPct": -0.033,
+     "full": -0.033300274578235145
+    }
+   ],
+   "scale": 0.097242137622408,
+   "fullLaw": "Bouncing ball in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.048
+  },
+  {
+   "id": "bb02_e0.88_blue_120fps",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.88,
+     "measured": 0.879904893794042,
+     "sigma": 0.000027946287662561353,
+     "errPct": -0.011,
+     "full": -0.010807574859015493
+    }
+   ],
+   "scale": 0.030306141891916653,
+   "fullLaw": "Ballistic bounce in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.048
+  },
+  {
+   "id": "bb03_e0.60_purple_240fps",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "restitution e",
+     "truth": 0.6,
+     "measured": 0.5998314534644965,
+     "sigma": 0.0001326896333627703,
+     "errPct": -0.028,
+     "full": -0.028091221508134517
+    }
+   ],
+   "scale": 0.028610126655193257,
+   "fullLaw": "Vacuum projectile with bouncy floor",
+   "fullLawOk": true,
+   "samUsd": 0.0544
+  },
+  {
+   "id": "co01_e0.90_unequal_mass",
+   "phenomenon": "collision_2d",
+   "law": "Damped spring with cubic stiffness (Duffing)",
+   "lawId": "lib-duffing",
+   "lawOk": false,
+   "expect": "two bodies (not supported yet)",
+   "checks": [],
+   "scale": null,
+   "fullLaw": "Uniform glide (no friction)",
+   "fullLawOk": false,
+   "samUsd": 0.0192
+  },
+  {
+   "id": "co02_e0.50_equal_mass_120fps",
+   "phenomenon": "collision_2d",
+   "law": "Uniform acceleration",
+   "lawId": "lib-uniform",
+   "lawOk": false,
+   "expect": "two bodies (not supported yet)",
+   "checks": [],
+   "scale": null,
+   "fullLaw": "Frictionless Glide with Elastic Bounce",
+   "fullLawOk": false,
+   "samUsd": 0.048
+  },
+  {
+   "id": "ff01_earth_orange_ball",
+   "phenomenon": "free_fall",
+   "law": "Flight with quadratic drag",
+   "lawId": "lib-drag-quad",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.053986562063926456,
+   "fullLaw": "Free fall in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.0216
+  },
+  {
+   "id": "ff02_earth_blue_block_tiles",
+   "phenomenon": "free_fall",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.2735674282682341,
+   "fullLaw": "Free fall in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.036
+  },
+  {
+   "id": "ff03_moon_yellow_ball",
+   "phenomenon": "free_fall",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [
+    {
+     "quantity": "g",
+     "truth": 1.62,
+     "measured": 1.5445558731403306,
+     "sigma": 0.0019105262882370688,
+     "errPct": -4.657,
+     "full": -4.657056594251189
+    }
+   ],
+   "scale": -4.4648807939054835,
+   "fullLaw": "Lunar vacuum free fall",
+   "fullLawOk": true,
+   "samUsd": 0.036
+  },
+  {
+   "id": "ff04_mars_white_ball",
+   "phenomenon": "free_fall",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.4604500159970098,
+   "fullLaw": "Free fall in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.03
+  },
+  {
+   "id": "in01_solid_beta0.4_20deg",
+   "phenomenon": "incline_rolling",
+   "law": "Uniform acceleration",
+   "lawId": "lib-uniform",
+   "lawOk": null,
+   "expect": "—",
+   "checks": [],
+   "scale": null,
+   "fullLaw": "Constant downslope acceleration",
+   "fullLawOk": null,
+   "samUsd": 0.0288
+  },
+  {
+   "id": "in02_hollow_beta0.667_20deg",
+   "phenomenon": "incline_rolling",
+   "law": "Simple harmonic motion",
+   "lawId": "lib-shm",
+   "lawOk": null,
+   "expect": "—",
+   "checks": [],
+   "scale": null,
+   "fullLaw": "Constant acceleration down ramp",
+   "fullLawOk": null,
+   "samUsd": 0.0312
+  },
+  {
+   "id": "pd01_earth_yellow_beachball_k0.25",
+   "phenomenon": "projectile_drag",
+   "law": "Flight with quadratic drag",
+   "lawId": "lib-drag-quad",
+   "lawOk": true,
+   "expect": "air drag",
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.25,
+     "measured": 0.25022517362216934,
+     "sigma": 0.0009361402212112457,
+     "errPct": 0.09,
+     "full": -0.1999191616851803
+    }
+   ],
+   "scale": -0.13048055246874704,
+   "fullLaw": "Projectile with quadratic air drag",
+   "fullLawOk": true,
+   "samUsd": 0.0288
+  },
+  {
+   "id": "pd02_earth_paper_ball_k0.45",
+   "phenomenon": "projectile_drag",
+   "law": "Flight with quadratic drag",
+   "lawId": "lib-drag-quad",
+   "lawOk": true,
+   "expect": "air drag",
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.45,
+     "measured": 0.46104141665749326,
+     "sigma": 0.0050320907800268655,
+     "errPct": 2.454,
+     "full": 2.461545815661579
+    }
+   ],
+   "scale": -0.6109588417156023,
+   "fullLaw": "Quadratic air drag",
+   "fullLawOk": true,
+   "samUsd": 0.0312
+  },
+  {
+   "id": "pd03_earth_orange_balloon_k0.15",
+   "phenomenon": "projectile_drag",
+   "law": "Flight with quadratic drag",
+   "lawId": "lib-drag-quad",
+   "lawOk": true,
+   "expect": "air drag",
+   "checks": [
+    {
+     "quantity": "drag k",
+     "truth": 0.15,
+     "measured": 0.15064243708954353,
+     "sigma": 0.001609034916149027,
+     "errPct": 0.428,
+     "full": 0.5444533931046233
+    }
+   ],
+   "scale": 0.1753099310296923,
+   "fullLaw": "Projectile with quadratic air drag",
+   "fullLawOk": true,
+   "samUsd": 0.021
+  },
+  {
+   "id": "pe01_small_8deg_L0.60",
+   "phenomenon": "pendulum",
+   "law": "Pendulum with linear damping",
+   "lawId": "lib-pend-viscous",
+   "lawOk": true,
+   "expect": "a pendulum law",
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.6,
+     "measured": 0.5996389611732658,
+     "sigma": 0.0000900974269855137,
+     "errPct": -0.06,
+     "full": 0.16486493753731235
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.05,
+     "measured": 0.049047217841872735,
+     "sigma": 0.0006370125575535582,
+     "errPct": -1.906,
+     "full": -1.8876651675761718
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Viscous-Damped Linear Pendulum",
+   "fullLawOk": true,
+   "samUsd": 0.084
+  },
+  {
+   "id": "pe02_large_70deg_L0.80",
+   "phenomenon": "pendulum",
+   "law": "Pendulum with linear damping",
+   "lawId": "lib-pend-viscous",
+   "lawOk": true,
+   "expect": "sin θ (large swings)",
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.8,
+     "measured": 0.799919315299298,
+     "sigma": 0.00009180461071645052,
+     "errPct": -0.01,
+     "full": -0.006516941459963621
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.06,
+     "measured": 0.0601103433150559,
+     "sigma": 0.000302821667990269,
+     "errPct": 0.184,
+     "full": 0.18390515823628098
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Damped pendulum with viscous friction",
+   "fullLawOk": true,
+   "samUsd": 0.084
+  },
+  {
+   "id": "pe03_small_9deg_L0.35_room",
+   "phenomenon": "pendulum",
+   "law": "Pendulum with linear damping",
+   "lawId": "lib-pend-viscous",
+   "lawOk": true,
+   "expect": "a pendulum law",
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 0.35,
+     "measured": 0.35003207268695563,
+     "sigma": 0.00020481689446610885,
+     "errPct": 0.009,
+     "full": 0.012732959705116391
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.08,
+     "measured": 0.07923888559084281,
+     "sigma": 0.0030170130835371206,
+     "errPct": -0.951,
+     "full": -0.9513929474359861
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Damped pendulum with viscous friction",
+   "fullLawOk": true,
+   "samUsd": 0.06
+  },
+  {
+   "id": "pe04_large_60deg_L1.20_24fps",
+   "phenomenon": "pendulum",
+   "law": "Pendulum with linear damping",
+   "lawId": "lib-pend-viscous",
+   "lawOk": true,
+   "expect": "sin θ (large swings)",
+   "checks": [
+    {
+     "quantity": "L",
+     "truth": 1.2,
+     "measured": 1.200200562925072,
+     "sigma": 0.00022116440235864232,
+     "errPct": 0.017,
+     "full": 0.02028318122843098
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.03,
+     "measured": 0.02996724749721279,
+     "sigma": 0.0004287645729002462,
+     "errPct": -0.109,
+     "full": -0.10917532921008583
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Damped pendulum with linear drag",
+   "fullLawOk": true,
+   "samUsd": 0.0384
+  },
+  {
+   "id": "pr01_earth_green_ball_tiles",
+   "phenomenon": "projectile",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.008425113569416868,
+   "fullLaw": "Vacuum projectile",
+   "fullLawOk": true,
+   "samUsd": 0.0288
+  },
+  {
+   "id": "pr02_earth_red_ball_room",
+   "phenomenon": "projectile",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": -0.12368972498096724,
+   "fullLaw": "Vacuum projectile",
+   "fullLawOk": true,
+   "samUsd": 0.048
+  },
+  {
+   "id": "sm01_bounce_240fps_x8",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 0.15328125,
+     "measured": 1.0140051550461848,
+     "sigma": 0.000151628761415612,
+     "errPct": 561.532,
+     "full": 561.5324151156047
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.85,
+     "measured": 0.849771889076361,
+     "sigma": 0.000040802524137961704,
+     "errPct": -0.027,
+     "full": -0.02683657537495097
+    }
+   ],
+   "scale": 562.5571076315692,
+   "fullLaw": "Bouncing ball in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.09
+  },
+  {
+   "id": "sm02_bounce_120fps_x4_a4",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 0.613125,
+     "measured": 0.5929450195341259,
+     "sigma": 0.00018783355326223994,
+     "errPct": -3.291,
+     "full": -3.2913337337133086
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.78,
+     "measured": 0.7801523387854303,
+     "sigma": 0.00011358638351666173,
+     "errPct": 0.02,
+     "full": 0.019557736340649952
+    }
+   ],
+   "scale": -3.238256997720343,
+   "fullLaw": "Gravity only with bouncy floor",
+   "fullLawOk": true,
+   "samUsd": 0.072
+  },
+  {
+   "id": "sm03_bounce_60fps_x2_stick",
+   "phenomenon": "bouncing_ball",
+   "law": "Bouncing, no air",
+   "lawId": "lib-bounce",
+   "lawOk": true,
+   "expect": "bounces (an impact event)",
+   "checks": [
+    {
+     "quantity": "g as filmed",
+     "truth": 2.4525,
+     "measured": 2.439365923229763,
+     "sigma": 0.002133674723207246,
+     "errPct": -0.536,
+     "full": -0.5355383354397452
+    },
+    {
+     "quantity": "restitution e",
+     "truth": 0.7,
+     "measured": 0.6995841095743184,
+     "sigma": 0.00022308188191055844,
+     "errPct": -0.059,
+     "full": -0.05941294171418754
+    }
+   ],
+   "scale": -0.31993122491761417,
+   "fullLaw": "Gravity bounce with no air",
+   "fullLawOk": true,
+   "samUsd": 0.06
+  },
+  {
+   "id": "sp01_k25_m0.20_b0.35",
+   "phenomenon": "spring_mass",
+   "law": "Damped harmonic motion",
+   "lawId": "lib-shm-damped",
+   "lawOk": true,
+   "expect": "a damped spring (not a pendulum)",
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 11.180339887498949,
+     "measured": 11.180831719418162,
+     "sigma": 0.0009387097416109214,
+     "errPct": 0.004,
+     "full": 0.004399082749425199
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.35,
+     "measured": 0.3503788034047013,
+     "sigma": 0.0016994157462927317,
+     "errPct": 0.108,
+     "full": 0.10822918383286101
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Viscously damped spring",
+   "fullLawOk": true,
+   "samUsd": 0.06
+  },
+  {
+   "id": "sp02_k60_m0.15_b1.0_fast",
+   "phenomenon": "spring_mass",
+   "law": "Damped harmonic motion",
+   "lawId": "lib-shm-damped",
+   "lawOk": true,
+   "expect": "a damped spring (not a pendulum)",
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 20,
+     "measured": 20.00008951562003,
+     "sigma": 0.001634573971422526,
+     "errPct": 0,
+     "full": 0.00044760870745008674
+    },
+    {
+     "quantity": "damping",
+     "truth": 1,
+     "measured": 1.0011433351846841,
+     "sigma": 0.003055765470307392,
+     "errPct": 0.114,
+     "full": 0.11433336895283475
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Viscously damped spring",
+   "fullLawOk": true,
+   "samUsd": 0.072
+  },
+  {
+   "id": "sp03_k8_m0.50_b0.12_soft",
+   "phenomenon": "spring_mass",
+   "law": "Damped harmonic motion",
+   "lawId": "lib-shm-damped",
+   "lawOk": true,
+   "expect": "a damped spring (not a pendulum)",
+   "checks": [
+    {
+     "quantity": "omega0",
+     "truth": 4,
+     "measured": 3.9999005846781404,
+     "sigma": 0.0002574496907583601,
+     "errPct": -0.002,
+     "full": -0.0024853594705498416
+    },
+    {
+     "quantity": "damping",
+     "truth": 0.12,
+     "measured": 0.11994000392327676,
+     "sigma": 0.0005130901962492745,
+     "errPct": -0.05,
+     "full": -0.049997418133755175
+    }
+   ],
+   "scale": null,
+   "fullLaw": "Spring with viscous damping",
+   "fullLawOk": true,
+   "samUsd": 0.048
+  },
+  {
+   "id": "tt01_earth_blue_ball_portrait",
+   "phenomenon": "vertical_toss",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.17992146311018054,
+   "fullLaw": "Vacuum free flight",
+   "fullLawOk": true,
+   "samUsd": 0.024
+  },
+  {
+   "id": "tt02_earth_yellow_ball_board",
+   "phenomenon": "vertical_toss",
+   "law": "Free flight, no air",
+   "lawId": "lib-vacuum",
+   "lawOk": true,
+   "expect": "no air drag",
+   "checks": [],
+   "scale": 0.35827598788012777,
+   "fullLaw": "Free fall in vacuum",
+   "fullLawOk": true,
+   "samUsd": 0.015
+  }
+ ],
+ "wonder": [
+  {
+   "id": "hardening-spring",
+   "wonderLaw": "Spring with cubic nonlinear stiffening and viscous damping",
+   "wonderScore": 1.19,
+   "libraryLaw": "Damped spring with cubic stiffness (Duffing)",
+   "libraryLawId": "lib-duffing",
+   "libraryScore": 1.19,
+   "verdict": "tie",
+   "constants": [
+    {
+     "label": "natural angular frequency ω₀ (√(k/m))",
+     "unit": "rad/s",
+     "truth": 7.745966692414834,
+     "wonder": 7.746959855341363,
+     "wonderErrPct": 0.01,
+     "library": 7.746959712489261,
+     "libraryParam": "w0",
+     "librarySigma": 0.0028847297234632463,
+     "libraryErrPct": 0.01
+    },
+    {
+     "label": "damping rate",
+     "unit": "1/s",
+     "truth": 0.45,
+     "wonder": 0.44993002500221096,
+     "wonderErrPct": -0.02,
+     "library": 0.44993000108860637,
+     "libraryParam": "c",
+     "librarySigma": 0.0005889186392409598,
+     "libraryErrPct": -0.02
+    },
+    {
+     "label": "hardening, k₃/m",
+     "unit": "1/(m²·s²)",
+     "truth": 4000,
+     "wonder": 4012.266705401208,
+     "wonderErrPct": 0.31,
+     "library": 4012.26710894171,
+     "libraryParam": "beta",
+     "librarySigma": 7.784415424215877,
+     "libraryErrPct": 0.31
+    }
+   ],
+   "board": [
+    {
+     "law": "Damped spring with cubic stiffness (Duffing)",
+     "score": 1.19
+    },
+    {
+     "law": "Spring with dry (Coulomb) friction",
+     "score": 175.4
+    },
+    {
+     "law": "Damped harmonic motion",
+     "score": 237.28
+    },
+    {
+     "law": "Harmonic motion with quadratic drag",
+     "score": 263.75
+    },
+    {
+     "law": "Uniform acceleration",
+     "score": 311.68
+    }
+   ]
+  },
+  {
+   "id": "dry-friction-spring",
+   "wonderLaw": "Spring with dry (Coulomb) friction plus weak viscous damping",
+   "wonderScore": 2.04,
+   "libraryLaw": "Spring with dry (Coulomb) friction",
+   "libraryLawId": "lib-coulomb",
+   "libraryScore": 1.67,
+   "verdict": "tie",
+   "constants": [
+    {
+     "label": "natural angular frequency ω₀",
+     "unit": "rad/s",
+     "truth": 10,
+     "wonder": 9.999894041916079,
+     "wonderErrPct": 0,
+     "library": 9.99947426972377,
+     "libraryParam": "w0",
+     "librarySigma": 0.0010765536921440008,
+     "libraryErrPct": -0.01
+    },
+    {
+     "label": "dry friction, as an acceleration",
+     "unit": "px/s²",
+     "truth": 371.90082644628103,
+     "wonder": 362.9736616530654,
+     "wonderErrPct": -2.4,
+     "library": 371.2805828671395,
+     "libraryParam": "f",
+     "librarySigma": 0.924182953173704,
+     "libraryErrPct": -0.17
+    }
+   ],
+   "board": [
+    {
+     "law": "Spring with dry (Coulomb) friction",
+     "score": 1.67
+    },
+    {
+     "law": "Damped harmonic motion",
+     "score": 68.56
+    },
+    {
+     "law": "Damped spring with cubic stiffness (Duffing)",
+     "score": 68.29
+    },
+    {
+     "law": "Uniform acceleration",
+     "score": 359.37
+    },
+    {
+     "law": "Simple harmonic motion",
+     "score": 356.22
+    }
+   ]
+  }
+ ],
+ "note": "Lite mode, the school plan's no-Spark tier, measured offline: the experiment type (which channels SAM's track is turned into) is taken as given, as a student would pick it; the measured series are the stored benchmark runs' (the same SAM 3.1 tracks the full pipeline used); code fits every law of the textbook library (lib/physics/library-full.ts, now with Duffing and Coulomb springs), ranks them with the full pipeline's own rule (rankCandidates: prediction of the unseen 30% in noise units, ties to the simpler law), and scripts/score.ts scores the winner against the renders' truth exactly as it scores the full pipeline. A swing with no ruler holds Earth's g and measures L, as the full pipeline does. Physical constants only; the camera scale is listed per row. Model cost: none. SAM cost: the stored runs' SAM calls. The two showcases are where Muse Wonder's law won; the library is fitted to the same measured series and scored by the same noise-unit miss."
+}

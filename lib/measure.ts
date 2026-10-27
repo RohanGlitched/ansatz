@@ -14,7 +14,19 @@ export type Calibration =
   | { kind: "pendulum"; metresPerPixel: number; note: string }
   | { kind: "none"; metresPerPixel: number; note: string };
 
-export type Pivot = { x: number; y: number; r: number; rmsPx: number; arcDeg: number };
+export type Pivot = {
+  x: number; y: number; r: number; rmsPx: number; arcDeg: number;
+  /** bootstrap 1σ of r, px */
+  sigmaR?: number;
+  /** the algebraic (Kåsa) radius the geometric fit started from, px: the gap is the short-arc bias it removed */
+  kasaR?: number;
+  /** whether the path may set the pendulum's length (arc over 25°, one circle); `why` says when not */
+  lengthOk?: boolean;
+  why?: string;
+  drift?: { px: number; p: number };
+  bimodality?: number;
+  twoRadii?: boolean;
+};
 
 export type Measured = {
   series: Series;
@@ -23,6 +35,8 @@ export type Measured = {
   origin: { x: number; y: number };
   calibration: Calibration;
   pivot?: Pivot;
+  /** why a near-circular path was not given a pivot */
+  pivotNote?: string;
   line?: { x0: number; y0: number; ux: number; uy: number };
   coverage: number; // fraction of frames in the window where the body was seen
   noise: Record<string, number>;
@@ -45,10 +59,15 @@ export function mainTrack(tracks: Track[], f0 = 0, f1 = Infinity): Track | null 
 function avg(a: number[]) { return a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0; }
 function pathLength(s: Sample[]) { let L = 0; for (let i = 1; i < s.length; i++) L += Math.hypot(s[i].cx - s[i - 1].cx, s[i].cy - s[i - 1].cy); return L; }
 
-/** Kåsa algebraic circle fit. */
-export function fitCircle(pts: { x: number; y: number }[]): Pivot | null {
+type Pt = { x: number; y: number };
+type Circle = { x: number; y: number; r: number };
+// Math.hypot is several times slower than this in V8, and the bootstrap calls it millions of times
+const dist = (dx: number, dy: number) => Math.sqrt(dx * dx + dy * dy);
+
+/** Kåsa algebraic circle fit: closed form, but on a short arc it pulls the circle smaller (L biased low). */
+export function kasaCircle(pts: Pt[]): Circle | null {
   const n = pts.length;
-  if (n < 6) return null;
+  if (n < 3) return null;
   const mx = avg(pts.map((p) => p.x)), my = avg(pts.map((p) => p.y));
   let suu = 0, svv = 0, suv = 0, suuu = 0, svvv = 0, suvv = 0, svuu = 0;
   for (const p of pts) {
@@ -59,12 +78,196 @@ export function fitCircle(pts: { x: number; y: number }[]): Pivot | null {
   if (Math.abs(det) < 1e-9) return null;
   const b1 = 0.5 * (suuu + suvv), b2 = 0.5 * (svvv + svuu);
   const uc = (b1 * svv - b2 * suv) / det, vc = (suu * b2 - suv * b1) / det;
-  const cx = uc + mx, cy = vc + my;
-  const r = Math.sqrt(uc * uc + vc * vc + (suu + svv) / n);
-  const res = pts.map((p) => Math.hypot(p.x - cx, p.y - cy) - r);
-  const angles = pts.map((p) => Math.atan2(p.x - cx, p.y - cy));
-  const arc = (Math.max(...angles) - Math.min(...angles)) * (180 / Math.PI);
-  return { x: cx, y: cy, r, rmsPx: Math.sqrt(avg(res.map((e) => e * e))), arcDeg: arc };
+  return { x: uc + mx, y: vc + my, r: Math.sqrt(uc * uc + vc * vc + (suu + svv) / n) };
+}
+
+/** Orthogonal-distance (geometric) circle fit: Levenberg–Marquardt on the radial residuals |p − c| − r. */
+export function geometricCircle(pts: Pt[], c0: Circle, maxIter = 60): Circle | null {
+  let c = { ...c0 };
+  const cost = (q: Circle) => pts.reduce((s, p) => s + (dist(p.x - q.x, p.y - q.y) - q.r) ** 2, 0);
+  let f = cost(c), lambda = 1e-3;
+  for (let it = 0; it < maxIter; it++) {
+    const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], g = [0, 0, 0];
+    for (const p of pts) {
+      const d = dist(p.x - c.x, p.y - c.y) || 1e-12;
+      const e = d - c.r, j = [-(p.x - c.x) / d, -(p.y - c.y) / d, -1];
+      for (let a = 0; a < 3; a++) { g[a] += j[a] * e; for (let b = 0; b < 3; b++) A[a][b] += j[a] * j[b]; }
+    }
+    let stepped = false;
+    for (let tries = 0; tries < 10 && !stepped; tries++) {
+      const d = solve3(A.map((row, i) => row.map((v, j) => (i === j ? v * (1 + lambda) : v))), g.map((x) => -x));
+      if (!d) { lambda *= 10; continue; }
+      const q = { x: c.x + d[0], y: c.y + d[1], r: c.r + d[2] };
+      const fq = cost(q);
+      if (q.r > 0 && fq <= f) {
+        // a step under 1e-5 px changes nothing a camera can see
+        const done = f - fq <= 1e-10 * Math.max(f, 1e-30) || Math.abs(d[0]) + Math.abs(d[1]) + Math.abs(d[2]) < 1e-5;
+        c = q; f = fq; lambda = Math.max(lambda / 4, 1e-12); stepped = true;
+        if (done) return c;
+      } else lambda *= 10;
+    }
+    if (!stepped) break;
+  }
+  return Number.isFinite(c.r) && c.r > 0 ? c : null;
+}
+
+/**
+ * Two arcs that meet at the bottom: about (x, y) with radius r on one side, about a peg d below it with radius
+ * r − d on the other (the string caught by a peg under the pivot). Fitted by Levenberg–Marquardt from a single
+ * circle; d is 0 for a plain pendulum.
+ */
+function pegCircle(pts: Pt[], onPeg: boolean[], c0: Circle, maxIter = 30): number {
+  let q = [c0.x, c0.y, c0.r, 0];
+  const resid = (v: number[]) => pts.map((p, i) => (onPeg[i] ? dist(p.x - v[0], p.y - v[1] - v[3]) - (v[2] - v[3]) : dist(p.x - v[0], p.y - v[1]) - v[2]));
+  const cost = (v: number[]) => resid(v).reduce((s, e) => s + e * e, 0);
+  let f = cost(q), lambda = 1e-3;
+  for (let it = 0; it < maxIter; it++) {
+    const A = [0, 1, 2, 3].map(() => [0, 0, 0, 0]), g = [0, 0, 0, 0];
+    pts.forEach((p, i) => {
+      const dy = p.y - q[1] - (onPeg[i] ? q[3] : 0), dx = p.x - q[0], d = dist(dx, dy) || 1e-12;
+      const e = d - q[2] + (onPeg[i] ? q[3] : 0);
+      const j = [-dx / d, -dy / d, -1, onPeg[i] ? 1 - dy / d : 0];
+      for (let a = 0; a < 4; a++) { g[a] += j[a] * e; for (let b = 0; b < 4; b++) A[a][b] += j[a] * j[b]; }
+    });
+    let stepped = false;
+    for (let tries = 0; tries < 10 && !stepped; tries++) {
+      const d = solveN(A.map((row, i) => row.map((v, j) => (i === j ? v * (1 + lambda) + 1e-12 : v))), g.map((x) => -x));
+      if (!d) { lambda *= 10; continue; }
+      const v = q.map((x, i) => x + d[i]);
+      const fv = cost(v);
+      if (fv <= f) { const done = f - fv <= 1e-10 * Math.max(f, 1e-30) || d.reduce((a, x) => a + Math.abs(x), 0) < 1e-5; q = v; f = fv; lambda = Math.max(lambda / 4, 1e-12); stepped = true; if (done) return q[3]; }
+      else lambda *= 10;
+    }
+    if (!stepped) break;
+  }
+  return q[3];
+}
+
+function solveN(A: number[][], b: number[]): number[] | null {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    if (Math.abs(M[p][c]) < 1e-300) return null;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+
+/** Signed angle of each point from straight down (px, y down) about the centre, unwrapped around the path's mean direction. */
+function anglesAbout(pts: Pt[], c: Pt) {
+  const m = Math.atan2(avg(pts.map((p) => p.x - c.x)), avg(pts.map((p) => p.y - c.y)));
+  return pts.map((p) => {
+    const a = Math.atan2(p.x - c.x, p.y - c.y) - m;
+    return m + Math.atan2(Math.sin(a), Math.cos(a));
+  });
+}
+
+function rng(seed: number) {
+  let s = seed >>> 0;
+  return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 2 ** 32);
+}
+
+const sd = (a: number[]) => { const v = a.filter(Number.isFinite); const m = avg(v); return Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / Math.max(1, v.length - 1)); };
+
+/** Below this arc a circle's radius isn't pinned by its path: L comes from a stated length or not at all. */
+export const MIN_ARC_FOR_LENGTH_DEG = 25;
+
+/**
+ * Pendulum pivot and radius. Kåsa's closed form starts an orthogonal-distance fit (unbiased where Kåsa is not, on
+ * short arcs); a moving-block bootstrap of the radial residuals gives σ of the radius; and the path must earn the
+ * right to set the length L: an arc over 25°, residuals that don't drift with angle, and one radius on both sides
+ * of the bottom (a peg that catches the string, an interrupted pendulum, swings on two).
+ */
+export function fitCircle(pts: Pt[], opts: { boot?: number; seed?: number } = {}): Pivot | null {
+  const n = pts.length;
+  if (n < 6) return null;
+  const k0 = kasaCircle(pts);
+  if (!k0) return null;
+  // a nearly straight path drives the geometric fit off to an enormous circle: keep Kåsa's there
+  const g0 = geometricCircle(pts, k0);
+  const c = g0 && g0.r < 20 * k0.r ? g0 : k0;
+  const res = pts.map((p) => dist(p.x - c.x, p.y - c.y) - c.r);
+  const ang = anglesAbout(pts, c);
+  const arcDeg = (Math.max(...ang) - Math.min(...ang)) * (180 / Math.PI);
+  const rmsPx = Math.sqrt(avg(res.map((e) => e * e)));
+
+  // angle bins (equal counts) for the drift test
+  const nb = Math.max(3, Math.min(8, Math.floor(n / 10)));
+  const bin = new Array<number>(n);
+  ang.map((a, i) => [a, i] as const).sort((p, q) => p[0] - q[0]).forEach(([, i], j) => (bin[i] = Math.min(nb - 1, Math.floor((j * nb) / n))));
+  const binMeans = (e: number[]) => {
+    const s = new Array(nb).fill(0), m = new Array(nb).fill(0);
+    e.forEach((x, i) => { s[bin[i]] += x; m[bin[i]]++; });
+    return s.map((x, b) => x / Math.max(1, m[b]));
+  };
+  const chi = (e: number[]) => binMeans(e).reduce((s, x) => s + x * x, 0);
+  // either side of straight down, each with some arc of its own, for the two-radius (peg) test
+  const side = ang.map((a) => a > 0);
+  const spanOf = (want: boolean) => { const a = ang.filter((_, i) => side[i] === want).map(Math.abs); return a.length >= 6 ? Math.max(...a) * (180 / Math.PI) : 0; };
+  const sides = spanOf(true) >= 5 && spanOf(false) >= 5;
+
+  // moving-block bootstrap: blocks of radial residuals (in time order, so a wandering centroid keeps its
+  // correlation) laid back onto the fitted circle at the observed angles, refitted each time
+  let num = 0;
+  for (let i = 1; i < n; i++) num += res[i] * res[i - 1];
+  const rho = rmsPx > 0 ? Math.max(0, Math.min(0.9, num / (n * rmsPx * rmsPx))) : 0;
+  const block = Math.max(1, Math.min(Math.floor(n / 4), Math.round(Math.cbrt(n) * Math.sqrt((1 + rho) / (1 - rho)))));
+  // fewer resamples on a long track keep this under ~0.3 s; σ from 100 is good to about 7%
+  const B = opts.boot ?? (n > 600 ? 100 : 200);
+  const rand = rng(opts.seed ?? 12345);
+  const inflate = Math.sqrt(n / (n - 3));
+  const rs: number[] = [], chis: number[] = [], gaps: number[] = [];
+  for (let b = 0; b < B; b++) {
+    const e: number[] = [];
+    while (e.length < n) { const s0 = Math.floor(rand() * (n - block + 1)); for (let j = 0; j < block && e.length < n; j++) e.push(res[s0 + j] * inflate); }
+    const P = pts.map((_, i) => ({ x: c.x + (c.r + e[i]) * Math.sin(ang[i]), y: c.y + (c.r + e[i]) * Math.cos(ang[i]) }));
+    const f = geometricCircle(P, c, 30);
+    if (!f) continue;
+    rs.push(f.r);
+    chis.push(chi(P.map((p) => dist(p.x - f.x, p.y - f.y) - f.r)));
+    if (sides) gaps.push(pegCircle(P, side, c));
+  }
+  const sigmaR = rs.length > 10 ? sd(rs) : NaN;
+
+  // drift: angle-binned mean residuals beyond what the same noise scrambled in time produces (p < 1%). No size
+  // floor: on a short arc a few tenths of a pixel of structure (a string wrapping on a round pivot) moves r by 5–8%
+  const driftPx = Math.max(...binMeans(res).map(Math.abs));
+  const chiObs = chi(res);
+  const pDrift = chis.length ? chis.filter((x) => x >= chiObs).length / chis.length : 1;
+  const drifts = pDrift < 0.01 && driftPx > 0.05;
+  // two radii: the peg model's offset d beyond 4σ of its bootstrap spread under one circle, and over 1.5% of r
+  const gap = sides ? pegCircle(pts, side, c) : NaN;
+  const sdGap = gaps.length > 10 ? sd(gaps) : NaN;
+  const twoRadii = Number.isFinite(gap) && Number.isFinite(sdGap) && Math.abs(gap) > 4 * sdGap && Math.abs(gap) > 0.015 * c.r;
+  // bimodality coefficient of the residuals: 1/3 for a normal, 5/9 for a uniform, towards 1 for two separate bands
+  const m2 = avg(res.map((e) => e * e)), m3 = avg(res.map((e) => e ** 3)), m4 = avg(res.map((e) => e ** 4));
+  const skew = m2 > 0 ? m3 / m2 ** 1.5 : 0, exk = m2 > 0 ? m4 / (m2 * m2) - 3 : 0;
+  const bimodality = (skew * skew + 1) / (exk + (3 * (n - 1) ** 2) / ((n - 2) * (n - 3)));
+  const bimodal = bimodality > 5 / 9 && pDrift < 0.01;
+
+  let why: string | undefined;
+  if (twoRadii) why = `the path is two arcs: on one side of the bottom the radius is ${Math.abs(gap).toFixed(1)} px ${gap > 0 ? "shorter" : "longer"} than on the other (a peg catching the string?), so no single length fits it`;
+  else if (bimodal) why = `the distances from the pivot split into two bands (bimodality ${bimodality.toFixed(2)}), so the path is not one circle`;
+  else if (drifts) why = `the distance from the pivot drifts with angle by up to ${driftPx.toFixed(1)} px (p ${pDrift < 0.005 ? "< 0.005" : `= ${pDrift.toFixed(3)}`}), so the path is not one circle: perspective, a stretching string, or a swing out of the picture plane`;
+  else if (arcDeg < MIN_ARC_FOR_LENGTH_DEG) why = `the swing covers only ${arcDeg.toFixed(0)}° of arc; under ${MIN_ARC_FOR_LENGTH_DEG}° the path doesn't determine the radius (±${Number.isFinite(sigmaR) ? sigmaR.toFixed(0) : "?"} px), so L isn't measured from it`;
+  return {
+    x: c.x, y: c.y, r: c.r, rmsPx, arcDeg,
+    sigmaR, kasaR: k0.r,
+    lengthOk: !why, ...(why ? { why } : {}),
+    drift: { px: driftPx, p: pDrift }, bimodality, twoRadii,
+  };
+}
+
+/**
+ * The pendulum length the path measured, with its 1σ: the bootstrap spread of the radius and the ruler's relative
+ * uncertainty in quadrature. Null when the arc is short or the path isn't one circle: then L isn't determined.
+ */
+export function pendulumLength(p: Pivot, metresPerPixel: number, rulerRel = 0): { L: number; sigma: number; rel: number } | null {
+  if (!p.lengthOk || !Number.isFinite(p.sigmaR)) return null;
+  const rel = Math.hypot(p.sigmaR! / p.r, rulerRel);
+  return { L: p.r * metresPerPixel, sigma: rel * p.r * metresPerPixel, rel };
 }
 
 /** Principal line through the path (for 1-D motion such as a ramp). */
@@ -337,21 +540,25 @@ export function measure(args: {
   };
   let pivot: Pivot | undefined;
   const pc = args.wantPivot === true || (args.wantPivot === undefined && (args.kind === "swing" || args.kind === undefined)) ? fitCircle(samples.map((s) => ({ x: s.cx, y: s.cy }))) : null;
-  // a pendulum: the path hugs a circle whose centre sits above the body, over a real arc
-  if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys)) {
+  // a pendulum: the path hugs a circle whose centre sits above the body, over a real arc. Two arcs of different
+  // radius (an interrupted pendulum) have no one pivot to measure an angle about
+  let pivotNote: string | undefined;
+  if (pc?.twoRadii) pivotNote = pc.why;
+  else if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys)) {
     pivot = pc;
     ch.theta = samples.map((s) => Math.atan2(s.cx - pc.x, s.cy - pc.y));
     ch.r = samples.map((s) => Math.hypot(s.cx - pc.x, s.cy - pc.y) * k);
   }
   const line = fitLine(samples.map((s) => ({ x: s.cx, y: s.cy })));
   if (line.rmsOffPx < 3) ch.s = samples.map((s) => ((s.cx - line.x0) * line.ux + (s.cy - line.y0) * line.uy) * k);
-  const noise = Object.fromEntries(Object.entries(ch).map(([c, v]) => [c, noiseScale(v)]));
+  const noise = Object.fromEntries(Object.entries(ch).map(([c, v]) => [c, noiseScale(v, t)]));
   return {
     series: { t, ch },
     px: samples.map((s) => ({ f: s.f, x: s.cx, y: s.cy })),
     origin,
     calibration: cal,
     pivot,
+    ...(pivotNote ? { pivotNote } : {}),
     line: line.rmsOffPx < 3 ? { x0: line.x0, y0: line.y0, ux: line.ux, uy: line.uy } : undefined,
     coverage,
     noise,
@@ -379,7 +586,7 @@ export function digest(m: Measured, maxRows = 40, frac = 1) {
     duration_s: +(t[n - 1] - t[0]).toFixed(4),
     units: m.calibration.kind === "none" ? "x, y, r, s in pixels (no scale); theta in radians; t in seconds" : "x, y, r, s in metres (y up); theta in radians from straight down; t in seconds",
     calibration: m.calibration.note,
-    pivot: m.pivot ? `path fits a circle of radius ${fmt(m.pivot.r * m.calibration.metresPerPixel)} ${m.calibration.kind === "none" ? "px" : "m"} (fit error ${m.pivot.rmsPx.toFixed(2)} px, arc ${m.pivot.arcDeg.toFixed(0)}°)` : "path is not a circular arc",
+    pivot: m.pivot ? `path fits a circle of radius ${fmt(m.pivot.r * m.calibration.metresPerPixel)}${m.pivot.sigmaR !== undefined && Number.isFinite(m.pivot.sigmaR) ? ` ± ${fmt(m.pivot.sigmaR * m.calibration.metresPerPixel)}` : ""} ${m.calibration.kind === "none" ? "px" : "m"} (fit error ${m.pivot.rmsPx.toFixed(2)} px, arc ${m.pivot.arcDeg.toFixed(0)}°)${m.pivot.lengthOk === false && m.pivot.why ? `; the pendulum's length is not determined from this path: ${m.pivot.why}` : ""}` : m.pivotNote ? `path is not one circular arc: ${m.pivotNote}` : "path is not a circular arc",
     straight_line: m.line ? "path is a straight line; s = distance along it" : "path is not a straight line",
     channel_stats: stats,
     table: rows.join("\n"),

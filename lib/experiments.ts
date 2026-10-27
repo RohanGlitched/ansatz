@@ -65,7 +65,8 @@ export function plateData(e: Experiment, opts: { caption?: string; lazyStrobe?: 
   const every = <T,>(a: T[]) => (k === 1 ? a : a.filter((_, i) => i % k === 0));
   return {
     video: videoUrl(e),
-    width: e.video.width,
+    // overlays draw in SAM's coordinates, which use the stored frame (non-square pixels on old TV footage)
+    width: e.video.codedWidth ?? e.video.width,
     height: e.video.height,
     baseT,
     strobe: opts.lazyStrobe ? [] : strobeOf(e),
@@ -88,7 +89,8 @@ export function clipData(e: Experiment) {
   const slow = m.slowMotion || 1;
   return {
     video: videoUrl(e),
-    width: e.video.width,
+    // overlays draw in SAM's coordinates, which use the stored frame (non-square pixels on old TV footage)
+    width: e.video.codedWidth ?? e.video.width,
     height: e.video.height,
     samples: m.px.map((p, i) => ({ vt: (m.window.t0 + (m.series.t[i] ?? 0)) * slow, x: p.x, y: p.y })),
     law,

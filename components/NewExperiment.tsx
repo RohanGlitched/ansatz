@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LiveRun, { type LiveData } from "./LiveRun";
 import styles from "./NewExperiment.module.css";
@@ -23,7 +24,7 @@ const STEPS: { id: StepId; label: string; who: string }[] = [
 export type Sample = { file: string; label: string; hint: string; noun?: string; slowMotion?: number; narration?: string };
 type Event = { step: string; state: string; detail?: string; at: number; data?: unknown };
 /** a real run's progress log, kept so anyone can watch one without spending a cent */
-export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[] };
+export type Replay = { id: string; label: string; clip: string; recorded: string; events: Event[]; cut?: LiveData["cut"] };
 const REPLAY_SPEED = 3;
 
 export default function NewExperiment({ samples, replays = [], classCode, seriesId, runNote }: { samples: Sample[]; replays?: Replay[]; classCode?: string; seriesId?: string; runNote?: string }) {
@@ -51,6 +52,11 @@ export default function NewExperiment({ samples, replays = [], classCode, series
   const t0 = useRef(0);
   const speed = useRef(1);
   const [replaying, setReplaying] = useState(false);
+  /** the run is over and the page holds on its result, until the visitor opens it or replays */
+  const [held, setHeld] = useState<{ id: string; replay?: Replay; secs: number } | null>(null);
+  const [runKey, setRunKey] = useState(0);
+  const replayToken = useRef(0);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [, tick] = useState(0);
 
   useEffect(() => {
@@ -61,10 +67,10 @@ export default function NewExperiment({ samples, replays = [], classCode, series
   }, [recording]);
 
   useEffect(() => {
-    if (!busy) return;
+    if (!busy || held) return;
     const iv = setInterval(() => tick((n) => n + 1), 500);
     return () => clearInterval(iv);
-  }, [busy]);
+  }, [busy, held]);
 
   const pick = useCallback((f: File | null) => {
     setError(null);
@@ -118,6 +124,28 @@ export default function NewExperiment({ samples, replays = [], classCode, series
   }
 
   function apply(d: Event) {
+    // the clip's clock, so the live strip knows which frame of the clip each of SAM's measurements came from
+    if (d.state === "done") {
+      if (d.step === "upload") {
+        const fps = Number(/at ([\d.]+) fps/.exec(d.detail ?? "")?.[1]);
+        if (fps > 0) setLive((l) => ({ ...l, clock: { ...l.clock, fps } }));
+      }
+      if (d.step === "observe") {
+        const w = (d.data as { window?: { start_s: number; end_s: number } } | undefined)?.window;
+        if (w && Number.isFinite(w.start_s) && Number.isFinite(w.end_s)) setLive((l) => ({ ...l, clock: { ...l.clock, window: w } }));
+      }
+      if (d.step === "track") {
+        const w = /window ([\d.]+)–([\d.]+) s/.exec(d.detail ?? "");
+        if (w) setLive((l) => ({ ...l, clock: { ...l.clock, cut: [Number(w[1]), Number(w[2])] } }));
+      }
+      if (d.step === "fit") {
+        const tf = (d.data as { trainFrac?: number } | undefined)?.trainFrac;
+        const unseen = Number(/unseen (\d+)%/.exec(d.detail ?? "")?.[1]);
+        const trainFrac = tf ?? (unseen > 0 && unseen < 100 ? 1 - unseen / 100 : undefined);
+        if (trainFrac) setLive((l) => ({ ...l, trainFrac }));
+      }
+      if (d.step === "report" && d.detail) setLive((l) => ({ ...l, summary: d.detail }));
+    }
     if (d.state === "update") {
       const u = d.data as { width: number; height: number; frames: number; pts: [number, number, number][] };
       if (d.step === "track" && u?.pts) setLive((l) => ({ ...l, tracking: { width: u.width, height: u.height, frames: u.frames, pts: [...(l.tracking?.pts ?? []), ...u.pts] } }));
@@ -131,32 +159,64 @@ export default function NewExperiment({ samples, replays = [], classCode, series
     setSteps((s) => ({ ...s, [d.step]: { state: d.state === "start" ? "run" : (d.state as StepState["state"]), detail: d.detail ?? s[d.step]?.detail, at: d.at, started: d.state === "start" ? d.at : s[d.step]?.started } }));
   }
 
+  /** brings the stage into view when a run starts below the fold (on a phone the replay buttons sit far down) */
+  function showStage() {
+    // after the form has given way to the stage, so the page has its new height
+    setTimeout(() => {
+      const g = gridRef.current;
+      if (!g) return;
+      const head = document.querySelector("header")?.getBoundingClientRect().height ?? 0;
+      const top = g.getBoundingClientRect().top - head;
+      if (top < 0 || top + 560 > window.innerHeight - head) window.scrollTo({ top: window.scrollY + top - 8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }, 80);
+  }
+
   async function watchReplay(replay: Replay) {
+    const token = ++replayToken.current;
     setError(null);
     setPreview(replay.clip);
     setReplaying(true);
     setBusy(true);
+    setHeld(null);
+    setRunKey((k) => k + 1);
     setSteps({ upload: { state: "run", started: 0 } });
-    setLive({});
+    setLive({ cut: replay.cut });
     speed.current = REPLAY_SPEED;
     t0.current = performance.now();
+    showStage();
     for (const d of replay.events) {
       const wait = d.at / REPLAY_SPEED - (performance.now() - t0.current);
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      if (replayToken.current !== token) return;
       apply(d);
     }
-    await new Promise((r) => setTimeout(r, 1500));
-    router.push(`/x/${replay.id}`);
+    // hold on the result: the race on the strip is the payoff, so the page doesn't leave on its own
+    setHeld({ id: replay.id, replay, secs: (replay.events[replay.events.length - 1]?.at ?? 0) / 1000 });
+  }
+
+  function reset() {
+    replayToken.current++;
+    setHeld(null);
+    setBusy(false);
+    setReplaying(false);
+    setSteps({});
+    setLive({});
+    setPreview(file ? URL.createObjectURL(file) : null);
   }
 
   async function run() {
     if (!file) return;
     speed.current = 1;
+    replayToken.current++;
+    setReplaying(false);
+    setHeld(null);
+    setRunKey((k) => k + 1);
     setBusy(true);
     setError(null);
     setSteps({ upload: { state: "run", started: 0 } });
     setLive({});
     t0.current = performance.now();
+    showStage();
     try {
       const u = await fetch("/api/upload", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ type: file.type || "video/mp4", size: file.size }) });
       const uj = await u.json();
@@ -211,7 +271,8 @@ export default function NewExperiment({ samples, replays = [], classCode, series
           } else if (ev === "progress") {
             apply(d);
           } else if (ev === "done") {
-            router.push(`/x/${d.id}`);
+            // hold on the result with a link to it, so the race on the strip can finish in front of the visitor
+            setHeld({ id: d.id, secs: (performance.now() - t0.current) / 1000 });
             return;
           } else if (ev === "error") {
             throw new Error(d.message);
@@ -248,11 +309,11 @@ export default function NewExperiment({ samples, replays = [], classCode, series
     throw new Error("The experiment is taking too long. Open it later from its link: /x/" + id);
   }
 
-  const elapsed = busy ? ((performance.now() - t0.current) / 1000) * speed.current : 0;
+  const elapsed = held ? held.secs : busy ? ((performance.now() - t0.current) / 1000) * speed.current : 0;
 
   return (
-    <div className={styles.grid}>
-      <div className={styles.left}>
+    <div className={styles.grid} ref={gridRef}>
+      <div className={`${styles.left} ${busy ? styles.leftRun : ""}`}>
         {!busy ? (
           <>
             <div
@@ -316,7 +377,7 @@ export default function NewExperiment({ samples, replays = [], classCode, series
             )}
             {replays.length > 0 && (
               <div className={styles.samples}>
-                <p className="small">Just want to see a run? These replay real ones, recorded on {replays[0].recorded}, at {REPLAY_SPEED}× speed, SAM’s masks included. No model is called.</p>
+                <p className="small">Just want to see a run? These replay real ones, recorded on {replays[0].recorded}, at {REPLAY_SPEED}× speed, SAM 3.1’s measurements included. No model is called.</p>
                 <div className={styles.sampleRow}>
                   {replays.map((r, i) => (
                     <button key={r.id} type="button" className={i === 0 ? "btn" : "btn ghost"} onClick={() => watchReplay(r)}>
@@ -342,8 +403,29 @@ export default function NewExperiment({ samples, replays = [], classCode, series
           </>
         ) : (
           <>
-            {replaying && <p className={styles.replayNote}>Replay of a recorded run at {REPLAY_SPEED}× speed. Times on the right are the real ones.</p>}
-            <LiveRun src={preview} live={live} />
+            {replaying && <p className={styles.replayNote}>Replay of a recorded run at {REPLAY_SPEED}× speed. The time beside each step is the real one.</p>}
+            <LiveRun
+              key={runKey}
+              src={preview}
+              live={live}
+              footer={
+                held ? (
+                  <div className={styles.held}>
+                    <Link className="btn" href={`/x/${held.id}`}>
+                      Open the full result →
+                    </Link>
+                    {held.replay && (
+                      <button type="button" className="btn ghost" onClick={() => watchReplay(held.replay!)}>
+                        Replay
+                      </button>
+                    )}
+                    <button type="button" className={styles.textBtn} onClick={reset}>
+                      {held.replay ? "Run a clip of your own" : "Run another clip"}
+                    </button>
+                  </div>
+                ) : null
+              }
+            />
           </>
         )}
         {error && (
@@ -438,10 +520,19 @@ export default function NewExperiment({ samples, replays = [], classCode, series
         </label>
         </>
         )}
-        <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
-          {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : "Run the experiment"}
-        </button>
-        <p className="small">{!file && !busy ? "Choose or film a clip first." : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for."}</p>
+        {held ? (
+          <p className={`small ${styles.heldNote}`}>
+            {held.replay ? `This run took ${Math.round(held.secs)} s for real, replayed here in ${Math.round(held.secs / REPLAY_SPEED)} s, with no model called.` : `Done in ${Math.round(held.secs)} s.`}{" "}
+            <Link href={`/x/${held.id}`}>Open the full result →</Link>
+          </p>
+        ) : (
+          <>
+            <button type="button" className={`btn ${styles.go}`} disabled={!file || busy} onClick={run}>
+              {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : "Run the experiment"}
+            </button>
+            <p className="small">{!file && !busy ? "Choose or film a clip first." : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for."}</p>
+          </>
+        )}
       </div>
     </div>
   );

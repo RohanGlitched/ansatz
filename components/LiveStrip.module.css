@@ -1,0 +1,208 @@
+.wrap {
+  font-family: var(--font);
+  color: var(--plate-ink);
+}
+
+.ruler {
+  position: relative;
+  height: 18px;
+  overflow: hidden;
+  font-size: 11px;
+  color: #8d939b;
+  font-variant-numeric: tabular-nums;
+}
+
+.rulerInner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  transition: left 0.9s cubic-bezier(0.6, 0, 0.2, 1), width 0.9s cubic-bezier(0.6, 0, 0.2, 1);
+}
+
+.rulerInner span {
+  position: absolute;
+  bottom: 2px;
+  padding-left: 4px;
+  border-left: 1px solid #4a5058;
+  line-height: 1;
+  white-space: nowrap;
+  animation: appear 0.3s ease-out 0.75s backwards;
+}
+
+.view {
+  position: relative;
+  height: clamp(132px, 15vw, 204px);
+  overflow: hidden;
+  background: #07080a;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px #23272c;
+}
+
+.inner {
+  position: absolute;
+  transition: left 0.9s cubic-bezier(0.6, 0, 0.2, 1), width 0.9s cubic-bezier(0.6, 0, 0.2, 1), top 0.9s cubic-bezier(0.6, 0, 0.2, 1), height 0.9s cubic-bezier(0.6, 0, 0.2, 1);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* zoomed in on the motion, each frame's column shows as its own band */
+.zoomed .canvas {
+  image-rendering: pixelated;
+}
+
+/* above the dots, so a law's line shows where it crosses SAM's measurements */
+.svg {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.unseen {
+  fill: #8fa0ff;
+  fill-opacity: 0.09;
+}
+
+.split {
+  stroke: #8fa0ff;
+  stroke-opacity: 0.7;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.front {
+  stroke: #e9ebe6;
+  stroke-opacity: 0.85;
+  stroke-width: 1.5;
+}
+
+.law path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.7s ease, stroke-width 0.4s ease;
+}
+
+.law .fitted {
+  opacity: 0.45;
+}
+
+.lost {
+  opacity: 0.2;
+  transition: opacity 0.7s ease;
+}
+
+.won path {
+  stroke-width: 3px;
+}
+
+.dot,
+.mdot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--measured);
+  pointer-events: none;
+}
+
+.dot {
+  animation: land 0.35s ease-out;
+  transition: opacity 0.5s ease;
+}
+
+.gone {
+  opacity: 0;
+}
+
+.mdot {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  box-shadow: 0 0 0 1.5px #07080a;
+  opacity: 0;
+  animation: appear 0.3s ease-out forwards;
+}
+
+@keyframes land {
+  from {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+.tag {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
+  width: 0;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: left 0.9s cubic-bezier(0.6, 0, 0.2, 1);
+}
+
+.tag b {
+  position: absolute;
+  top: 0;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: rgb(7 8 10 / 0.75);
+}
+
+.tag b:first-child {
+  right: 4px;
+  color: #b8bec6;
+}
+
+.tag b:last-child {
+  left: 4px;
+  color: #8fa0ff;
+}
+
+.count,
+.empty {
+  position: absolute;
+  z-index: 2;
+  left: 8px;
+  bottom: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0a8;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 4px #07080a;
+}
+
+.empty {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0 16px;
+  font-size: 13px;
+  background: repeating-linear-gradient(90deg, #0d0f12 0 4px, #090a0c 4px 8px);
+}
+
+@media (max-width: 900px) {
+  .view {
+    height: clamp(84px, 24vw, 132px);
+  }
+  .tag {
+    font-size: 10px;
+  }
+}
