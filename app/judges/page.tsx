@@ -260,8 +260,8 @@ export default async function JudgesPage() {
             <a className="btn ghost" href="#bring-a-clip">
               Run your own clip
             </a>
-            <a className="btn ghost" href="https://youtu.be/NEy2kR944QY">
-              Watch the demo (2:20)
+            <a className="btn ghost" href="https://youtu.be/B4yLBCFwXn0">
+              Watch the demo (2:39)
             </a>
           </p>
           <p className={styles.headNote}>
