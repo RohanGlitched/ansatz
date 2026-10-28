@@ -27,7 +27,7 @@
   right: -19px;
   width: 16px;
   height: 2px;
-  background: #8fa0ff;
+  background: #fff;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
   transition: transform 0.3s ease-out;
   transform-origin: left center;
@@ -39,7 +39,7 @@
   top: 70px;
   right: -21px;
   border: 5px solid transparent;
-  border-left: 6px solid #8fa0ff;
+  border-left: 6px solid #fff;
   border-right: 0;
   transition: opacity 0.3s ease-out;
 }
@@ -50,18 +50,18 @@
   height: 100%;
   align-content: start;
   padding: 10px;
-  border: 1px solid #2b3036;
-  border-radius: 3px;
+  border: 1px solid var(--prussian-line);
+  border-radius: 0;
   text-decoration: none;
-  color: #e9ebe6;
-  font-family: var(--font);
+  color: var(--paper);
+  font-family: var(--ui);
   transition: border-color 0.15s;
 }
 
 .card:hover,
 .card:focus-visible {
-  border-color: #8fa0ff;
-  color: #e9ebe6;
+  border-color: #fff;
+  color: var(--paper);
 }
 
 .head {
@@ -78,14 +78,14 @@
 .who {
   font-size: 11.5px;
   font-weight: 500;
-  color: #8b929b;
+  color: var(--prussian-ink);
 }
 
 .pic {
   position: relative;
   display: block;
   height: 92px;
-  background: #000;
+  background: var(--prussian-deep);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -96,6 +96,7 @@
   width: 100%;
   height: 100%;
   object-fit: fill;
+  filter: url(#cyanotype);
 }
 
 /* the clip frames keep the clip's own shape (non-square TV pixels), centred in the node */
@@ -106,7 +107,7 @@
 }
 
 .masked img {
-  filter: grayscale(0.6) brightness(0.55);
+  filter: url(#cyanotype) brightness(0.8);
 }
 
 .slit i,
@@ -120,7 +121,7 @@
 }
 
 .slit img {
-  filter: saturate(0.8);
+  filter: url(#cyanotype);
 }
 
 .pic.laws {
@@ -133,13 +134,13 @@
   align-content: center;
   gap: 6px;
   padding: 8px;
-  background: #15181b;
+  background: var(--prussian-deep);
 }
 
 .law {
   display: grid;
   gap: 0;
-  color: #c9d1ff;
+  color: #fff;
   font-size: 13px;
   overflow: hidden;
   white-space: nowrap;
@@ -147,13 +148,13 @@
 
 .law small {
   font-size: 10.5px;
-  color: #8b929b;
+  color: var(--prussian-ink);
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .race {
-  background: #15181b;
+  background: var(--prussian-deep);
 }
 
 .race svg {
@@ -164,24 +165,24 @@
 }
 
 .unseen {
-  fill: rgba(143, 160, 255, 0.07);
+  fill: rgba(238, 242, 244, 0.08);
 }
 
 .splitLine {
-  stroke: #e9ebe6;
+  stroke: var(--paper);
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
 
 .winLaw {
   fill: none;
-  stroke: #8fa0ff;
+  stroke: #fff;
   stroke-width: 2;
 }
 
 .rival {
   fill: none;
-  stroke: #e9ebe6;
+  stroke: var(--paper);
   stroke-width: 1.5;
   stroke-dasharray: 5 4;
   opacity: 0.85;
@@ -202,8 +203,8 @@
   font-style: normal;
   font-size: 10px;
   font-weight: 600;
-  color: #e9ebe6;
-  background: #15181b;
+  color: var(--paper);
+  background: var(--prussian-deep);
   padding: 0 3px;
   white-space: nowrap;
 }
@@ -212,7 +213,7 @@
   display: grid;
   place-content: center;
   text-align: center;
-  background: #15181b;
+  background: var(--prussian-deep);
 }
 
 .verdict strong {
@@ -220,19 +221,19 @@
   font-weight: 650;
   letter-spacing: -0.03em;
   line-height: 1;
-  color: #8fa0ff;
+  color: #fff;
   font-variant-numeric: tabular-nums;
 }
 
 .verdict span {
   font-size: 12.5px;
-  color: #b8bec6;
+  color: var(--prussian-ink);
 }
 
 .note {
   font-size: 12px;
   line-height: 1.35;
-  color: #b8bec6;
+  color: var(--prussian-ink);
 }
 
 /* before the band is seen (and only when script runs it): every node waits dimmed, then lights in order */
@@ -242,7 +243,7 @@
     filter: grayscale(1);
   }
   .band[data-armed]:not([data-done]) .node:not([data-on]) .card {
-    border-color: #1d2125;
+    border-color: var(--prussian-line);
   }
   .band[data-armed]:not([data-done]) .node:has(+ .node:not([data-on]))::after {
     transform: scaleX(0);
@@ -273,7 +274,7 @@
   }
   .head b {
     display: inline;
-    color: #8fa0ff;
+    color: #fff;
     margin-right: 4px;
   }
   .head {

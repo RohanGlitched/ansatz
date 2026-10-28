@@ -1,0 +1,321 @@
+/* a series is a short paper: the title, the L-against-T² figure on a plate, then the tables */
+.title {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(40px, 5vw, 76px) 0 clamp(8px, 1.5vw, 16px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
+  gap: clamp(20px, 5vw, 80px);
+  align-items: end;
+}
+
+.title h1 {
+  font-size: clamp(38px, 4.6vw, 64px);
+}
+
+.kicker {
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--ink-2);
+  margin-bottom: 10px;
+}
+
+.abstract p {
+  font-size: 20px;
+  line-height: 1.55;
+  max-width: 36em;
+}
+
+.abstract .cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 22px;
+  margin-top: 22px;
+  font-family: var(--ui);
+  font-size: 16px;
+}
+
+/* ---- Plate I ---- */
+.figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.chartWrap {
+  min-width: 0;
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--prussian-line);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.axis {
+  stroke: var(--prussian-ink);
+  stroke-width: 1.5;
+}
+
+.tick,
+.axisLab,
+.ptLab {
+  font-family: var(--ui);
+  font-size: 15px;
+  fill: var(--prussian-ink);
+}
+
+.axisLab {
+  font-size: 14px;
+}
+
+.ptLab {
+  font-family: var(--cm);
+  font-size: 15px;
+  fill: var(--paper);
+}
+
+.fitLine {
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.bar {
+  stroke: var(--measured);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.dot {
+  fill: var(--measured);
+  stroke: var(--prussian-deep);
+  stroke-width: 2;
+}
+
+/* once the figure is in view, the runs plot shortest string first, then the fitted line draws through them
+   (PipelineLight arms the wrapper, marks each point in turn, then marks the figure done) */
+[data-armed] .pt {
+  opacity: 0;
+  transform: translateY(-6px);
+  transform-box: fill-box;
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+[data-armed] .pt[data-on] {
+  opacity: 1;
+  transform: none;
+}
+
+[data-armed] .fitLine {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+}
+
+[data-armed][data-done] .fitLine {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.5, 0, 0.2, 1);
+}
+
+.readings {
+  display: grid;
+  gap: 26px;
+}
+
+.rl {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.rv {
+  margin-top: 6px;
+  font-size: clamp(40px, 4.4vw, 56.8px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: #fff;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.pm {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+.facts {
+  margin: 0;
+  border-top: 2px solid var(--paper);
+}
+
+.facts div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--prussian-line);
+}
+
+.facts dt {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: 19px;
+  color: var(--paper);
+  text-align: right;
+}
+
+.facts .held {
+  color: var(--held);
+}
+
+/* ---- the paper ---- */
+.page {
+  padding-bottom: clamp(64px, 8vw, 112px);
+}
+
+.para {
+  margin-top: 1em;
+}
+
+.scroll {
+  overflow-x: auto;
+  margin-top: 28px;
+}
+
+.scroll:focus-visible {
+  outline-offset: 4px;
+}
+
+.table {
+  min-width: 620px;
+  font-size: 16.5px;
+}
+
+.table th[scope="col"] {
+  white-space: nowrap;
+}
+
+.table td {
+  white-space: nowrap;
+}
+
+.table td:first-child {
+  padding-right: 20px;
+}
+
+.worse {
+  color: var(--ink-2);
+}
+
+.better {
+  color: var(--held-ink);
+}
+
+.foot {
+  margin-top: 16px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.tape {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.tape li + li {
+  border-top: 1px solid var(--paper-line);
+}
+
+.tapeForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 0;
+}
+
+.tapeLabel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  flex: 1 1 280px;
+  justify-content: space-between;
+  font-size: 18px;
+}
+
+.tapeInput {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.tapeInput input {
+  font: inherit;
+  font-size: 16px;
+  width: 110px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--ink-2);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  text-align: right;
+}
+
+.closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: clamp(40px, 5vw, 64px);
+  font-family: var(--ui);
+  font-size: 16px;
+}
+
+@media (max-width: 900px) {
+  .title,
+  .figure {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* the figure's text is set in the chart's own units: at phone width, set it larger so it still reads at ~12 px */
+@media (max-width: 600px) {
+  .tick {
+    font-size: 26px;
+  }
+  .axisLab {
+    font-size: 24px;
+  }
+  .ptLab {
+    font-size: 25px;
+  }
+  .dot {
+    r: 10px;
+  }
+  .axisLabY {
+    display: none;
+  }
+}

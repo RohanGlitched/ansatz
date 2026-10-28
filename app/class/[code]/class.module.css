@@ -1,0 +1,310 @@
+/* a class page is a grading sheet: the class's g on one plate, then every run as a journal table */
+.title {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(40px, 5vw, 76px) 0 clamp(8px, 1.5vw, 16px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 1fr);
+  gap: clamp(20px, 5vw, 80px);
+  align-items: end;
+}
+
+.title h1 {
+  font-size: clamp(38px, 4.4vw, 62px);
+}
+
+.kicker {
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--ink-2);
+  margin-bottom: 10px;
+}
+
+.abstract p {
+  font-size: 19px;
+  line-height: 1.55;
+  max-width: 38em;
+}
+
+.abstract .demo {
+  margin-top: 14px;
+  padding-left: 14px;
+  border-left: 2px solid var(--prussian);
+  font-size: 16px;
+  color: var(--ink-2);
+}
+
+/* ---- Plate I: every g on one line ---- */
+.gPlate {
+  display: grid;
+  gap: clamp(24px, 3vw, 40px);
+}
+
+.readings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px clamp(28px, 5vw, 72px);
+  border-bottom: 2px solid var(--paper);
+  padding-bottom: 22px;
+}
+
+.rl {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.rv {
+  margin-top: 6px;
+  font-size: clamp(40px, 4.4vw, 56.8px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: #fff;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.rvSmall {
+  font-size: clamp(28px, 2.8vw, 36px);
+  color: var(--paper);
+}
+
+.pm {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+.line {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid {
+  stroke: var(--prussian-line);
+  stroke-width: 1;
+}
+
+.tick,
+.lab,
+.who {
+  font-family: var(--ui);
+  font-size: 15px;
+  fill: var(--prussian-ink);
+}
+
+.lab {
+  fill: #fff;
+}
+
+.who {
+  font-size: 13.5px;
+}
+
+.known {
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.mean {
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  animation: show 0.4s ease-out both;
+  animation-delay: 1.2s;
+}
+
+.bar {
+  stroke: var(--measured);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0.75;
+}
+
+.dot {
+  fill: var(--measured);
+}
+
+.flag {
+  fill: none;
+  stroke: var(--struck);
+  stroke-width: 2.5;
+}
+
+/* each measurement plots in its turn, as the class made them */
+.pt {
+  animation: show 0.45s ease-out both;
+}
+
+@keyframes show {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- the grading sheet ---- */
+.sheet {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(40px, 5vw, 72px) 0 clamp(64px, 8vw, 112px);
+}
+
+.sheetHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 32px;
+  margin-bottom: 18px;
+}
+
+.sheetSum {
+  font-size: 17px;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.scroll:focus-visible {
+  outline-offset: 4px;
+}
+
+.table {
+  min-width: 860px;
+  font-size: 17px;
+}
+
+.table th[scope="col"] {
+  white-space: nowrap;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 0;
+}
+
+.table .student {
+  vertical-align: top;
+  padding-top: 10px;
+  border-bottom: 1px solid var(--paper-line);
+  text-align: left;
+  font-family: var(--cm);
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.value {
+  white-space: nowrap;
+}
+
+.value .sub {
+  max-width: 30ch;
+  margin-left: auto;
+}
+
+.sub {
+  display: block;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  white-space: normal;
+}
+
+.quiet {
+  color: var(--ink-2);
+}
+
+.law {
+  min-width: 22ch;
+  max-width: 34ch;
+  font-size: 15.5px;
+  line-height: 1.45;
+}
+
+.ok,
+.warn {
+  font-family: var(--ui);
+  font-size: 14px;
+}
+
+.ok .mark {
+  color: var(--held-ink);
+  font-weight: 600;
+}
+
+.warn {
+  max-width: 28ch;
+}
+
+/* a flag is underlined in red as the sheet is read, row by row */
+.warn .mark {
+  color: var(--struck-ink);
+  background: linear-gradient(var(--struck-ink), var(--struck-ink)) no-repeat 0 100% / 100% 2px;
+  padding-bottom: 2px;
+  animation: flag 0.6s cubic-bezier(0.5, 0, 0.2, 1) both;
+  animation-delay: calc(0.3s + var(--i, 0) * 0.08s);
+}
+
+@keyframes flag {
+  from {
+    background-size: 0% 2px;
+  }
+}
+
+.empty {
+  display: grid;
+  gap: 14px;
+  max-width: 68ch;
+  padding: 20px 0 22px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.emptyHead {
+  font-size: 22px;
+}
+
+.after {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 24px 48px;
+  align-items: start;
+  margin-top: 26px;
+}
+
+.notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 32px;
+}
+
+.notes aside {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .title,
+  .after {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table tr:last-child .student {
+  border-bottom: 0;
+}
+
+/* the plate's text is set in the chart's own units: at phone width, set it larger so it still reads */
+@media (max-width: 600px) {
+  .tick,
+  .lab {
+    font-size: 40px;
+  }
+  .who {
+    font-size: 36px;
+  }
+}

@@ -1,96 +1,153 @@
-/* the wrong address: a dark plate, the way an empty frame of film reads */
 .page {
-  background: var(--plate);
-  color: var(--plate-ink);
-  padding-block: clamp(48px, 8vw, 112px);
+  padding: clamp(48px, 7vw, 112px) 0 clamp(72px, 9vw, 128px);
 }
 
 .inner {
+  width: min(1240px, 100% - 40px);
+  margin: 0 auto;
   display: grid;
-  gap: 16px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 6vw, 96px);
+  align-items: center;
 }
 
-.code {
-  font-family: var(--font);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--measured);
-  font-variant-numeric: tabular-nums;
+.figure {
+  margin: 0;
+}
+
+.sheet {
+  position: relative;
+  background: var(--prussian);
+  -webkit-mask-image: url("/book/emulsion.png");
+  mask-image: url("/book/emulsion.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  padding: clamp(28px, 4vw, 56px);
+  isolation: isolate;
+}
+
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/book/grain.png");
+  background-size: 256px;
+  opacity: 0.09;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.blank {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.axis {
+  stroke: var(--prussian-line);
+  stroke-width: 1.5;
+}
+
+/* the law draws itself across the plate and finds nothing to land on */
+.law {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 7;
+  stroke-linecap: round;
+  animation: draw 2.4s cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+@keyframes draw {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.dot {
+  fill: var(--measured);
+}
+
+.lab {
+  font-family: var(--ui);
+  font-size: 14px;
+  fill: var(--prussian-ink);
+}
+
+.cap {
+  margin-top: 14px;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+
+.no {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--ink);
 }
 
 .h1 {
-  font-size: clamp(32px, 4.4vw, 52px);
-  color: var(--plate-ink);
-  max-width: 20ch;
+  font-size: clamp(40px, 5vw, 68px);
 }
 
 .lede {
-  font-family: var(--serif);
-  font-size: clamp(18px, 1.6vw, 21px);
-  line-height: 1.5;
-  color: #c5cad0;
-  max-width: 62ch;
+  margin-top: 18px;
+  font-size: 20px;
+  line-height: 1.55;
+  max-width: 34em;
 }
 
-.lede code {
-  font-family: var(--font);
-  font-size: 0.9em;
-  color: #8fa0ff;
+.back {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
 }
 
 .ways {
   list-style: none;
-  margin: 20px 0 0;
+  margin: 34px 0 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-  border-top: 1px solid #8fa0ff;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
 }
 
 .ways li {
-  border-bottom: 1px solid #2b3036;
-}
-
-.ways a {
   display: grid;
-  gap: 6px;
-  height: 100%;
-  align-content: start;
-  padding: 18px 16px 18px 0;
-  text-decoration: none;
-  color: inherit;
-}
-
-.wayTitle {
-  font-family: var(--font);
-  font-weight: 600;
+  grid-template-columns: minmax(150px, 0.4fr) minmax(0, 1fr);
+  gap: 4px 20px;
+  padding: 11px 0;
   font-size: 17px;
 }
 
-.ways a:hover .wayTitle {
-  color: #8fa0ff;
+.ways li + li {
+  border-top: 1px solid var(--paper-line);
 }
 
-.wayWhat {
-  font-family: var(--font);
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: #b8bec6;
-}
-
-.wayHref {
-  font-family: var(--font);
-  font-size: 13px;
-  color: #8b929b;
+.ways span {
+  color: var(--ink-2);
+  font-size: 16px;
 }
 
 .small {
-  font-family: var(--font);
+  margin-top: 18px;
+  font-family: var(--ui);
   font-size: 14px;
-  color: #8b929b;
-  margin-top: 12px;
+  color: var(--ink-2);
 }
 
-.small a {
-  color: #8fa0ff;
+@media (max-width: 860px) {
+  .inner {
+    grid-template-columns: 1fr;
+  }
+  .figure {
+    max-width: 460px;
+  }
+  .ways li {
+    grid-template-columns: 1fr;
+  }
 }

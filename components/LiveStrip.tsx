@@ -17,6 +17,8 @@ export type RaceLaw = {
   /** the law's path in strip units: x = column centre, y = clip pixels */
   pts: [number, number][];
   style: { stroke: string; dash?: string; width: number };
+  /** the unseen frames refuted it: once the race settles it is struck through in red */
+  struck?: boolean;
 };
 
 export type Geo = {
@@ -40,6 +42,8 @@ type Props = {
   /** the race front, 0 → 1 across the unseen frames; -1 before the laws are fitted */
   race: number;
   settled: boolean;
+  /** show the clip's own colours instead of printing it as a cyanotype */
+  colour?: boolean;
 };
 
 const ease = (p: number) => 0.5 - Math.cos(Math.PI * p) / 2;
@@ -49,7 +53,7 @@ const ease = (p: number) => 0.5 - Math.cos(Math.PI * p) / 2;
  * into a 4-px column and laid beside the last, and the orange dot lands on it. When the laws are fitted, their paths
  * race across the shaded 30% none of them saw.
  */
-function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, settled }: Props) {
+function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, settled, colour = false }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const desired = useRef(new Map<number, number>());
   const drawn = useRef(new Map<number, number>());
@@ -256,6 +260,7 @@ function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, 
   const front = geo && race >= 0 ? geo.splitX + (geo.endX - geo.splitX) * ease(race) : null;
   const path = (pts: [number, number][]) => pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join("");
   const clipId = `race-${tr?.frames ?? 0}`;
+  const seenPct = geo ? Math.round((geo.split / Math.max(1, geo.pts.length)) * 100) : 70;
 
   return (
     <div className={styles.wrap}>
@@ -270,7 +275,7 @@ function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, 
       </div>
       <div className={styles.view} role="img" aria-label={tr ? `Photo-finish being built: ${cols} of ${tr.frames} frames cut so far` : "The photo-finish builds here as SAM 3.1 measures each frame"}>
         <div className={`${styles.inner} ${geo ? styles.zoomed : ""}`} style={inner}>
-          <canvas ref={canvas} className={styles.canvas} />
+          <canvas ref={canvas} className={`${styles.canvas} ${colour ? "" : styles.print}`} />
           {tr && (
             <svg className={styles.svg} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
               {geo && (
@@ -285,7 +290,7 @@ function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, 
                   {[...geo.laws].reverse().map((l) => {
                     const lose = settled && l.rank !== 1;
                     return (
-                      <g key={l.id} className={`${styles.law} ${lose ? styles.lost : ""} ${settled && l.rank === 1 ? styles.won : ""}`}>
+                      <g key={l.id} className={`${styles.law} ${lose ? (l.struck ? styles.struck : styles.lost) : ""} ${settled && l.rank === 1 ? styles.won : ""}`}>
                         <path d={path(l.pts.slice(0, geo.split + 1))} stroke={l.style.stroke} strokeDasharray={l.style.dash} strokeWidth={l.style.width * 0.7} className={styles.fitted} vectorEffect="non-scaling-stroke" />
                         {race >= 0 && <path d={path(l.pts.slice(geo.split))} stroke={l.style.stroke} strokeDasharray={l.style.dash} strokeWidth={l.style.width} clipPath={`url(#${clipId})`} vectorEffect="non-scaling-stroke" />}
                       </g>
@@ -305,8 +310,8 @@ function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, 
         </div>
         {geo && (
           <span className={styles.tag} style={{ left: `${((geo.splitX - view.x0) / sx) * 100}%` }}>
-            <b>fitted</b>
-            <b>predicted, never seen</b>
+            <b>fitted, {seenPct}%</b>
+            <b>predicted, {100 - seenPct}%</b>
           </span>
         )}
         {!tr ? <p className={styles.empty}>The photo-finish builds here, one column per frame, as SAM 3.1 measures.</p> : !geo && <p className={styles.count}>{cols} of {tr.frames} frames cut</p>}

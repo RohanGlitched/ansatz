@@ -1,22 +1,20 @@
-/* the clip and its strip, on the dark plate; at phone width it pins while the steps scroll under it */
+/* The live run, printed on the plate: the clip as a cyanotype with SAM 3.1's dots in orange, the photo-finish under
+   it, then the ledger of laws in white ink. At phone width the stage pins while the steps scroll under it. */
 .stage {
-  font-family: var(--font);
+  font-family: var(--ui);
   min-width: 0;
-  background: var(--plate);
-  color: var(--plate-ink);
-  border-radius: 6px 6px 0 0;
-  padding: 16px 16px 12px;
-  --clip-h: min(30vh, 280px);
+  color: var(--paper);
+  --clip-h: min(34vh, 330px);
 }
 
 .frame {
   position: relative;
   width: min(100%, calc(var(--clip-h) * var(--ar)));
   aspect-ratio: var(--ar);
-  margin: 0 auto 12px;
-  background: #000;
-  border-radius: 3px;
-  overflow: hidden;
+  margin: 6px auto 22px;
+  background: var(--prussian-deep);
+  outline: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  outline-offset: 6px;
 }
 
 .video {
@@ -25,7 +23,10 @@
   width: 100%;
   height: 100%;
   object-fit: fill;
-  filter: grayscale(0.6) brightness(0.72);
+}
+
+.print {
+  filter: url(#cyanotype);
 }
 
 .overlay {
@@ -35,9 +36,10 @@
   height: 100%;
 }
 
+/* where the photo-finish is being cut */
 .cut {
   stroke: var(--measured);
-  stroke-opacity: 0.55;
+  stroke-opacity: 0.6;
   stroke-width: 1;
   stroke-dasharray: 3 3;
 }
@@ -47,15 +49,48 @@
   inset: auto 0 8px 0;
   margin: 0;
   text-align: center;
-  color: #c3c8ce;
+  color: var(--paper);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 6px #000;
+  text-shadow: 0 0 6px var(--prussian-deep), 0 0 2px var(--prussian-deep);
+  pointer-events: none;
+}
+
+.colour {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  font-size: 12.5px;
+  line-height: 1.2;
+  padding: 5px 9px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--paper) 50%, transparent);
+  background: color-mix(in srgb, var(--prussian-deep) 80%, transparent);
+  color: var(--paper);
+}
+
+.colour:hover {
+  background: var(--paper);
+  color: var(--prussian-deep);
+}
+
+.seen {
+  fill: var(--measured);
+}
+
+/* a point in the last 30%: measured, but no law was fitted to it */
+.unseenDot {
+  fill: color-mix(in srgb, var(--prussian-deep) 40%, transparent);
+  stroke: var(--measured);
 }
 
 .dot {
   opacity: 0;
   animation: appear 0.3s ease-out forwards;
+}
+
+.ink {
+  filter: drop-shadow(0 0 1px rgb(12 38 74 / 0.95)) drop-shadow(0 0 2.5px rgb(12 38 74 / 0.55));
 }
 
 .draw {
@@ -76,197 +111,327 @@
   }
 }
 
+/* ---- the board under the strip ---- */
 .board {
-  font-family: var(--font);
-  background: var(--plate);
-  color: var(--plate-ink);
-  border-radius: 0 0 6px 6px;
-  padding: 0 16px 18px;
+  font-family: var(--ui);
+  color: var(--paper);
   min-width: 0;
+  padding-top: 16px;
 }
 
 .caption {
   margin: 0;
-  padding-top: 2px;
-  font-size: 13px;
+  font-family: var(--cm);
+  font-size: 16px;
   line-height: 1.5;
-  color: #9aa0a8;
+  color: var(--prussian-ink);
+  max-width: 64ch;
 }
 
-.o {
-  color: var(--measured);
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--prussian-ink);
 }
 
-.b {
-  color: #8fa0ff;
+.key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.kDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--measured);
+}
+
+.kLaw,
+.kStruck {
+  width: 20px;
+  height: 0;
+  border-top: 2.5px solid #fff;
+}
+
+.kStruck {
+  border-top: 2px dashed var(--struck);
 }
 
 .laws {
-  margin-top: 16px;
+  margin-top: 26px;
 }
 
 .h {
   font-size: 14px;
   font-weight: 600;
-  color: #c3c8ce;
-  margin: 0 0 6px;
+  color: var(--paper);
+  margin: 0 0 10px;
 }
 
-.laws ol {
+/* the ledger: every law, best first; a refuted law is struck through */
+.ledger {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid #2a2f35;
+  border-top: 2px solid var(--paper);
 }
 
-.laws li {
+.row {
   display: grid;
-  grid-template-columns: 28px minmax(0, 0.9fr) minmax(0, 1.4fr) 76px;
-  gap: 12px;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #2a2f35;
-  font-size: 14.5px;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 2px 14px;
+  align-items: start;
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--prussian-line);
   transition: opacity 0.6s ease;
 }
 
 .swatch {
-  width: 28px;
+  width: 30px;
   height: 8px;
+  margin-top: 6px;
 }
 
-.laws li.win {
-  box-shadow: inset 3px 0 0 #8fa0ff;
-  padding-left: 8px;
-  margin-left: -8px;
+.lawText {
+  min-width: 0;
 }
 
-.laws li.lose {
-  opacity: 0.5;
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--prussian-ink);
 }
 
-.title em {
-  font-style: normal;
-  font-size: 12.5px;
-  color: #8d939b;
-  margin-left: 4px;
+.verdict {
+  color: var(--prussian-ink);
+}
+
+.win .verdict {
+  color: var(--held);
+  font-weight: 600;
+}
+
+.lose .verdict {
+  color: var(--struck);
+}
+
+.title {
+  margin: 4px 0 0;
+  font-family: var(--cm);
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--paper);
 }
 
 .eq {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-top: 6px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
-  font-size: 14px;
-  color: #dfe2e6;
+  font-size: 15px;
+  color: #fff;
+}
+
+/* a refuted law: a red rule through each line of the equation, as if struck out in the notebook */
+.eq > span {
+  position: relative;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.eqStruck {
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.eqStruck > span::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 52%;
+  height: 2px;
+  background: var(--struck);
+  transform: rotate(-2deg);
+  transform-origin: left center;
+  /* the red stroke is drawn across, left to right, as the verdict lands */
+  animation: strike 0.55s cubic-bezier(0.5, 0, 0.2, 1) both;
+}
+
+.eqStruck > span + span::after {
+  animation-delay: 0.18s;
+}
+
+@keyframes strike {
+  from {
+    transform: rotate(-2deg) scaleX(0);
+  }
+  to {
+    transform: rotate(-2deg) scaleX(1);
+  }
+}
+
+.lose .title {
+  color: color-mix(in srgb, var(--paper) 65%, transparent);
 }
 
 .miss {
-  font-weight: 600;
-  white-space: nowrap;
+  margin: 0;
+  display: grid;
+  justify-items: end;
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
-.win .miss {
-  color: #8fa0ff;
+.missLabel {
+  font-size: 12.5px;
+  color: var(--prussian-ink);
+}
+
+.miss b {
+  font-family: var(--cm);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--paper);
+}
+
+.win .miss b {
+  color: var(--held);
+}
+
+.lose .miss b {
+  color: var(--struck);
+}
+
+.z {
+  font-size: 12.5px;
+  color: var(--prussian-ink);
+}
+
+.zLine {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
 }
 
 .note {
   margin: 8px 0 0;
-  font-size: 12.5px;
-  color: #8d939b;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--prussian-ink);
+  max-width: 70ch;
 }
 
-.verdict {
-  margin: 16px 0 0;
-  font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.5;
-  color: var(--plate-ink);
+.verdictLine {
+  margin: 22px 0 0;
+  font-family: var(--cm);
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--paper);
   max-width: 62ch;
 }
 
-.verdict strong {
-  font-family: var(--font);
-  font-weight: 600;
-  color: #8fa0ff;
-}
-
-@media (max-width: 640px) {
-  .laws li {
-    grid-template-columns: 28px minmax(0, 1fr) auto;
-  }
-  .eq {
-    grid-column: 2 / -1;
-    grid-row: 2;
-  }
-}
-
-@media (max-width: 900px) {
-  .stage {
-    position: sticky;
-    top: var(--pin-top, 0px);
-    z-index: 5;
-    padding: 10px 12px 10px;
-    --clip-h: min(22vh, 200px);
-    box-shadow: 0 6px 14px -8px rgb(0 0 0 / 0.5);
-  }
-  .frame {
-    margin-bottom: 8px;
-  }
-  /* the board continues the plate under the pinned stage (they are separate grid items here) */
-  .board {
-    padding: 4px 12px 16px;
-    margin-top: calc(-1 * clamp(24px, 4vw, 48px));
-  }
-}
-
-/* each law's miss in noise units, under its miss in mm */
-.z {
-  display: block;
-  font-size: 11.5px;
+.verdictLine strong {
   font-weight: 400;
-  color: #8d939b;
-}
-
-.zLine {
-  margin: 10px 0 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #dfe2e6;
-  font-variant-numeric: tabular-nums;
+  font-style: italic;
+  color: var(--held);
 }
 
 /* the result in large type when the run ends, as the experiment page leads with it */
 .readout {
-  margin-top: 22px;
-  padding-top: 14px;
-  border-top: 2px solid #8fa0ff;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 2px solid var(--paper);
 }
 
 .readLabel {
   margin: 0;
   font-size: 14px;
-  color: #9aa0a8;
+  color: var(--prussian-ink);
 }
 
 .bigNum {
-  margin: 6px 0 0;
-  font-size: clamp(36px, 4.4vw, 56px);
-  font-weight: 650;
-  font-variation-settings: "wdth" 88;
-  letter-spacing: -0.03em;
+  margin: 8px 0 0;
+  font-family: var(--cm);
+  font-size: clamp(36px, 4.4vw, 56.8px);
   line-height: 1.05;
-  color: #8fa0ff;
+  letter-spacing: -0.015em;
+  color: #fff;
 }
 
 .readSub {
-  margin: 8px 0 0;
-  font-size: 14px;
+  margin: 10px 0 0;
+  font-family: var(--cm);
+  font-size: 17px;
   line-height: 1.5;
-  color: #c3c8ce;
+  color: var(--prussian-ink);
   max-width: 62ch;
+}
+
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+  .swatch {
+    width: 26px;
+  }
+  .miss {
+    grid-column: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    justify-content: flex-start;
+    text-align: left;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 900px) {
+  .stage {
+    background: var(--prussian);
+    position: sticky;
+    top: var(--pin-top, 0px);
+    z-index: 5;
+    padding: 12px 14px 12px;
+    --clip-h: min(22vh, 200px);
+    box-shadow: 0 8px 16px -10px rgb(12 38 74 / 0.6);
+  }
+  .frame {
+    margin: 4px auto 14px;
+  }
+  /* the board continues the plate under the pinned stage (they are separate grid items here) */
+  .board {
+    background: var(--prussian);
+    padding: 8px 14px 20px;
+    margin-top: calc(-1 * var(--bench-gap, 28px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    opacity: 1;
+  }
+  .ink {
+  filter: drop-shadow(0 0 1px rgb(12 38 74 / 0.95)) drop-shadow(0 0 2.5px rgb(12 38 74 / 0.55));
+}
+
+.draw {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
 }

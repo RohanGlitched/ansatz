@@ -1,0 +1,109 @@
+.form {
+  display: grid;
+  gap: 18px;
+  justify-items: start;
+  padding: 22px 0 24px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  font-family: var(--ui);
+}
+
+.label {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.field input {
+  font: inherit;
+  font-size: 17px;
+  width: 100%;
+  padding: 11px 13px;
+  min-height: 48px;
+  border: 1px solid var(--ink-2);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+}
+
+.field input:focus-visible {
+  border-color: var(--prussian);
+}
+
+.field small {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.error {
+  padding: 2px 0 2px 14px;
+  border-left: 3px solid var(--struck-ink);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.errorHead {
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--struck-ink);
+}
+
+/* the made class: two slips, as a teacher would cut them from the book */
+.made {
+  padding: 20px 0 6px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+.madeHead {
+  font-size: 20px;
+}
+
+.madeHead b {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.slips {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+}
+
+.slips li {
+  padding: 16px 0 18px;
+  border-top: 1px dashed var(--ink-2);
+}
+
+.who {
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--measured-ink);
+}
+
+.what {
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+
+.urlRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 10px;
+}
+
+.url {
+  font-size: 19px;
+  word-break: break-all;
+}

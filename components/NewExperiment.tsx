@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LiveRun, { type LiveData } from "./LiveRun";
+import Plate, { Note, Page } from "./book/Plate";
 import { readoutOf, type Readout } from "./liveStripMath";
 import { canPrepare, prepareClip, type PrepResult } from "./clipPrep";
 import type { Replay } from "@/data/replays/derive";
@@ -91,6 +92,8 @@ export default function NewExperiment({
   const [error, setError] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [drag, setDrag] = useState(false);
+  /** show the clip in its own colours instead of printing it as a cyanotype */
+  const [colour, setColour] = useState(false);
   const [fromSample, setFromSample] = useState(false);
   const recRef = useRef<MediaRecorder | null>(null);
   const liveRef = useRef<HTMLVideoElement>(null);
@@ -468,171 +471,177 @@ export default function NewExperiment({
     return `Uploading the clip as it is (${mb(file.size)})${trimmed ? ", untrimmed" : ""}: ${r.why}.`;
   })();
 
-  return (
+  // the step running now, for a screen reader (the list itself ticks every half second, so it isn't a live region)
+  const current = STEPS.find((s) => steps[s.id]?.state === "run");
+  const failed = STEPS.find((s) => steps[s.id]?.state === "fail");
+  const hint = !file && !busy
+    ? "Choose or film a clip first: use the buttons on the plate."
+    : lite && !busy && !liteType
+      ? "Lite mode needs to know what kind of experiment this is: pick one of the five above."
+      : lite && !busy && !noun.trim()
+        ? "Lite mode needs the name of what moves, so SAM 3.1 knows what to look for: type it above."
+        : lite && !busy
+          ? "Lite mode: SAM 3.1 measures, code fits the textbook laws. No Muse model is called."
+          : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for.";
+
+  const caption = busy ? (
     <>
-      <div className={busy ? styles.introRun : styles.intro}>
-        <h1 className={styles.title}>{title}</h1>
-        {!busy && (
-          <>
-            <p className="lede" style={{ marginTop: 14, marginBottom: 32 }}>
-              {lede}
+      <span className={styles.plateNo}>Plate I.</span> {replaying ? `A recorded run${replayNow ? ` of ${replayNow.label}` : ""}, replayed as it happened.` : "Your run, as it happens."} Orange: what SAM 3.1 measured, filled where the laws were fitted and open where they had to predict. White: each law&rsquo;s prediction. Red: a law the unseen frames refuted.
+    </>
+  ) : file || recording ? (
+    <>
+      <span className={styles.plateNo}>Plate I.</span> {recording ? "Filming, printed as a cyanotype as it comes in." : "Your clip, printed as a cyanotype."} Trim it to the motion; only that part is sent.
+    </>
+  ) : (
+    <>
+      <span className={styles.plateNo}>Plate I.</span> The bench. Your clip is printed here as a cyanotype, and SAM 3.1&rsquo;s measurements land on it in orange as they arrive.
+    </>
+  );
+
+  return (
+    <div className={styles.root}>
+      {busy ? (
+        <header className={styles.runHead}>
+          <h1 className={styles.runTitle}>{replaying ? "Watching a recorded run" : title}</h1>
+          {replaying && (
+            <p className={styles.replayNote}>
+              Replay of a real run at {REPLAY_SPEED}× speed: no model is called. The time beside each step is the real one.{replayNow?.rebuilt ? ` ${replayNow.rebuilt}` : ""}
             </p>
-            {notes}
-          </>
-        )}
-      </div>
-      <div className={styles.grid} ref={gridRef}>
-        <div className={`${styles.left} ${busy ? styles.leftRun : ""}`}>
-          {!busy ? (
-            <>
-              <div
-                className={`${styles.drop} ${drag ? styles.dragging : ""}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDrag(true);
-                }}
-                onDragLeave={() => setDrag(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDrag(false);
-                  pick(e.dataTransfer.files?.[0] ?? null);
-                }}
-              >
-                {recording ? (
-                  <video ref={liveRef} className={styles.preview} muted playsInline />
-                ) : preview ? (
-                  <video
-                    ref={previewRef}
-                    src={preview}
-                    className={styles.preview}
-                    controls
-                    muted
-                    playsInline
-                    onLoadedMetadata={(e) => {
-                      const d = e.currentTarget.duration;
-                      // a new clip starts untrimmed; the same clip shown again (after a run or an error) keeps its trim
-                      if (Number.isFinite(d) && d > 0 && Math.abs(d - dur) > 0.01) {
-                        setDur(d);
-                        setTrim([0, d]);
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className={styles.empty}>
-                    <p className={styles.emptyTitle}>Film, choose or drop a clip</p>
-                    <p className="small">3–20 seconds of something moving, filmed from a phone that stays still. MP4, MOV or WebM.</p>
-                  </div>
-                )}
-              </div>
-              {shrinkable && (
-                <div className={styles.trim}>
-                  <div className={styles.trimHead}>
-                    <span>Trim to the motion</span>
-                    <span className="num">
-                      {secs(trim[0])} to {secs(trim[1])} ({secs(trim[1] - trim[0])} of {secs(dur)})
-                    </span>
-                  </div>
-                  <div className={styles.range}>
-                    <span className={styles.rangeFill} style={{ left: `${(trim[0] / dur) * 100}%`, right: `${100 - (trim[1] / dur) * 100}%` }} aria-hidden="true" />
-                    {[0, 1].map((h) => (
-                      <input
-                        key={h}
-                        type="range"
-                        min={0}
-                        max={dur}
-                        step={0.05}
-                        value={trim[h]}
-                        aria-label={h ? "End of the clip to keep" : "Start of the clip to keep"}
-                        onChange={(e) => {
-                          const v = Number(e.target.value);
-                          const next: [number, number] = h ? [trim[0], Math.max(v, trim[0] + 0.5)] : [Math.min(v, trim[1] - 0.5), trim[1]];
-                          setTrim([Math.max(0, next[0]), Math.min(dur, next[1])]);
-                          if (previewRef.current) previewRef.current.currentTime = h ? next[1] : next[0];
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className={styles.prepNote} aria-live="polite">
-                    {prepNote}
-                  </p>
-                </div>
-              )}
-              {file && !shrinkable && dur > 0 && (
-                <p className={styles.prepNote}>
-                  Uploading {mb(file.size)} as it is{!canShrink ? ": this browser can’t trim or shrink video" : /\.webm$/i.test(file.name) ? ": a WebM recording is sent whole" : ""}.
-                </p>
-              )}
-              <div className={styles.actions}>
-                {/* on a phone, the camera app itself: its own frame rate and slow-motion modes, saved as a real video file */}
-                <label className={`btn ${styles.touchOnly}`}>
-                  Film now
-                  <input type="file" accept="video/*" capture="environment" hidden onChange={(e) => pick(e.target.files?.[0] ?? null)} />
-                </label>
-                <label className="btn ghost">
-                  Choose a clip
-                  <input type="file" accept="video/*" hidden onChange={(e) => pick(e.target.files?.[0] ?? null)} />
-                </label>
-                {!recording ? (
-                  <button type="button" className={`btn ghost ${styles.pointerOnly}`} onClick={startRecording}>
-                    Film with this device
-                  </button>
-                ) : (
-                  <button type="button" className="btn" onClick={stopRecording}>
-                    Stop filming
-                  </button>
-                )}
-              </div>
-              <p className={`small ${styles.sizeNote}`}>
-                Phones film at 1080p or 4K. Before uploading, Ansatz lets you trim the clip to the motion and shrinks it to 720p in your browser, keeping the timestamp of every frame, and says how much it will send.
+          )}
+        </header>
+      ) : (
+        <header className={styles.title}>
+          <h1>{title}</h1>
+          <div className={styles.abstract}>
+            <p>{lede}</p>
+            {notes && <div className={styles.notes}>{notes}</div>}
+            {replays.length > 0 && (
+              <p className={styles.or}>
+                Just want to see one? <a href="#replays">Watch a recorded run</a>; it calls no model.
               </p>
-              {!seriesId && (
-                <div className={styles.samples}>
-                  <p className="small">Doing the pendulum practical? Film the same pendulum at three or four string lengths: a series fits them together and gives g from the slope of L against T².</p>
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    onClick={async () => {
-                      const r = await fetch("/api/series", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "My pendulum series" }) }).then((x) => x.json()).catch(() => null);
-                      if (r?.id) router.push(`/new?series=${r.id}${classCode ? `&class=${classCode}` : ""}${new URLSearchParams(window.location.search).get("k") ? `&k=${encodeURIComponent(new URLSearchParams(window.location.search).get("k")!)}` : ""}`);
-                    }}
-                  >
-                    Start a series
-                  </button>
+            )}
+          </div>
+        </header>
+      )}
+
+      <div className={`${styles.bench} ${busy ? styles.benchRun : ""}`} ref={gridRef}>
+        <div className={`${styles.left} ${busy ? styles.leftRun : ""}`}>
+          <div className={`${styles.sheet} onPlate`}>
+            {!busy ? (
+              <>
+                <div
+                  className={`${styles.drop} ${drag ? styles.dragging : ""}`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDrag(true);
+                  }}
+                  onDragLeave={() => setDrag(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDrag(false);
+                    pick(e.dataTransfer.files?.[0] ?? null);
+                  }}
+                >
+                  {recording ? (
+                    <>
+                      <video ref={liveRef} className={`${styles.preview} ${colour ? "" : styles.print}`} muted playsInline />
+                      <span className={styles.recDot}>Filming</span>
+                    </>
+                  ) : preview ? (
+                    <video
+                      ref={previewRef}
+                      src={preview}
+                      className={`${styles.preview} ${colour ? "" : styles.print}`}
+                      controls
+                      muted
+                      playsInline
+                      onLoadedMetadata={(e) => {
+                        const d = e.currentTarget.duration;
+                        // a new clip starts untrimmed; the same clip shown again (after a run or an error) keeps its trim
+                        if (Number.isFinite(d) && d > 0 && Math.abs(d - dur) > 0.01) {
+                          setDur(d);
+                          setTrim([0, d]);
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className={styles.empty}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/prints/bouncing-ball.webp" alt="" className={styles.ghost} />
+                      <p className={styles.emptyTitle}>Film, choose or drop a clip</p>
+                      <p className={styles.emptyNote}>3 to 20 seconds of something moving, filmed from a phone that stays still. MP4, MOV or WebM, up to 200 MB.</p>
+                    </div>
+                  )}
+                  {(preview || recording) && (
+                    <button type="button" className={styles.colour} onClick={() => setColour((c) => !c)} aria-pressed={colour}>
+                      {colour ? "Print as cyanotype" : "Original colour"}
+                    </button>
+                  )}
                 </div>
-              )}
-              {replays.length > 0 && (
-                <div className={styles.samples} id="replays" style={{ scrollMarginTop: 110 }}>
-                  <p className="small">Just want to see a run? These replay real runs at {REPLAY_SPEED}× speed, SAM 3.1’s measurements included, and end on the numbers their pages publish. No model is called.</p>
-                  <div className={styles.sampleRow}>
-                    {replays.map((r, i) => (
-                      <button key={r.id} type="button" className={i === 0 ? "btn" : "btn ghost"} onClick={() => watchReplay(r)}>
-                        Watch Ansatz measure {r.label}
-                      </button>
-                    ))}
+                {shrinkable && (
+                  <div className={styles.trim}>
+                    <div className={styles.trimHead}>
+                      <span>Trim to the motion</span>
+                      <span className="num">
+                        {secs(trim[0])} to {secs(trim[1])} ({secs(trim[1] - trim[0])} of {secs(dur)})
+                      </span>
+                    </div>
+                    <div className={styles.range}>
+                      <span className={styles.rangeFill} style={{ left: `${(trim[0] / dur) * 100}%`, right: `${100 - (trim[1] / dur) * 100}%` }} aria-hidden="true" />
+                      {[0, 1].map((h) => (
+                        <input
+                          key={h}
+                          type="range"
+                          min={0}
+                          max={dur}
+                          step={0.05}
+                          value={trim[h]}
+                          aria-label={h ? "End of the clip to keep" : "Start of the clip to keep"}
+                          aria-valuetext={`${secs(trim[h])}`}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            const next: [number, number] = h ? [trim[0], Math.max(v, trim[0] + 0.5)] : [Math.min(v, trim[1] - 0.5), trim[1]];
+                            setTrim([Math.max(0, next[0]), Math.min(dur, next[1])]);
+                            if (previewRef.current) previewRef.current.currentTime = h ? next[1] : next[0];
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <p className={styles.prepNote} aria-live="polite">
+                      {prepNote}
+                    </p>
                   </div>
+                )}
+                {file && !shrinkable && dur > 0 && (
+                  <p className={styles.prepNote}>
+                    Uploading {mb(file.size)} as it is{!canShrink ? ": this browser can’t trim or shrink video" : /\.webm$/i.test(file.name) ? ": a WebM recording is sent whole" : ""}.
+                  </p>
+                )}
+                <div className={styles.actions}>
+                  {/* on a phone, the camera app itself: its own frame rate and slow-motion modes, saved as a real video file */}
+                  <label className={`btn ${styles.touchOnly} ${styles.fileBtn}`}>
+                    Film now
+                    <input type="file" accept="video/*" capture="environment" className={styles.fileInput} onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+                  </label>
+                  <label className={`btn ${styles.fileBtn} ${styles.chooseBtn}`}>
+                    {file ? "Choose another clip" : "Choose a clip"}
+                    <input type="file" accept="video/*" className={styles.fileInput} onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+                  </label>
+                  {!recording ? (
+                    <button type="button" className={`btn ghost ${styles.pointerOnly}`} onClick={startRecording}>
+                      Film with this device
+                    </button>
+                  ) : (
+                    <button type="button" className="btn" onClick={stopRecording}>
+                      Stop filming
+                    </button>
+                  )}
                 </div>
-              )}
-              {samples.length > 0 && (
-                <div className={styles.samples}>
-                  <p className="small">No clip handy? Use one of these:</p>
-                  <div className={styles.sampleRow}>
-                    {samples.map((s) => (
-                      <button key={s.file} type="button" className={styles.sample} onClick={() => useSample(s)}>
-                        <strong>{s.label}</strong>
-                        <span>{s.hint}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              {replaying && (
-                <p className={styles.replayNote}>
-                  Replay of a recorded run at {REPLAY_SPEED}× speed. The time beside each step is the real one.{replayNow?.rebuilt ? ` ${replayNow.rebuilt}` : ""}
+                <p className={styles.sizeNote}>
+                  Phones film at 1080p or 4K. Before uploading, Ansatz lets you trim the clip to the motion and shrinks it to 720p in your browser, keeping the timestamp of every frame, and says how much it will send.
                 </p>
-              )}
+              </>
+            ) : (
               <LiveRun
                 key={runKey}
                 src={preview}
@@ -646,7 +655,7 @@ export default function NewExperiment({
                       </Link>
                       {held.replay && (
                         <button type="button" className="btn ghost" onClick={() => watchReplay(held.replay!)}>
-                          Replay
+                          Watch it again
                         </button>
                       )}
                       <button type="button" className={styles.textBtn} onClick={reset}>
@@ -656,59 +665,89 @@ export default function NewExperiment({
                   ) : null
                 }
               />
-            </>
-          )}
+            )}
+          </div>
+          <p className={styles.plateCap}>{caption}</p>
           {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
+            <div className={styles.error} role="alert">
+              <p className={styles.errorHead}>{busy ? "The run stopped." : "That didn’t work."}</p>
+              <p>{error}</p>
+            </div>
           )}
         </div>
 
         <div className={styles.right}>
           {busy ? (
-            <ol className={styles.steps} aria-live="polite">
-              {STEPS.map((s) => {
-                const st = steps[s.id];
-                const state = st?.state ?? "wait";
-                const t = state === "run" && st?.started !== undefined ? Math.max(0, elapsed - st.started / 1000) : st?.at !== undefined && st.started !== undefined ? (st.at - st.started) / 1000 : null;
-                return (
-                  <li key={s.id} className={styles[state]}>
-                    <span className={styles.dot} aria-hidden="true" />
-                    <div>
-                      <p className={styles.stepLabel}>
-                        {s.label} <span className={styles.who}>{runLite && s.lite ? s.lite : s.who}</span>
-                      </p>
-                      {s.id === "upload" && state === "run" && uploading && (
-                        <p className={styles.detail}>
-                          {uploadPct > 0 && uploadPct < 100 ? `Uploading ${mb(uploading.size)}${uploading.size < uploading.orig ? ` instead of ${mb(uploading.orig)}` : ""}… ${uploadPct}%` : uploading.size < uploading.orig ? `Uploaded ${mb(uploading.size)} instead of ${mb(uploading.orig)}` : null}
-                        </p>
-                      )}
-                      {st?.detail && <p className={styles.detail}>{st.detail}</p>}
-                    </div>
-                    <span className={`num ${styles.secs}`}>{t !== null && state !== "wait" ? (state === "run" ? `${t.toFixed(0)} s` : t < 0.05 ? "<0.1 s" : `${t.toFixed(1)} s`) : ""}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          ) : (
             <>
+              <h2 className={styles.colHead}>The run, step by step</h2>
+              <p className="visually-hidden" aria-live="polite">
+                {held ? "The run is done." : failed ? `${failed.label}: failed.` : current ? `${current.label}…` : ""}
+              </p>
+              <ol className={styles.steps}>
+                {STEPS.map((s, i) => {
+                  const st = steps[s.id];
+                  const state = st?.state ?? "wait";
+                  const t = state === "run" && st?.started !== undefined ? Math.max(0, elapsed - st.started / 1000) : st?.at !== undefined && st.started !== undefined ? (st.at - st.started) / 1000 : null;
+                  return (
+                    <li key={s.id} className={styles[state]} aria-current={state === "run" ? "step" : undefined}>
+                      <span className={styles.n} aria-hidden="true">
+                        {i + 1}
+                      </span>
+                      <div className={styles.stepBody}>
+                        <p className={styles.stepLabel}>{s.label}</p>
+                        <p className={styles.who}>{runLite && s.lite ? s.lite : s.who}</p>
+                        {s.id === "upload" && state === "run" && uploading && (
+                          <p className={styles.detail}>
+                            {uploadPct > 0 && uploadPct < 100 ? `Uploading ${mb(uploading.size)}${uploading.size < uploading.orig ? ` instead of ${mb(uploading.orig)}` : ""}… ${uploadPct}%` : uploading.size < uploading.orig ? `Uploaded ${mb(uploading.size)} instead of ${mb(uploading.orig)}` : null}
+                          </p>
+                        )}
+                        {st?.detail && <p className={styles.detail}>{st.detail}</p>}
+                      </div>
+                      <span className={`num ${styles.secs}`}>
+                        {t !== null && state !== "wait" ? (state === "run" ? `${t.toFixed(0)} s` : t < 0.05 ? "<0.1 s" : `${t.toFixed(1)} s`) : state === "skip" ? "skipped" : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {held ? (
+                <p className={styles.heldNote}>
+                  {held.replay ? `This run took ${Math.round(held.secs)} s for real, replayed here in ${Math.round(held.secs / REPLAY_SPEED)} s, with no model called.` : `Done in ${Math.round(held.secs)} s.`}{" "}
+                  <Link href={`/x/${held.replay?.record ?? held.id}`}>Open the full result</Link>
+                </p>
+              ) : (
+                <p className={`num ${styles.clock}`}>
+                  {replaying ? "Replaying" : "Running"}… {elapsed.toFixed(0)} s
+                </p>
+              )}
+            </>
+          ) : (
+            <div className={styles.form}>
+              <h2 className={styles.colHead}>Say what you know</h2>
+              <p className={styles.formLede}>Everything here is optional unless it says otherwise. What you give is kept apart from what Ansatz measures.</p>
               {classCode && (
                 <label className={styles.field}>
-                  <span>{classCode === "jdgs26" ? "Your name (shown on the judges’ page)" : "Your name or roll number (for your teacher)"}</span>
+                  <span className={styles.label}>{classCode === "jdgs26" ? "Your name (shown on the judges’ page)" : "Your name or roll number (for your teacher)"}</span>
                   <input value={student} onChange={(e) => setStudent(e.target.value)} placeholder="e.g. Asha, roll 14" disabled={busy} maxLength={40} />
                 </label>
               )}
-              <div className={`${styles.lite} ${lite ? styles.liteOn : ""}`}>
-                <label className={styles.switch}>
-                  <input type="checkbox" checked={lite} onChange={(e) => setLite(e.target.checked)} />
+              <fieldset className={`${styles.field} ${styles.mode}`}>
+                <legend className={styles.label}>How much should Ansatz work out?</legend>
+                <label className={styles.choice}>
+                  <input type="radio" name="mode" checked={!lite} onChange={() => setLite(false)} />
                   <span>
-                    <strong>I know what this is</strong> (lite mode: no Muse model is called)
+                    <b>Full run.</b> Muse Spark watches the clip, proposes laws and referees them; Muse Voice Transcribe hears the narration.
+                  </span>
+                </label>
+                <label className={styles.choice}>
+                  <input type="radio" name="mode" checked={lite} onChange={() => setLite(true)} />
+                  <span>
+                    <b>I know what this is.</b> Lite mode: no Muse model is called.
                   </span>
                 </label>
                 {lite && (
-                  <>
-                    <div className={styles.types} role="radiogroup" aria-label="What kind of experiment">
+                  <div className={styles.liteBox}>
+                    <div className={styles.types} role="radiogroup" aria-label="What kind of experiment (required in lite mode)">
                       {LITE_TYPES.map((t) => (
                         <button key={t.id} type="button" role="radio" aria-checked={liteType === t.id} className={liteType === t.id ? styles.typeOn : styles.type} onClick={() => setLiteType(t.id)}>
                           {t.label}
@@ -716,28 +755,23 @@ export default function NewExperiment({
                       ))}
                     </div>
                     {liteNote && <p className={styles.liteNote}>{liteNote}</p>}
-                    {liteDefault && (
-                      <button type="button" className={styles.linkBtn} onClick={() => setLite(false)}>
-                        Advanced: full mode, where Muse Spark watches the clip
-                      </button>
-                    )}
-                  </>
+                  </div>
                 )}
-              </div>
+              </fieldset>
               <label className={styles.field}>
-                <span>{lite ? "What moves?" : "What moves? (optional)"}</span>
-                <input value={noun} onChange={(e) => setNoun(e.target.value)} placeholder="e.g. orange ball, the keys on the string" disabled={busy} maxLength={60} required={lite} />
+                <span className={styles.label}>{lite ? "What moves? (required in lite mode)" : "What moves?"}</span>
+                <input value={noun} onChange={(e) => setNoun(e.target.value)} placeholder="e.g. orange ball, the keys on the string" disabled={busy} maxLength={60} required={lite} aria-invalid={lite && !!liteType && !noun.trim() ? true : undefined} />
                 <small>{lite ? "SAM 3.1 looks for exactly this, so name it as you would to a friend: colour and thing." : "Muse Spark names it from the video; type it if it picks the wrong thing."}</small>
               </label>
               {!lite && (
                 <label className={styles.field}>
-                  <span>What do you know? (optional)</span>
+                  <span className={styles.label}>What do you know?</span>
                   <textarea value={narration} onChange={(e) => setNarration(e.target.value)} rows={3} placeholder="e.g. the string is 50 cm long; dropped from about one metre" disabled={busy} maxLength={2000} />
                   <small>Anything you say in the clip is transcribed too: English, Hindi, Tamil, Bengali, Marathi, Telugu or Spanish.</small>
                 </label>
               )}
-              <div className={styles.field}>
-                <span>Something of known size in view? (optional)</span>
+              <label className={styles.field}>
+                <span className={styles.label}>Something of known size in view?</span>
                 <select
                   value={ruler ? `${ruler}|${rulerLen}` : ""}
                   onChange={(e) => {
@@ -746,7 +780,6 @@ export default function NewExperiment({
                     setRulerLen(l ?? "");
                   }}
                   disabled={busy}
-                  aria-label="Object of known size"
                 >
                   <option value="">{lite ? "No" : "No, or Muse Spark should look for one"}</option>
                   <option value="white A4 sheet of paper|0.297">An A4 sheet on the wall (29.7 cm)</option>
@@ -756,11 +789,11 @@ export default function NewExperiment({
                   <option value="metre stick|1.0">A metre stick (1 m)</option>
                 </select>
                 <small>A ruler in the same plane as the motion lets Ansatz measure g instead of assuming it.</small>
-              </div>
+              </label>
               {!lite && (
                 <>
                   <label className={styles.field}>
-                    <span>What language do you speak in the clip?</span>
+                    <span className={styles.label}>What language do you speak in the clip?</span>
                     <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={busy}>
                       <option value="">Muse Voice Transcribe should work it out</option>
                       {["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spanish"].map((l) => (
@@ -771,7 +804,7 @@ export default function NewExperiment({
                     </select>
                   </label>
                   <label className={styles.field}>
-                    <span>Does it play in slow motion?</span>
+                    <span className={styles.label}>Does it play in slow motion?</span>
                     <select value={slow} onChange={(e) => setSlow(e.target.value)} disabled={busy}>
                       <option value="1">No, or Muse Spark should work it out</option>
                       {[2, 4, 8, 10, 16, 20, 32].map((f) => (
@@ -783,32 +816,145 @@ export default function NewExperiment({
                   </label>
                 </>
               )}
-            </>
-          )}
-          {held ? (
-            <p className={`small ${styles.heldNote}`}>
-              {held.replay ? `This run took ${Math.round(held.secs)} s for real, replayed here in ${Math.round(held.secs / REPLAY_SPEED)} s, with no model called.` : `Done in ${Math.round(held.secs)} s.`}{" "}
-              <Link href={`/x/${held.replay?.record ?? held.id}`}>Open the full result</Link>
-            </p>
-          ) : (
-            <>
-              <button type="button" className={`btn ${styles.go}`} disabled={!file || busy || !liteReady} onClick={run}>
-                {busy ? `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s` : lite ? "Run it in lite mode" : "Run the experiment"}
-              </button>
-              <p className="small">
-                {!file && !busy
-                  ? "Choose or film a clip first."
-                  : lite && !busy && !liteReady
-                    ? "Pick what kind of experiment it is and name what moves."
-                    : lite && !busy
-                      ? "Lite mode: SAM 3.1 measures, code fits the textbook laws. No Muse model is called."
-                      : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for."}
-              </p>
-            </>
+              <div className={styles.go}>
+                <button type="button" className="btn" disabled={!file || busy || !liteReady} onClick={run} aria-describedby="run-hint">
+                  {lite ? "Run it in lite mode" : "Run the experiment"}
+                </button>
+                <p id="run-hint" className={`${styles.hint} ${(!file || !liteReady) ? styles.hintNeed : ""}`}>
+                  {hint}
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </div>
-    </>
+
+      {!busy && (
+        <>
+          {replays.length > 0 && (
+            <Plate
+              n="II"
+              id="replays"
+              className={styles.replayPlate}
+              title={`Recorded runs. Each replays a real run at ${REPLAY_SPEED}× speed, SAM 3.1’s measurements included, and ends on the numbers its page publishes.`}
+              caption="No model is called."
+            >
+              <div className={styles.replayHead}>
+                <h2>Just want to see a run?</h2>
+                <p>Watch one from the first frame to the verdict: the clip measured, the laws proposed, and the race on the frames none of them saw.</p>
+              </div>
+              <ul className={styles.replays}>
+                {replays.map((r, i) => (
+                  <li key={r.id}>
+                    <button type="button" className={styles.specimen} onClick={() => watchReplay(r)}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/prints/${r.record}.webp`} alt="" className={styles.specPrint} loading="lazy" />
+                      <span className={styles.fig}>
+                        Fig. {String.fromCharCode(97 + i)}, recorded {r.recorded}
+                      </span>
+                      <span className={styles.specTitle}>Watch Ansatz measure {r.label}</span>
+                      <span className={styles.specMeta}>
+                        {Math.round((r.events[r.events.length - 1]?.at ?? 0) / 1000)} s for real, {Math.round((r.events[r.events.length - 1]?.at ?? 0) / 1000 / REPLAY_SPEED)} s here
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Plate>
+          )}
+
+          <Page className={styles.after}>
+            {samples.length > 0 && (
+              <section className={styles.part}>
+                <h2>No clip handy?</h2>
+                <p>Run a real one on a clip licensed for reuse. It loads onto the bench above with what it needs filled in; you still press Run.</p>
+                <ul className={styles.sampleList}>
+                  {samples.map((s) => (
+                    <li key={s.file}>
+                      <span className={styles.sampleText}>
+                        <span className={styles.sampleTitle}>{s.label}</span>
+                        <span className={styles.sampleCredit}>{s.hint}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={async () => {
+                          await useSample(s);
+                          gridRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+                        }}
+                      >
+                        Put this clip on the bench
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            {samples.length > 0 && <Note who="A run on a sample">A real run, the same as one on your own clip; it is left out of the visitors&rsquo; runs on the experiments page.</Note>}
+
+            {!seriesId && (
+              <section className={styles.part}>
+                <h2>Doing the pendulum practical?</h2>
+                <p>Film the same pendulum at three or four string lengths, with the same paper sheet on the wall. A series fits them together and gives g from the slope of L against T², as the practical asks.</p>
+                <p className={styles.partAct}>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    onClick={async () => {
+                      const r = await fetch("/api/series", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "My pendulum series" }) }).then((x) => x.json()).catch(() => null);
+                      if (r?.id) router.push(`/new?series=${r.id}${classCode ? `&class=${classCode}` : ""}${new URLSearchParams(window.location.search).get("k") ? `&k=${encodeURIComponent(new URLSearchParams(window.location.search).get("k")!)}` : ""}`);
+                      else setError("The series couldn’t be started. Check your connection and try again.");
+                    }}
+                  >
+                    Start a series
+                  </button>
+                  <Link href="/series/pendulum-lengths">See one finished</Link>
+                </p>
+              </section>
+            )}
+            {!seriesId && <Note who="code">The period comes from each run&rsquo;s fitted law, so it uses every frame of the swing rather than a stopwatch on a few.</Note>}
+
+            <section className={styles.part}>
+              <h2>Filming a clip that measures well</h2>
+              <ol className={styles.tips}>
+                <li>
+                  <b>Hold the phone still.</b> Prop it on some books, or on a table. Ansatz measures the object against the picture, so the picture must not move.
+                </li>
+                <li>
+                  <b>Keep the whole motion in frame,</b> from before it starts to after it ends, side on, so the object moves across the picture rather than toward you.
+                </li>
+                <li>
+                  <b>Put something of known size in view,</b> in the same plane as the motion: an A4 sheet on the wall, a bank card, a metre stick. Then g is measured, not assumed.
+                </li>
+                <li>
+                  <b>Say what you know</b> while filming, in any of seven languages: the string&rsquo;s length, the height of the drop.
+                </li>
+                <li>
+                  <b>Three to twenty seconds is plenty.</b> Trim the rest on the bench before it is sent.
+                </li>
+              </ol>
+            </section>
+            <Note who="SAM 3.1">Finds the object by the name you or Muse Spark give it, then follows it through every frame. A name with a colour in it works best.</Note>
+
+            <section className={styles.part}>
+              <h2>What a run does</h2>
+              <ol className={styles.preview9}>
+                {STEPS.map((s) => (
+                  <li key={s.id}>
+                    <span className={styles.pLabel}>{s.label}</span>
+                    <span className={styles.pWho}>{s.who}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className={styles.partNote}>
+                Code fits every law to the first 70% of the motion and makes it predict the last 30%, which no law was fitted to. The law that misses those frames least wins; no model picks the winner. <Link href="/how">How a law wins</Link>.
+              </p>
+            </section>
+            <Note who="Who did what">SAM 3.1 measures. Muse Spark watches, proposes and referees. Muse Wonder proposes when every law misses. Code fits, predicts and ranks.</Note>
+          </Page>
+        </>
+      )}
+    </div>
   );
 }
 

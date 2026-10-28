@@ -59,24 +59,23 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
   const liteDefault = !!cls && cls.code !== JUDGES_CODE;
 
   return (
-    <div className="wrap" style={{ paddingBlock: "clamp(32px, 5vw, 64px)" }}>
-      <NewExperiment
+    <NewExperiment
         title="Run an experiment"
         lede="Film something move with the phone held still: a drop, a throw, a swing, a bounce, a roll. Ansatz measures it frame by frame, proposes laws of motion, and keeps the one that predicts the part of your clip it never saw."
         notes={
           <>
             {cls && (
-              <p className="small" style={{ marginBottom: 20 }}>
+              <p>
                 Running for <strong>{cls.name}</strong>: {Math.max(0, cls.quota - cls.used)} of the class’s {cls.quota} runs left. Results appear on the <a href={`/class/${cls.code}`}>class page</a>.
               </p>
             )}
             {cls?.code === JUDGES_CODE && !sp.k && (
-              <p className="small" style={{ marginBottom: 20, color: "var(--warn)" }}>
+              <p data-warn="">
                 This lane needs the key in its link (the full judges’ link ends in &amp;k=…). Without it, run your clip in the visitors’ lane on <a href="/new">Run an experiment</a>, or <a href="/new?replay=hardening-spring">watch a recorded run</a>.
               </p>
             )}
             {ser && (
-              <p className="small" style={{ marginBottom: 20 }}>
+              <p>
                 Adding to <strong>{ser.title}</strong>: {ser.ids.length} length{ser.ids.length === 1 ? "" : "s"} so far. Film the same pendulum at a new string length, with the same paper sheet on the wall; the <a href={`/series/${ser.id}`}>series page</a> fits them together.
               </p>
             )}
@@ -91,6 +90,5 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
         liteNote={liteNote}
         runNote={`Published runs took ${timeText(hl)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, about ${rs(hl.usd.median)} (${rs(hl.usd.min)} to ${rs(hl.usd.max)}), which we pay.`}
       />
-    </div>
   );
 }

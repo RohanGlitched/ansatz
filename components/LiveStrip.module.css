@@ -1,14 +1,15 @@
+/* the photo-finish, printed on the plate: a column of the clip per frame, SAM 3.1's dots in orange, laws in white ink */
 .wrap {
-  font-family: var(--font);
-  color: var(--plate-ink);
+  font-family: var(--ui);
+  color: var(--paper);
 }
 
 .ruler {
   position: relative;
-  height: 18px;
+  height: 20px;
   overflow: hidden;
-  font-size: 11px;
-  color: #8d939b;
+  font-size: 12px;
+  color: var(--prussian-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -21,9 +22,9 @@
 
 .rulerInner span {
   position: absolute;
-  bottom: 2px;
+  bottom: 3px;
   padding-left: 4px;
-  border-left: 1px solid #4a5058;
+  border-left: 1px solid var(--prussian-line);
   line-height: 1;
   white-space: nowrap;
   animation: appear 0.3s ease-out 0.75s backwards;
@@ -31,11 +32,11 @@
 
 .view {
   position: relative;
-  height: clamp(132px, 15vw, 204px);
+  height: clamp(140px, 15vw, 210px);
   overflow: hidden;
-  background: #07080a;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 1px #23272c;
+  background: var(--prussian-deep);
+  outline: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  outline-offset: 5px;
 }
 
 .inner {
@@ -48,6 +49,11 @@
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* every column of the clip goes through the same duotone as the clip itself */
+.print {
+  filter: url(#cyanotype);
 }
 
 /* zoomed in on the motion, each frame's column shows as its own band */
@@ -65,41 +71,54 @@
   overflow: visible;
 }
 
+/* the future the laws must predict: a lighter exposure */
 .unseen {
-  fill: #8fa0ff;
-  fill-opacity: 0.09;
+  fill: var(--paper);
+  fill-opacity: 0.1;
 }
 
+/* the 70/30 line */
 .split {
-  stroke: #8fa0ff;
-  stroke-opacity: 0.7;
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
+  stroke: var(--paper);
+  stroke-width: 2;
 }
 
 .front {
-  stroke: #e9ebe6;
-  stroke-opacity: 0.85;
+  stroke: #fff;
+  stroke-opacity: 0.9;
   stroke-width: 1.5;
 }
 
 .law path {
   fill: none;
+  /* white ink keeps a thin Prussian edge, so it reads on the pale parts of a print too */
+  filter: drop-shadow(0 0 1px rgb(12 38 74 / 0.95)) drop-shadow(0 0 2.5px rgb(12 38 74 / 0.55));
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: opacity 0.7s ease, stroke-width 0.4s ease;
+  transition: opacity 0.7s ease, stroke 0.7s ease, stroke-width 0.4s ease;
 }
 
 .law .fitted {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
+/* beaten, but within reach of the winner: it stays, faint */
 .lost {
-  opacity: 0.2;
+  opacity: 0.35;
   transition: opacity 0.7s ease;
 }
 
+/* refuted by the frames it never saw: struck in red */
+.struck path {
+  stroke: var(--struck);
+}
+
+.struck .fitted {
+  opacity: 0.3;
+}
+
 .won path {
+  stroke: #fff;
   stroke-width: 3px;
 }
 
@@ -127,7 +146,7 @@
   width: 6px;
   height: 6px;
   margin: -3px 0 0 -3px;
-  box-shadow: 0 0 0 1.5px #07080a;
+  box-shadow: 0 0 0 1.5px var(--prussian-deep);
   opacity: 0;
   animation: appear 0.3s ease-out forwards;
 }
@@ -150,7 +169,7 @@
   z-index: 2;
   top: 6px;
   width: 0;
-  font-size: 11px;
+  font-size: 12px;
   white-space: nowrap;
   pointer-events: none;
   transition: left 0.9s cubic-bezier(0.6, 0, 0.2, 1);
@@ -160,19 +179,18 @@
   position: absolute;
   top: 0;
   font-weight: 500;
-  padding: 1px 5px;
-  border-radius: 2px;
-  background: rgb(7 8 10 / 0.75);
+  padding: 1px 6px;
+  background: color-mix(in srgb, var(--prussian-deep) 82%, transparent);
 }
 
 .tag b:first-child {
-  right: 4px;
-  color: #b8bec6;
+  right: 5px;
+  color: var(--prussian-ink);
 }
 
 .tag b:last-child {
-  left: 4px;
-  color: #8fa0ff;
+  left: 5px;
+  color: #fff;
 }
 
 .count,
@@ -182,10 +200,10 @@
   left: 8px;
   bottom: 6px;
   margin: 0;
-  font-size: 12px;
-  color: #9aa0a8;
+  font-size: 12.5px;
+  color: var(--prussian-ink);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 0 4px #07080a;
+  text-shadow: 0 0 4px var(--prussian-deep);
 }
 
 .empty {
@@ -194,8 +212,9 @@
   place-items: center;
   text-align: center;
   padding: 0 16px;
-  font-size: 13px;
-  background: repeating-linear-gradient(90deg, #0d0f12 0 4px, #090a0c 4px 8px);
+  font-family: var(--cm);
+  font-size: 16px;
+  font-style: italic;
 }
 
 @media (max-width: 900px) {
@@ -203,6 +222,14 @@
     height: clamp(84px, 24vw, 132px);
   }
   .tag {
-    font-size: 10px;
+    font-size: 10.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rulerInner,
+  .inner,
+  .tag {
+    transition: none;
   }
 }

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Tex from "@/components/Tex";
-import { stripGeometry } from "@/components/strip";
-import strip from "@/components/StripCard.module.css";
-import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
+import Plate, { Note, Page, Section } from "@/components/book/Plate";
+import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { getSeries } from "@/lib/series";
 import { lawLatex } from "@/lib/latex";
 import type { Experiment } from "@/lib/experiment";
@@ -15,12 +14,14 @@ import { BENCH_FILES } from "@/app/bench/files";
 // noise (lib/experiment.ts reads the same setting)
 const POOR_FIT = Number(process.env.WONDER_POOR_FIT ?? 6);
 
-// every row is read from runs that ship with the site; they change only with a deploy
-export const revalidate = 300;
+// the shipped runs change only with a deploy; the visitors' runs are read from storage, so the page is rebuilt at most
+// once a minute (force-static keeps that uncached storage read from turning it into a per-request render)
+export const dynamic = "force-static";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Every experiment",
-  description: "Every Ansatz experiment in one list: the photo-finish of each clip, the law that won, the constant it measured against the known value, and links to the lab report, the data as CSV and the raw record as JSON.",
+  description: "The catalogue of Ansatz: every experiment printed as a cyanotype, with the law that won, the constant it measured against the known value, and links to the lab report, the data as CSV and the raw record as JSON.",
   alternates: { canonical: "/x" },
 };
 
@@ -28,32 +29,6 @@ const eqOf = (e: Experiment) => {
   const l = lawLatex(winnerOf(e).law);
   return l[l.length > 1 ? 1 : 0] ?? "";
 };
-
-/**
- * The gallery's print without the hover animation: the photo-finish strip, the frames no law saw shaded, and the winning
- * law across the whole clip. A list of every run stays light this way (the animated card carries a dot per frame).
- */
-function Thumb({ e }: { e: Experiment }) {
-  const g = stripGeometry(e);
-  if (!g) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={`/prints/${e.id}.webp`} alt="" loading="lazy" />;
-  }
-  const { W, H, X, split, win, pathOf } = g;
-  const law = pathOf(win);
-  return (
-    <div className={strip.strip}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/slits/${e.id}.webp`} alt={`Photo-finish of the clip: one slice per frame through the ${e.tracking.noun}, with the winning law drawn across it`} loading="lazy" decoding="async" />
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
-        {split && <rect x={X(split.f)} y={0} width={W - X(split.f)} height={H} className={strip.unseen} />}
-        {split && <line x1={X(split.f)} x2={X(split.f)} y1={0} y2={H} className={strip.splitLine} vectorEffect="non-scaling-stroke" />}
-        <path d={law} className={strip.lawHalo} vectorEffect="non-scaling-stroke" />
-        <path d={law} className={strip.law} vectorEffect="non-scaling-stroke" />
-      </svg>
-    </div>
-  );
-}
 
 function Value({ s }: { s: Summary }) {
   return (
@@ -64,11 +39,80 @@ function Value({ s }: { s: Summary }) {
   );
 }
 
+const isClose = (s: Summary) => s.offPct !== undefined && (Math.abs(s.offPct) <= 5 || (s.sigmas ?? Infinity) <= 2);
+
+/**
+ * One specimen of the catalogue: the clip's frames printed as a cyanotype (hovering or focusing it exposes the print
+ * back to the clip's own colours), its figure letter, title, winning law, finding, measured value and credit.
+ */
+function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean }) {
+  const s = summarise(e);
+  const w = winnerOf(e);
+  return (
+    <li className={styles.spec}>
+      <Link href={`/x/${e.id}`} className={styles.printLink} tabIndex={-1} aria-hidden="true">
+        <span className={styles.print}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/prints/${e.id}.webp`} alt="" className={styles.orig} loading="lazy" decoding="async" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/prints/${e.id}.webp`} alt="" className={styles.cyan} loading="lazy" decoding="async" />
+        </span>
+      </Link>
+      <p className={styles.fig}>
+        Fig. {fig}
+        {copy && <span className={styles.copy}>a copy we altered</span>}
+      </p>
+      <h3 className={styles.ctitle}>
+        <Link href={`/x/${e.id}`}>{e.title}</Link>
+      </h3>
+      <p className={styles.lawName}>{w.law.title}</p>
+      <div className={styles.ceq}>
+        <Tex>{eqOf(e)}</Tex>
+      </div>
+      <p className={styles.cfind}>{e.headline ?? e.finding}</p>
+      {s && (
+        <dl className={styles.result}>
+          <div>
+            <dt>{s.what}</dt>
+            <dd className={styles.measured}>
+              <Value s={s} />
+            </dd>
+          </div>
+          {s.known && (
+            <div>
+              <dt>Known{s.known.source !== s.what ? `, ${s.known.source}` : ""}</dt>
+              <dd>{s.known.value}</dd>
+            </div>
+          )}
+          {s.offPct !== undefined && (
+            <div>
+              <dt>Off by</dt>
+              <dd className={isClose(s) ? styles.ok : styles.far}>
+                {fmtOff(s.offPct)}
+                {s.sigmas !== undefined && <span className={styles.sig}> ({s.sigmas.toFixed(1)}σ)</span>}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {s?.also && <p className={styles.also}>Also: {s.also}.</p>}
+      {s?.note && <p className={styles.also}>{s.note}</p>}
+      <p className={styles.credit}>{e.source.credit}</p>
+      <p className={styles.files}>
+        <a href={`/x/${e.id}/report`}>Lab report</a>
+        <a href={`/x/${e.id}/data.csv`}>Data (CSV)</a>
+        <a href={`/x/${e.id}/record.json`}>Raw record (JSON)</a>
+      </p>
+    </li>
+  );
+}
+
 export default async function ExperimentsIndex() {
   const ids = await showcaseIds();
   const exps = (await Promise.all(ids.map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => !!e);
   const series = await getSeries("pendulum-lengths").catch(() => null);
   const runs = series ? (await Promise.all(series.ids.map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => !!e) : [];
+  const recent = await recentExperiments().catch(() => []);
   const rows = exps.map((e) => ({ e, s: summarise(e), w: winnerOf(e) }));
   const seriesRows = runs.map((e) => ({ e, s: summarise(e), w: winnerOf(e) }));
   const known = rows.filter((r) => r.s?.known && r.s.offPct !== undefined);
@@ -76,209 +120,227 @@ export default async function ExperimentsIndex() {
   const notRendered = exps.filter((e) => !/^Rendered/.test(e.source.credit ?? ""));
   const copies = notRendered.filter((e) => /\bby us\b/i.test(e.source.credit ?? ""));
   const real = notRendered.filter((e) => !copies.includes(e));
+  const rendered = exps.filter((e) => /^Rendered/.test(e.source.credit ?? ""));
+  // figure letters run through the whole book, in catalogue order
+  const filmed = [...real, ...copies];
+  const letter = (i: number) => String.fromCharCode(97 + i);
 
   return (
     <>
-      <header className={`wrap ${styles.head}`}>
-        <h1 className={styles.h1}>Every experiment</h1>
-        <p className="lede">
-          {exps.length} clips, each measured by SAM 3.1, given laws by Muse Spark (and Muse Wonder when the referee asks for one or the leading law misses its fitted frames by more than {POOR_FIT}× the noise), and ranked on the part of the motion no law was fitted to. {real.length} are real footage{copies.length ? ` (and ${copies.length} ${copies.length === 1 ? "is a copy" : "are copies"} we slowed)` : ""}; the rest are renders whose physics we set, so the answer is known. {known.length} of the {exps.length} carry a known value to check against, with how far off Ansatz came.
-        </p>
-        <nav className={styles.jump} aria-label="On this page">
-          <a href="#showcase">The {exps.length} experiments</a>
-          {seriesRows.length > 0 && <a href="#series">One pendulum, four lengths</a>}
-          <a href="#table">Every number in one table</a>
-          <a href="#agents">For agents and scripts</a>
-        </nav>
+      <header className={styles.title}>
+        <div>
+          <p className={styles.kicker}>The catalogue</p>
+          <h1>Every experiment</h1>
+        </div>
+        <div className={styles.abstract}>
+          <p>
+            {exps.length} clips, each measured by SAM 3.1, given laws by Muse Spark (and Muse Wonder when the referee asks for one or the leading law misses its fitted frames by more than {POOR_FIT}× the noise), and ranked on the part of the motion no law was fitted to. {real.length} are real footage{copies.length ? ` (and ${copies.length} ${copies.length === 1 ? "is a copy" : "are copies"} we slowed)` : ""}; the rest are renders whose physics we set, so the answer is known. {known.length} of the {exps.length} carry a known value to check against, with how far off Ansatz came.
+          </p>
+          <nav className={styles.jump} aria-label="On this page">
+            <a href="#filmed">Filmed</a>
+            <a href="#rendered">Rendered, with known answers</a>
+            {seriesRows.length > 0 && <a href="#series">One pendulum, four lengths</a>}
+            <a href="#visitors">Run by visitors</a>
+            <a href="#table">Every number in one table</a>
+            <a href="#agents">For agents and scripts</a>
+          </nav>
+        </div>
       </header>
 
-      <section id="showcase" className={styles.list} aria-label="Experiments">
-        <ol className="wrap">
-          {rows.map(({ e, s, w }, i) => (
-            <li key={e.id} className={styles.row}>
-              <Link href={`/x/${e.id}`} className={styles.thumb} aria-label={`Open ${e.title}`} tabIndex={-1}>
-                <Thumb e={e} />
-              </Link>
-              <div className={styles.body}>
-                <h2 className={styles.title}>
-                  <span className={styles.plate}>Plate {i + 1}.</span> <Link href={`/x/${e.id}`}>{e.title}</Link>
-                </h2>
-                <p className={styles.law}>
-                  <span className={styles.lawName}>{w.law.title}</span>
-                  <span className={styles.eq} aria-hidden="true">
-                    <Tex>{eqOf(e)}</Tex>
-                  </span>
-                </p>
-                {s && (
-                  <dl className={styles.result}>
-                    <div>
-                      <dt>{s.what}</dt>
-                      <dd className={styles.measured}>
-                        <Value s={s} />
-                      </dd>
-                    </div>
-                    {s.known && (
-                      <div>
-                        <dt>Known</dt>
-                        <dd>
-                          {s.known.value}
-                          {s.known.source !== s.what && <span className={styles.src}> ({s.known.source})</span>}
-                        </dd>
-                      </div>
-                    )}
-                    {s.offPct !== undefined && (
-                      <div>
-                        <dt>Off by</dt>
-                        <dd className={Math.abs(s.offPct) <= 5 || (s.sigmas ?? Infinity) <= 2 ? styles.ok : styles.far}>
-                          {fmtOff(s.offPct)}
-                          {s.sigmas !== undefined && <span className={styles.src}> ({s.sigmas.toFixed(1)}σ)</span>}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                )}
-                {s?.also && <p className={styles.also}>Also: {s.also}.</p>}
-                {s?.note && <p className={styles.also}>{s.note}</p>}
-                <p className={styles.credit}>{e.source.credit}</p>
-                <p className={styles.links}>
-                  <Link href={`/x/${e.id}`}>Open the experiment</Link>
-                  <a href={`/x/${e.id}/report`}>Lab report</a>
-                  <a href={`/x/${e.id}/data.csv`}>Data (CSV)</a>
-                  <a href={`/x/${e.id}/record.json`}>Raw record (JSON)</a>
-                </p>
-              </div>
-            </li>
+      <Plate
+        n="I"
+        id="filmed"
+        title="Filmed: footage nobody rendered, so nobody set its physics."
+        caption={copies.length ? "The slowed Moon clip is a copy we altered ourselves, as a test; its credit says how. Hover or focus a print to see the clip in its own colours." : "Hover or focus a print to see the clip in its own colours."}
+      >
+        <ul className={styles.catalogue}>
+          {filmed.map((e, i) => (
+            <Specimen key={e.id} e={e} fig={letter(i)} copy={copies.includes(e)} />
           ))}
-        </ol>
-      </section>
+        </ul>
+      </Plate>
 
-      {series && seriesRows.length > 0 && (
-        <section id="series" className={`section ${styles.band}`}>
-          <div className="wrap">
-            <h2>{series.title}</h2>
-            <p className="lede" style={{ marginTop: 12 }}>
-              The school practical: one rendered pendulum (true g 9.81 m/s²) filmed at {seriesRows.length} string lengths. Each run below takes its length from the A4 sheet on the wall; the <Link href={`/series/${series.id}`}>series page</Link> uses tape-measured lengths instead and fits g from the slope of L against T², as the practical asks.
-            </p>
-            <div className={styles.scroll}>
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th scope="col">Run</th>
-                    <th scope="col">Winning law</th>
-                    <th scope="col">g, length from the sheet</th>
-                    <th scope="col">Off by</th>
-                    <th scope="col">Files</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seriesRows.map(({ e, s, w }) => (
-                    <tr key={e.id}>
-                      <th scope="row">
-                        <Link href={`/x/${e.id}`}>{e.title}</Link>
+      <Plate n="II" id="rendered" title="Rendered with known physics, so the answer is known." caption="Each credit line states the physics the clip was rendered with; the off-by figure is Ansatz against those settings.">
+        <ul className={styles.catalogue}>
+          {rendered.map((e, i) => (
+            <Specimen key={e.id} e={e} fig={letter(filmed.length + i)} />
+          ))}
+        </ul>
+      </Plate>
+
+      <Page className={styles.page}>
+        {series && seriesRows.length > 0 && (
+          <>
+            <Section n={1} title={series.title} id="series">
+              <p>
+                The school practical: one rendered pendulum (true g 9.81 m/s²) filmed at {seriesRows.length} string lengths. Each run below takes its length from the A4 sheet on the wall; the <Link href={`/series/${series.id}`}>series page</Link> uses tape-measured lengths instead and fits g from the slope of L against T², as the practical asks.
+              </p>
+              <div className={styles.scroll} tabIndex={0} role="region" aria-label={series.title}>
+                <table className={`journal num ${styles.table}`}>
+                  <thead>
+                    <tr>
+                      <th scope="col">Run</th>
+                      <th scope="col">Winning law</th>
+                      <th scope="col" className="r">
+                        g, length from the sheet
                       </th>
-                      <td>{w.law.title}</td>
-                      <td className={styles.measured}>{s ? <Value s={s} /> : "—"}</td>
-                      <td>{fmtOff(s?.offPct)}</td>
-                      <td className={styles.files}>
-                        <a href={`/x/${e.id}/report`}>report</a> <a href={`/x/${e.id}/data.csv`}>CSV</a> <a href={`/x/${e.id}/record.json`}>JSON</a>
-                      </td>
+                      <th scope="col" className="r">
+                        Off by
+                      </th>
+                      <th scope="col">Files</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p style={{ marginTop: 20 }}>
-              <Link className="btn ghost" href={`/series/${series.id}`}>
-                Open the series: g from L against T²
-              </Link>
-            </p>
-          </div>
-        </section>
-      )}
+                  </thead>
+                  <tbody>
+                    {seriesRows.map(({ e, s, w }) => (
+                      <tr key={e.id}>
+                        <th scope="row">
+                          <Link href={`/x/${e.id}`}>{e.title}</Link>
+                        </th>
+                        <td>{w.law.title}</td>
+                        <td className={`r ${styles.measuredInk}`}>{s ? <Value s={s} /> : "—"}</td>
+                        <td className="r">{fmtOff(s?.offPct) || "—"}</td>
+                        <td className={styles.filesCell}>
+                          <a href={`/x/${e.id}/report`}>report</a> <a href={`/x/${e.id}/data.csv`}>CSV</a> <a href={`/x/${e.id}/record.json`}>JSON</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className={styles.act}>
+                <Link className="btn ghost" href={`/series/${series.id}`}>
+                  Open the series: g from L against T²
+                </Link>
+              </p>
+            </Section>
+            <Note who="Given, not measured">The sheet&rsquo;s size is assumed (A4, 29.7 cm), so every length read from it shares its few-percent error; a tape removes it.</Note>
+          </>
+        )}
 
-      <section id="table" className="section">
-        <div className="wrap">
-          <h2>Every number in one table</h2>
-          <p className="lede" style={{ marginTop: 12 }}>
-            The same figures as above, one row per experiment, for reading side by side or copying out. Values carry their one-standard-deviation error; “about” means the winning law missed its unseen frames by more than five times the noise, so no error bar is given.
+        <Section n={seriesRows.length ? 2 : 1} title="Run by visitors" id="visitors">
+          {recent.length > 0 ? (
+            <>
+              <p>The latest clips visitors ran on the site, measured by the current method. Nothing here was rendered or chosen by us.</p>
+              <ol className={styles.visitors}>
+                {recent.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/x/${r.id}`} className={styles.vTitle}>
+                      {r.title}
+                    </Link>
+                    <span className={styles.vFind}>{r.headline}</span>
+                    <span className={styles.vWhen}>{new Date(r.createdAt).toUTCString().slice(5, 22)} UTC</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <p>
+              No visitor has run a clip with the current method yet. <Link href="/new">Run an experiment</Link> and it appears here.
+            </p>
+          )}
+        </Section>
+        <Note who="Kept">Visitors&rsquo; clips are kept for two days; their results stay.</Note>
+
+        <Section n={seriesRows.length ? 3 : 2} title="Every number in one table" id="table">
+          <p>
+            The same figures as above, one row per experiment, for reading side by side or copying out. Values carry their one-standard-deviation error; &ldquo;about&rdquo; means the winning law missed its unseen frames by more than five times the noise, so no error bar is given.
           </p>
-          <div className={styles.scroll}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th scope="col">Experiment</th>
-                  <th scope="col">Winning law</th>
-                  <th scope="col">Quantity</th>
-                  <th scope="col">Measured</th>
-                  <th scope="col">Known</th>
-                  <th scope="col">Off by</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...rows, ...seriesRows].map(({ e, s, w }) => (
+        </Section>
+        <Note who="code">Every number is read from the stored record; none is typed by hand.</Note>
+      </Page>
+
+      <div className={styles.wideTable}>
+        <div className={styles.scroll} tabIndex={0} role="region" aria-label="Every number in one table">
+          <table className={`journal num ${styles.table}`}>
+            <thead>
+              <tr>
+                <th scope="col">Fig.</th>
+                <th scope="col">Experiment</th>
+                <th scope="col">Winning law</th>
+                <th scope="col">Quantity</th>
+                <th scope="col" className="r">
+                  Measured
+                </th>
+                <th scope="col" className="r">
+                  Known
+                </th>
+                <th scope="col" className="r">
+                  Off by
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...filmed, ...rendered].map((e, i) => {
+                const r = rows.find((x) => x.e.id === e.id)!;
+                return (
                   <tr key={e.id}>
+                    <td className={styles.figCell}>{letter(i)}</td>
                     <th scope="row">
                       <Link href={`/x/${e.id}`}>{e.title}</Link>
                     </th>
-                    <td>{w.law.title}</td>
-                    <td>{s?.what ?? "—"}</td>
-                    <td className={styles.measured}>{s ? <Value s={s} /> : "—"}</td>
-                    <td>{s?.known?.value ?? "—"}</td>
-                    <td>{fmtOff(s?.offPct) || "—"}</td>
+                    <td>{r.w.law.title}</td>
+                    <td className={styles.qty}>{r.s?.what ?? "—"}</td>
+                    <td className={`r ${styles.measuredInk}`}>{r.s ? <Value s={r.s} /> : "—"}</td>
+                    <td className="r">{r.s?.known?.value ?? "—"}</td>
+                    <td className="r">{fmtOff(r.s?.offPct) || "—"}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+              {seriesRows.map(({ e, s, w }) => (
+                <tr key={e.id}>
+                  <td className={styles.figCell} />
+                  <th scope="row">
+                    <Link href={`/x/${e.id}`}>{e.title}</Link>
+                  </th>
+                  <td>{w.law.title}</td>
+                  <td className={styles.qty}>{s?.what ?? "—"}</td>
+                  <td className={`r ${styles.measuredInk}`}>{s ? <Value s={s} /> : "—"}</td>
+                  <td className="r">{s?.known?.value ?? "—"}</td>
+                  <td className="r">{fmtOff(s?.offPct) || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </section>
+      </div>
 
-      <section id="agents" className={styles.agents}>
-        <div className="wrap">
-          <h2>For agents and scripts</h2>
-          <p className={styles.agentsLede}>Every page is server-rendered, and every number on it comes from a file you can fetch directly.</p>
+      <Page className={`${styles.page} ${styles.pageEnd}`}>
+        <Section n={seriesRows.length ? 4 : 3} title="For agents and scripts" id="agents">
+          <p>Every page is server-rendered, and every number on it comes from a file you can fetch directly.</p>
           <dl className={styles.endpoints}>
-            <div>
-              <dt>
-                <a href="/llms.txt">/llms.txt</a>
-              </dt>
-              <dd>A plain-text guide: every page, what it proves, and every headline number with its label and source.</dd>
-            </div>
-            <div>
-              <dt>
-                <code>/x/&lt;id&gt;/record.json</code>
-              </dt>
-              <dd>The stored experiment: observation, every candidate law with its fit, the referee’s critique, Muse Wonder’s attempts and the model ledger.</dd>
-            </div>
-            <div>
-              <dt>
-                <code>/x/&lt;id&gt;/data.csv</code>
-              </dt>
-              <dd>Every measured frame beside the winning law’s prediction, marked fitted or unseen.</dd>
-            </div>
-            <div>
-              <dt>
-                <a href="/bench">/bench</a>
-              </dt>
-              <dd>
-                The benchmark files behind /proof and the series page, read-only:{" "}
-                {Object.keys(BENCH_FILES).map((f, i, all) => (
-                  <span key={f}>
-                    <a href={`/bench/${f}`}>{f.replace(/\.json$/, "")}</a>
-                    {i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : "."}
-                  </span>
-                ))}
-              </dd>
-            </div>
-            <div>
-              <dt>
-                <a href="/api/health">/api/health</a>
-              </dt>
-              <dd>When each Meta model last answered.</dd>
-            </div>
+            <dt>
+              <a href="/llms.txt">/llms.txt</a>
+            </dt>
+            <dd>A plain-text guide: every page, what it proves, and every headline number with its label and source.</dd>
+            <dt>
+              <code>/x/&lt;id&gt;/record.json</code>
+            </dt>
+            <dd>The stored experiment: observation, every candidate law with its fit, the referee’s critique, Muse Wonder’s attempts and the model ledger.</dd>
+            <dt>
+              <code>/x/&lt;id&gt;/data.csv</code>
+            </dt>
+            <dd>Every measured frame beside the winning law’s prediction, marked fitted or unseen.</dd>
+            <dt>
+              <a href="/bench">/bench</a>
+            </dt>
+            <dd>
+              The benchmark files behind /proof and the series page, read-only:{" "}
+              {Object.keys(BENCH_FILES).map((f, i, all) => (
+                <span key={f}>
+                  <a href={`/bench/${f}`}>{f.replace(/\.json$/, "")}</a>
+                  {i < all.length - 2 ? ", " : i === all.length - 2 ? " and " : "."}
+                </span>
+              ))}
+            </dd>
+            <dt>
+              <a href="/api/health">/api/health</a>
+            </dt>
+            <dd>When each Meta model last answered.</dd>
           </dl>
-          <p className={styles.rule}>Please never POST to /api/run or /api/upload: they run paid models. The recorded replays at <a href="/new?replay=hardening-spring">/new?replay=hardening-spring</a> show a full run for free.</p>
-          <p className={styles.next}>
+          <p className={styles.rule}>
+            Please never POST to /api/run or /api/upload: they run paid models. The recorded replays at <a href="/new?replay=hardening-spring">/new?replay=hardening-spring</a> show a full run for free.
+          </p>
+          <p className={styles.act}>
             <Link className="btn" href="/judges">
               For judges: the case in one page
             </Link>
@@ -286,8 +348,9 @@ export default async function ExperimentsIndex() {
               Proof: the benchmark
             </Link>
           </p>
-        </div>
-      </section>
+        </Section>
+        <Note who="Courtesy">The replays call no model, so an agent can watch a whole run without spending anyone&rsquo;s credits.</Note>
+      </Page>
     </>
   );
 }
