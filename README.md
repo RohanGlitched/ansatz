@@ -6,7 +6,13 @@
 
 Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object in every frame (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the frames it never saw wins. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
 
-Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab).
+Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab). Everything here was built during the hackathon (Oct 26 to Nov 4, 2026).
+
+## Drag the line yourself
+
+Every experiment opens on a **Falsification Plate**. The clip is printed as a cyanotype, SAM 3.1's measurements sit on it in orange, and a line splits the motion into the past the laws may see and the future they must predict. Drag the line from 30% to 90%: every candidate law is refitted on the past (precomputed at 13 positions by the same fitting code a run uses, [`scripts/falsify-grid.ts`](scripts/falsify-grid.ts)), its prediction of the future is drawn in white ink, and a law whose miss is far above the measurement noise is struck through in red. On the [stiffening spring](https://ansatz-lab.vercel.app/x/hardening-spring), Muse Spark's laws are struck out at every position; Muse Wonder's survives.
+
+The site is designed as a lab book ([`docs/DESIGN.md`](docs/DESIGN.md)): plates printed as cyanotypes after Anna Atkins' 1843 sun-prints, pages set in Computer Modern so the text and the equations share one face, a margin note beside every measured claim saying which model or code produced it, and an [architecture plate](https://ansatz-lab.vercel.app/judges#architecture) showing which model does what and the sealed last 30% that only code may touch.
 
 ## Can Muse Spark tell the speed on its own?
 
@@ -33,6 +39,8 @@ Asked about each clip on its own five times, the model called the slowed copy re
 | A pendulum filmed in slow motion (no caption says so) | flagged: about **4 to 4.5× slower than real life** (unconfirmed: the capture rate isn’t published) | the uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).
+
+**Where it fails.** A real classroom clip, a 0.5 m pendulum whose bob is a small dark lead weight against a dark green chalkboard (“Pendelgesetz (mit Rechnung)”, Rhetos, Mathe-AC Lernwerkstatt Aachen, Wikimedia Commons, CC BY-SA 4.0): SAM 3.1 could not hold the bob, and Ansatz reported no usable g. The object has to stand out from what is behind it.
 
 ## How it works
 
@@ -73,6 +81,6 @@ Production stores clips and experiments in Google Cloud Storage through Vercel�
 
 ## Credits
 
-Showcase clips: NASA Apollo 16 television (public domain), digitised by Ken Glover for the Apollo Lunar Surface Journal; “Blocked pendulum slow motion” by MikeRun, Wikimedia Commons, CC BY-SA 4.0. Rendered benchmark clips are made by this project.
+Type: Computer Modern (KaTeX fonts, SIL OFL) and Archivo (SIL OFL). Showcase clips: NASA Apollo 16 television (public domain), digitised by Ken Glover for the Apollo Lunar Surface Journal; “Blocked pendulum slow motion” by MikeRun, Wikimedia Commons, CC BY-SA 4.0. Rendered benchmark clips are made by this project.
 
 MIT licence for the code.
