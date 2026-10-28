@@ -23,7 +23,7 @@ export default function Plate({
   caption?: React.ReactNode;
 }) {
   return (
-    <figure id={id} className={`${styles.plate} ${wide ? styles.wide : ""} ${className}`} data-develop="">
+    <figure id={id} className={`${styles.plate} ${wide ? styles.wide : ""} ${className}`} data-develop="" suppressHydrationWarning>
       <div className={`${styles.sheet} onPlate`}>
         <div className={styles.inner}>{children}</div>
         <span className={styles.unexposed} aria-hidden="true" />

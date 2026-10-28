@@ -1,40 +1,37 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { useApproach } from "@/components/book/approach";
 
 /**
- * Lights a pipeline's nodes in order the first time it is half in view, the way a run passes through them: each
- * `[data-node]` child gets `data-on` in turn, then the band gets `data-done`. Without script or with reduced motion
- * the CSS shows every node lit.
+ * Lights a pipeline's nodes in order when it is first seen, the way a run passes through them: each `[data-node]`
+ * child gets `data-on` in turn, then the band gets `data-done`. The band is set back to unlit only as it comes within
+ * reach below the screen (components/book/approach.ts); otherwise, without script, in print or with reduced motion,
+ * every node shows lit.
  */
 export default function PipelineLight({ children, className, step = 320 }: { children: React.ReactNode; className?: string; step?: number }) {
   const ref = useRef<HTMLDivElement>(null);
+  const stage = useApproach(ref, { threshold: 0.5 });
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+    const nodes = [...root.querySelectorAll<HTMLElement>("[data-node]")];
+    if (stage === "done") {
+      delete root.dataset.armed;
       root.dataset.done = "";
       return;
     }
     root.dataset.armed = "";
-    const nodes = [...root.querySelectorAll<HTMLElement>("[data-node]")];
-    const timers: number[] = [];
-    const io = new IntersectionObserver(
-      (es) => {
-        if (!es.some((x) => x.isIntersecting)) return;
-        io.disconnect();
-        nodes.forEach((n, i) => timers.push(window.setTimeout(() => n.setAttribute("data-on", ""), 150 + i * step)));
-        timers.push(window.setTimeout(() => (root.dataset.done = ""), 150 + nodes.length * step + 400));
-      },
-      { threshold: 0.5 },
-    );
-    io.observe(root);
-    return () => {
-      io.disconnect();
-      timers.forEach(clearTimeout);
-    };
-  }, [step]);
+    delete root.dataset.done;
+    if (stage === "armed") {
+      nodes.forEach((n) => n.removeAttribute("data-on"));
+      return;
+    }
+    const timers = nodes.map((n, i) => window.setTimeout(() => n.setAttribute("data-on", ""), 150 + i * step));
+    timers.push(window.setTimeout(() => (root.dataset.done = ""), 150 + nodes.length * step + 400));
+    return () => timers.forEach(clearTimeout);
+  }, [stage, step]);
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} data-done="">
       {children}
     </div>
   );

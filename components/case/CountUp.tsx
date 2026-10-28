@@ -1,51 +1,37 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useApproach } from "@/components/book/approach";
 
 /**
- * A measured number that counts up to its value once, the first time it is seen. The server renders the final value
- * (so the page reads right without script, and to machines); readers who prefer reduced motion only ever see it.
+ * A measured number that counts up to its value once, when it is first seen. The server renders the final value, and
+ * the number is set back to zero only as it comes within reach below the screen (components/book/approach.ts), so the
+ * page reads right without script, to machines, in print, and for readers who prefer reduced motion.
  */
 export default function CountUp({ to, decimals = 0, prefix = "", suffix = "", ms = 1100 }: { to: number; decimals?: number; prefix?: string; suffix?: string; ms?: number }) {
-  const [v, setV] = useState(to);
   const ref = useRef<HTMLSpanElement>(null);
+  const stage = useApproach(ref, { threshold: 0.6 });
+  const [v, setV] = useState(to);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el || !Number.isFinite(to)) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!Number.isFinite(to) || stage === "done") {
+      setV(to);
+      return;
+    }
+    if (stage === "armed") {
+      setV(0);
+      return;
+    }
     let raf = 0;
-    let done = false;
-    const run = () => {
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const k = Math.min(1, (now - t0) / ms);
-        const e = 1 - Math.pow(1 - k, 3);
-        setV(to * e);
-        if (k < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / ms);
+      setV(to * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) raf = requestAnimationFrame(tick);
     };
-    const io = new IntersectionObserver(
-      (es) => {
-        if (!done && es.some((x) => x.isIntersecting)) {
-          done = true;
-          io.disconnect();
-          run();
-        }
-      },
-      { threshold: 0.6 },
-    );
-    // start from zero only if the number is not on screen yet, so nothing visible jumps backwards
-    const r = el.getBoundingClientRect();
-    if (r.top > window.innerHeight || r.bottom < 0) setV(0);
-    else done = true;
-    io.observe(el);
-    return () => {
-      io.disconnect();
-      cancelAnimationFrame(raf);
-    };
-  }, [to, ms]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [stage, to, ms]);
 
   return (
     <span ref={ref}>

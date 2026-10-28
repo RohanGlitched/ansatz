@@ -58,21 +58,33 @@
   z-index: 2;
 }
 
-:global(html.js) [data-develop]:not([data-developed]) .unexposed {
+[data-armed]:not([data-developed]) .unexposed {
   opacity: 1;
 }
 
-:global(html.js) [data-develop]:not([data-developed]) .inner {
+[data-armed]:not([data-developed]) .inner {
   opacity: 0;
   filter: blur(3px);
 }
 
-[data-developed] .unexposed {
+[data-armed][data-developed] .unexposed {
   animation: expose 1.7s cubic-bezier(0.55, 0.05, 0.3, 1) both;
 }
 
-[data-developed] .inner {
+[data-armed][data-developed] .inner {
   animation: comeUp 1.3s 0.45s ease-out both;
+}
+
+@media print {
+  .unexposed {
+    display: none;
+  }
+
+  .inner {
+    opacity: 1 !important;
+    filter: none !important;
+    animation: none !important;
+  }
 }
 
 @keyframes expose {
@@ -102,14 +114,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :global(html.js) [data-develop]:not([data-developed]) .unexposed,
-  [data-developed] .unexposed {
+  [data-armed] .unexposed {
     opacity: 0;
     animation: none;
   }
 
-  :global(html.js) [data-develop]:not([data-developed]) .inner,
-  [data-developed] .inner {
+  [data-armed] .inner {
     opacity: 1;
     filter: none;
     animation: none;

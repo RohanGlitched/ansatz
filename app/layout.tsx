@@ -7,7 +7,7 @@ import "./globals.css";
 import styles from "./layout.module.css";
 import NavLinks from "./nav-links";
 import { CyanotypeDefs, Mark } from "@/components/book/Cyanotype";
-import Develop from "@/components/book/Develop";
+import Develop, { PREARM } from "@/components/book/Develop";
 import Rail from "@/components/book/Rail";
 
 // a lab book: Computer Modern, the face physics papers are set in (so text and equations share one voice), and a
@@ -44,8 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${cm.variable} ${ui.variable}`} suppressHydrationWarning>
       <head>
         <link rel="alternate" type="text/plain" href="/llms.txt" title="Guide for language-model agents" />
-        {/* plates start undeveloped only when script runs (components/book/Develop.tsx develops them) */}
-        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       </head>
       <body>
         <CyanotypeDefs />
@@ -68,6 +66,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main id="main">{children}</main>
+        {/* the plates on screen at first paint start unexposed, so the page opens developing (components/book/Develop.tsx) */}
+        <script dangerouslySetInnerHTML={{ __html: PREARM }} />
         <Rail />
         <footer className={styles.foot}>
           <div className={styles.footIn}>
