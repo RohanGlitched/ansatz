@@ -12,7 +12,7 @@ const read = (f: string) => readFileSync(path.join(root, f), "utf8");
 
 /** The source files that render each page (a page's id can sit in a component it renders). */
 function sourcesOf(page: string): string[] {
-  if (page === "/") return ["app/page.tsx", "components/MoonHero.tsx"];
+  if (page === "/") return ["app/page.tsx"];
   if (page === "/judges") return ["app/judges/page.tsx"];
   if (page === "/proof") return ["app/proof/page.tsx"];
   if (page === "/how") return ["app/how/page.tsx"];
