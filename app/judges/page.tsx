@@ -255,6 +255,9 @@ export default async function JudgesPage() {
             <a className="btn ghost" href="#bring-a-clip">
               Run your own clip
             </a>
+            <a className="btn ghost" href="https://youtu.be/NEy2kR944QY">
+              Watch the demo (2:20)
+            </a>
           </p>
           <p className={styles.headNote}>
             A recorded run calls no model and needs no link. To run your own clip, open <Link href="/new">Run an experiment</Link>: every visitor gets {PER_VISITOR} runs a day{laneEnds ? `, and the judges’ link, if you were sent it, has more reserved for judges until ${laneEnds}` : ""}. For agents: <a href="/llms.txt">/llms.txt</a> lists every number with its source, and <Link href="/x">/x</Link> indexes every experiment.
