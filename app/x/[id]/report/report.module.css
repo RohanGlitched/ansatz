@@ -1,85 +1,109 @@
+/* The lab report: one white sheet lying on the page, set like a practical write-up; prints on plain paper as it is. */
 .page {
   width: min(820px, 100% - 32px);
-  margin: 32px auto 64px;
+  margin: clamp(28px, 4vw, 56px) auto clamp(56px, 7vw, 96px);
   background: #fff;
-  padding: clamp(20px, 4vw, 48px);
-  border: 1px solid var(--rule);
-  font-size: 15.5px;
+  padding: clamp(22px, 5vw, 64px) clamp(20px, 5vw, 72px);
+  border-top: 6px solid var(--prussian);
+  box-shadow: 0 1px 0 var(--paper-line), 0 18px 40px -28px rgba(12, 38, 74, 0.45);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.head {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 18px;
+  margin-bottom: 8px;
 }
 
 .page h1 {
-  font-size: 30px;
-  margin: 4px 0 8px;
+  font-size: clamp(32px, 4.4vw, 44px);
+  line-height: 1.1;
+  margin: 6px 0 14px;
 }
 
 .page h2 {
-  font-size: 17px;
-  margin: 22px 0 6px;
-  border-bottom: 1px solid var(--rule);
-  padding-bottom: 4px;
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 30px 0 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.page h2::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--paper-line);
+  transform: translateY(-5px);
 }
 
 .page ol,
 .page ul {
-  padding-left: 20px;
+  padding-left: 22px;
   display: grid;
   gap: 4px;
+  margin: 0;
 }
 
 .small {
-  font-size: 13px;
-  color: var(--ink-3);
+  font-family: var(--ui);
+  font-size: 13.5px;
+  color: var(--ink-2);
 }
 
 .table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 8px 0;
-  font-variant-numeric: tabular-nums;
-  font-size: 14px;
+  margin: 12px 0;
+  font-size: 15px;
 }
 
 .table th,
 .table td {
-  border: 1px solid var(--rule);
-  padding: 4px 8px;
-  text-align: left;
+  padding: 5px 12px 5px 0;
+}
+
+.obsTable td {
+  padding-block: 3px;
+}
+
+.figs {
+  display: grid;
+  gap: 18px;
+  margin: 18px 0 6px;
 }
 
 .eq {
   overflow-x: auto;
+  margin: 8px 0;
+}
+
+.eq :global(.katex-display > .katex) {
+  font-size: 1.25em;
 }
 
 .noprint {
   display: flex;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 12px 22px;
   align-items: center;
-  margin-bottom: 18px;
-}
-
-@media print {
-  .noprint {
-    display: none;
-  }
-  .page {
-    border: 0;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-  }
+  margin-bottom: 26px;
+  font-family: var(--ui);
+  font-size: 15px;
 }
 
 .student {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px 20px;
-  margin-top: 12px;
+  gap: 10px 24px;
+  margin-top: 14px;
+  font-family: var(--ui);
   font-size: 14px;
+  color: var(--ink-2);
 }
 
 .student label {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: baseline;
 }
 
@@ -87,8 +111,50 @@
   flex: 1;
   min-width: 0;
   border: 0;
-  border-bottom: 1px solid var(--ink-3);
+  border-bottom: 1px solid var(--ink-2);
   background: transparent;
-  font: inherit;
+  font-family: var(--cm);
+  font-size: 17px;
+  color: var(--ink);
   padding: 2px 0;
+}
+
+.student input:focus-visible {
+  outline: 2px solid var(--measured);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .table {
+    font-size: 14px;
+  }
+  .table th,
+  .table td {
+    padding-right: 8px;
+  }
+}
+
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+  .noprint {
+    display: none;
+  }
+  .page {
+    border: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    font-size: 11pt;
+  }
+  .page h2 {
+    break-after: avoid;
+  }
+  .table,
+  .figs,
+  .eq {
+    break-inside: avoid;
+  }
 }

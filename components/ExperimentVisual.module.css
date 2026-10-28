@@ -1,26 +1,67 @@
-.tabs {
+/* controls set on a plate: paper on Prussian */
+.visual {
+  min-width: 0;
+}
+
+.bar {
   display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 16px;
+}
+
+.tabs {
+  display: inline-flex;
+  border: 1px solid color-mix(in srgb, var(--paper) 60%, transparent);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 .tabs button {
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--rule);
+  font-family: var(--ui);
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
   background: transparent;
-  border-radius: 999px;
-  color: var(--ink-2);
-  font-size: 14px;
+  color: var(--paper);
+  font-size: 15px;
+}
+
+.tabs button + button {
+  border-left: 1px solid color-mix(in srgb, var(--paper) 60%, transparent);
 }
 
 .tabs button:hover {
-  border-color: var(--ink);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
 }
 
-.tabs button.on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
+.tabs button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--prussian-deep);
+  font-weight: 600;
+}
+
+.tabs button:focus-visible,
+.colour:focus-visible {
+  outline: 2px solid var(--measured);
+  outline-offset: 2px;
+}
+
+.colour {
+  font-family: var(--ui);
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--prussian-ink);
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.colour:hover {
+  color: #fff;
 }

@@ -2,8 +2,30 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 20px;
-  margin-top: 12px;
+  gap: 10px 22px;
+  margin-top: 14px;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.km {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--measured);
+}
+
+.kl {
+  width: 20px;
+  height: 2px;
+  background: #fff;
 }
 
 .whatIf {
@@ -15,30 +37,30 @@
 }
 
 .wiLabel {
-  font-family: var(--font);
+  font-family: var(--ui);
   font-size: 14px;
-  color: var(--ink-3);
+  color: var(--prussian-ink);
 }
 
 .chip {
+  font-family: var(--ui);
   min-height: 34px;
   padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--paper) 55%, transparent);
   background: transparent;
-  color: var(--ink-2);
+  color: var(--paper);
   font-size: 14px;
 }
 
 .chip:hover {
-  border-color: var(--ink);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 12%, transparent);
 }
 
-.chip.on {
-  background: var(--plate);
-  border-color: var(--plate);
-  color: var(--plate-ink);
+.chip[aria-pressed="true"] {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--prussian-deep);
 }
 
 @media (max-width: 640px) {

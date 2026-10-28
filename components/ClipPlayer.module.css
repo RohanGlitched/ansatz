@@ -1,3 +1,4 @@
+/* the clip on a plate: a cyanotype by default, SAM 3.1's dots in orange, the law in white ink */
 .player {
   min-width: 0;
 }
@@ -5,9 +6,10 @@
 .frame {
   position: relative;
   width: 100%;
-  background: var(--plate);
-  border-radius: 6px;
+  background: var(--prussian-deep);
   overflow: hidden;
+  outline: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  outline-offset: 5px;
 }
 
 .video,
@@ -26,42 +28,71 @@
   position: absolute;
   left: 10px;
   top: 10px;
-  padding: 4px 8px;
+  max-width: calc(100% - 20px);
+  padding: 4px 9px;
   border-radius: 3px;
-  font-size: 12px;
+  font-family: var(--ui);
+  font-size: 12.5px;
   font-weight: 600;
-  background: rgba(14, 16, 18, 0.75);
-  color: #e9ebe6;
+  background: var(--prussian-deep);
+  color: var(--paper);
 }
 
 .unseenBadge {
-  background: var(--law);
-  color: #fff;
+  background: var(--paper);
+  color: var(--prussian-deep);
 }
 
 .bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 18px;
-  margin-top: 12px;
+  gap: 10px 20px;
+  margin-top: 16px;
 }
 
 .play {
-  min-height: 40px;
-  padding: 0 16px;
+  font-family: var(--ui);
+  min-height: 42px;
+  padding: 0 18px;
   border-radius: var(--radius);
-  border: 1.5px solid var(--ink);
-  background: var(--ink);
-  color: var(--paper);
+  border: 1.5px solid var(--paper);
+  background: var(--paper);
+  color: var(--prussian-deep);
+  font-size: 15px;
   font-weight: 600;
 }
 
 .play:hover {
-  background: var(--law);
-  border-color: var(--law);
+  background: #fff;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.km {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--measured);
+}
+
+.kl {
+  width: 20px;
+  height: 2px;
+  background: #fff;
 }
 
 .time {
   margin-left: auto;
+  font-family: var(--cm);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
 }

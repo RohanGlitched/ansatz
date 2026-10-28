@@ -1,7 +1,7 @@
 .ask {
   display: grid;
-  gap: 12px;
-  max-width: 760px;
+  gap: 14px;
+  max-width: var(--measure);
 }
 
 .row {
@@ -12,11 +12,24 @@
 .row input {
   flex: 1;
   min-width: 0;
-  font: inherit;
-  padding: 10px 12px;
-  border: 1px solid var(--rule);
+  min-height: 46px;
+  font-family: var(--cm);
+  font-size: 18px;
+  padding: 8px 14px;
+  border: 1px solid var(--ink-2);
   border-radius: var(--radius);
-  background: var(--paper);
+  background: #fff;
+  color: var(--ink);
+}
+
+.row input::placeholder {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.row input:focus-visible {
+  outline: 2px solid var(--measured);
+  outline-offset: 2px;
 }
 
 .examples {
@@ -26,20 +39,35 @@
 }
 
 .examples button {
-  font: inherit;
-  font-size: 13.5px;
-  padding: 6px 10px;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
+  font-family: var(--ui);
+  font-size: 14px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--prussian);
+  border-radius: var(--radius);
   background: transparent;
-  cursor: pointer;
-  color: var(--ink-2);
+  color: var(--prussian);
+}
+
+.examples button:hover {
+  background: var(--prussian);
+  color: var(--paper);
+}
+
+.examples button[disabled] {
+  opacity: 0.5;
+  cursor: progress;
 }
 
 .answer {
-  padding: 14px 16px;
-  border-left: 3px solid var(--law);
-  background: var(--paper-2);
+  padding: 14px 0 14px 18px;
+  border-left: 3px solid var(--prussian);
   display: grid;
   gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .row {
+    flex-direction: column;
+  }
 }

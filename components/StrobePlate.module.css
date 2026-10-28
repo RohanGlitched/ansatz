@@ -1,3 +1,4 @@
+/* the print, laid on a plate: a cyanotype of the clip with SAM 3.1's dots in orange and the law in white ink */
 .plate {
   margin: 0;
   min-width: 0;
@@ -6,10 +7,10 @@
 .frame {
   position: relative;
   width: 100%;
-  background: var(--plate);
-  border-radius: 6px;
+  background: var(--prussian-deep);
   overflow: hidden;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04), 0 18px 40px -24px rgba(14, 16, 18, 0.55);
+  outline: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  outline-offset: 5px;
 }
 
 .canvas,
@@ -25,90 +26,92 @@
   inset: 0;
   display: grid;
   place-items: center;
-  color: #9aa0a8;
+  font-family: var(--ui);
+  color: var(--prussian-ink);
   font-size: 14px;
   text-align: center;
   padding: 16px;
 }
 
 .splitTag {
-  font-family: var(--font);
+  font-family: var(--ui);
   position: absolute;
   transform: translate(-50%, -50%);
   display: flex;
-  gap: 1px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
+  border: 1px solid var(--paper);
+  border-radius: 3px;
+  overflow: hidden;
 }
 
 .splitTag span {
-  padding: 3px 7px;
+  padding: 3px 8px;
 }
 
 .fitted {
-  background: var(--law);
-  color: #fff;
-  border-radius: 3px 0 0 3px;
+  background: var(--prussian-deep);
+  color: var(--paper);
 }
 
 .predicted {
-  background: #e9ebe6;
-  color: var(--plate);
-  border-radius: 0 3px 3px 0;
+  background: var(--paper);
+  color: var(--prussian-deep);
 }
 
 /* the layout switch over a chronophotograph: spread by time, or every exposure where it really was */
 .modes {
-  font-family: var(--font);
+  font-family: var(--ui);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 4px;
-  margin-bottom: 10px;
-  font-size: 13px;
+  gap: 8px 0;
+  margin-bottom: 16px;
+  font-size: 14px;
 }
 
 .modes button {
   font: inherit;
-  font-weight: 600;
-  color: var(--ink-2);
+  min-height: 36px;
+  color: var(--paper);
   background: transparent;
-  border: 1px solid var(--rule);
-  padding: 4px 11px;
-  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--paper) 55%, transparent);
+  padding: 0 12px;
 }
 
 .modes button:first-of-type {
-  border-radius: 999px 0 0 999px;
+  border-radius: var(--radius) 0 0 var(--radius);
 }
 
 .modes button:nth-of-type(2) {
-  border-radius: 0 999px 999px 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
   margin-left: -1px;
 }
 
 .modes button[aria-pressed="true"] {
-  background: var(--plate);
-  border-color: var(--plate);
-  color: var(--plate-ink);
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--prussian-deep);
+  font-weight: 600;
 }
 
 .modeNote {
-  color: var(--ink-3);
-  margin-left: 8px;
-  line-height: 1.35;
+  color: var(--prussian-ink);
+  margin-left: 14px;
+  line-height: 1.4;
+  max-width: 60ch;
 }
 
 /* the chronophotograph: time runs left to right, labelled under the plate */
 .tick {
-  font-family: var(--font);
+  font-family: var(--ui);
   position: absolute;
-  bottom: 9px;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: #8b929b;
+  bottom: 5px;
+  margin-left: 5px;
+  font-size: 11.5px;
+  color: var(--prussian-ink);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
   line-height: 1;
@@ -116,19 +119,18 @@
 
 .caption {
   margin-top: 10px;
-  font-size: 14px;
-  color: var(--ink-3);
+  font-size: 15px;
+  color: var(--prussian-ink);
 }
 
 .compact .frame {
-  border-radius: 0;
-  box-shadow: none;
+  outline: 0;
 }
 
 /* gallery cards share one 16:9 box; clips of other shapes sit centred in it */
 .box {
   aspect-ratio: 16 / 9;
-  background: var(--plate);
+  background: var(--prussian-deep);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,22 +145,10 @@
 
 @media (max-width: 560px) {
   .splitTag {
-    font-size: 10.5px;
+    font-size: 11px;
   }
   .modeNote {
     margin-left: 0;
     flex-basis: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .frame img {
-    animation: develop 0.35s ease-out;
-  }
-}
-
-@keyframes develop {
-  from {
-    opacity: 0.4;
   }
 }

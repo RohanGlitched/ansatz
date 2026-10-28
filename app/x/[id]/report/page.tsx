@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import SeriesChart from "@/components/SeriesChart";
 import Tex from "@/components/Tex";
 import PrintButton from "@/components/PrintButton";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
@@ -9,6 +8,7 @@ import { prettyUnit } from "@/lib/units";
 import { fmtParam, fmtProse } from "@/lib/format";
 import { tr } from "@/lib/i18n";
 import { LANGUAGES, translation } from "@/lib/translate";
+import SeriesFigure from "../SeriesFigure";
 import styles from "./report.module.css";
 
 export const dynamic = "force-dynamic";
@@ -47,11 +47,13 @@ export default async function ReportPage({ params, searchParams }: Params) {
   const fmt = (v: number, sig = 3) => (Number.isFinite(v) ? String(+v.toPrecision(sig)) : "—");
   return (
     <article className={styles.page} lang={lang ?? "en"}>
+      {/* on paper the report is the whole page: the site's bar and footer stay on screen only */}
+      <style>{"@media print{body>header,body>footer,body>a{display:none!important}body{background:#fff!important}}"}</style>
       <div className={styles.noprint}>
         <PrintButton />
         <a href={`/x/${e.id}${lang ? `?lang=${lang}` : ""}`}>{t("back")}</a>
       </div>
-      <header>
+      <header className={styles.head}>
         <p className={styles.small}>{t("made_with", { date: new Date(e.createdAt).toISOString().slice(0, 10) })}</p>
         <h1>{e.title}</h1>
         <div className={styles.student}>
@@ -77,30 +79,36 @@ export default async function ReportPage({ params, searchParams }: Params) {
       </ol>
 
       <h2>{t("observations")}</h2>
-      <table className={styles.table}>
+      <table className={`journal ${styles.table} ${styles.obsTable}`}>
         <thead>
           <tr>
-            <th>t (s)</th>
+            <th className="r">t (s)</th>
             {Object.keys(m.series.ch).map((c) => (
-              <th key={c}>{c === "theta" ? "θ (rad)" : `${c} (${lengthUnit})`}</th>
+              <th key={c} className="r">
+                {c === "theta" ? "θ (rad)" : `${c} (${lengthUnit})`}
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map(({ t, i }) => (
             <tr key={i}>
-              <td>{t.toFixed(3)}</td>
+              <td className="r">{t.toFixed(3)}</td>
               {Object.keys(m.series.ch).map((c) => (
-                <td key={c}>{fmt(m.series.ch[c][i], 4)}</td>
+                <td key={c} className="r">
+                  {fmt(m.series.ch[c][i], 4)}
+                </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
       <p className={styles.small}>{step === 1 ? t("every", { n: m.series.t.length }) : t("every_nth", { k: step, n: m.series.t.length })}</p>
-      {channels.slice(0, 2).map((ch) => (
-        <SeriesChart key={ch} t={m.series.t} measured={m.series.ch[ch]} law={win.fit.predicted[ch]} split={plate.split} label={ch === "theta" ? "angle" : ch} unit={ch === "theta" ? "rad" : lengthUnit} height={200} />
-      ))}
+      <div className={styles.figs}>
+        {channels.slice(0, 2).map((ch) => (
+          <SeriesFigure key={ch} t={m.series.t} measured={m.series.ch[ch]} law={win.fit.predicted[ch]} split={plate.split} label={ch === "theta" ? "θ" : ch} unit={ch === "theta" ? "rad" : lengthUnit} height={220} futurePct={Math.round((1 - e.trainFrac) * 100)} />
+        ))}
+      </div>
 
       <h2>{t("result")}</h2>
       <p>{t("result_law", { law: win.law.title })}</p>
@@ -111,7 +119,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
           </Tex>
         ))}
       </div>
-      <table className={styles.table}>
+      <table className={`journal ${styles.table}`}>
         <thead>
           <tr>
             <th>{t("quantity")}</th>
