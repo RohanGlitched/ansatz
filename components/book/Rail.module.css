@@ -117,7 +117,7 @@
   transform: scale(1.35);
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .rail {
     display: block;
   }
@@ -200,7 +200,7 @@
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1600px) {
   .contents {
     display: none;
   }
