@@ -48,6 +48,7 @@ const isClose = (s: Summary) => s.offPct !== undefined && (Math.abs(s.offPct) <=
 function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean }) {
   const s = summarise(e);
   const w = winnerOf(e);
+  const rerun = (e as Experiment & { rerun?: { note: string } }).rerun;
   return (
     <li className={styles.spec}>
       <Link href={`/x/${e.id}`} className={styles.printLink} tabIndex={-1} aria-hidden="true">
@@ -70,6 +71,8 @@ function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean
         <Tex>{eqOf(e)}</Tex>
       </div>
       <p className={styles.cfind}>{e.headline ?? e.finding}</p>
+      {/* the card shows the published run; a later re-run that changed the story says so right under its headline */}
+      {rerun && <p className={styles.also}>{rerun.note}</p>}
       {s && (
         <dl className={styles.result}>
           <div>

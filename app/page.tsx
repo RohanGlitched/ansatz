@@ -56,7 +56,7 @@ export default async function Home() {
           </div>
           <div className={styles.abstract}>
             <p>
-              A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame. Muse Spark writes candidate laws of motion. Each law sees only the start of the motion and has to predict the rest. Laws that miss are struck out; the one that predicts survives.
+              A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame. Muse Spark writes candidate laws of motion. Each law is fitted to the start of the motion only and has to predict the rest. Laws the future refutes are struck out; the one that predicts survives.
             </p>
             <div className={styles.cta}>
               <Link href="/new" className="btn">
@@ -80,7 +80,7 @@ export default async function Home() {
           }
           caption={
             <>
-              Muse Spark&rsquo;s laws were refuted by the future; Muse Wonder&rsquo;s held. Each position of the line is a full refit by the same code a run uses. <Link href={`/x/${hero.id}`}>Open this experiment</Link>.
+              On this published run, Muse Spark&rsquo;s laws were refuted by the future and Muse Wonder&rsquo;s held (on a later re-run with an updated prompt, Muse Spark proposed the cubic law itself). Each position of the line is a full refit by the same code a run uses. <Link href={`/x/${hero.id}`}>Open this experiment</Link>.
             </>
           }
         >
@@ -123,7 +123,7 @@ export default async function Home() {
         <ol className={styles.steps}>
           <li>
             <h3>Watch and listen</h3>
-            <p>Muse Voice Transcribe hears what was said while filming, in any of seven languages. Muse Spark watches the clip at its own frame rate and names what moves, when, what is known, and whether the clip is slowed down.</p>
+            <p>Muse Voice Transcribe hears what was said while filming, in any of seven languages. Muse Spark watches the whole clip at its own frame rate and names what moves, when, and what is known; no number from the last 30% reaches it, and no law is fitted to it.</p>
             {spec && <blockquote className={styles.specimen}>&ldquo;{spec.observation.what_happens.split(". ")[0]}.&rdquo;</blockquote>}
           </li>
           <li>
@@ -145,13 +145,13 @@ export default async function Home() {
             )}
           </li>
           <li>
-            <h3>Predict what was never seen</h3>
+            <h3>Predict the part no law was fitted to</h3>
             <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%, which no law was fitted to. The law that misses the unseen frames least wins, and every measured number comes from its fit.</p>
             {sparkBest && <p className={styles.specimen}>Muse Spark&rsquo;s best law missed the unseen motion by {(sparkBest.fit.testRms * 1000).toFixed(1)} mm.</p>}
           </li>
           <li>
             <h3>Referee, and revise</h3>
-            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way.</p>
+            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run with today&rsquo;s pipeline, it still finds the friction Muse Spark&rsquo;s laws leave out.</p>
             {spec?.wonder && wonderLaw && (
               <div className={styles.specimen}>
                 <ol className={styles.tries}>

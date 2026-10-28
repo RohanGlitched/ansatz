@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: { default: "Ansatz: film anything that moves, get the law that moves it", template: "%s · Ansatz" },
   description:
-    "Ansatz turns a phone video into a physics experiment. SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose equations of motion, and the law that predicts the part of the clip it never saw wins.",
+    "Ansatz turns a phone video into a physics experiment. SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose equations of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to, wins.",
   openGraph: { type: "website", siteName: "Ansatz" },
   twitter: { card: "summary_large_image" },
 };

@@ -22,7 +22,7 @@ const STEPS: { id: StepId; label: string; who: string; lite?: string }[] = [
   { id: "track", label: "Measure the object in every frame", who: "SAM 3.1" },
   { id: "measure", label: "Turn pixels into a trajectory", who: "code" },
   { id: "hypothesise", label: "Propose laws of motion", who: "Muse Spark 1.3", lite: "the textbook library, by code" },
-  { id: "fit", label: "Fit each law, predict the frames it never saw", who: "code" },
+  { id: "fit", label: "Fit each law to the first 70%, predict the last 30%", who: "code" },
   { id: "referee", label: "Referee the result; write one more law if the misses demand it", who: "Muse Spark 1.3, then Muse Wonder 1.0", lite: "skipped in lite mode" },
   { id: "report", label: "Write it up", who: "code" },
 ];

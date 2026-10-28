@@ -61,7 +61,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
   return (
     <NewExperiment
         title="Run an experiment"
-        lede="Film something move with the phone held still: a drop, a throw, a swing, a bounce, a roll. Ansatz measures it frame by frame, proposes laws of motion, and keeps the one that predicts the part of your clip it never saw."
+        lede="Film something move with the phone held still: a drop, a throw, a swing, a bounce, a roll. Ansatz measures it frame by frame, proposes laws of motion, and keeps the one that best predicts the last 30% of your clip, which no law was fitted to."
         notes={
           <>
             {cls && (

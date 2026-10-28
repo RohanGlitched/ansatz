@@ -21,7 +21,7 @@ const STEPS = [
   { id: "watch", title: "Watch and listen" },
   { id: "measure", title: "Measure every frame" },
   { id: "propose", title: "Propose laws" },
-  { id: "fit", title: "Fit, then predict what was never seen" },
+  { id: "fit", title: "Fit, then predict the last 30%" },
   { id: "referee", title: "Referee, and a theorist with a tool" },
   { id: "clock-check", title: "The clock check" },
 ];
@@ -89,7 +89,7 @@ export default async function HowPage() {
         <Note who="Muse Spark 1.3, Muse Voice Transcribe">Voice Transcribe turns what was said into text. Muse Spark returns the observation as JSON, under a schema.</Note>
         <div className={styles.body}>
           <p>
-            Muse Spark watches the whole clip, with Voice Transcribe&rsquo;s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema, so every field arrives where code expects it.
+            Muse Spark watches the whole clip, with Voice Transcribe&rsquo;s transcript of the narration alongside, and returns a structured observation: what moves, named so a segmentation model can find it; when the free motion starts and ends; whether it flies, swings, oscillates or runs along a path; any object of known size in the plane of the motion (an A4 sheet, a tennis ball, a person); facts said aloud or printed on screen; whether the clip is slowed down; and where it happens (Earth, or the Moon). Structured output constrains the decoder to a JSON schema, so every field arrives where code expects it. Muse Spark watches the whole clip to name what moves; no number from the last 30% reaches it, and no law is fitted to it.
           </p>
           {moon && (
             <figure className={styles.specimen}>
@@ -149,7 +149,7 @@ export default async function HowPage() {
           )}
         </div>
 
-        <Step n={5} id="fit" title="Fit, then predict what was never seen" />
+        <Step n={5} id="fit" title="Fit, then predict the last 30%" />
         <Note who="code: RK4, Levenberg–Marquardt">No model in this step. Every measured number in a report comes from here.</Note>
         <div className={styles.body}>
           <p>
@@ -160,7 +160,7 @@ export default async function HowPage() {
           </p>
           {ok.length > 0 && (
             <figure className={styles.specimen}>
-              <figcaption className={styles.specLab}>On the Moon run: each law&rsquo;s miss on the frames it never saw</figcaption>
+              <figcaption className={styles.specLab}>On the Moon run: each law&rsquo;s miss on the last 30%, which no law was fitted to</figcaption>
               <table className={styles.misses}>
                 <tbody>
                   {ok.map((c, i) => (

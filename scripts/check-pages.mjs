@@ -4,6 +4,11 @@
 // - a number that rendered wrong (NaN, Infinity, "undefined" in text, ±0%, ± 0.000)
 // - wording the judges caught overreaching: "no model saw / was given", "when the referee asks" with no "or" (the code
 //   also calls Muse Wonder in on a poor fit), "The language model", and a 1.55 not labelled as the whole-run ratio
+// - "no law saw" and "never saw" about the frames, clip or motion: Muse Spark watches the whole clip, so the honest claim
+//   is that no law is fitted to the last 30% and no number from it reaches any model
+// - a claim that Muse Spark's laws missed the hardening spring on a page that never says it was the published run: on a
+//   later re-run with today's prompt Muse Spark proposed the cubic law itself (the stored record's own headline is
+//   shown in galleries, so the qualifier may sit elsewhere on the page, but the page must carry it)
 // - a wrong address that doesn't serve the 404 page's own heading in its HTML
 // With --layout it also opens the key pages at 390 px wide and fails if any scrolls sideways. Run before each deploy.
 import { readFileSync } from "node:fs";
@@ -28,6 +33,14 @@ const wording = [
   // the clause must go on to the second trigger ("for one or the leading law misses its fitted frames…")
   (t) => [...t.matchAll(/when the referee asks/gi)].filter((m) => !/\bor\b/.test(t.slice(m.index, m.index + 160).split(/[.;)\n]/)[0])).map((m) => clip(t, m.index)),
   (t) => [...t.matchAll(/The language model/g)].map((m) => clip(t, m.index)),
+  (t) => [...t.matchAll(/no (?:law|model)s? (?:ever )?saw/gi)].map((m) => clip(t, m.index)),
+  // "never saw" is fine about other things (the uploader's numbers); about the frames, the clip or the motion it overreaches
+  (t) => [...t.matchAll(/never s(?:aw|een)/gi)].filter((m) => /frame|clip|motion|30%|held-out|future|unseen/i.test(t.slice(Math.max(0, m.index - 70), m.index + 50))).map((m) => clip(t, m.index)),
+  // Muse Wonder's win over Muse Spark on the hardening spring is the published run's; the claim must say so nearby
+  (t) =>
+    [...t.matchAll(/every law Muse Spark proposed missed|(?:found|finds) (?:two laws|the (?:cubic )?law) Muse Spark missed|Muse Spark[’']s laws (?:miss|fail|are (?:struck|refuted))|law outside Muse Spark[’']s proposals|a law Muse Spark didn[’']t propose/gi)]
+      .filter((m) => !/published run|re-run|rerun/i.test(t.slice(Math.max(0, m.index - 300), m.index + 400)) && !/later re-run|re-run on \d+ \w+|re-run with today/i.test(t))
+      .map((m) => clip(t, m.index)),
   // 1.55 is the whole-run ratio of the two accelerations; the headline is the jump-for-jump 1.494, so 1.55 must say which it is
   (t) => [...t.matchAll(/(?<![\d.])1\.55(?!\d)(?!\s?(s|ms|m|cm|mm|kg|rad)\b)/g)].filter((m) => !/whole-run|ratio/i.test(t.slice(Math.max(0, m.index - 40), m.index + 44))).map((m) => clip(t, m.index)),
 ];

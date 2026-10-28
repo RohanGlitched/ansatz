@@ -223,6 +223,16 @@
   color: var(--paper);
 }
 
+/* every link that stands on its own is at least 24 px tall, a target a thumb can hit (WCAG 2.5.8) */
+.files a,
+.filesCell a,
+.endpoints dt a,
+.endpoints dd a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+}
+
 .files a:hover {
   color: #fff;
 }

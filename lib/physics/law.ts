@@ -1,7 +1,7 @@
 /**
  * A law is a hypothesis written as equations of motion. Muse proposes it; this file turns it into numbers:
  * integrate it (RK4, with impact events), fit its unknowns to what SAM measured (Levenberg–Marquardt),
- * and score how well it predicts the part of the clip it never saw. No model output is trusted until a law
+ * and score how well it predicts the part of the clip it was not fitted to. No model output is trusted until a law
  * written from it has predicted the future of the clip.
  */
 import { compile, names, parse, type Compiled } from "./expr";
@@ -171,7 +171,7 @@ export function compileLaw(law: Law): CompiledLaw {
           // nudge so the guard re-arms only after it becomes positive again
           prevG[e] = Math.max(events[e].when(scope), 0) || 0;
           // every other guard is read again at the event's instant, after the update: the loop stops here, and a guard
-          // left at its value from the step before would fire (or miss) on a crossing it never saw
+          // left at its value from the step before would fire (or miss) on a crossing it never reached
           for (let o = 0; o < events.length; o++) if (o !== e) prevG[o] = events[o].when(scope);
           void pre;
           break;
@@ -201,7 +201,7 @@ export type Fit = {
   trainCost: number;
   /** RMS residual on the frames the law was fitted to, metres or radians per channel (weighted mean) */
   trainRms: number;
-  /** RMS error predicting frames it never saw */
+  /** RMS error predicting the held-out frames, which it was not fitted to */
   testRms: number;
   /** worst prediction error on held-out frames */
   testMax: number;

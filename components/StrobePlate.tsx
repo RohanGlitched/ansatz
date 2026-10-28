@@ -16,7 +16,7 @@ export type PlateData = {
   baseT: number;
   strobe: { t: number; box: [number, number, number, number]; rle?: { size: [number, number]; counts: string | number[] } }[];
   measured: { x: number; y: number }[];
-  /** index into `measured` where the frames the law never saw begin */
+  /** index into `measured` where the held-out frames, which no law was fitted to, begin */
   split: number;
   law: { x: number; y: number }[];
   pivot?: { x: number; y: number } | null;

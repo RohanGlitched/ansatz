@@ -74,7 +74,11 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
   const tapeRows = rows.filter((r) => r.lengthFrom === "tape" && r.gSheet !== undefined && r.sigmaSheet !== undefined);
   const sheetPct = tapeRows.length ? Math.round((tapeRows[0].sigmaSheet! / tapeRows[0].gSheet!) * 100) : NaN;
   const tapeLetters = tapeRows.map((r) => r.student.replace(/^Student /, ""));
-  const ok = rows.filter((r) => !r.warn && r.value !== undefined).length;
+  // a flag is a real warning only; a run that measured the string length with g given has no g, but nothing to flag
+  const flags = rows.filter((r) => r.warn).length;
+  const ok = rows.length - flags;
+  const gRuns = rows.filter((r) => r.g !== undefined).length;
+  const lengthRuns = rows.filter((r) => r.gGiven).map((r) => r.student.replace(/^Student /, ""));
 
   return (
     <>
@@ -206,7 +210,8 @@ export default async function ClassPage({ params }: { params: Promise<{ code: st
           <h2 id="sheet-h">{judges ? "Every run in the lane" : "The grading sheet"}</h2>
           {rows.length > 0 && (
             <p className={styles.sheetSum}>
-              {ok} of {rows.length} run{rows.length === 1 ? "" : "s"} passed every check{rows.length - ok > 0 ? `; ${rows.length - ok} carr${rows.length - ok === 1 ? "ies" : "y"} a flag to read before marking` : ""}.
+              {ok} of {rows.length} run{rows.length === 1 ? "" : "s"} passed every check{flags > 0 ? `; ${flags} carr${flags === 1 ? "ies" : "y"} a flag to read before marking` : ""}
+              {lengthRuns.length > 0 ? `. ${gRuns} measured g; ${lengthRuns.join(" and ")} measured the string length with g given` : ""}.
             </p>
           )}
         </div>

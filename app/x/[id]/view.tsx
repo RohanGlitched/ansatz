@@ -189,7 +189,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const sj = mt?.sameJump;
   const moonG = e.comparisons.find((c) => c.param === "g");
   const sparkWrongB = st?.repeats?.clips.find((c) => c.clip === "B")?.answers.filter((x) => x.real_speed).length;
-  const plateCaption = `SAM 3.1’s masks cut the ${e.tracking.noun} out of ${e.strobe.length} frames and lay them on one frame of the clip. The law was fitted to the filled dots only. The rings are the ${unseenFrames} frames it never saw (${fmtS(unseenSeconds)} of motion), and its line had to find them.`;
+  const plateCaption = `SAM 3.1’s masks cut the ${e.tracking.noun} out of ${e.strobe.length} frames and lay them on one frame of the clip. The law was fitted to the filled dots only. The rings are the ${unseenFrames} frames it was not fitted to (${fmtS(unseenSeconds)} of motion), and its line had to find them.`;
 
   return (
     <article className={styles.article}>
@@ -557,7 +557,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               Muse Wonder&rsquo;s notebook
             </h3>
             <p>
-              Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one. It never saw the held-out frames.
+              Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one. No number from the held-out frames reached it.
             </p>
             <Note who="Muse Wonder 1.0">
               {e.wonder.trigger === "referee"

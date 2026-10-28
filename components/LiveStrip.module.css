@@ -108,7 +108,7 @@
   transition: opacity 0.7s ease;
 }
 
-/* refuted by the frames it never saw: struck in red */
+/* refuted by the held-out frames, which no law was fitted to: struck in red */
 .struck path {
   stroke: var(--struck);
 }

@@ -1,7 +1,7 @@
 // usage: tsx scripts/wonder-bench.ts [srcDir=.probe/bench_r7] [budgetUsd=3.5]
 // Muse Wonder as a standing challenger on every benchmark clip. It reads the same fitted-frames table a run gives it,
 // with a brief that says the law code chose may already be right; it gets the fit_law tool and up to three turns, and
-// its submitted law is fitted and ranked against the stored laws on the held-out frames it never saw. The measurements
+// its submitted law is fitted and ranked against the stored laws on the held-out frames, which no law was fitted to. The measurements
 // are the stored ones (no new SAM or observe calls), so only Muse Wonder is billed. Writes data/bench/wonder.json.
 import "./env";
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -33,7 +33,7 @@ const save = () => {
   const usd = rows.reduce((t: number, r) => t + ((r as { usd?: number }).usd ?? 0), 0);
   const out = {
     generatedAt: new Date().toISOString(),
-    note: "Muse Wonder as a standing challenger on each benchmark clip: the fitted-frames table a run would give it, a brief that the chosen law may already be right, the fit_law tool and up to three turns. Its submitted law is fitted and ranked against the stored laws on the held-out 30%, which it never saw. beat: it leads with an unseen miss at least 10% smaller; tie: the same law, or within 10%; worse: a larger unseen miss; none: nothing usable submitted.",
+    note: "Muse Wonder as a standing challenger on each benchmark clip: the fitted-frames table a run would give it, a brief that the chosen law may already be right, the fit_law tool and up to three turns. Its submitted law is fitted and ranked against the stored laws on the held-out 30%, which no law was fitted to and no number of which reached it. beat: it leads with an unseen miss at least 10% smaller; tie: the same law, or within 10%; worse: a larger unseen miss; none: nothing usable submitted.",
     summary: { clips: rows.length, beat: count("beat"), tie: count("tie"), worse: count("worse"), none: count("none"), usd: +usd.toFixed(3) },
     rows,
   };

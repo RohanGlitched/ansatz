@@ -264,7 +264,7 @@ function LiveRun({ src, live, footer, readout }: { src: string | null; live: Liv
             <i className={styles.kLaw} aria-hidden="true" /> a law&rsquo;s prediction
           </span>
           <span>
-            <i className={styles.kStruck} aria-hidden="true" /> refuted by the frames it never saw
+            <i className={styles.kStruck} aria-hidden="true" /> refuted by the last 30%, which no law was fitted to
           </span>
         </p>
         {rows && (
@@ -318,7 +318,7 @@ function LiveRun({ src, live, footer, readout }: { src: string | null; live: Liv
         )}
         {settled && winner && (
           <p className={styles.verdictLine}>
-            <strong>{winner.title}</strong> predicted the {unseenPct}% of the motion it never saw to within <span className="num">{winMiss ? fmtMiss(winMiss.value, winMiss.unit) : winner.miss}</span>.{live.summary ? ` ${live.summary}` : ""}
+            <strong>{winner.title}</strong> predicted the last {unseenPct}% of the motion, which no law was fitted to, to within <span className="num">{winMiss ? fmtMiss(winMiss.value, winMiss.unit) : winner.miss}</span>.{live.summary ? ` ${live.summary}` : ""}
           </p>
         )}
         {readout && (

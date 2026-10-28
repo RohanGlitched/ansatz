@@ -694,7 +694,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
 
     // 6. hypothesise
-    // the theorist sees only the frames the laws are fitted to: the last 30% stays unseen by every model
+    // the theorist sees only the frames the laws are fitted to: no number from the last 30% reaches any model
     const dig = digest(m, 40, TRAIN);
     const hyp = await step("hypothesise", () => (input.lite
       ? Promise.resolve({ reasoning: `${NO_SPARK}: the textbook laws for a ${input.lite.type}.`, laws: liteLaws(input.lite.type, m.series, { g: gUsed ?? 9.81, gFixed: gUsed !== null, pendulumG: m.calibration.kind === "none" && m.series.ch.theta ? gBody : undefined, pixels: m.calibration.kind === "none" }), ifItWins: {} as Record<string, string> } as Awaited<ReturnType<typeof hypothesise>>)

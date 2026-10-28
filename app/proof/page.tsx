@@ -250,7 +250,7 @@ export default async function ProofPage() {
             {slowAll && slowAll.all.length ? (
               <>
                 {" "}
-                On the clock: {slowAll.line.replace(/^\d+ of \d+ /, "")}. The clock check works from a ruler in view
+                On the clock: {slowAll.line}. The clock check works from a ruler in view
                 {misread.length ? `; the ${misread.map((r) => `${r.slowMotion}× clip read as ${r.clock!.factor.toFixed(1)}×`).join(" and the ")} because its ruler was misread` : ""}.
               </>
             ) : null}
@@ -327,14 +327,14 @@ export default async function ProofPage() {
       </Page>
 
       {sheet.length > 0 && (
-        <Plate n={plates.sheet} title="Three of the rendered clips, every frame cut to one slice and laid side by side." caption="Read left to right as time. Each caption gives how closely the winning law predicted the frames no law saw, as a share of the motion.">
+        <Plate n={plates.sheet} title="Three of the rendered clips, every frame cut to one slice and laid side by side." caption="Read left to right as time. Each caption gives how closely the winning law predicted the last 30%, which no law was fitted to, as a share of the motion.">
           <div className={styles.sheet}>
             {sheet.map((e, i) => (
               <Link key={e.id} href={`/x/${e.id}`} className={styles.sheetRow}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`/slits/${e.id}.webp`} alt={`Photo-finish of ${e.title}`} />
                 <span>
-                  <span className={styles.fig}>Fig. {String.fromCharCode(97 + i)}.</span> {e.title}: the frames no law saw, predicted to {relMiss(e)}% of the motion
+                  <span className={styles.fig}>Fig. {String.fromCharCode(97 + i)}.</span> {e.title}: the last 30%, which no law was fitted to, predicted to {relMiss(e)}% of the motion
                 </span>
               </Link>
             ))}
@@ -468,13 +468,13 @@ export default async function ProofPage() {
         {refb && wonb && <Note who="Muse Spark 1.3, the referee">${refb.summary.usd.toFixed(2)} of calls over {refb.summary.clips} clips.</Note>}
         {refb && wonb && (
           <p className={styles.para}>
-            <b>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</b> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn&rsquo;t there; each such law missed the frames it never saw by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is called in only when the referee asks for a new law or when the leading law misses even its own fitted frames by more than six times the noise; on these clips neither happened.
+            <b>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</b> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn&rsquo;t there; each such law missed the last 30%, which no law was fitted to, by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is called in only when the referee asks for a new law or when the leading law misses even its own fitted frames by more than six times the noise; on these clips neither happened.
           </p>
         )}
         {refb && wonb && <Note who="Muse Wonder 1.0">${wonb.summary.usd.toFixed(2)} of calls over {wonb.summary.clips} clips, each with a fitting tool on the seen frames only.</Note>}
         {refb && wonb && (
           <p className={styles.para}>
-            <b>Where a law really was missing</b>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames. On both, the fit check called it in (the leader missed its own fitted frames by 48× and 14× the noise), and the referee, asked separately, wanted a new law too. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
+            <b>Where a law really was missing</b>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames (on the published runs; on a later re-run of the hardening spring with today&rsquo;s prompt, Muse Spark proposed the cubic law itself, and both pass the same held-out test). On both, the fit check called it in (the leader missed its own fitted frames by 48× and 14× the noise), and the referee, asked separately, wanted a new law too. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
           </p>
         )}
 
@@ -526,7 +526,7 @@ export default async function ProofPage() {
           <dl className={styles.parts}>
             <dt>Without SAM 3.1 and the fit</dt>
             <dd>
-              Muse Spark reading numbers off the video: median error {pct(s.medianEyeballErrPct, 0)} instead of {pct(s.medianConstErrPct, 2)}.
+              Muse Spark reading numbers off the video: median error {pct(s.medianEyeballErrPct, 0)} instead of {pct(split.phys.median, 2)} on the physical constants.
             </dd>
             <dt>Without Muse&rsquo;s hypotheses</dt>
             <dd>

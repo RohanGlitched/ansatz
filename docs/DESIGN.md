@@ -1,6 +1,6 @@
 # Ansatz design system: "a cyanotype lab book"
 
-Ansatz is the scientific method in a box: watch, measure, guess a law, test it on frames it never saw. The site
+Ansatz is the scientific method in a box: watch, measure, guess a law, test it on the last 30% of the motion, which no law was fitted to. The site
 looks like the object science used to publish that kind of work: a bound lab book of **cyanotype plates**
 (Anna Atkins' 1843 sun-prints: specimens on a deep Prussian-blue ground) facing **typeset pages** in the face of
 physics papers (Computer Modern, as LaTeX sets it). Every clip is printed as a sun-print; what SAM 3.1 measured

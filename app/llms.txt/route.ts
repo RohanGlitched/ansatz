@@ -25,7 +25,7 @@ const PURPOSE: Record<string, string> = {
   "moon-jump": "real 1972 Apollo 16 footage: the Moon's gravity from the pixels, with an error budget and the jump-for-jump speed test",
   "moon-jump-slowed": "the same clip slowed 1.5× in secret: the clock check flags it from its gravity alone",
   "beach-ball-drag": "a rendered throw with quadratic air drag: the drag coefficient against the value the render was made with",
-  "hardening-spring": "a law outside Muse Spark's proposals: Muse Wonder, an agent with a fitting tool, finds the spring stiffens",
+  "hardening-spring": "on the published run, a law outside Muse Spark's proposals: Muse Wonder, an agent with a fitting tool, finds the spring stiffens (on a later re-run with today's prompt, Muse Spark proposed the cubic law itself; both pass the same held-out test)",
   "dry-friction-spring": "Muse Spark's laws used air drag; Muse Wonder finds the friction is dry (Coulomb)",
   "hindi-pendulum": "narrated in Hindi: the spoken string length becomes the ruler, and g comes out against Earth's",
   "sample-pendulum": "a real Wikimedia clip posted as slow motion: its swing says how slow (unconfirmed by the uploader)",
@@ -88,7 +88,7 @@ export async function GET() {
   const p = (s = "") => L.push(s);
   p("# Ansatz");
   p();
-  p(`> Film anything that moves; Ansatz finds the law that moves it. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model. Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
+  p(`> Film anything that moves; Ansatz finds the law that moves it. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model (Muse Spark watches the whole clip to name what moves). Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
   p();
   p("Rule for agents: never POST to /api/run or /api/upload. They run paid models. Everything below is a GET of stored results, and the recorded replays on /new call no model.");
   p();
@@ -151,6 +151,6 @@ export async function GET() {
   p(`- ${SITE}/sitemap.xml lists every page.`);
   p();
   p("## What is not shown yet");
-  p("- No clip filmed on a phone and no outside student or teacher yet; the benchmark clips are renders; Muse Wonder's two wins are on renders built to need a law outside the base library; one object at a time, no depth.");
+  p("- No clip filmed on a phone and no outside student or teacher yet; the benchmark clips are renders; Muse Wonder's two wins are on renders built to need a law outside the base library (and on a later re-run of the hardening spring with today's prompt, Muse Spark proposed the cubic law itself); one object at a time, no depth.");
   return new Response(L.join("\n") + "\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=300" } });
 }

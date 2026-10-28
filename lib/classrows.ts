@@ -30,6 +30,8 @@ export type ClassRow = {
   sigmaSheet?: number;
   /** the world the run assumed (earth, moon, …): the class chart plots Earth runs only */
   world?: string;
+  /** set when g was given and the run measured the string length instead */
+  gGiven?: boolean;
   /** why the row has no value */
   dash?: string;
   warn?: string;
@@ -65,6 +67,7 @@ export async function classRows(cls: ClassRecord): Promise<ClassRow[]> {
       row.dash = heldG
         ? `g was given (${fmtSig(w.fit.theta.g, 4)} m/s²), not measured: this run measures the string length${L ? `, L = ${fmtPair(w.fit.theta.L, w.fit.sigma.L)} m` : ""}`
         : "no known value to compare this run with";
+      if (heldG) row.gGiven = true;
       return row;
     }
     const unit = free.find((p) => p.name === c.param)?.unit;

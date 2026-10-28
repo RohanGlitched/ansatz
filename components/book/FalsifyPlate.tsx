@@ -33,6 +33,15 @@ export default function FalsifyPlate({ id, video, t0, laws: meta, start = 0.7 }:
   const [k, setK] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [colour, setColour] = useState(false);
+  // on a phone the chart's words are set large (see the CSS), so near the edges they shorten
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 600px)");
+    const on = () => setNarrow(m.matches);
+    on();
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
   const vRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -179,11 +188,12 @@ export default function FalsifyPlate({ id, video, t0, laws: meta, start = 0.7 }:
             })}
             <line x1={sealedX} x2={sealedX} y1={CH - 14} y2={CH} className={styles.sealed} />
             <line x1={xCut} x2={xCut} y1={0} y2={CH} className={styles.cut} />
+            {/* the labels stay inside the chart wherever the line stands (on a phone their type is large) */}
             <text x={xCut - 10} y={20} textAnchor="end" className={styles.lab}>
-              the past the laws may see
+              {!narrow || xCut > 330 ? "the past the laws may see" : "past"}
             </text>
             <text x={xCut + 10} y={20} className={styles.lab}>
-              the future they must predict
+              {!narrow || xCut < 640 ? "the future they must predict" : "future"}
             </text>
           </svg>
           <input
