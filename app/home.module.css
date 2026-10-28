@@ -1,466 +1,207 @@
-.hero {
+/* the title page */
+.title {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(48px, 6vw, 88px) 0 clamp(8px, 1.5vw, 16px);
+}
+
+.titleIn {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr);
-  gap: clamp(28px, 4vw, 56px);
-  align-items: center;
-  padding-block: clamp(36px, 6vw, 80px);
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  gap: clamp(28px, 5vw, 80px);
+  align-items: end;
 }
 
-.heroText {
-  min-width: 0;
+.title h1 {
+  font-size: clamp(40px, 4.9vw, 70px);
 }
 
-.heroText h1 {
-  margin-bottom: 20px;
+.abstract p {
+  font-size: 20px;
+  line-height: 1.55;
+  max-width: 36em;
 }
 
-.ctaRow {
+.cta {
   display: flex;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
-.heroPlate {
-  min-width: 0;
+.para {
+  margin-top: 1em;
 }
 
-.heroLaw {
-  margin-top: 14px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--law);
-  border-radius: var(--radius);
-}
-
-.heroLaw .eqn,
-.heroLaw :global(.eqn) {
-  display: grid;
-  gap: 4px;
-  font-size: 17px;
-}
-
-.heroLaw p {
-  font-size: 15px;
-  color: var(--ink-2);
-}
-
-.h2 {
-  max-width: 26ch;
-}
-
-.method {
-  list-style: none;
+/* the method: a real sequence, so it is numbered */
+.steps {
+  margin: 34px 0 0;
   padding: 0;
-  margin: 36px 0 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0;
-  border-top: 1px solid var(--ink);
+  list-style: none;
+  counter-reset: step;
 }
 
-.method li {
-  padding: 18px 18px 8px 0;
-  min-width: 0;
+.steps > li {
+  counter-increment: step;
   position: relative;
+  padding: 26px 0 28px 58px;
+  border-top: 1px solid var(--paper-line);
 }
 
-.method li + li {
-  padding-left: 18px;
-  border-left: 1px solid var(--rule);
-}
-
-.method h3 {
-  margin: 8px 0 8px;
-}
-
-.method p {
-  font-size: 15px;
-  color: var(--ink-2);
-}
-
-.step {
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--law);
-}
-
-.model {
-  font-family: var(--font);
-  margin-top: 12px;
-  font-size: 13px !important;
-  color: var(--ink-3) !important;
-}
-
-.band {
-  background: var(--paper-2);
-}
-
-/* a catalogue of plates: each print on its dark mat, its caption set beneath like a museum label */
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
-  gap: 40px 28px;
-  margin-top: 36px;
-  counter-reset: plate;
-}
-
-.card {
-  display: grid;
-  gap: 12px;
-  text-decoration: none;
-  color: inherit;
-  counter-increment: plate;
-  align-content: start;
-}
-
-.card > :first-child {
-  padding: 10px;
-  background: var(--plate);
-  border-radius: 2px;
-  transition: outline-color 0.15s;
-  outline: 1px solid transparent;
-  outline-offset: 3px;
-}
-
-.card:hover > :first-child {
-  outline-color: var(--ink);
-}
-
-.card:hover {
-  color: inherit;
-}
-
-.cardBody {
-  display: grid;
-  gap: 4px;
-  padding-inline: 2px;
-}
-
-.cardTitle {
-  font-family: var(--font);
-  font-weight: 600;
-  font-size: 17px;
-  letter-spacing: -0.01em;
-}
-
-.cardTitle::before {
-  content: "Plate " counter(plate) ". ";
-  color: var(--ink-3);
-  font-weight: 500;
-}
-
-.cardEq {
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  font-size: 15px;
-  color: var(--law);
-}
-
-.cardEq::-webkit-scrollbar {
-  display: none;
-}
-
-.moon {
-  background: var(--plate);
-  color: var(--plate-ink);
-  border-top: 0;
-  padding-block: clamp(36px, 5vw, 64px);
-}
-
-.moonGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 56px);
-  align-items: center;
-}
-
-.moonNum {
-  font-size: clamp(40px, 5.5vw, 72px);
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  color: #8fa0ff;
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 18px;
+  font-family: var(--cm);
+  font-size: 40px;
   line-height: 1;
+  color: var(--prussian);
 }
 
-.moonGrid :global(.lede) {
-  color: #b8bec6;
+.steps h3 {
+  margin-bottom: 8px;
 }
 
-.moonGrid h2 {
-  color: var(--plate-ink);
-  margin: 14px 0 12px;
+.specimen {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  background: var(--paper-2);
+  border-left: 3px solid var(--prussian);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink);
+  quotes: none;
 }
 
-.moonGrid a {
-  color: var(--plate-ink);
+blockquote.specimen {
+  font-style: italic;
 }
 
-@media (max-width: 900px) {
-  .moonGrid {
-    grid-template-columns: 1fr;
-  }
+.law {
+  padding: 4px 0;
+  overflow-x: auto;
 }
 
-.cardFinding {
-  font-size: 15.5px;
-  line-height: 1.45;
+.tries {
+  margin: 0 0 8px;
+  padding-left: 22px;
+  font-family: var(--ui);
+  font-size: 15px;
   color: var(--ink-2);
 }
 
-.two {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: clamp(24px, 4vw, 56px);
+.tries li {
+  padding: 2px 0;
 }
 
-.points {
+.pick {
+  color: var(--prussian);
+  font-weight: 600;
+}
+
+/* Plate III: specimens on one sheet, as Atkins laid algae; no cards */
+.catalogue {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 44px 40px;
 }
 
-.points li {
-  padding-left: 18px;
-  border-left: 2px solid var(--law);
-  color: var(--ink-2);
-}
-
-.points strong {
-  color: var(--ink);
-  display: block;
-  margin-bottom: 2px;
-}
-
-.dark {
-  background: var(--plate);
-  color: var(--plate-ink);
-  border-top: 0;
-}
-
-.dark :global(.lede) {
-  color: #b8bec6;
-}
-
-.dark :global(.btn) {
-  background: var(--plate-ink);
-  color: var(--plate);
-  border-color: var(--plate-ink);
-}
-
-.dark :global(.btn.ghost) {
-  background: transparent;
-  color: var(--plate-ink);
-}
-
-@media (max-width: 1080px) {
-  .method {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .method li,
-  .method li + li {
-    padding: 18px 16px 12px 0;
-    border-left: 0;
-    border-bottom: 1px solid var(--rule);
-  }
-}
-
-@media (max-width: 960px) {
-  .hero {
-    grid-template-columns: 1fr;
-  }
-  .two {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 560px) {
-  .method {
-    grid-template-columns: 1fr;
-  }
-  .heroLaw {
-    grid-template-columns: 1fr;
-  }
-}
-
-.moonGrid :global(.key) {
-  color: #b8bec6;
-}
-
-.moonGrid button {
-  color: #b8bec6 !important;
-  border-color: #3a3f46 !important;
-}
-
-.who {
+.specimenLink {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  margin-top: 28px;
-  border-top: 1px solid var(--ink);
+  gap: 6px;
+  color: var(--paper);
+  text-decoration: none;
 }
 
-.who > div {
-  padding: 18px 20px 6px 0;
-  min-width: 0;
+.specimenLink:hover {
+  color: #fff;
 }
 
-.who > div:nth-child(even) {
-  padding-left: 20px;
-  border-left: 1px solid var(--rule);
+.print {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  filter: url(#cyanotype);
+  outline: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  outline-offset: 5px;
+  margin-bottom: 12px;
+  transition: filter 0.2s;
 }
 
-.who > div:nth-child(n + 3) {
-  border-top: 1px solid var(--rule);
-  padding-bottom: 18px;
+.specimenLink:hover .print {
+  filter: none;
 }
 
-.who h3 {
-  margin-bottom: 8px;
+.fig {
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--prussian-ink);
 }
 
-.who p {
-  color: var(--ink-2);
-  font-size: 15.5px;
+.ctitle {
+  font-size: 22px;
+  line-height: 1.2;
 }
 
-@media (max-width: 860px) {
-  .who {
-    grid-template-columns: 1fr;
-  }
-  .who > div + div,
-  .who > div:nth-child(even) {
-    padding-left: 0;
-    border-left: 0;
-    border-top: 1px solid var(--rule);
-  }
+.ceq {
+  color: #fff;
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-height: 1.6em;
+}
+
+.cfind {
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--prussian-ink);
+}
+
+.rules {
+  margin: 26px 0 0;
+}
+
+.rules dt {
+  font-weight: 700;
+  margin-top: 18px;
+}
+
+.rules dd {
+  margin: 4px 0 0;
 }
 
 .recent {
   list-style: none;
-  margin: 24px 0 0;
   padding: 0;
+  margin: 0;
+}
+
+.recent li {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: 10px;
+  gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--paper-line);
 }
 
-.recent a {
+.close {
   display: grid;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  text-decoration: none;
-  height: 100%;
+  grid-template-columns: minmax(0, 1.4fr) auto;
+  gap: 36px;
+  align-items: end;
 }
 
-.recent a:hover {
-  border-color: var(--ink);
-  color: inherit;
-}
-
-.recent span {
-  color: var(--ink-2);
-  font-size: 15px;
-}
-
-.recent em {
-  font-style: normal;
-}
-
-/* under each method step, what it produced on one real run */
-.specimen {
-  margin: 16px 0 0;
-  padding: 12px 0 0;
-  border-top: 1px dashed var(--rule);
-  font-family: var(--font);
-  font-size: 13px;
-  color: var(--ink-2);
-  list-style: none;
-}
-
-blockquote.specimen {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 14.5px;
+.close p {
+  font-size: clamp(21px, 2vw, 26px);
   line-height: 1.45;
+  max-width: 34em;
 }
 
-.specimen svg {
-  width: 100%;
-  height: 54px;
-}
-
-.specimen figcaption {
-  margin-top: 4px;
-  color: var(--ink-3);
-}
-
-ol.specimen {
-  padding-left: 0;
-  display: grid;
-  gap: 4px;
-}
-
-ol.specimen li {
-  padding: 0;
-  border: 0;
-  color: var(--ink-3);
-}
-
-ol.specimen li::before {
-  content: "tried: ";
-}
-
-ol.specimen li.specPick {
-  color: var(--law);
-  font-weight: 600;
-}
-
-ol.specimen li.specPick::before {
-  content: "submitted: ";
-}
-
-.specLaw {
-  overflow-x: auto;
-  font-size: 13px;
-  padding-block: 2px;
-}
-
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-}
-
-.bar span {
-  height: 7px;
-  border-radius: 2px;
-  background: var(--rule);
-}
-
-.bar span.barWin {
-  background: var(--law);
-}
-
-.bar em {
-  font-style: normal;
-  color: var(--ink-3);
-  white-space: nowrap;
-}
-
-.specNote {
-  color: var(--ink-3);
-  margin-top: 4px;
+@media (max-width: 900px) {
+  .titleIn,
+  .close {
+    grid-template-columns: 1fr;
+  }
 }

@@ -1,13 +1,11 @@
 import Link from "next/link";
-import PlateWithControls from "@/components/PlateWithControls";
-import StrobePlate from "@/components/StrobePlate";
 import Tex from "@/components/Tex";
-import MoonHero from "@/components/MoonHero";
-import StripCard from "@/components/StripCard";
-import MoonPairCard from "@/components/MoonPairCard";
-import { slitOf } from "@/components/strip";
-import { getExperiment, plateData, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
+import Plate, { Note, Page, Section } from "@/components/book/Plate";
+import FalsifyPlate from "@/components/book/FalsifyPlate";
+import MoonPlate from "@/components/book/MoonPlate";
+import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawLatex } from "@/lib/latex";
+import { plateLaws } from "@/lib/plateLaws";
 import { costText, headline, timeText } from "@/lib/headline";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
@@ -17,268 +15,237 @@ import styles from "./home.module.css";
 export const dynamic = "force-static";
 export const revalidate = 60;
 
+const HERO = "hardening-spring";
+
 export default async function Home() {
   const ids = await showcaseIds();
   const exps = (await Promise.all(ids.map(getExperiment))).filter((e): e is Experiment => !!e);
   const hl = await headline();
-  const hero = exps.find((e) => e.id === (process.env.HERO_ID ?? "beach-ball-drag")) ?? exps[0];
-  const heroWin = hero ? winnerOf(hero) : null;
+  const hero = exps.find((e) => e.id === HERO) ?? (await getExperiment(HERO).catch(() => null));
   const moon = exps.find((e) => e.id === "moon-jump");
-  // plates 1 and 2 (the broadcast and its slowed copy) merge into one A/B card when both strips and the same-jump test exist
-  const pair = moon?.extras?.memoryTest?.sameJump && slitOf("moon-jump-slowed") ? exps.find((e) => e.id === "moon-jump-slowed") ?? null : null;
-  const recent = await recentExperiments().catch(() => []);
+  const st = moon?.extras?.speedTest;
+  const rp = st?.repeats;
+  const clipB = rp?.clips.find((c) => c.clip === "B");
+  const sparkWrongB = clipB ? clipB.answers.filter((x) => x.real_speed).length : 5;
   const moonG = moon?.comparisons.find((c) => c.param === "g");
-  // one real run, shown step by step in the method section
-  const spec = exps.find((e) => e.id === "hardening-spring");
-  const specTrack = (() => {
-    const s = spec?.measured.series.ch.s, t = spec?.measured.series.t;
-    if (!s || !t) return "";
-    const lo = Math.min(...s), hi = Math.max(...s), T = t.at(-1) || 1;
-    return s.map((v, i) => `${i ? "L" : "M"}${((t[i] / T) * 200).toFixed(1)} ${(58 - ((v - lo) / (hi - lo || 1)) * 56).toFixed(1)}`).join("");
-  })();
-  const maxMiss = Math.max(1e-5, ...(spec?.candidates.filter((c) => c.fit.ok).slice(0, 4).map((c) => c.fit.testRms) ?? []));
+  const recent = await recentExperiments().catch(() => []);
+  const spec = hero;
+  const specMuse = spec?.candidates.filter((c) => c.origin === "muse").slice(0, 2) ?? [];
+  const sparkBest = spec?.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0];
+  const wonderLaw = spec?.candidates.find((c) => c.origin === "revision");
+  const k3 = spec?.extras?.truth?.rows.find((r) => r.param === "beta");
+  const catalogue = exps.filter((e) => e.id !== "moon-jump-slowed");
 
   return (
     <>
-      {moon ? (
-        <MoonHero e={moon} slowed={await getExperiment("moon-jump-slowed").catch(() => null)} />
-      ) : (
-      <section className={`wrap ${styles.hero}`}>
-        <div className={styles.heroText}>
-          <h1>Film anything that moves. Ansatz finds the law that moves it.</h1>
-          <p className="lede">
-            A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion, and each law has to predict the part of the motion it was never fitted to. The one that does is the answer.
-          </p>
-          <div className={styles.ctaRow}>
-            <Link className="btn" href="/new">
-              Run an experiment
-            </Link>
-            <Link className="btn ghost" href={hero ? `/x/${hero.id}` : "/proof"}>
-              Open this experiment
-            </Link>
-          </div>
-        </div>
-        {hero && heroWin && (
-          <div className={styles.heroPlate}>
-            <PlateWithControls data={plateData(hero, { lazyStrobe: true })} priority />
-            <div className={styles.heroLaw}>
-              <div className="eqn">
-                {lawLatex(heroWin.law).slice(0, 2).map((l, i) => (
-                  <Tex key={i}>{l}</Tex>
-                ))}
-              </div>
-              <p>{hero.finding}</p>
+      <header className={styles.title}>
+        <div className={styles.titleIn}>
+          <h1>
+            Film anything that moves.
+            <br />
+            Get the law that moves it.
+          </h1>
+          <div className={styles.abstract}>
+            <p>
+              A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame. Muse Spark writes candidate laws of motion. Each law sees only the start of the motion and has to predict the rest. Laws that miss are struck out; the one that predicts survives.
+            </p>
+            <div className={styles.cta}>
+              <Link href="/new" className="btn">
+                Run an experiment
+              </Link>
+              <Link href="/judges" className="btn ghost">
+                For judges: the case in one page
+              </Link>
             </div>
           </div>
-        )}
-      </section>
+        </div>
+      </header>
+
+      {hero && (
+        <Plate
+          n="I"
+          title={
+            <>
+              A spring that stiffens as it stretches. Drag the line: every law sees only the motion to its left and must predict the rest.
+            </>
+          }
+          caption={
+            <>
+              Muse Spark&rsquo;s laws were refuted by the future; Muse Wonder&rsquo;s held. Each position of the line is a full refit by the same code a run uses. <Link href={`/x/${hero.id}`}>Open this experiment</Link>.
+            </>
+          }
+        >
+          <FalsifyPlate id={hero.id} video={hero.source.video} t0={hero.measured.window.t0} laws={plateLaws(hero)} />
+        </Plate>
       )}
 
-      <section className="section">
-        <div className="wrap">
-          <h2 className={styles.h2}>Four Meta models, one scientific method</h2>
-          <p className="lede" style={{ marginTop: 12 }}>
-            Ansatz doesn’t ask a model what the answer is. It asks models to look, measure and guess, then lets the data decide. Under each step, what it produced on one real run: {spec ? <Link href={`/x/${spec.id}`}>a spring that stiffens as it stretches</Link> : "a spring"}.
+      <Page>
+        <Section n={1} title="The Moon, slowed in secret" id="moon">
+          <p>
+            In 1972 John Young jumped on the Moon in front of a television camera. We took that broadcast, slowed a copy by half again, and told no one. Then we asked Meta&rsquo;s Muse Spark, five separate times, whether the copy plays at real speed.
           </p>
-          <ol className={styles.method}>
-            <li>
-              <span className={styles.step}>Observe</span>
-              <h3>Watch and listen</h3>
-              <p>Muse Voice Transcribe hears what you said while filming, in any of seven languages; Muse Spark watches the clip, reads its captions and that transcript. Out comes what moves, when, what is known, and whether the clip is slowed down.</p>
-              <p className={styles.model}>Muse Spark 1.3 and Muse Voice Transcribe</p>
-              {spec && <blockquote className={styles.specimen}>“{spec.observation.what_happens.split(". ")[0]}.”</blockquote>}
-            </li>
-            <li>
-              <span className={styles.step}>Measure</span>
-              <h3>Track every frame</h3>
-              <p>SAM 3.1 follows the object through every frame. Each mask becomes a sub-pixel centroid, timed by the video file’s own clock, and scaled by a ruler in view or by gravity itself.</p>
-              <p className={styles.model}>SAM 3.1</p>
-              {spec && specTrack && (
-                <figure className={styles.specimen}>
-                  <svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-label="The measured track of the spring, position against time">
-                    <path d={specTrack} fill="none" stroke="var(--measured)" strokeWidth="1.4" vectorEffect="non-scaling-stroke" />
-                  </svg>
-                  <figcaption>{spec.measured.px.length} positions over {spec.measured.series.t.at(-1)?.toFixed(1)} s</figcaption>
-                </figure>
-              )}
-            </li>
-            <li>
-              <span className={styles.step}>Hypothesise</span>
-              <h3>Propose laws</h3>
-              <p>Muse Spark writes two to four candidate laws as equations of motion: vacuum or drag, small swings or large, a bounce that loses energy. Textbook laws compete too.</p>
-              <p className={styles.model}>Muse Spark 1.3</p>
-              {spec && (
-                <div className={styles.specimen}>
-                  {spec.candidates.filter((c) => c.origin === "muse").slice(0, 2).map((c) => (
-                    <div key={c.law.id} className={styles.specLaw}>
-                      <Tex>{lawLatex(c.law).at(-1) ?? ""}</Tex>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </li>
-            <li>
-              <span className={styles.step}>Falsify</span>
-              <h3>Predict the unseen</h3>
-              <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%. The model never picks the winner, and every measured number in the report comes from the fit.</p>
-              <p className={styles.model}>Code: RK4 integration and Levenberg–Marquardt fitting</p>
-              {spec && (
-                <div className={styles.specimen}>
-                  {spec.candidates.filter((c) => c.fit.ok).slice(0, 4).map((c, i) => (
-                    <div key={c.law.id} className={styles.bar}>
-                      <span style={{ width: `${Math.max(3, (Math.log10(c.fit.testRms * 1e5) / Math.log10(maxMiss * 1e5)) * 100)}%` }} className={i === 0 ? styles.barWin : undefined} />
-                      <em>{c.fit.testRms < 0.01 ? `${(c.fit.testRms * 1000).toFixed(1)} mm` : `${(c.fit.testRms * 100).toFixed(1)} cm`}</em>
-                    </div>
-                  ))}
-                  <p className={styles.specNote}>each law’s miss on the unseen 30%</p>
-                </div>
-              )}
-            </li>
-            <li>
-              <span className={styles.step}>Referee</span>
-              <h3>Explain or revise</h3>
-              <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. If every law misses, Muse Wonder, an agent with a fitting tool, tries laws on the seen frames and submits one, which has to earn its place the same way.</p>
-              <p className={styles.model}>Muse Spark 1.3 and Muse Wonder 1.0</p>
-              {spec?.wonder && (
-                <ol className={styles.specimen}>
+        </Section>
+        <Note who="Muse Spark 1.3, by eye">Shown the slowed copy alone, five times with the same question, it answered &ldquo;real speed&rdquo; {sparkWrongB} of 5 times.</Note>
+        <p className={styles.para}>
+          A model that watches can be fooled by a clip that looks right. Measuring is harder to fool: SAM 3.1 found the astronaut in every frame of both clips, and code compared the jumps one by one.
+        </p>
+        <Note who="SAM 3.1, then code">Each jump timed in both clips from the helmet&rsquo;s path; the ratio of every matching pair, combined.</Note>
+      </Page>
+
+      {moon && hl.jumpForJump && (
+        <Plate n="II" title="The broadcast (A) and the copy slowed in secret (B), on one clock." caption="The orange line is the helmet's height in every frame, as SAM 3.1 measured it. B's jumps come out wider by the slowdown.">
+          <MoonPlate
+            ratio={hl.jumpForJump.ratio}
+            sigma={hl.jumpForJump.sigma}
+            truth={st?.truth ?? 1.5}
+            sparkWrong={sparkWrongB}
+            sparkN={rp?.n ?? 5}
+            g={moonG ? { v: moonG.measured, s: moonG.sigma, ref: moonG.reference } : undefined}
+          />
+        </Plate>
+      )}
+
+      <Page>
+        <Section n={2} title="How a law wins" id="method">
+          <p>
+            Ansatz doesn&rsquo;t ask a model for the answer. It asks models to look, measure and guess, and lets the data decide. Under each step, what it produced on the spring in Plate I.
+          </p>
+        </Section>
+        <ol className={styles.steps}>
+          <li>
+            <h3>Watch and listen</h3>
+            <p>Muse Voice Transcribe hears what was said while filming, in any of seven languages. Muse Spark watches the clip at its own frame rate and names what moves, when, what is known, and whether the clip is slowed down.</p>
+            {spec && <blockquote className={styles.specimen}>&ldquo;{spec.observation.what_happens.split(". ")[0]}.&rdquo;</blockquote>}
+          </li>
+          <li>
+            <h3>Measure every frame</h3>
+            <p>SAM 3.1 follows the object through every frame. Each mask becomes a sub-pixel position, timed by the video file&rsquo;s own clock and scaled by a ruler in view.</p>
+            {spec && <p className={styles.specimen}>{spec.measured.px.length} positions over {spec.measured.series.t.at(-1)?.toFixed(1)} s, scaled by {spec.measured.calibration.note}.</p>}
+          </li>
+          <li>
+            <h3>Propose laws</h3>
+            <p>Muse Spark writes two to four candidate laws as equations of motion, in a small equation language Ansatz compiles itself. Textbook laws compete too.</p>
+            {specMuse.length > 0 && (
+              <div className={styles.specimen}>
+                {specMuse.map((c) => (
+                  <div key={c.law.id} className={styles.law}>
+                    <Tex>{lawLatex(c.law).at(-1) ?? ""}</Tex>
+                  </div>
+                ))}
+              </div>
+            )}
+          </li>
+          <li>
+            <h3>Predict what was never seen</h3>
+            <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%, which no law was fitted to. The law that misses the unseen frames least wins, and every measured number comes from its fit.</p>
+            {sparkBest && <p className={styles.specimen}>Muse Spark&rsquo;s best law missed the unseen motion by {(sparkBest.fit.testRms * 1000).toFixed(1)} mm.</p>}
+          </li>
+          <li>
+            <h3>Referee, and revise</h3>
+            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way.</p>
+            {spec?.wonder && wonderLaw && (
+              <div className={styles.specimen}>
+                <ol className={styles.tries}>
                   {spec.wonder.attempts.map((a) => (
-                    <li key={a.title} className={spec.wonder?.submitted?.startsWith(a.title) ? styles.specPick : undefined}>
+                    <li key={a.title} className={spec.wonder?.submitted?.startsWith(a.title) ? styles.pick : undefined}>
                       {a.title}
                     </li>
                   ))}
                 </ol>
-              )}
-            </li>
-          </ol>
-        </div>
-      </section>
+                <p>
+                  Submitted law missed the unseen motion by {(wonderLaw.fit.testRms * 1000).toFixed(1)} mm{k3 ? `; its stiffening k₃/m came out ${k3.measured.toFixed(0)} ± ${(k3.sigma ?? 0).toFixed(0)} against a true ${k3.truth}` : ""}.
+                </p>
+              </div>
+            )}
+          </li>
+        </ol>
+        <Note who="Who did what">SAM 3.1 measured. Muse Spark watched, proposed and refereed. Muse Wonder proposed when every law missed. Code fitted, predicted and ranked; no model picks the winner.</Note>
+      </Page>
 
-      <section className="section">
-        <div className="wrap">
-          <h2 className={styles.h2}>Who it’s for</h2>
-          <div className={styles.who}>
-            <div>
-              <h3>A student with a phone</h3>
-              <p>The simple pendulum, free fall and projectile experiments in a school physics practical need a stopwatch you can’t start fast enough. Film the swing, say the string’s length in any of seven languages, and get g, the law, the error against the textbook value and a lab report to hand in, in seven languages. Film it at four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.</p>
-            </div>
-            <div>
-              <h3>A teacher with a class of forty</h3>
-              <p>
-                One clip of a throw becomes a lesson in method: three candidate laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own 45 runs for a week and one page with every student’s result and every measurement of g (<Link href="/class/demo23">see a demo</Link>). A run costs {costText(hl)} and takes {timeText(hl)}.
-              </p>
-            </div>
-            <div>
-              <h3>Anyone who needs a number from a video</h3>
-              <p>A coach measuring a jump, a maker measuring a drag coefficient, a researcher digitising footage that used to take an hour of clicking frame by frame in tracking software. Ansatz gives the constants with error bars and keeps the model honest: it proposes, the data decides.</p>
-            </div>
-            <div>
-              <h3>Anyone asking whether a clip is real time</h3>
-              <p>
-                Gravity is a clock. With anything of known size in view, a fall or a swing says how fast the footage really runs: Ansatz caught the <Link href="/x/moon-jump-slowed">Apollo clip we slowed in secret</Link> ({hl.jumpForJump ? `jump for jump ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}×` : "1.5×"}, truth 1.5×) and a <Link href="/x/sample-pendulum">pendulum posted as slow motion</Link> (about 4 to 4.5× on an earlier run, unconfirmed; today’s stricter pipeline declines to give a factor), where Muse Spark, watching the same frames on its own, answered from memory.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className={`section ${styles.band}`} id="experiments">
-        <div className="wrap">
-          <h2 className={styles.h2}>Experiments</h2>
-          <p className="lede" style={{ marginTop: 12 }}>
-            Real clips and clips with known answers, each one measured, theorised and tested end to end. Open one to see every candidate law, the frames it never saw, and what each model call cost.
-          </p>
-          <div className={styles.gallery}>
-            {exps.filter((e) => !(pair && e.id === pair.id)).map((e) => {
-              const w = winnerOf(e);
-              // the broadcast and its secretly slowed copy share one A/B plate, on one clock
-              const ab = pair && e.id === "moon-jump" ? pair : null;
-              const sj = ab ? e.extras?.memoryTest?.sameJump?.combined : null;
-              const g = e.comparisons.find((c) => c.param === "g");
-              return (
-                <Link key={e.id} href={ab ? `/x/${e.id}#same-jump` : `/x/${e.id}`} className={styles.card}>
-                  {ab ? <MoonPairCard a={e} b={ab} /> : slitOf(e.id) ? <StripCard e={e} /> : <StrobePlate data={plateData(e, { lazyStrobe: true, compact: true })} compact />}
-                  <div className={styles.cardBody}>
-                    <p className={styles.cardTitle}>{ab ? "Apollo 16: the broadcast (A) and a copy slowed in secret (B)" : e.title}</p>
-                    <div className={styles.cardEq}>
-                      <Tex>{lawLatex(w.law)[lawLatex(w.law).length > 1 ? 1 : 0] ?? ""}</Tex>
-                    </div>
-                    <p className={styles.cardFinding}>
-                      {ab && sj && g
-                        ? `From the broadcast, the Moon’s gravity: ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s². The copy runs ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower, jump for jump${e.extras?.speedTest?.truth ? ` (truth ${e.extras.speedTest.truth}×)` : ""}.`
-                        : (e.headline ?? e.finding)}
-                    </p>
-                    <p className="small">{e.source.credit}</p>
-                  </div>
+      <Plate n="III" title="Every experiment in this book." caption="Each print is a clip's frames laid over one another, as Marey photographed motion. Open one for its laws, its numbers and every model call it made.">
+        <ul className={styles.catalogue}>
+          {catalogue.map((e, i) => {
+            const w = winnerOf(e);
+            const tex = lawLatex(w.law);
+            return (
+              <li key={e.id}>
+                <Link href={`/x/${e.id}`} className={styles.specimenLink}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`/prints/${e.id}.webp`} alt="" className={styles.print} loading="lazy" />
+                  <span className={styles.fig}>Fig. {String.fromCharCode(97 + i)}</span>
+                  <span className={styles.ctitle}>{e.title}</span>
+                  <span className={styles.ceq}>
+                    <Tex>{tex[tex.length > 1 ? 1 : 0] ?? ""}</Tex>
+                  </span>
+                  <span className={styles.cfind}>{e.headline ?? e.finding}</span>
                 </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+              </li>
+            );
+          })}
+        </ul>
+      </Plate>
 
-      {recent.length > 0 && (
-        <section className="section">
-          <div className="wrap">
-            <h2 className={styles.h2}>Run by visitors</h2>
-            <p className="lede" style={{ marginTop: 12 }}>
-              The latest experiments people ran on this site, each with its full record.
-            </p>
+      <Page>
+        <Section n={3} title="Who it is for" id="who">
+          <p>
+            <b>A student with a phone.</b> The pendulum, free-fall and projectile practicals need a stopwatch you can&rsquo;t start fast enough. Film the swing, say the string&rsquo;s length in your own language, and get g, the law, the error against the textbook and a lab report to hand in. Film four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.
+          </p>
+          <p className={styles.para}>
+            <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>).
+          </p>
+          <p className={styles.para}>
+            <b>Anyone who needs a number from a video.</b> A coach timing a jump, a maker measuring drag, a researcher who used to click through footage frame by frame. Every constant comes with its error bar, and what was given is kept apart from what was measured.
+          </p>
+          <p className={styles.para}>
+            <b>Anyone asking whether a clip runs at real time.</b> Gravity is a clock. With something of known size in view, a fall or a swing says how fast the footage really runs.
+          </p>
+        </Section>
+        <Note who="Cost, measured">A run costs {costText(hl)} and takes {timeText(hl)}.</Note>
+
+        <Section n={4} title="Why predict, and not only fit" id="why">
+          <p>Any law with enough knobs can fit a curve it has already seen. A law earns trust by predicting what it hasn&rsquo;t, so every candidate sees only the start of the motion and is graded on the rest.</p>
+          <dl className={styles.rules}>
+            <dt>The model proposes; the data decides.</dt>
+            <dd>Laws are compiled into a small, safe equation language and integrated numerically. A law that can&rsquo;t be integrated, or names a symbol it never defined, is rejected before it runs.</dd>
+            <dt>Simpler wins ties.</dt>
+            <dd>When two laws predict the unseen frames equally well, within the measurement&rsquo;s own noise, the one with fewer parameters wins.</dd>
+            <dt>Given is kept apart from measured.</dt>
+            <dd>Every report lists what was assumed (a ruler, a stated length, Earth&rsquo;s gravity) separately from what was measured, with an uncertainty on every number.</dd>
+            <dt>The clock is checked.</dt>
+            <dd>Frame times come from the video file itself. If gravity comes out wrong by a square, Ansatz says the clip is probably slow motion.</dd>
+          </dl>
+        </Section>
+
+        {recent.length > 0 && (
+          <Section n={5} title="Run by visitors" id="recent">
             <ul className={styles.recent}>
               {recent.map((r) => (
                 <li key={r.id}>
-                  <Link href={`/x/${r.id}`}>
-                    <strong>{r.title}</strong>
-                    <span>{r.headline}</span>
-                    <em className="small">{new Date(r.createdAt).toUTCString().slice(5, 22)} UTC</em>
-                  </Link>
+                  <Link href={`/x/${r.id}`}>{r.title}</Link>
+                  <span>{r.headline}</span>
+                  <span className="small">{new Date(r.createdAt).toUTCString().slice(5, 22)} UTC</span>
                 </li>
               ))}
             </ul>
-          </div>
-        </section>
-      )}
+          </Section>
+        )}
+      </Page>
 
-      <section className="section">
-        <div className={`wrap ${styles.two}`}>
-          <div>
-            <h2 className={styles.h2}>Why predict, not just fit</h2>
-            <p className="lede" style={{ marginTop: 12 }}>
-              Any law with enough knobs can fit a curve it has already seen. A law earns trust by predicting what it hasn’t. So every candidate sees only the start of the motion and is graded on the rest.
-            </p>
-          </div>
-          <ul className={styles.points}>
-            <li>
-              <strong>The model proposes; the data disposes.</strong> Muse’s laws are compiled into a small, safe equation language and integrated numerically. A law that can’t be integrated, or names a symbol it never defined, is rejected before it runs.
-            </li>
-            <li>
-              <strong>Simpler wins ties.</strong> When two laws predict the unseen frames equally well, within the measurement’s own noise, the one with fewer parameters wins.
-            </li>
-            <li>
-              <strong>Given is kept apart from measured.</strong> Every report lists what was assumed (a ruler, a stated length, Earth’s gravity) separately from what was measured, with an uncertainty on every number.
-            </li>
-            <li>
-              <strong>The clock is checked.</strong> Frame times come from the video file itself. If gravity comes out wrong by a square, Ansatz says the clip is probably slow motion.
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section className={`section ${styles.dark}`}>
-        <div className="wrap">
-          <h2 className={styles.h2}>A physics lab in every pocket</h2>
-          <p className="lede" style={{ marginTop: 12 }}>
-            Motion experiments need a stopwatch you can’t start fast enough, or a light gate, a ticker timer and a lab. Ansatz needs a phone propped on some books. A student films a ball, says “the string is fifty centimetres” in any of seven languages, and gets back the law, the constants and how far off the textbook value they are.
+      <Plate n={recent.length > 0 ? "IV" : "IV"} title="A physics lab in every pocket." wide>
+        <div className={styles.close}>
+          <p>
+            Motion experiments need a light gate, a ticker timer and a lab most schools don&rsquo;t have. Ansatz needs a phone propped on some books. Film a ball, say what you know, and get back the law, the constants, and how far you are from the textbook.
           </p>
-          <div className={styles.ctaRow} style={{ marginTop: 28 }}>
-            <Link className="btn" href="/new">
+          <div className={styles.cta}>
+            <Link href="/new" className="btn">
               Run an experiment
             </Link>
-            <Link className="btn ghost" href="/how">
-              How it works
+            <Link href="/proof" className="btn ghost">
+              See the benchmark
             </Link>
           </div>
         </div>
-      </section>
+      </Plate>
     </>
   );
 }

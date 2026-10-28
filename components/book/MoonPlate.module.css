@@ -1,0 +1,160 @@
+.wrap {
+  display: grid;
+  gap: 34px;
+}
+
+.panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(20px, 3vw, 44px);
+}
+
+.label {
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--prussian-ink);
+  margin-bottom: 12px;
+}
+
+.label b {
+  font-family: var(--cm);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--paper);
+  margin-right: 6px;
+}
+
+.film {
+  position: relative;
+  aspect-ratio: 352 / 240;
+  background: var(--prussian-deep);
+  outline: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  outline-offset: 6px;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  filter: url(#cyanotype);
+}
+
+.clock {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  font-family: var(--cm);
+  font-size: 22px;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 6px rgba(8, 26, 52, 0.7);
+}
+
+.trace {
+  width: 100%;
+  height: auto;
+  margin-top: 18px;
+  overflow: visible;
+}
+
+.axis {
+  stroke: var(--prussian-line);
+  stroke-width: 1.5;
+}
+
+.tick {
+  font-family: var(--ui);
+  font-size: 15px;
+  fill: var(--prussian-ink);
+}
+
+.line {
+  fill: none;
+  stroke: var(--measured);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.end {
+  stroke: var(--paper);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.verdicts {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: clamp(20px, 3vw, 44px);
+  border-top: 2px solid var(--paper);
+  padding-top: 22px;
+}
+
+.vh {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+  max-width: 44ch;
+}
+
+.spark {
+  margin-top: 10px;
+  font-size: clamp(30px, 3.2vw, 42px);
+  line-height: 1.1;
+  color: var(--paper);
+}
+
+.quote {
+  font-style: italic;
+  text-decoration: line-through;
+  text-decoration-color: var(--struck);
+  text-decoration-thickness: 3px;
+}
+
+.measured {
+  margin-top: 10px;
+  font-size: clamp(30px, 3.2vw, 42px);
+  line-height: 1.1;
+  color: #fff;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.measured small {
+  font-size: 0.55em;
+}
+
+.truth {
+  display: inline-block;
+  margin-left: 12px;
+  font-size: 0.55em;
+  color: var(--held);
+}
+
+.off {
+  opacity: 0.28;
+  transition: opacity 0.6s;
+}
+
+.on {
+  opacity: 1;
+  transition: opacity 0.6s;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.g {
+  font-size: 17px;
+  color: var(--prussian-ink);
+  max-width: 62ch;
+}
+
+@media (max-width: 760px) {
+  .panes,
+  .verdicts {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,323 @@
+.loading {
+  font-family: var(--ui);
+  font-size: 15px;
+  color: var(--prussian-ink);
+  padding: 40px 0;
+}
+
+.plate {
+  display: grid;
+  gap: 28px;
+}
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+.film {
+  position: relative;
+  width: 100%;
+  background: var(--prussian-deep);
+  outline: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  outline-offset: 6px;
+}
+
+.video,
+.over {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video {
+  object-fit: fill;
+}
+
+.dot {
+  fill: var(--measured);
+}
+
+.ghostDot {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.75;
+}
+
+.law,
+.lawBest,
+.lawStruck {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.law {
+  stroke: var(--paper);
+  stroke-width: 1.6px;
+  opacity: 0.7;
+}
+
+.lawBest {
+  stroke: #fff;
+  stroke-width: 2.6px;
+}
+
+.lawStruck {
+  stroke: var(--struck);
+  stroke-width: 1.6px;
+  stroke-dasharray: 5 5;
+  opacity: 0.9;
+}
+
+.colour {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--paper) 50%, transparent);
+  background: color-mix(in srgb, var(--prussian-deep) 80%, transparent);
+  color: var(--paper);
+}
+
+.colour:hover {
+  background: var(--paper);
+  color: var(--prussian-deep);
+}
+
+/* the ledger: every law, best first; a refuted law is struck through */
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--paper);
+}
+
+.row {
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--prussian-line);
+  transition: opacity 0.25s;
+}
+
+.rowHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--ui);
+  font-size: 13px;
+}
+
+.who {
+  color: var(--prussian-ink);
+}
+
+.verdict {
+  color: var(--prussian-ink);
+}
+
+.rowBest .verdict {
+  color: var(--held);
+  font-weight: 600;
+}
+
+.rowStruck .verdict {
+  color: var(--struck);
+}
+
+.eq {
+  margin: 8px 0 6px;
+  font-size: 19px;
+  color: #fff;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.eq :global(.katex) {
+  font-size: 1.08em;
+}
+
+/* a refuted law: a red rule through the equation, as if struck out in the notebook */
+.eqStruck {
+  position: relative;
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.eqStruck::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 52%;
+  height: 2px;
+  background: var(--struck);
+  transform: rotate(-1.2deg);
+}
+
+.miss {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.miss b {
+  font-family: var(--cm);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.rowBest .miss b {
+  color: var(--held);
+}
+
+.rowStruck .miss b {
+  color: var(--struck);
+}
+
+/* the time chart with the draggable line */
+.chartWrap {
+  position: relative;
+}
+
+.chart {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.future {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+.cDot {
+  fill: var(--measured);
+}
+
+.cGhost {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1px;
+  opacity: 0.7;
+}
+
+.cLaw,
+.cLawBest,
+.cLawStruck {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.cLaw {
+  stroke: var(--paper);
+  stroke-width: 1.4;
+  opacity: 0.65;
+}
+
+.cLawBest {
+  stroke: #fff;
+  stroke-width: 2.4;
+}
+
+.cLawStruck {
+  stroke: var(--struck);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 4;
+}
+
+.cut {
+  stroke: var(--paper);
+  stroke-width: 2;
+}
+
+.sealed {
+  stroke: var(--measured);
+  stroke-width: 3;
+}
+
+.lab {
+  font-family: var(--ui);
+  font-size: 13px;
+  fill: var(--prussian-ink);
+}
+
+/* the range input lies over the chart: the whole width is the handle's track */
+.range {
+  position: absolute;
+  left: 2.8%;
+  right: 2.8%;
+  bottom: -14px;
+  width: 94.4%;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  height: 28px;
+  cursor: ew-resize;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--prussian-line);
+}
+
+.range::-moz-range-track {
+  height: 2px;
+  background: var(--prussian-line);
+}
+
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--prussian-deep);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 3px solid var(--prussian-deep);
+}
+
+.foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+.status {
+  font-size: 18px;
+  color: var(--paper);
+  max-width: 60ch;
+}
+
+.status b {
+  font-weight: 400;
+  color: var(--measured);
+}
+
+@media (max-width: 900px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+}

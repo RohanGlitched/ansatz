@@ -1,21 +1,40 @@
+/* Ansatz: a cyanotype lab book. Plates are Prussian-blue sun-prints; pages are typeset in Computer Modern.
+   The design system is described in docs/DESIGN.md. */
 :root {
-  --paper: #f1f2ee;
-  --paper-2: #e6e8e2;
-  --ink: #121417;
-  --ink-2: #44484f;
-  --ink-3: #6b7078;
-  --rule: #c9cdd1;
-  --plate: #0e1012;
-  --plate-ink: #e9ebe6;
-  --measured: #ff5a1f; /* what SAM saw */
-  --law: #2d4bff; /* what the law predicts */
-  --law-soft: #dfe4ff;
-  --ok: #1f7a4d;
-  --warn: #b25a00;
-  --radius: 4px;
+  --prussian: #163d6e;
+  --prussian-deep: #0c264a;
+  --prussian-line: #3f68a0;
+  --prussian-ink: #dbe7f3;
+  --paper: #eef2f4;
+  --paper-2: #e2e8ec;
+  --paper-line: #c3ced7;
+  --ink: #0f1d2e;
+  --ink-2: #43566b;
+  --measured: #ff7b2e;
+  --measured-ink: #b8460c;
+  --struck: #ff5c7a;
+  --struck-ink: #c3243f;
+  --held: #8ef0c4;
+  --held-ink: #1d7a55;
+
+  --cm: var(--font-cm), "Latin Modern Roman", "CMU Serif", Georgia, serif;
+  --ui: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  --measure: 680px;
+  --margin: 300px;
   --max: 1240px;
-  --font: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-  --serif: var(--font-serif), "Iowan Old Style", Georgia, serif;
+  --radius: 6px;
+
+  /* names the older modules still read, mapped onto the book's tokens */
+  --plate: var(--prussian);
+  --plate-ink: var(--paper);
+  --law: var(--prussian);
+  --law-soft: #d6e2ef;
+  --rule: var(--paper-line);
+  --ink-3: var(--ink-2);
+  --ok: var(--held-ink);
+  --warn: var(--measured-ink);
+  --font: var(--ui);
+  --serif: var(--cm);
   color-scheme: light;
 }
 
@@ -27,54 +46,49 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 80px;
 }
 
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--serif);
-  font-size: 18px;
-  line-height: 1.6;
-  font-optical-sizing: auto;
+  font-family: var(--cm);
+  font-size: 19px;
+  line-height: 1.62;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: lining-nums;
 }
 
-/* the interface, numbers and figures speak in the grotesque; prose reads in the serif */
-h1,
-h2,
-h3,
-h4,
-.btn,
+/* the interface speaks in Archivo; everything read is Computer Modern */
 button,
 input,
 select,
 textarea,
 label,
-table,
 nav,
-figcaption,
+.btn,
+.ui,
 .small,
-.num,
 .key,
-.ui {
-  font-family: var(--font);
-  font-feature-settings: "tnum" 1;
+th {
+  font-family: var(--ui);
 }
 
 a {
-  color: inherit;
+  color: var(--prussian);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
 a:hover {
-  color: var(--law);
+  color: var(--measured-ink);
 }
 
 :focus-visible {
-  outline: 2px solid var(--law);
-  outline-offset: 2px;
+  outline: 2px solid var(--measured);
+  outline-offset: 3px;
   border-radius: 2px;
 }
 
@@ -94,86 +108,119 @@ button {
 
 h1,
 h2,
-h3 {
-  font-weight: 600;
-  font-variation-settings: "wdth" 92;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
+h3,
+h4 {
+  font-family: var(--cm);
+  font-weight: 400;
   margin: 0;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 h1 {
-  font-size: clamp(34px, 4.6vw, 56px);
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  line-height: 1;
+  font-size: clamp(40px, 5.4vw, 75.7px);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
 }
 
 h2 {
-  font-size: clamp(25px, 2.7vw, 34px);
-  letter-spacing: -0.028em;
+  font-size: clamp(30px, 3.4vw, 42.6px);
+  line-height: 1.1;
 }
 
 h3 {
-  font-size: 19px;
+  font-size: 24px;
+  line-height: 1.2;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
+}
+
+em,
+i {
+  font-style: italic;
 }
 
 .wrap {
-  width: min(var(--max), 100% - 32px);
+  width: min(var(--max), 100% - 40px);
   margin-inline: auto;
 }
 
 .lede {
-  font-size: clamp(19px, 1.7vw, 22px);
+  font-size: clamp(21px, 1.9vw, 24px);
   line-height: 1.5;
-  color: var(--ink-2);
-  max-width: 60ch;
+  color: var(--ink);
+  max-width: 34em;
 }
 
 .small {
   font-size: 14px;
   line-height: 1.5;
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .num {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   min-height: 46px;
-  padding: 0 20px;
+  padding: 0 22px;
   border-radius: var(--radius);
-  border: 1.5px solid var(--ink);
-  background: var(--ink);
+  border: 1.5px solid var(--prussian);
+  background: var(--prussian);
   color: var(--paper);
+  font-size: 16px;
   font-weight: 600;
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .btn:hover {
-  background: var(--law);
-  border-color: var(--law);
-  color: #fff;
+  background: var(--prussian-deep);
+  border-color: var(--prussian-deep);
+  color: var(--paper);
 }
 
 .btn.ghost {
   background: transparent;
-  color: var(--ink);
+  color: var(--prussian);
 }
 
 .btn.ghost:hover {
-  background: var(--ink);
+  background: var(--prussian);
   color: var(--paper);
-  border-color: var(--ink);
+}
+
+/* on a plate the primary button is paper on blue */
+.onPlate .btn,
+.btn.onPlate {
+  background: var(--paper);
+  border-color: var(--paper);
+  color: var(--prussian-deep);
+}
+
+.onPlate .btn.ghost,
+.btn.ghost.onPlate {
+  background: transparent;
+  color: var(--paper);
+  border-color: color-mix(in srgb, var(--paper) 70%, transparent);
+}
+
+.onPlate .btn:hover {
+  background: #fff;
+  color: var(--prussian-deep);
+}
+
+.onPlate .btn.ghost:hover {
+  background: var(--paper);
+  color: var(--prussian-deep);
 }
 
 .btn[disabled] {
@@ -198,22 +245,58 @@ p {
 
 .key i.m {
   background: var(--measured);
-  height: 8px;
-  width: 8px;
+  height: 9px;
+  width: 9px;
   border-radius: 50%;
 }
 
 .key i.l {
-  background: var(--law);
+  background: var(--prussian);
 }
 
 .section {
-  padding-block: clamp(56px, 8vw, 104px);
-  border-top: 1px solid var(--rule);
+  padding-block: clamp(64px, 8vw, 112px);
+}
+
+/* journal tables: heavy rule, hairline under the head, heavy rule at the end */
+table.journal {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums lining-nums;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+
+table.journal th {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink-2);
+  padding: 10px 14px 8px 0;
+  border-bottom: 1px solid var(--ink);
+  vertical-align: bottom;
+}
+
+table.journal td {
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid var(--paper-line);
+  vertical-align: top;
+}
+
+table.journal tr:last-child td {
+  border-bottom: 0;
+}
+
+table.journal .r {
+  text-align: right;
 }
 
 .eqn .katex {
-  font-size: 1.18em;
+  font-size: 1.12em;
+}
+
+.katex {
+  font-size: 1.05em;
 }
 
 .katex-display {
@@ -221,6 +304,22 @@ p {
   overflow-x: auto;
   overflow-y: hidden;
   padding-block: 2px;
+}
+
+/* a struck-through law: the data refuted it */
+.struck {
+  text-decoration: line-through;
+  text-decoration-color: var(--struck-ink);
+  text-decoration-thickness: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

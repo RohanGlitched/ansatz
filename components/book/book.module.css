@@ -1,0 +1,172 @@
+/* ---- plates: a Prussian sheet with a brushed emulsion edge, lying on the page ---- */
+.plate {
+  margin: 0;
+  padding-block: clamp(28px, 4vw, 56px);
+}
+
+.wide {
+  width: min(1400px, 100% - 24px);
+  margin-inline: auto;
+}
+
+.sheet {
+  position: relative;
+  color: var(--paper);
+  background: var(--prussian);
+  -webkit-mask-image: url("/book/emulsion.png");
+  mask-image: url("/book/emulsion.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  isolation: isolate;
+}
+
+/* paper grain in the emulsion */
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/book/grain.png");
+  background-size: 256px;
+  opacity: 0.09;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* a slightly deeper exposure toward the bottom, as a hand-coated sheet dries */
+.sheet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 30% 20%, transparent 50%, rgba(8, 26, 52, 0.45));
+  pointer-events: none;
+  z-index: -1;
+}
+
+.inner {
+  padding: clamp(40px, 5.5vw, 84px) clamp(28px, 5.5vw, 88px);
+}
+
+.plateCap {
+  width: min(var(--max), 100% - 40px);
+  margin: 14px auto 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  max-width: 920px;
+}
+
+.plateNo {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.plateMore {
+  color: var(--ink-2);
+}
+
+/* ---- a page: a text column and a margin for notes ---- */
+.page {
+  width: min(calc(var(--measure) + var(--margin) + 64px), 100% - 40px);
+  margin-inline: auto;
+}
+
+.page > * {
+  max-width: var(--measure);
+}
+
+.note {
+  font-family: var(--cm);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 10px 0 18px;
+  padding-left: 12px;
+  border-left: 2px solid var(--paper-line);
+}
+
+.who {
+  display: block;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--measured-ink);
+}
+
+@media (min-width: 1100px) {
+  .page {
+    display: grid;
+    grid-template-columns: var(--measure) var(--margin);
+    column-gap: 64px;
+    align-items: start;
+  }
+
+  .page > * {
+    grid-column: 1;
+  }
+
+  .page > .note,
+  .page > aside {
+    grid-column: 2;
+    align-self: end;
+    margin: 0 0 4px;
+  }
+}
+
+/* ---- sections of a paper ---- */
+.section {
+  padding-block: clamp(56px, 7vw, 96px) 0;
+}
+
+.sh {
+  display: flex;
+  gap: 0.55em;
+  align-items: baseline;
+  margin-bottom: 22px;
+}
+
+.sn {
+  color: var(--ink-2);
+  font-size: 0.7em;
+}
+
+/* ---- readings ---- */
+.reading {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.rv {
+  font-family: var(--cm);
+  font-size: clamp(40px, 4.4vw, 56.8px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+
+.pm,
+.unit {
+  font-size: 0.45em;
+  letter-spacing: 0;
+}
+
+.rl {
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 8px;
+  color: inherit;
+  opacity: 0.8;
+  max-width: 26ch;
+}
+
+.measured .rv {
+  color: var(--measured);
+}
+
+.struck .rv {
+  color: var(--struck);
+}
+
+.held .rv {
+  color: var(--held);
+}

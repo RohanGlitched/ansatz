@@ -1,15 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Newsreader } from "next/font/google";
+import { Archivo } from "next/font/google";
+import localFont from "next/font/local";
 import Link from "next/link";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import styles from "./layout.module.css";
 import NavLinks from "./nav-links";
+import { CyanotypeDefs, Mark } from "@/components/book/Cyanotype";
 
-// a science journal's pair: a characterful grotesque for display, figures and interface; a reading serif that sits
-// naturally beside the Computer Modern of the equations
-const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", display: "swap", axes: ["opsz", "wdth"] });
-const serif = Newsreader({ subsets: ["latin"], variable: "--font-serif", display: "swap", axes: ["opsz"], style: ["normal", "italic"] });
+// a lab book: Computer Modern, the face physics papers are set in (so text and equations share one voice), and a
+// plain grotesque for the controls
+const cm = localFont({
+  src: [
+    { path: "./fonts/KaTeX_Main-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/KaTeX_Main-Italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/KaTeX_Main-Bold.woff2", weight: "700", style: "normal" },
+    { path: "./fonts/KaTeX_Main-BoldItalic.woff2", weight: "700", style: "italic" },
+  ],
+  variable: "--font-cm",
+  display: "swap",
+});
+const ui = Archivo({ subsets: ["latin"], variable: "--font-ui", display: "swap", axes: ["wdth"] });
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://ansatz-lab.vercel.app";
 
@@ -22,97 +33,83 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-export const viewport: Viewport = { themeColor: "#f2f3f0", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#eef2f4", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // no headers() here: reading the request in the root layout would make every page render on demand, and the pages
   // that only read stored runs are cached instead. A page read in another language marks its own text with lang.
   return (
-    <html lang="en" className={`${display.variable} ${serif.variable}`}>
+    <html lang="en" className={`${cm.variable} ${ui.variable}`}>
       <head>
         <link rel="alternate" type="text/plain" href="/llms.txt" title="Guide for language-model agents" />
       </head>
       <body>
+        <CyanotypeDefs />
+        <a href="#main" className={styles.skip}>
+          Skip to the page
+        </a>
         <header className={styles.top}>
-          <div className={`wrap ${styles.bar}`}>
+          <div className={styles.bar}>
             <Link href="/" className={styles.brand} aria-label="Ansatz home">
               <Mark />
-              <span>Ansatz</span>
+              <span className={styles.word}>Ansatz</span>
             </Link>
             <nav className={styles.nav} aria-label="Main">
               <NavLinks />
-              <Link href="/new" className={styles.cta}>
-                Run an experiment
-              </Link>
             </nav>
+            <Link href="/new" className={`btn ${styles.cta}`}>
+              Run an experiment
+            </Link>
           </div>
-          <nav className={styles.mnav} aria-label="Sections">
-            <NavLinks />
-          </nav>
         </header>
-        <main>{children}</main>
+        <main id="main">{children}</main>
         <footer className={styles.foot}>
-          {/* the page ends on a photo-finish: every frame of the 1972 Moon jump, one slice each */}
-          <Link href="/x/moon-jump" className={styles.footStrip} aria-label="The Moon experiment: every frame of John Young's jump, one slice each">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/slits/moon-jump.webp" alt="" />
-          </Link>
-          <div className={`wrap ${styles.footGrid}`}>
-            <div>
+          <div className={styles.footIn}>
+            <div className={styles.colophon}>
               <Link href="/" className={styles.brand}>
-                <Mark />
-                <span>Ansatz</span>
+                <Mark size={34} />
+                <span className={styles.word}>Ansatz</span>
               </Link>
-              <p className="small" style={{ marginTop: 12, maxWidth: "36ch" }}>
-                <em>Ansatz</em> (German, physics): an educated guess at the form of a law, made before the data says whether it holds.
+              <p>
+                <em>Ansatz</em>, in physics: an educated guess at the form of a law, made before the data says whether it holds.
+              </p>
+              <p className={styles.small}>
+                Set in Computer Modern and Archivo. Plates printed as cyanotypes, after Anna Atkins&rsquo; <em>Photographs of British Algae</em> (1843).
               </p>
             </div>
-            <div>
-              <h3 className={styles.fh}>Lab</h3>
-              <Link href="/new">Run an experiment</Link>
-              <Link href="/x">All experiments, with their numbers</Link>
-              <Link href="/series/pendulum-lengths">One pendulum, four lengths</Link>
-              <Link href="/proof">Proof: the benchmark</Link>
-              <Link href="/how">How it works</Link>
-              <Link href="/judges">For judges: the case in one page</Link>
-            </div>
-            <div>
-              <h3 className={styles.fh}>Built with Meta</h3>
-              <span>SAM 3.1 measures every frame</span>
-              <span>Muse Spark watches, proposes laws, referees</span>
-              <span>Muse Wonder, an agent with a fitting tool, tries laws and submits one</span>
-              <span>Muse Voice Transcribe hears the narration</span>
-            </div>
-            <div>
-              <h3 className={styles.fh}>Project</h3>
-              <a href="https://github.com/RohanGlitched/ansatz">Code on GitHub</a>
-              <a href="/llms.txt">For agents: llms.txt</a>
-              <a href="/bench">Benchmark data (JSON)</a>
-              <span>Meta Global AI Developer Hackathon, 2026</span>
-              <span>Clips credited on each experiment</span>
+            <div className={styles.cols}>
+              <div>
+                <h3>The lab</h3>
+                <Link href="/new">Run an experiment</Link>
+                <Link href="/x">Every experiment, with its numbers</Link>
+                <Link href="/series/pendulum-lengths">One pendulum, four lengths</Link>
+                <Link href="/class/demo23">A class page</Link>
+              </div>
+              <div>
+                <h3>The case</h3>
+                <Link href="/proof">Proof: the benchmark</Link>
+                <Link href="/how">How a law wins</Link>
+                <Link href="/judges">For judges, in one page</Link>
+                <a href="https://github.com/RohanGlitched/ansatz">The code, on GitHub</a>
+              </div>
+              <div>
+                <h3>Built with Meta</h3>
+                <span>SAM 3.1 measures every frame</span>
+                <span>Muse Spark watches, proposes laws, referees</span>
+                <span>Muse Wonder tries laws with a fitting tool</span>
+                <span>Muse Voice Transcribe hears the narration</span>
+              </div>
+              <div>
+                <h3>For machines</h3>
+                <a href="/llms.txt">llms.txt</a>
+                <a href="/bench">Benchmark data (JSON)</a>
+                <span>Meta Global AI Developer Hackathon, 2026</span>
+                <span>Clips credited on each experiment</span>
+              </div>
             </div>
           </div>
         </footer>
       </body>
     </html>
-  );
-}
-
-function Mark() {
-  // a parabola through five strobe dots: the product in one glyph
-  return (
-    <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-      <rect width="26" height="26" rx="5" fill="#0e1012" />
-      <path d="M4 21 Q13 -6 22 21" stroke="#2d4bff" strokeWidth="1.6" fill="none" />
-      {[
-        [5.2, 17.4],
-        [8.6, 9.6],
-        [13, 7.2],
-        [17.4, 9.6],
-        [20.8, 17.4],
-      ].map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="1.9" fill="#ff5a1f" />
-      ))}
-    </svg>
   );
 }
