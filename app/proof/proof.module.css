@@ -1,172 +1,227 @@
-.head {
-  padding-top: clamp(32px, 5vw, 64px);
-  padding-bottom: 28px;
+/* /proof: the results paper. Plates carry the figures; the page carries the argument, with provenance in the margin. */
+
+/* ---- the title page ---- */
+.title {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(48px, 6vw, 88px) 0 clamp(8px, 1.5vw, 16px);
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: clamp(24px, 4vw, 56px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.25fr);
+  gap: clamp(28px, 5vw, 80px);
   align-items: end;
 }
 
-.sheet {
+.title h1 {
+  font-size: clamp(56px, 7vw, 96px);
+  line-height: 0.95;
+}
+
+.abstract > p {
+  font-size: 20px;
+  line-height: 1.55;
+  max-width: 36em;
+}
+
+.toc {
+  margin-top: 26px;
+  border-top: 1px solid var(--paper-line);
+  padding-top: 14px;
+}
+
+.toc ol {
+  list-style: none;
   margin: 0;
+  padding: 0;
+  columns: 2;
+  column-gap: 32px;
+  counter-reset: toc;
+}
+
+.toc li {
+  counter-increment: toc;
+  break-inside: avoid;
+  padding: 3px 0;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.toc li::before {
+  content: "§" counter(toc) " ";
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.toc a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.toc a:hover {
+  color: var(--measured-ink);
+  text-decoration: underline;
+}
+
+.para {
+  margin-top: 1em;
+}
+
+/* ---- Plate I ---- */
+.stripWrap {
+  margin-top: clamp(48px, 5vw, 72px);
+}
+
+/* the phone clips: one reading, set on the page */
+.phone {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 2px solid var(--ink);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 28px;
+  align-items: start;
+}
+
+.phone > div:first-child {
+  color: var(--prussian);
+}
+
+.phone p {
+  font-size: 18px;
+}
+
+/* ---- Plate II: two specimens ---- */
+.footage {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(32px, 5vw, 72px);
+}
+
+.specimen {
   display: grid;
   gap: 12px;
+  align-content: start;
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.specimen:hover {
+  color: #fff;
+}
+
+.print {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  object-fit: contain;
+  background: var(--prussian-deep);
+  filter: url(#cyanotype);
+  outline: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  outline-offset: 5px;
+  margin-bottom: 10px;
+}
+
+.fig {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+/* ---- Plate III: a contact sheet of photo-finishes ---- */
+.sheet {
+  display: grid;
+  gap: 30px;
 }
 
 .sheetRow {
   display: grid;
-  gap: 4px;
+  gap: 10px;
+  color: var(--paper);
   text-decoration: none;
-  font-family: var(--font);
-  font-size: 13px;
-  color: var(--ink-3);
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.sheetRow:hover {
+  color: #fff;
 }
 
 .sheetRow img {
   width: 100%;
-  height: 58px;
+  height: clamp(64px, 9vw, 120px);
   object-fit: cover;
-  object-position: 50% 78%;
-  border-radius: 2px;
+  object-position: 50% 70%;
+  filter: url(#cyanotype);
+  outline: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  outline-offset: 4px;
 }
 
-.sheetRow:hover span {
-  color: #8fa0ff;
+.sheetRow:hover img {
+  filter: none;
 }
 
-.sheet figcaption {
-  font-size: 13px;
-  color: var(--ink-3);
+/* ---- Table 1: the benchmark, as a journal table across the full measure ---- */
+.tableBlock {
+  width: min(var(--max), 100% - 40px);
+  margin: clamp(28px, 4vw, 48px) auto 0;
 }
 
-@media (max-width: 900px) {
-  .head {
-    grid-template-columns: 1fr;
-  }
+.bench {
+  font-size: 16px;
+  line-height: 1.42;
 }
 
-/* the scoreboard: every number checked against a known answer, on the dark plate */
-.top {
-  --ink: #eceee9;
-  --ink-2: #b8bec6;
-  --ink-3: #8b929b;
-  --rule: #2b3036;
-  background: var(--plate);
-  color: var(--ink);
-  padding-bottom: clamp(16px, 3vw, 32px);
-}
-
-.top + .section {
-  border-top: 0;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0;
-  border-top: 1px solid var(--ink);
-  margin-bottom: clamp(40px, 6vw, 72px);
-}
-
-.stats > div {
-  padding: 18px 18px 18px 0;
-  min-width: 0;
-}
-
-.stats > div + div {
-  padding-left: 18px;
-  border-left: 1px solid var(--rule);
-}
-
-.stats p {
-  font-size: 14.5px;
+.bench caption,
+.lib caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 16px;
   line-height: 1.5;
   color: var(--ink-2);
+  padding-bottom: 12px;
+  max-width: 68ch;
 }
 
-.big {
-  font-family: var(--font);
-  font-variation-settings: "wdth" 88;
-  font-size: clamp(34px, 4vw, 56px) !important;
-  font-weight: 650;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
-  color: #8fa0ff !important;
-  margin-bottom: 6px;
-}
-
-.band {
-  background: var(--paper-2);
-}
-
-.real {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 18px;
-  margin-top: 24px;
-}
-
-.realCard {
-  display: block;
-  padding: 20px;
-  background: var(--plate);
-  color: var(--plate-ink);
-  border-radius: 6px;
-  text-decoration: none;
-}
-
-.realCard:hover {
-  color: var(--plate-ink);
-  outline: 2px solid var(--law);
-}
-
-.realCard p {
-  color: #b8bec6;
-  font-size: 15px;
-}
-
-.realCard strong {
-  color: var(--plate-ink);
-}
-
-.realBig {
-  font-family: var(--font);
-  font-size: 32px !important;
-  font-weight: 650;
-  color: #8fa0ff !important;
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}
-
-.tableWrap {
-  overflow-x: auto;
-  margin-top: 24px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14.5px;
-  min-width: 860px;
-}
-
-.table th {
+.bench.bench tbody th {
+  font-family: var(--cm);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--ink);
   text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-3);
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--ink);
-}
-
-.table td {
-  padding: 10px;
-  border-bottom: 1px solid var(--rule);
   vertical-align: top;
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid var(--paper-line);
 }
 
-.table td :global(.small) {
+.bench.bench tbody tr:last-child th {
+  border-bottom: 0;
+}
+
+.bench.bench th[scope="col"]:nth-child(1) {
+  width: 17%;
+}
+
+.bench.bench th[scope="col"]:nth-child(2) {
+  width: 20%;
+}
+
+.bench.bench th[scope="col"]:nth-child(5) {
+  width: 12%;
+}
+
+.clip {
   display: block;
+}
+
+.sub {
+  display: block;
+  font-family: var(--ui);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+
+.nums {
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .check {
@@ -175,86 +230,147 @@
 
 .check em {
   font-style: normal;
-  font-weight: 600;
 }
 
 .good {
-  color: var(--ok) !important;
+  color: var(--held-ink);
 }
 
 .bad {
-  color: #c2410c !important;
+  color: var(--struck-ink);
 }
 
-.two {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: clamp(24px, 4vw, 56px);
+/* ---- §6: what each part adds ---- */
+.parts {
+  margin: 22px 0 0;
 }
 
-.ablation {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 14px;
+.parts dt {
+  font-weight: 700;
+  margin-top: 18px;
 }
 
-.ablation li {
-  padding-left: 16px;
-  border-left: 2px solid var(--law);
-  color: var(--ink-2);
+.parts dd {
+  margin: 4px 0 0;
 }
 
-.ablation strong {
-  color: var(--ink);
+/* ---- Table 2 ---- */
+.lib {
+  margin-top: 24px;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.big {
+  font-family: var(--cm);
+  font-size: 26px;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--prussian);
+}
+
+.lesson {
+  padding: 14px 18px;
+  background: var(--paper-2);
+  border-left: 3px solid var(--prussian);
 }
 
 .limits {
-  margin: 18px 0 0;
-  padding-left: 20px;
-  display: grid;
-  gap: 8px;
-  color: var(--ink-2);
-  max-width: 80ch;
+  margin: 0;
+  padding-left: 1.2em;
 }
 
-@media (min-width: 901px) and (max-width: 1180px) {
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .stats > div:nth-child(3n + 1) {
-    padding-left: 0;
-    border-left: 0;
-  }
+.limits li + li {
+  margin-top: 0.5em;
+}
+
+.repro {
+  margin-top: 30px;
+  padding-bottom: clamp(64px, 8vw, 112px);
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.repro code {
+  font-size: 13px;
 }
 
 @media (max-width: 900px) {
-  .stats {
-    grid-template-columns: 1fr 1fr;
+  .title {
+    grid-template-columns: 1fr;
   }
-  .stats > div:nth-child(odd) {
-    padding-left: 0;
-    border-left: 0;
-  }
-  .two {
+
+  .footage {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 480px) {
-  .stats {
-    grid-template-columns: 1fr;
+@media (max-width: 560px) {
+  .toc ol {
+    columns: 1;
   }
-  .stats > div,
-  .stats > div + div {
-    padding-left: 0;
-    border-left: 0;
-    border-bottom: 1px solid var(--rule);
+
+  .phone {
+    grid-template-columns: 1fr;
   }
 }
 
-.muted {
-  color: var(--ink-3);
-  font-style: normal;
+/* on a narrow screen each benchmark row becomes a short record, every cell labelled */
+@media (max-width: 760px) {
+  .bench,
+  .bench.bench tbody,
+  .bench.bench tr,
+  .bench.bench td,
+  .bench.bench tbody th {
+    display: block;
+    width: auto;
+  }
+
+  .bench.bench thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .bench caption {
+    display: block;
+  }
+
+  .bench.bench tr {
+    padding: 14px 0 12px;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .bench.bench tr:last-child {
+    border-bottom: 0;
+  }
+
+  .bench.bench td,
+  .bench.bench tbody th {
+    border: 0;
+    padding: 3px 0;
+    text-align: left;
+  }
+
+  .bench.bench td::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--ui);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin-top: 6px;
+  }
+
+  .bench.bench td:empty {
+    display: none;
+  }
+
+  .bench.bench tbody th {
+    font-size: 19px;
+  }
 }

@@ -1,409 +1,475 @@
-/* dark plates carry the scoreboard; paper carries the reading */
-.top,
-.dark {
-  --ink: #eceee9;
-  --ink-2: #b8bec6;
-  --ink-3: #8b929b;
-  --rule: #2b3036;
-  --paper: #0e1012;
-  background: var(--plate);
-  color: var(--ink);
-}
+/* /judges: the case in one page. A title page with the criteria board, then the evidence, set as a paper. */
 
-.top a:hover,
-.dark a:hover {
-  color: #8fa0ff;
-}
-
-.top + .section,
-.dark + .section {
-  border-top: 0;
-}
-
-.head {
-  padding-block: clamp(36px, 5vw, 72px);
+.title {
+  width: min(1400px, 100% - 40px);
+  margin: 0 auto;
+  padding: clamp(48px, 6vw, 88px) 0 clamp(8px, 1.5vw, 16px);
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: clamp(28px, 5vw, 72px);
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: clamp(32px, 5vw, 88px);
   align-items: start;
 }
 
-/* the four criteria as a timing board: name, points, the one-line case */
+.title h1 {
+  font-size: clamp(48px, 6vw, 84px);
+  line-height: 1;
+}
+
+.abstract {
+  margin-top: 22px;
+  font-size: 20px;
+  line-height: 1.55;
+  max-width: 36em;
+}
+
+.cta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
+
+.headNote {
+  margin-top: 18px;
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+/* ---- the criteria board: a score sheet, each criterion's bar as long as its weight ---- */
 .board {
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  margin-top: clamp(0px, 1vw, 12px);
+}
+
+.boardHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.boardHead span {
+  font-weight: 400;
+}
+
+.board ol {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 2px solid #8fa0ff;
-  font-family: var(--font);
+}
+
+.board li + li {
+  border-top: 1px solid var(--paper-line);
 }
 
 .board a {
   display: grid;
-  gap: 4px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--rule);
+  gap: 6px;
+  padding: 14px 0 15px;
+  color: var(--ink);
   text-decoration: none;
 }
 
-.boardName {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
+.board a:hover .boardName {
+  color: var(--measured-ink);
 }
 
-.boardWeight {
-  margin-left: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-3);
-  font-variant-numeric: tabular-nums;
+.board a:hover .boardBar i {
+  background: var(--measured-ink);
+}
+
+.boardBar {
+  display: block;
+  height: 6px;
+  background: var(--paper-2);
+}
+
+.boardBar i {
+  display: block;
+  height: 100%;
+  background: var(--prussian);
+  transition: background 0.15s;
+}
+
+.boardName {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.boardName b {
+  font-weight: 400;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--prussian);
 }
 
 .boardClaim {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.45;
   color: var(--ink-2);
 }
 
-.board a:hover .boardName {
-  color: #8fa0ff;
-}
-
-.band {
-  background: var(--paper-2);
-}
-
-/* the three-minute tour: a real sequence, so it is numbered by time */
+/* ---- the tour: five timed stops across the full measure ---- */
 .tour {
   list-style: none;
-  margin: 28px 0 0;
+  width: min(calc(var(--measure) + var(--margin) + 64px), 100% - 40px);
+  margin: 28px auto 0;
   padding: 0;
-  border-top: 1px solid var(--ink);
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
 }
 
 .tour li {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
-  gap: 20px;
-  align-items: center;
-  padding: 18px 0;
-  border-bottom: 1px solid var(--rule);
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 8px 28px;
+  align-items: start;
+  padding: 20px 0;
+}
+
+.tour li + li {
+  border-top: 1px solid var(--paper-line);
 }
 
 .tourT {
-  font-family: var(--font);
-  font-size: 22px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  color: var(--law);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--cm);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--prussian);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .tour h3 {
-  font-size: 19px;
+  margin-bottom: 6px;
 }
 
 .tour p {
-  margin-top: 4px;
-  color: var(--ink-2);
-  font-size: 16.5px;
-  max-width: 72ch;
+  max-width: 62ch;
 }
 
-.criteria {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(28px, 4vw, 56px) clamp(28px, 4vw, 64px);
-}
-
+/* ---- criteria ---- */
 .criterion {
-  border-top: 2px solid var(--ink);
-  padding-top: 14px;
-  scroll-margin-top: 80px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--paper-line);
 }
 
 .cWeight {
-  font-family: var(--font);
+  font-family: var(--ui);
   font-size: 14px;
-  color: var(--ink-3);
+  font-weight: 600;
+  color: var(--measured-ink);
 }
 
 .cClaim {
-  font-size: clamp(21px, 2vw, 26px);
-  line-height: 1.2;
-  margin-top: 8px;
-  max-width: 30ch;
+  margin: 6px 0 12px;
+  font-size: clamp(24px, 2.4vw, 30px);
 }
 
-.criterion ul {
-  margin: 16px 0 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 10px;
-  color: var(--ink-2);
-  font-size: 16.5px;
-  line-height: 1.55;
-}
-
-.novel {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0;
-  border-top: 1px solid var(--ink);
-}
-
-.novelCard {
-  display: block;
-  padding: 20px 22px 24px 0;
-  border-bottom: 1px solid var(--rule);
-  text-decoration: none;
-}
-
-.novelCard:not(:nth-child(3n + 1)) {
-  padding-left: 22px;
-  border-left: 1px solid var(--rule);
-}
-
-.novelCard h3 {
-  font-size: 19px;
-}
-
-.novelCard p {
-  margin-top: 8px;
-  color: var(--ink-2);
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.novelCard:hover h3 {
-  color: var(--law);
-}
-
-.models {
-  margin-top: 28px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0;
-  border-top: 2px solid #8fa0ff;
-}
-
-.model {
-  padding: 18px 20px 22px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.model + .model {
-  padding-left: 20px;
-  border-left: 1px solid var(--rule);
-}
-
-.model h3 {
-  font-size: 20px;
-}
-
-.modelStat {
-  font-family: var(--font);
-  font-size: 14px;
-  color: #8fa0ff;
-  font-variant-numeric: tabular-nums;
-}
-
-.model p:not(.modelStat) {
-  font-size: 15.5px;
-  line-height: 1.55;
-  color: var(--ink-2);
-}
-
-.model a {
-  margin-top: auto;
-  font-family: var(--font);
-  font-size: 14px;
-}
-
-.two {
-  display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
-  gap: clamp(24px, 4vw, 56px);
-}
-
-.breaks {
+.points {
   margin: 0;
-  border-top: 1px solid var(--ink);
+  padding-left: 1.2em;
 }
 
-.breaks div {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--rule);
+.points li + li {
+  margin-top: 0.55em;
+}
+
+.ev a {
+  font-family: var(--cm);
+}
+
+/* ---- what is new ---- */
+.novel {
+  margin: 24px 0 0;
+}
+
+.novel > div + div {
+  margin-top: 18px;
+}
+
+.novel dt {
+  font-weight: 700;
+}
+
+.novel dd {
+  margin: 4px 0 0;
+}
+
+/* ---- Plate II: the model ledger, ruled on the plate ---- */
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums lining-nums;
+  border-top: 2px solid var(--paper);
+  border-bottom: 2px solid var(--paper);
+}
+
+.ledger thead th {
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--prussian-ink);
+  padding: 10px 16px 8px 0;
+  border-bottom: 1px solid var(--paper);
+}
+
+.ledger tbody th,
+.ledger td {
+  padding: 16px 16px 16px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--prussian-line);
+}
+
+.ledger tbody tr:last-child th,
+.ledger tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.ledger tbody th {
+  font-family: var(--cm);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: left;
+  width: 22%;
+}
+
+.ledgerGo {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--prussian-ink);
+}
+
+.ledgerGo:hover {
+  color: #fff;
+}
+
+.job {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--prussian-ink);
+  max-width: 60ch;
+}
+
+.rn {
+  text-align: right !important;
+  white-space: nowrap;
+  font-family: var(--cm);
+  font-size: 22px;
+  padding-right: 0 !important;
+  padding-left: 16px !important;
+}
+
+thead .rn {
+  font-family: var(--ui);
+  font-size: 14px;
+}
+
+/* ---- try to break it ---- */
+.breaks {
+  margin: 24px 0 0;
+}
+
+.breaks > div + div {
+  margin-top: 16px;
 }
 
 .breaks dt {
-  font-family: var(--font);
-  font-weight: 600;
-  font-size: 16px;
+  font-weight: 700;
 }
 
 .breaks dd {
   margin: 4px 0 0;
-  color: var(--ink-2);
-  font-size: 16px;
+}
+
+/* ---- the numbers table, across the full measure ---- */
+.tableBlock {
+  width: min(calc(var(--measure) + var(--margin) + 64px), 100% - 40px);
+  margin: 26px auto 0;
 }
 
 .numbers {
-  width: 100%;
-  margin-top: 24px;
-  border-collapse: collapse;
-  font-size: 15px;
+  font-size: 16.5px;
+  line-height: 1.45;
 }
 
-.numbers th {
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-3);
-  padding: 8px 10px 8px 0;
-  border-bottom: 1px solid var(--ink);
+.numbers td:nth-child(1) {
+  width: 36%;
 }
 
-.numbers td {
-  padding: 12px 10px 12px 0;
-  border-bottom: 1px solid var(--rule);
-  vertical-align: top;
+.numbers td:nth-child(3) {
+  font-family: var(--ui);
+  font-size: 14px;
+  white-space: nowrap;
 }
 
-.numbers td:nth-child(2) {
-  font-weight: 600;
-}
-
-.end {
-  padding-bottom: clamp(56px, 8vw, 104px);
-}
-
-@media (max-width: 1000px) {
-  .models {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .model:nth-child(odd) {
-    padding-left: 0;
-    border-left: 0;
-  }
-  .novel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .novelCard,
-  .novelCard:not(:nth-child(3n + 1)) {
-    padding: 20px 20px 22px 0;
-    border-left: 0;
-  }
-}
-
-@media (max-width: 760px) {
-  .head,
-  .criteria,
-  .two,
-  .models,
-  .novel {
-    grid-template-columns: 1fr;
-  }
-  .model,
-  .model + .model {
-    padding-left: 0;
-    border-left: 0;
-    border-bottom: 1px solid var(--rule);
-  }
-  .tour li {
-    grid-template-columns: 56px minmax(0, 1fr);
-  }
-  .tour li > :last-child {
-    grid-column: 2;
-    justify-self: start;
-  }
-  .numbers thead {
-    display: none;
-  }
-  .numbers tr {
-    display: grid;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--rule);
-  }
-  .numbers td {
-    border: 0;
-    padding: 2px 0;
-  }
+.code {
+  margin-top: 12px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--ink-2);
 }
 
 .gaps {
-  margin: 0;
-  padding-left: 20px;
+  margin: 20px 0 0;
+  padding-left: 1.2em;
+}
+
+.gaps li + li {
+  margin-top: 0.55em;
+}
+
+/* ---- Plate III ---- */
+.close {
   display: grid;
-  gap: 10px;
-  color: var(--ink-2);
-  font-size: 16.5px;
+  gap: 28px;
 }
 
-/* the three results a judge should leave with, under the brief */
-.proofRow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 2px solid #8fa0ff;
-  padding-bottom: clamp(36px, 5vw, 64px);
-  font-family: var(--font);
+.close p {
+  font-size: clamp(19px, 1.8vw, 22px);
+  line-height: 1.55;
+  max-width: 44em;
 }
 
-.proofRow a {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 18px 20px 0 0;
-  text-decoration: none;
+.closeCta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.proofRow a + a {
-  padding-left: 20px;
-  border-left: 1px solid var(--rule);
-}
-
-.proofRow b {
-  font-size: clamp(30px, 3.2vw, 44px);
-  font-weight: 650;
-  font-variation-settings: "wdth" 88;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  color: #8fa0ff;
-  font-variant-numeric: tabular-nums;
-}
-
-.proofRow span {
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: var(--ink-2);
-  max-width: 40ch;
-}
-
-@media (max-width: 760px) {
-  .proofRow {
+@media (max-width: 960px) {
+  .title {
     grid-template-columns: 1fr;
   }
-  .proofRow a + a {
-    padding-left: 0;
-    border-left: 0;
+}
+
+@media (max-width: 720px) {
+  .tour li {
+    grid-template-columns: 56px minmax(0, 1fr);
   }
-}
 
-.headCta {
-  margin-top: 26px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
+  .tour li > a {
+    grid-column: 2;
+    justify-self: start;
+  }
 
-.headNote {
-  margin-top: 12px;
-  font-family: var(--font);
-  font-size: 14px;
-  color: var(--ink-3);
-  max-width: 60ch;
+  .tourT {
+    font-size: 24px;
+  }
+
+  /* the ledger becomes one record per model */
+  .ledger thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .ledger tbody,
+  .ledger tr,
+  .ledger tbody th,
+  .ledger td {
+    display: block;
+    width: auto;
+  }
+
+  .ledger tr {
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    justify-content: start;
+    column-gap: 22px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--prussian-line);
+  }
+
+  .ledger tr:last-child {
+    border-bottom: 0;
+  }
+
+  .ledger tbody th,
+  .ledger td {
+    border: 0;
+    padding: 0;
+  }
+
+  .ledger tbody th,
+  .ledger .job {
+    grid-column: 1 / -1;
+  }
+
+  .ledger .job {
+    margin: 8px 0 10px;
+  }
+
+  .rn {
+    text-align: left !important;
+    padding-left: 0 !important;
+    font-size: 20px;
+  }
+
+  .rn::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--ui);
+    font-size: 12.5px;
+    color: var(--prussian-ink);
+  }
+
+  /* the numbers table: claim, then value and link */
+  .numbers thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .numbers.numbers tbody,
+  .numbers.numbers tr,
+  .numbers.numbers td {
+    display: block;
+    width: auto;
+  }
+
+  .numbers.numbers tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--paper-line);
+  }
+
+  .numbers.numbers tr:last-child {
+    border-bottom: 0;
+  }
+
+  .numbers.numbers td {
+    border: 0;
+    padding: 2px 0;
+  }
+
+  .numbers.numbers td:nth-child(1) {
+    font-weight: 700;
+  }
+
+  .numbers.numbers td:nth-child(3) {
+    white-space: normal;
+    word-break: break-all;
+  }
 }

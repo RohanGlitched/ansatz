@@ -1,0 +1,310 @@
+/* the architecture plate: models outlined, code filled with paper, measured data orange, laws white */
+
+.wrap {
+  display: grid;
+  gap: 18px;
+}
+
+.hint {
+  display: none;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: var(--prussian-line) transparent;
+}
+
+.scroll:focus-visible {
+  outline-offset: 6px;
+}
+
+.svg {
+  width: 100%;
+  min-width: 1080px;
+  height: auto;
+  overflow: visible;
+}
+
+/* ---- stages ---- */
+.stage {
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--paper);
+}
+
+.sn {
+  font-family: var(--cm);
+  font-size: 18px;
+  font-weight: 400;
+  fill: var(--measured);
+}
+
+.glow {
+  fill: var(--paper);
+  fill-opacity: 0.075;
+}
+
+.codeOnly {
+  fill: none;
+  stroke: var(--prussian-ink);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  opacity: 0.55;
+}
+
+/* ---- nodes ---- */
+.node rect {
+  stroke-width: 1.4;
+}
+
+.model rect {
+  fill: var(--prussian-deep);
+  fill-opacity: 0.55;
+  stroke: var(--paper);
+}
+
+.model .nt {
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 14px;
+  fill: #fff;
+}
+
+.model .nl {
+  fill: var(--prussian-ink);
+}
+
+.code rect {
+  fill: var(--paper);
+  stroke: var(--paper);
+}
+
+.code .nt {
+  font-family: var(--cm);
+  font-style: italic;
+  font-size: 16px;
+  fill: var(--prussian-deep);
+}
+
+.code .nl {
+  fill: var(--prussian);
+}
+
+.input rect {
+  fill: none;
+  stroke: var(--prussian-ink);
+  stroke-dasharray: 4 4;
+}
+
+.input .nt {
+  font-family: var(--cm);
+  font-size: 15.5px;
+  fill: var(--paper);
+}
+
+.input .nl {
+  fill: var(--prussian-ink);
+}
+
+.sealed rect {
+  fill: none;
+  stroke: var(--measured);
+  stroke-width: 2;
+}
+
+.sealed .nt {
+  font-family: var(--cm);
+  font-style: italic;
+  font-size: 16px;
+  fill: #fff;
+}
+
+.sealed .nl {
+  fill: var(--paper);
+}
+
+.hatch {
+  opacity: 1;
+}
+
+.hatchLine {
+  stroke: var(--measured);
+  stroke-width: 1;
+  opacity: 0.18;
+}
+
+.lock path,
+.lock rect {
+  fill: none;
+  stroke: var(--measured);
+  stroke-width: 1.8;
+}
+
+.lock .lockBg {
+  fill: var(--prussian);
+  stroke: none;
+}
+
+.nl {
+  font-family: var(--ui);
+  font-size: 12.5px;
+}
+
+.out rect {
+  fill: none;
+  stroke: var(--paper);
+  stroke-width: 1.4;
+}
+
+.out .nt {
+  font-family: var(--cm);
+  font-size: 16px;
+  fill: #fff;
+}
+
+.out .nl {
+  fill: var(--prussian-ink);
+}
+
+.outRule {
+  stroke: var(--prussian-line);
+}
+
+/* ---- edges ---- */
+.edge {
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.measured {
+  stroke: var(--measured);
+}
+
+.law {
+  stroke: #fff;
+}
+
+.note {
+  stroke: var(--prussian-ink);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+
+.headM {
+  fill: var(--measured);
+}
+
+.headL {
+  fill: #fff;
+}
+
+.headN {
+  fill: var(--prussian-ink);
+}
+
+.el {
+  font-family: var(--ui);
+  font-size: 12px;
+}
+
+.el_measured {
+  fill: var(--measured);
+}
+
+.el_law {
+  fill: #fff;
+}
+
+.el_note {
+  fill: var(--prussian-ink);
+}
+
+/* ---- the travelling frames ---- */
+.dotM {
+  fill: var(--measured);
+}
+
+.dotL {
+  fill: #fff;
+}
+
+.dotN {
+  fill: var(--prussian-ink);
+}
+
+/* ---- key ---- */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key i {
+  display: inline-block;
+  width: 18px;
+  height: 12px;
+}
+
+.kModel {
+  border: 1.4px solid var(--paper);
+  border-radius: 3px;
+}
+
+.kCode {
+  background: var(--paper);
+}
+
+.kM {
+  height: 2px !important;
+  background: var(--measured);
+}
+
+.kL {
+  height: 2px !important;
+  background: #fff;
+}
+
+.kSealed {
+  border: 2px solid var(--measured);
+  background: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--measured) 35%, transparent) 3px 4px);
+}
+
+.infra {
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--prussian-ink);
+}
+
+@media (max-width: 1000px) {
+  .hint {
+    display: block;
+  }
+
+  .svg {
+    min-width: 1180px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moving,
+  .glow {
+    display: none;
+  }
+}

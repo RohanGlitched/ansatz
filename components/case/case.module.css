@@ -1,0 +1,323 @@
+/* figures and tables for the case papers (/proof, /how, /judges). Everything on a plate uses the plate tokens. */
+
+/* ---- a strip of readings on a plate ---- */
+.readings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 36px 40px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.readings > li {
+  border-top: 1px solid var(--prussian-line);
+  padding-top: 16px;
+}
+
+.readings a {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.readings a:hover {
+  color: #fff;
+}
+
+.readings a:hover [data-go] {
+  text-decoration: underline;
+}
+
+.go {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* ---- a dot strip on a log axis: every error, one dot each ---- */
+.strip {
+  display: grid;
+  gap: 26px;
+}
+
+.stripRow {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.stripLab {
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--paper);
+}
+
+.stripLab small {
+  display: block;
+  font-size: 13px;
+  color: var(--prussian-ink);
+  margin-top: 2px;
+}
+
+.track {
+  position: relative;
+  height: var(--h, 64px);
+  border-bottom: 1px solid var(--prussian-line);
+}
+
+.dot {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--measured);
+  box-shadow: 0 0 0 2px var(--prussian);
+}
+
+.dot.eye {
+  background: transparent;
+  border: 2px solid var(--struck);
+  box-shadow: none;
+}
+
+.dot.clamped::after {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 3px;
+  border: 3px solid transparent;
+  border-left: 5px solid currentColor;
+  color: var(--prussian-ink);
+}
+
+.median {
+  position: absolute;
+  top: -6px;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid #fff;
+}
+
+.median span {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: -1px;
+  white-space: nowrap;
+  font-family: var(--ui);
+  font-size: 13px;
+  color: #fff;
+}
+
+.median.flip span {
+  left: auto;
+  right: -1px;
+}
+
+.five {
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  border-left: 1.5px dashed var(--held);
+}
+
+.axis {
+  position: relative;
+  height: 20px;
+  margin-top: -14px;
+}
+
+.axisLab {
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--prussian-ink);
+  margin-top: -14px;
+}
+
+.axis span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--prussian-ink);
+  white-space: nowrap;
+}
+
+.axis span:first-child {
+  transform: none;
+}
+
+.axis span:last-child {
+  transform: translateX(-100%);
+}
+
+.stripKey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.stripKey i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+
+.kM {
+  background: var(--measured);
+}
+
+.kE {
+  border: 2px solid var(--struck);
+}
+
+.kR {
+  border: 2px solid var(--measured);
+}
+
+.kF {
+  width: 0 !important;
+  height: 14px !important;
+  border-radius: 0 !important;
+  border-left: 1.5px dashed var(--held);
+  vertical-align: -3px !important;
+}
+
+/* ---- the calibration chart: share of intervals that held the truth ---- */
+.cal {
+  display: grid;
+  gap: 0;
+}
+
+.calRow {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr) 92px;
+  gap: 20px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--prussian-line) 60%, transparent);
+}
+
+.calRow:first-child {
+  border-top: 1px solid var(--prussian-line);
+}
+
+.calLab {
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--paper);
+}
+
+.calLab small {
+  color: var(--prussian-ink);
+  font-size: 13px;
+}
+
+.calTrack {
+  position: relative;
+  height: 22px;
+}
+
+.calTrack .dot {
+  top: 50%;
+}
+
+.calTrack .ring {
+  background: transparent;
+  border: 2px solid var(--measured);
+  box-shadow: none;
+}
+
+.ideal {
+  position: absolute;
+  top: -10px;
+  bottom: -10px;
+  border-left: 1.5px dashed var(--held);
+}
+
+.calNum {
+  font-family: var(--cm);
+  font-size: 16px;
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+  white-space: nowrap;
+}
+
+.calAxis {
+  position: relative;
+  height: 24px;
+  margin: 8px calc(92px + 20px) 0 calc(min(260px, 30%) + 20px);
+}
+
+.calAxis span {
+  position: absolute;
+  transform: translateX(-50%);
+  top: 4px;
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--prussian-ink);
+}
+
+.calAxis b {
+  position: absolute;
+  transform: translateX(-50%);
+  top: -2px;
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--held);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .readings {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 20px;
+  }
+
+  .minor {
+    display: none;
+  }
+
+  .readings.long {
+    grid-template-columns: 1fr;
+  }
+
+  .stripRow {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .axisLab {
+    display: none;
+  }
+
+  .calRow {
+    grid-template-columns: minmax(0, 1fr) 84px;
+    gap: 6px 14px;
+  }
+
+  .calLab {
+    grid-column: 1 / -1;
+  }
+
+  .calAxis {
+    margin: 8px calc(84px + 14px) 0 0;
+  }
+}
