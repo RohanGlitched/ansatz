@@ -1,5 +1,5 @@
 // Full-page screenshots of local pages for design review (not part of the app).
-// node scripts/shot.cjs <url> <out.png> [width=1440] [height=900] [--reduce]
+// node scripts/shot.cjs <url> <out.png> [width=1440] [height=900] [--reduce] [--viewport] [--el=<css selector>]
 const { chromium } = require("C:/Users/rohan/AppData/Roaming/npm/node_modules/@playwright/mcp/node_modules/playwright");
 (async () => {
   const [url, out, w = "1440", h = "900"] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -10,7 +10,9 @@ const { chromium } = require("C:/Users/rohan/AppData/Roaming/npm/node_modules/@p
   p.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await p.goto(url, { waitUntil: "load", timeout: 180000 });
   await p.waitForTimeout(3500);
-  await p.screenshot({ path: out, fullPage: !process.argv.includes("--viewport") });
+  const el = process.argv.find((a) => a.startsWith("--el="));
+  if (el) await p.locator(el.slice(5)).first().screenshot({ path: out });
+  else await p.screenshot({ path: out, fullPage: !process.argv.includes("--viewport") });
   console.log(out, errors.length ? "ERRORS:\n" + errors.join("\n") : "no console errors");
   await b.close();
 })();

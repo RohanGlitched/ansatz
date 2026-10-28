@@ -40,11 +40,20 @@ export default async function Home() {
     <>
       <header className={styles.title}>
         <div className={styles.titleIn}>
-          <h1>
-            Film anything that moves.
-            <br />
-            Get the law that moves it.
-          </h1>
+          <div>
+            <h1>
+              Film anything that moves.
+              <br />
+              Get the law that moves it.
+            </h1>
+            <svg className={styles.throw} viewBox="0 0 800 120" aria-hidden="true">
+              <path className={styles.throwLaw} pathLength={1} d="M8 112 Q400 -92 792 112" />
+              {Array.from({ length: 13 }, (_, i) => {
+                const u = i / 12;
+                return <circle key={i} className={styles.throwDot} style={{ animationDelay: `${0.25 + i * 0.09}s` }} cx={8 + 784 * u} cy={112 - 408 * u * (1 - u)} r={6} />;
+              })}
+            </svg>
+          </div>
           <div className={styles.abstract}>
             <p>
               A phone clip becomes a physics experiment. SAM 3.1 measures the object in every frame. Muse Spark writes candidate laws of motion. Each law sees only the start of the motion and has to predict the rest. Laws that miss are struck out; the one that predicts survives.

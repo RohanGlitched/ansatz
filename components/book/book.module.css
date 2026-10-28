@@ -47,6 +47,75 @@
   padding: clamp(40px, 5.5vw, 84px) clamp(28px, 5.5vw, 88px);
 }
 
+/* the develop: unexposed iron salts are pale yellow-green; light turns them Prussian blue. The pale coat lifts from
+   the top, unevenly, as a print does in the wash, and the image comes up underneath it. */
+.unexposed {
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  background: linear-gradient(180deg, #e9ecc6 0%, #dfe6c2 45%, #cfdcc4 100%);
+  opacity: 0;
+  z-index: 2;
+}
+
+:global(html.js) [data-develop]:not([data-developed]) .unexposed {
+  opacity: 1;
+}
+
+:global(html.js) [data-develop]:not([data-developed]) .inner {
+  opacity: 0;
+  filter: blur(3px);
+}
+
+[data-developed] .unexposed {
+  animation: expose 1.7s cubic-bezier(0.55, 0.05, 0.3, 1) both;
+}
+
+[data-developed] .inner {
+  animation: comeUp 1.3s 0.45s ease-out both;
+}
+
+@keyframes expose {
+  0% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: none;
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
+@keyframes comeUp {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html.js) [data-develop]:not([data-developed]) .unexposed,
+  [data-developed] .unexposed {
+    opacity: 0;
+    animation: none;
+  }
+
+  :global(html.js) [data-develop]:not([data-developed]) .inner,
+  [data-developed] .inner {
+    opacity: 1;
+    filter: none;
+    animation: none;
+  }
+}
+
 .plateCap {
   width: min(var(--max), 100% - 40px);
   margin: 14px auto 0;
