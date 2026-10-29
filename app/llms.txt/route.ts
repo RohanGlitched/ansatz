@@ -29,6 +29,8 @@ const PURPOSE: Record<string, string> = {
   "dry-friction-spring": "Muse Spark's laws used air drag; Muse Wonder finds the friction is dry (Coulomb)",
   "hindi-pendulum": "narrated in Hindi: the spoken string length becomes the ruler, and g comes out against Earth's",
   "sample-pendulum": "a real Wikimedia clip posted as slow motion: its swing says how slow (unconfirmed by the uploader)",
+  "foucault-pendulum": "real footage of a museum's Foucault pendulum (Békéscsaba), told only its published length of 8.97 m: Earth's gravity from the swing",
+  "foucault-pendulum-5x": "the same film's stretch its maker sped up 5× (label cropped out): Muse Spark called it real time; the clock check reads it as about 5× too fast",
   "big-swing": "a 70° swing, far past the small-angle range: the string length from the period, with g given",
   "bouncing-ball": "impacts: the coefficient of restitution from the bounces",
   spring: "a damped spring: natural frequency and damping rate",

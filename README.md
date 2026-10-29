@@ -2,7 +2,7 @@
 
 ![Ansatz: film anything that moves, get the law that moves it](docs/cover.png)
 
-**[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:39](https://youtu.be/B4yLBCFwXn0)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[How it works](https://ansatz-lab.vercel.app/how)**
+**[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:58](https://youtu.be/M4h122br2qE)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[How it works](https://ansatz-lab.vercel.app/how)**
 
 Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object in every frame (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the last 30%, which no law was fitted to, wins. Muse Spark watches the whole clip to name what moves; no number from the last 30% reaches it, and no law is fitted to it. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
 
@@ -36,6 +36,8 @@ Asked about each clip on its own five times, the model called the slowed copy re
 | The same constants read off the clips by Muse Spark alone | median error 32%; on the slowed clips it answered Earth’s 9.81 | exact |
 | A hidden stiffening spring (a render): Muse Wonder’s law on the published run, found with its fitting tool | k₃/m = **4012 ± 17** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
 | A spring slowed by dry friction (a render): Muse Wonder’s law, after widening a bound it had first set too tight | friction 363 ± 5 px/s², ω₀ = 10.000 rad/s; the best of 12 textbook laws misses the unseen motion 33× worse | 372, 10 |
+| Real footage: a museum's Foucault pendulum (Békéscsaba, 8.97 m, published with the film), told only its length | g = **9.68 ± 0.02 m/s²** (Muse Wonder's law, with the camera's perspective); Muse Spark's plain pendulum law 9.70 ± 0.15 | 9.81 |
+| The same film's stretch its maker sped up 5× (we cropped out the on-screen label); Muse Spark, watching, called it real time | flagged by the clock check: plays **4.98 ± 0.02× faster** than life | 5× |
 | A pendulum filmed in slow motion (no caption says so) | flagged: about **4 to 4.5× slower than real life** (unconfirmed: the capture rate isn’t published) | the uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).

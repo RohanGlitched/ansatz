@@ -62,6 +62,9 @@ export default async function JudgesPage() {
   const rep = rp ? { n: rp.n, a: rp.clips.find((c) => c.clip === "A")!, b: rp.clips.find((c) => c.clip === "B")! } : null;
   const ratio = mt ? Math.sqrt(mt.rows[0].g / mt.rows[1].g) : NaN;
   const g = moon?.comparisons.find((c) => c.param === "g");
+  // a museum's Foucault pendulum: real footage with its length published, and a stretch its filmmaker sped up 5x
+  const fouG = exps.find((e) => e.id === "foucault-pendulum")?.extras?.truth?.rows.find((r) => r.param === "g");
+  const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x")?.extras?.truth?.rows.find((r) => r.param === "speedup");
   const spring = by("hardening-spring");
   const springTruth = spring?.extras?.truth?.rows.find((r) => r.param === "beta");
   const wonderWins = exps.filter((e) => winnerOf(e).origin === "revision");
@@ -230,6 +233,8 @@ export default async function JudgesPage() {
 
   const numbers: { what: string; value: string; href: string }[] = [
     ...(g ? [{ what: "Moon gravity from Apollo 16 television", value: `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s² (true ${g.reference})`, href: "/x/moon-jump#constants" }] : []),
+    ...(fouG ? [{ what: "Real footage: a museum’s Foucault pendulum, g from the swing and its published length (8.97 m)", value: `${fouG.measured.toFixed(2)} ± ${(fouG.sigma ?? 0).toFixed(2)} m/s² (9.81 there)`, href: "/x/foucault-pendulum" }] : []),
+    ...(fou5 ? [{ what: "Real footage sped up 5× by its filmmaker (label cropped out): the clock check’s reading", value: `${fou5.measured.toFixed(2)} ± ${(fou5.sigma ?? 0).toFixed(2)}× faster than life (truth 5×); Muse Spark, watching, called it real time`, href: "/x/foucault-pendulum-5x" }] : []),
     ...(sj ? [{ what: "The same clip slowed 1.5× in secret, timed jump for jump", value: `${sjText} slower (truth 1.5×)${mt ? `; whole-run ratio ${ratio.toFixed(2)}× (${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} against ${mt.rows[0].g.toFixed(2)} m/s²)` : ""}`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring#constants" }] : []),
     ...(refb ? [{ what: "Referee asked for a new law: when one was missing / when it wasn’t", value: `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed} / ${refb.summary.reviseWhenRight} of ${refb.summary.right}`, href: "/proof#models" }] : []),
@@ -260,8 +265,8 @@ export default async function JudgesPage() {
             <a className="btn ghost" href="#bring-a-clip">
               Run your own clip
             </a>
-            <a className="btn ghost" href="https://youtu.be/B4yLBCFwXn0">
-              Watch the demo (2:39)
+            <a className="btn ghost" href="https://youtu.be/M4h122br2qE">
+              Watch the demo (2:58)
             </a>
           </p>
           <p className={styles.headNote}>

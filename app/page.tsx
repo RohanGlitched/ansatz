@@ -28,6 +28,8 @@ export default async function Home() {
   const clipB = rp?.clips.find((c) => c.clip === "B");
   const sparkWrongB = clipB ? clipB.answers.filter((x) => x.real_speed).length : 5;
   const moonG = moon?.comparisons.find((c) => c.param === "g");
+  const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x");
+  const fou5Row = fou5?.extras?.truth?.rows.find((r) => r.param === "speedup");
   const recent = await recentExperiments().catch(() => []);
   const spec = hero;
   const specMuse = spec?.candidates.filter((c) => c.origin === "muse").slice(0, 2) ?? [];
@@ -115,6 +117,12 @@ export default async function Home() {
       )}
 
       <Page>
+        {fou5Row && (
+          <p className={styles.after}>
+            The same test on footage nobody made for us: a museum&rsquo;s Foucault pendulum, filmed by its keeper, with a stretch he sped up 5× and labelled on screen. We cropped the label out. Muse Spark, watching, called the swing real time; measured, it plays {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster than life. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
+          </p>
+        )}
+        {fou5Row && <Note who="code">Gravity came out 25 times too strong: 5 times too fast, since gravity scales with the square of time.</Note>}
         <Section n={2} title="How a law wins" id="method">
           <p>
             Ansatz doesn&rsquo;t ask a model for the answer. It asks models to look, measure and guess, and lets the data decide. Under each step, what it produced on the spring in Plate I.

@@ -123,6 +123,12 @@ export default async function ProofPage() {
   const moon = await getExperiment("moon-jump");
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const slow = await getExperiment("sample-pendulum");
+  // a museum's Foucault pendulum, real time and a stretch its filmmaker sped up 5x (length published with the video)
+  const fou = await getExperiment("foucault-pendulum").catch(() => null);
+  const fouRow = fou?.extras?.truth?.rows.find((r) => r.param === "g");
+  const fouSpark = fou?.extras?.truth?.rows.find((r) => r.param === "g_spark");
+  const fou5 = await getExperiment("foucault-pendulum-5x").catch(() => null);
+  const fou5Row = fou5?.extras?.truth?.rows.find((r) => r.param === "speedup");
   const slowG = slow?.comparisons.find((c) => c.param === "g");
   // the held-out test's example: a law that fits the seen frames and fails after them, read from the stored run
   const bb = await getExperiment("beach-ball-drag").catch(() => null);
@@ -275,12 +281,12 @@ export default async function ProofPage() {
         {phone.length > 0 && <Note who="code, against a tape">The truth for each phone clip was measured with a tape before the run and stored with it.</Note>}
 
         <Section n={2} title="Real footage" id="real-footage">
-          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose two whose answers are known some other way: the Moon&rsquo;s gravity, and a pendulum posted online as slow motion.</p>
+          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion.</p>
         </Section>
       </Page>
 
       {(moon || slow) && (
-        <Plate n={plates.footage} title="Two real clips: the Moon from 1972 television, and a pendulum whose clip may hide its slow motion." caption="Each print lays a run's frames over one another, as Marey photographed motion.">
+        <Plate n={plates.footage} title="Real clips: the Moon from 1972 television, a museum's Foucault pendulum at real speed and sped up 5×, and a pendulum whose clip may hide its slow motion." caption="Each print lays a run's frames over one another, as Marey photographed motion.">
           <div className={styles.footage}>
             {moon && moonG && (
               <Link href="/x/moon-jump" className={styles.specimen}>
@@ -290,11 +296,27 @@ export default async function ProofPage() {
                 <Reading value={moonG.measured.toFixed(2)} pm={moonG.sigma.toFixed(2)} unit="m/s²" tone="measured" label={`the Moon's gravity, measured from the pixels; known: ${moonG.reference} m/s²`} />
               </Link>
             )}
+            {fou && fouRow && (
+              <Link href="/x/foucault-pendulum" className={styles.specimen}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/prints/foucault-pendulum.webp" alt="The Foucault pendulum in Békéscsaba, frames laid over one another" className={styles.print} loading="lazy" />
+                <span className={styles.fig}>Fig. b. A Foucault pendulum, Békéscsaba, real time</span>
+                <Reading value={fouRow.measured.toFixed(2)} pm={(fouRow.sigma ?? 0).toFixed(2)} unit="m/s²" tone="measured" label="Earth's gravity from the swing and the published length; 9.81 there" />
+              </Link>
+            )}
+            {fou5 && fou5Row && (
+              <Link href="/x/foucault-pendulum-5x" className={styles.specimen}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/prints/foucault-pendulum-5x.webp" alt="The same pendulum from a sped-up stretch, frames laid over one another" className={styles.print} loading="lazy" />
+                <span className={styles.fig}>Fig. c. The same pendulum, a stretch sped up 5×</span>
+                <Reading value={`${fou5Row.measured.toFixed(2)}×`} pm={(fou5Row.sigma ?? 0).toFixed(2)} tone="measured" label="how much faster than life it plays, from gravity alone; the filmmaker's label says 5×" />
+              </Link>
+            )}
             {slow?.clock && (
               <Link href="/x/sample-pendulum" className={styles.specimen}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/sample-pendulum.webp" alt="A pendulum posted online, frames laid over one another" className={styles.print} loading="lazy" />
-                <span className={styles.fig}>Fig. b. A pendulum posted online</span>
+                <span className={styles.fig}>Fig. d. A pendulum posted online</span>
                 <Reading value="4 to 4.5×" tone="measured" label="about how much slower than life the clip plays; unconfirmed" />
               </Link>
             )}
@@ -309,6 +331,18 @@ export default async function ProofPage() {
           </p>
         )}
         {moon && moonG && <Note who="SAM 3.1, then code">SAM 3.1 followed &ldquo;astronaut&rdquo;; code took the airborne frames, fitted the laws and scaled by the ruler. <Link href="/x/moon-jump">Open the run</Link>.</Note>}
+        {fou && fouRow && fouSpark && (
+          <p className={styles.para}>
+            <b>A museum&rsquo;s Foucault pendulum, real footage.</b> The pendulum in Békéscsaba, Hungary, filmed by its keeper and published on Wikimedia Commons with its length (8.97 m) and period (6.0 s). Ansatz was told the length and nothing else; the camera looks down along the swing, so the bob moves toward and away from the lens. Muse Spark&rsquo;s plain pendulum law gives g = {fouSpark.measured.toFixed(2)} ± {(fouSpark.sigma ?? 0).toFixed(2)} m/s²; Muse Wonder, asked by the referee, added the camera&rsquo;s perspective to the law and won with {fouRow.measured.toFixed(3)} ± {(fouRow.sigma ?? 0).toFixed(3)} m/s². Earth&rsquo;s gravity there is 9.81: about 1% low, a little more than the error bar, most likely because the published length is to a slightly different point of the bob.
+          </p>
+        )}
+        {fou && <Note who="SAM 3.1, Muse Spark, Muse Wonder, then code">SAM 3.1 followed &ldquo;silver ball&rdquo; in all 350 frames; the length was said, not measured. <Link href="/x/foucault-pendulum">Open the run</Link>.</Note>}
+        {fou5 && fou5Row && (
+          <p className={styles.para}>
+            <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. Muse Spark, watching it, wrote that the &ldquo;swing appears in real time&rdquo;. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster than life. The label says 5×.
+          </p>
+        )}
+        {fou5 && <Note who="code">Gravity scales with the square of time: 25 times too strong is 5 times too fast. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.</Note>}
         {slow?.clock && (
           <p className={styles.para}>
             <b>A clip that may hide its slow motion, flagged.</b> A pendulum posted online. With the tennis ball as the ruler, the swing implied a gravity of {slowG?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth&rsquo;s gravity, or the clip plays slower than life: about 4 to 4.5×, unconfirmed, because the capture rate isn&rsquo;t published and the clamp isn&rsquo;t modelled. Nothing in the frames says so; only its uploader&rsquo;s title says &ldquo;slow motion&rdquo;. A re-run with today&rsquo;s stricter pipeline declines to measure the string&rsquo;s length, because the swing isn&rsquo;t one circle, so it claims no factor at all.
@@ -628,6 +662,10 @@ export default async function ProofPage() {
         <p className={styles.para}>
           The same thing stopped the most famous experiment filmed on the Moon, the hammer and feather on Apollo 15: the hammer is a few pixels wide against a white suit. <Link href="/how#limits">How it works</Link> tells that story.
         </p>
+        <p className={styles.para}>
+          <b>Two laws nobody proposed.</b> On 29 October we rendered two springs whose laws are not in any textbook list and ran them with no hints, on today&rsquo;s pipeline. A lopsided spring, stiffer stretched than squashed: every law Muse Spark wrote missed, and Muse Wonder&rsquo;s law halved the miss on the unseen frames (4.1 px against 8.9 px), but it did so with a drifting rest position, not the lopsided term that was really there. A spring that tires as it works, its stiffness falling through the clip: no proposed law described it, and a textbook control ranked first. Neither is published as a win; both runs are in <code>bench/runs/synth</code>.
+        </p>
+        <Note who="Muse Wonder, then code">A better prediction is not the same as the right law. The held-out test ranks predictions; naming the physics still needs the right form.</Note>
 
         <Section n={9} title="What this doesn’t show" id="limits">
           <ul className={styles.limits}>

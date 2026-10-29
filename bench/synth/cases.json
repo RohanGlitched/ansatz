@@ -1,7 +1,7 @@
 {
  "description": "Ansatz synthetic physics benchmark. Per-frame truth (centroids, timestamps) is in each case's truth_file.",
  "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
- "n_cases": 34,
+ "n_cases": 36,
  "cases": [
   {
    "case_id": "ff01_earth_orange_ball",
@@ -4494,6 +4494,333 @@
    "encoding": "H.264, yuv420p, CRF 20, +faststart",
    "integration": "RK4, step 0.0001 s, bisection events",
    "truth_file": "clips/sx02_coulomb_k20_mu0.45.json"
+  },
+  {
+   "case_id": "sx03_lopsided_k15_k2_40",
+   "phenomenon": "spring_mass",
+   "variant": "lopsided_vertical",
+   "description": "Block on a spring that is stiffer stretched than squashed (k = 15 N/m, k2 = 40 N/m^2, m = 0.20 kg, b = 0.30 1/s); pulled down 12 cm; metre stick below.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 15.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.2,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 75.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 8.660254037844387,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.3,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.3,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.43079999999999996,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.12,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 479.365,
+     "unit": "px"
+    },
+    "k2": {
+     "value": 40.0,
+     "unit": "N/m^2 (lopsided: y'' = -(k/m)(y - y_eq) - (k2/m)(y - y_eq)^2 - b y', y down)"
+    },
+    "k2_over_m": {
+     "value": 200.0,
+     "unit": "1/(m s^2)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00126,
+   "pixels_per_metre": 793.6507936507936,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     137.46
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "block",
+     "kind": "block on spring",
+     "colour_rgb": [
+      40,
+      165,
+      75
+     ],
+     "size_m": [
+      0.09,
+      0.06
+     ],
+     "size_px": [
+      71.43,
+      47.62
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 793.651,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      243.17,
+      646.03
+     ],
+     [
+      1036.83,
+      646.03
+     ]
+    ],
+    "thickness_px": 27.78,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "equilibrium_crossing_times_s": [
+     0.66254,
+     1.10606,
+     1.4313,
+     1.8617,
+     2.19011,
+     2.61028,
+     2.94163,
+     3.3536,
+     3.68768,
+     4.09293,
+     4.42955,
+     4.82921,
+     5.16817,
+     5.56314,
+     5.90424,
+     6.29522,
+     6.63831
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.7687564022482521,
+     0.7556413055170963,
+     0.7588098099449936,
+     0.7485795731781033,
+     0.7515243338846649,
+     0.7433193560495406,
+     0.7460511890712072,
+     0.7393353472635744,
+     0.7418646441264025,
+     0.7362821329294902,
+     0.7386191366728658,
+     0.7339223992786632
+    ],
+    "period_mean_damped_numeric_s": 0.7443294096230944,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sx03_lopsided_k15_k2_40.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sx03_lopsided_k15_k2_40.json"
+  },
+  {
+   "case_id": "sx04_tiring_k16_fade0.06",
+   "phenomenon": "spring_mass",
+   "variant": "tiring_vertical",
+   "description": "Block on a spring that tires as it works: k(t) = 16 N/m (1 - 0.06 t), m = 0.20 kg, b = 0.20 1/s; pulled down 12 cm; metre stick below.",
+   "body": "earth",
+   "params": {
+    "k": {
+     "value": 16.0,
+     "unit": "N/m"
+    },
+    "m": {
+     "value": 0.2,
+     "unit": "kg"
+    },
+    "k_over_m": {
+     "value": 80.0,
+     "unit": "1/s^2"
+    },
+    "omega0": {
+     "value": 8.94427190999916,
+     "unit": "rad/s"
+    },
+    "damping_b": {
+     "value": 0.2,
+     "unit": "1/s (y'' = -(k/m)(y - y_eq) - b y')"
+    },
+    "g": {
+     "value": 9.81,
+     "unit": "m/s^2"
+    },
+    "natural_length_to_block_centre": {
+     "value": 0.3,
+     "unit": "m"
+    },
+    "equilibrium_extension_below_anchor_y_eq": {
+     "value": 0.42262500000000003,
+     "unit": "m (= l0 + g m / k)"
+    },
+    "initial_displacement_below_equilibrium": {
+     "value": 0.12,
+     "unit": "m (released from rest)"
+    },
+    "equilibrium_pixel_row": {
+     "value": 463.459,
+     "unit": "px"
+    },
+    "fade": {
+     "value": 0.06,
+     "unit": "1/s (tiring: k(t) = k (1 - fade t), t from release)"
+    }
+   },
+   "fps": 60,
+   "capture_fps": 60,
+   "slow_motion_factor": 1,
+   "width": 1280,
+   "height": 720,
+   "n_frames": 420,
+   "duration_s": 7.0,
+   "physics_duration_s": 7.0,
+   "metres_per_pixel": 0.00129,
+   "pixels_per_metre": 775.1937984496125,
+   "camera": "Static camera, orthographic projection onto the motion plane (no perspective, no lens distortion, no camera shake). Scale is uniform: metres_per_pixel.",
+   "world_frame": {
+    "origin_px": [
+     640.0,
+     135.842
+    ],
+    "x": "right",
+    "y": "up",
+    "unit": "m"
+   },
+   "shutter_fraction_of_capture_frame_interval": 0.5,
+   "release_or_launch_time_s": 0.5,
+   "time_note": "Frame i has video timestamp i/fps and physics timestamp i/capture_fps; for slow-motion clips the physics time is slow_motion_factor times shorter than the video time. All event times in this file are PHYSICS times.",
+   "moving_objects": [
+    {
+     "id": "weight",
+     "noun_phrase": "block",
+     "kind": "block on spring",
+     "colour_rgb": [
+      235,
+      110,
+      30
+     ],
+     "size_m": [
+      0.09,
+      0.06
+     ],
+     "size_px": [
+      69.77,
+      46.51
+     ],
+     "centroid_definition": "centre of the block (spring excluded)"
+    }
+   ],
+   "reference": {
+    "noun_phrase": "metre stick",
+    "kind": "bar with alternating black/white bands",
+    "length_m": 1.0,
+    "length_px": 775.194,
+    "band_length_m": 0.1,
+    "endpoints_px": [
+     [
+      252.4,
+      646.17
+     ],
+     [
+      1027.6,
+      646.17
+     ]
+    ],
+    "thickness_px": 27.13,
+    "orientation_deg_from_horizontal_ccw": 0,
+    "note": "first band (at endpoint 0) is black; bands alternate every length/10"
+   },
+   "events": {
+    "release_time_s": 0.5,
+    "equilibrium_crossing_times_s": [
+     0.67762,
+     1.02751,
+     1.39763,
+     1.74298,
+     2.13607,
+     2.47373,
+     2.89529,
+     3.22081,
+     3.67835,
+     3.98519,
+     4.48956,
+     4.76746,
+     5.33583,
+     5.56668,
+     6.23392,
+     6.37358
+    ]
+   },
+   "expected_numeric": {
+    "period_damped_numeric_s": [
+     0.720007774310908,
+     0.7154719249144286,
+     0.7384393130698355,
+     0.7307497642412273,
+     0.759219928382304,
+     0.7470754504835313,
+     0.7830659259276307,
+     0.7643792981365687,
+     0.811204381424778,
+     0.782271174879074,
+     0.8462708000902062,
+     0.7992220667653562
+    ],
+    "period_mean_damped_numeric_s": 0.7787410458133136,
+    "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."
+   },
+   "notes": [],
+   "video_file": "clips/sx04_tiring_k16_fade0.06.mp4",
+   "encoding": "H.264, yuv420p, CRF 20, +faststart",
+   "integration": "RK4, step 0.0001 s, bisection events",
+   "truth_file": "clips/sx04_tiring_k16_fade0.06.json"
   }
  ]
 }
