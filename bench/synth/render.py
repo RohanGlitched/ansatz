@@ -694,15 +694,22 @@ def build_pend(cid, L, th0, c, g, R, col, W, H, fps, dur, bgk, ref, lead, seed, 
                 ref_t, ev, exp, [], lead, 1, seed)
 
 
-def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0, mu=0.0):
+def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0, mu=0.0, k2=0.0, fade=0.0):
     rng = np.random.default_rng(seed)
     # ell = distance of block centre below the fixed anchor (down positive):  ell'' = g - (k/m)(ell - l0) - b ell'
     # a hardening spring adds - (k3/m)(ell - ell_eq)^3 about the equilibrium (Duffing)
     ell_eq = l0 + g * m / k
     # dry (Coulomb) friction of constant size mu (m/s²) against the motion: the swing shrinks by a fixed amount each
     # half cycle, a straight-line decay no exponential damping reproduces (smoothed over 2 mm/s to keep RK4 honest)
-    f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - b * y[1] - mu * math.tanh(y[1] / 0.002)]
-    T, Y, _ = integrate(f, [ell_eq + A, 0.0], dur - lead)
+    # a lopsided spring adds - (k2/m)(ell - ell_eq)^2: stiffer stretched than squashed, so the swing sits off centre
+    # a tiring spring loses stiffness as it works: k(t) = k (1 - fade t), so the period lengthens through the clip; time
+    # rides along as a third state so RK4 sees it
+    if fade:
+        f3 = lambda y: [y[1], g - (k * (1 - fade * y[2]) / m) * (y[0] - l0) - b * y[1], 1.0]
+        T, Y, _ = integrate(f3, [ell_eq + A, 0.0, 0.0], dur - lead)
+    else:
+        f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - (k2 / m) * (y[0] - ell_eq) ** 2 - b * y[1] - mu * math.tanh(y[1] / 0.002)]
+        T, Y, _ = integrate(f, [ell_eq + A, 0.0], dur - lead)
     traj = Traj(T, Y, lead)
     ymax_ell = max(Y[:, 0]) + bh_m / 2
     cam = fit_cam(-0.4, 0.4, -(ymax_ell + (0.12 if ref == 'stick_h' else 0.06)), 0.14, W, H, pad=0.035)
@@ -752,13 +759,18 @@ def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, r
               "initial_displacement_below_equilibrium": P(A, "m (released from rest)"), "equilibrium_pixel_row": P(round(ppx_eq, 3), "px")}
     if mu:
         params["coulomb_mu"] = P(mu, "m/s^2 (y'' = -(k/m)(y - y_eq) - mu sign(y'))")
+    if k2:
+        params["k2"] = P(k2, "N/m^2 (lopsided: y'' = -(k/m)(y - y_eq) - (k2/m)(y - y_eq)^2 - b y', y down)")
+        params["k2_over_m"] = P(k2 / m, "1/(m s^2)")
+    if fade:
+        params["fade"] = P(fade, "1/s (tiring: k(t) = k (1 - fade t), t from release)")
     if k3:
         params["k3"] = P(k3, "N/m^3 (hardening: y'' = -(k/m)(y - y_eq) - (k3/m)(y - y_eq)^3 - b y')")
         params["k3_over_m"] = P(k3 / m, "1/(m^2 s^2)")
     ev = {"release_time_s": lead, "equilibrium_crossing_times_s": [round(lead + float(x), 5) for x in tz[:40]]}
     exp = {"period_damped_numeric_s": per[:12], "period_mean_damped_numeric_s": float(np.mean(per)) if per else None,
            "note": "Vertical position y_down (m, positive downward from the fixed anchor) obeys y'' = g - (k/m)(y - l0) - b y'. Equivalent form with y_eq = l0 + g m/k."}
-    return Case(cid, "spring_mass", "hardening_vertical" if k3 else "coulomb_vertical" if mu else "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
+    return Case(cid, "spring_mass", "hardening_vertical" if k3 else "coulomb_vertical" if mu else "lopsided_vertical" if k2 else "tiring_vertical" if fade else "damped_vertical", desc, "earth", W, H, fps, fps, dur, cam, bg, [obj], params, ref_t, ev, exp, [], lead, 1, seed)
 
 
 def build_bounce(cid, g, e, h0, vx, R, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, capture_fps=None, floor="wood", bgkw=None,
@@ -1034,6 +1046,14 @@ CASES += SERIES
 CASES += [("sx02_coulomb_k20_mu0.45", build_spring, dict(k=20.0, m=0.20, b=0.0, l0=0.30, A=0.12, g=9.81, bw_m=0.09, bh_m=0.06, col=COL["blue"], W=1280, H=720, fps=60, dur=7.0,
         bgk="wall", bgkw=B["wall_sand"], ref="stick_h", lead=0.5, seed=612, noun="blue weight", mu=0.45,
         desc="Blue block on a spring sliding against a guide with dry friction mu = 0.45 m/s^2 (k = 20 N/m, m = 0.20 kg); pulled down 12 cm; metre stick below."))]
+# two springs whose law is not in the textbook list, for Muse Wonder (Oct 29): a lopsided spring, stiffer stretched
+# than squashed, and a spring that tires as it works
+CASES += [("sx03_lopsided_k15_k2_40", build_spring, dict(k=15.0, m=0.20, b=0.30, l0=0.30, A=0.12, g=9.81, bw_m=0.09, bh_m=0.06, col=COL["green"] if "green" in COL else COL["blue"], W=1280, H=720, fps=60, dur=7.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="stick_h", lead=0.5, seed=613, noun="block", k2=40.0,
+        desc="Block on a spring that is stiffer stretched than squashed (k = 15 N/m, k2 = 40 N/m^2, m = 0.20 kg, b = 0.30 1/s); pulled down 12 cm; metre stick below.")),
+          ("sx04_tiring_k16_fade0.06", build_spring, dict(k=16.0, m=0.20, b=0.20, l0=0.30, A=0.12, g=9.81, bw_m=0.09, bh_m=0.06, col=COL["orange"], W=1280, H=720, fps=60, dur=7.0,
+        bgk="wall", bgkw=B["wall_sand"], ref="stick_h", lead=0.5, seed=614, noun="block", fade=0.06,
+        desc="Block on a spring that tires as it works: k(t) = 16 N/m (1 - 0.06 t), m = 0.20 kg, b = 0.20 1/s; pulled down 12 cm; metre stick below."))]
 CASE_IDS = [c[0] for c in CASES]
 
 

@@ -894,3 +894,57 @@
     display: none;
   }
 }
+
+/* deep checks fold away on long pages; a link to an anchor inside opens them */
+.more {
+  margin: 22px 0 0;
+  border-top: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--paper-line);
+}
+
+.more > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 14px 0 14px 30px;
+  position: relative;
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--prussian);
+}
+
+.more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.more > summary::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -6px;
+  border-right: 2px solid var(--prussian);
+  border-bottom: 2px solid var(--prussian);
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+}
+
+.more[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.more > summary:hover {
+  color: var(--measured-ink);
+}
+
+.more[open] {
+  padding-bottom: 18px;
+}
+
+@media print {
+  .more > summary {
+    display: none;
+  }
+}

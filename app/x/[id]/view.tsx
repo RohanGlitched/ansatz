@@ -675,6 +675,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             <Section n={sec()} title="How sensitive is this?" id="robustness">
               <p>{e.extras.robustness.note}</p>
             </Section>
+            <details className={styles.more}>
+              <summary>Every reading of g, the error budget and three more checks</summary>
             <div className={styles.tableWrap}>
               <table className={`journal ${styles.stack}`}>
                 <thead>
@@ -803,6 +805,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                 Ruler: {e.extras.ruler}
               </p>
             )}
+            </details>
           </>
         )}
 
@@ -954,6 +957,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               </table>
             </div>
             <Note who="SAM 3.1, then code">Each jump timed in both clips from the helmet&rsquo;s path; the ratio of every matching pair, combined.</Note>
+            <details className={styles.more}>
+              <summary>Controls the clip&rsquo;s length can&rsquo;t answer, and which slowdown number is which</summary>
             {mt.controls && (
               <>
                 <h3 className={styles.h3} id="controls">
@@ -1041,6 +1046,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                 </>
               );
             })()}
+            </details>
             <p className={`${styles.para} ${styles.small}`}>
               Measured offline from one SAM 3.1 track of each whole clip, with the jump windows set by us (they bracket each jump with a margin; the airborne frames inside are found by the same rule as in a run). The quadratic over the whole flight is a different estimator from a run’s, which fits 70% and predicts the rest, so these values differ slightly from the runs above.
             </p>
