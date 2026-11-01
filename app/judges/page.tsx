@@ -69,6 +69,8 @@ export default async function JudgesPage() {
   const fouG = fou?.extras?.truth?.rows.find((r) => r.param === "g");
   const fouSpark = fou?.extras?.truth?.rows.find((r) => r.param === "g_spark");
   const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x")?.extras?.truth?.rows.find((r) => r.param === "speedup");
+  // a stranger's pendulum on black (Aachen), told only its stated length
+  const aachenG = by("aachen-pendulum-50cm")?.comparisons.find((c) => c.param === "g");
   const spring = by("hardening-spring");
   const springTruth = spring?.extras?.truth?.rows.find((r) => r.param === "beta");
   const sparkBest = (e: Experiment) => e.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0];
@@ -238,13 +240,14 @@ export default async function JudgesPage() {
     ["Say a wrong length aloud.", "The spoken length becomes the scale and is listed under “Given, not measured”, quoted, so the reader can see where the number came from."],
     ["Film something that isn’t textbook physics.", "Every proposed law will miss the unseen frames. Muse Wonder steps in; if it can’t do better, the winner is labelled as the best description available, not a closed case."],
     ["Film toward the camera.", "Depth isn’t measured. The motion has to cross the frame; the How it works page says so."],
-    ["Film a dark object against a dark background.", "SAM 3.1 may not find it, and the fits come out poor. Proof shows a real classroom clip where this happened and no usable g was reported."],
+    ["Film a dark object against a dark background.", "SAM 3.1 may not find it, and the fits come out poor. Proof shows a real classroom clip where this happened and no usable g was reported, and the same source's grey bob on black, which measured fine."],
     ["Ask the ask box for a number it doesn’t have.", "It is told to say what would be needed; any number it quotes that isn’t in the record is marked as unchecked."],
   ];
 
   const numbers: { what: string; value: string; href: string }[] = [
     ...(g ? [{ what: "Moon gravity from Apollo 16 television", value: `${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s² (true ${g.reference})`, href: "/x/moon-jump#constants" }] : []),
     ...(fouG ? [{ what: "Real footage: a museum’s Foucault pendulum, g from the swing and its published length (8.97 m)", value: `about ${fouG.measured.toFixed(1)} m/s² (9.81 there)${fouSpark ? `; Muse Spark’s plain law ${fouSpark.measured.toFixed(2)} ± ${(fouSpark.sigma ?? 0).toFixed(2)}` : ""}; no error bar on the winning law, which misses the unseen frames by ${Math.round(winnerOf(fou!).fit.testZ ?? NaN)}× the noise`, href: "/x/foucault-pendulum" }] : []),
+    ...(aachenG ? [{ what: "Real footage from a stranger: a 50 cm pendulum on black (Rhetos, Aachen, CC BY-SA 4.0), told only “about fifty centimetres”", value: `${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s² (9.81 there; ${Math.abs(aachenG.errorPct).toFixed(2)}% off); clock check: real time`, href: "/x/aachen-pendulum-50cm" }] : []),
     ...(fou5 ? [{ what: "Real footage sped up 5× by its filmmaker (label cropped out): the clock check’s reading", value: `${fou5.measured.toFixed(2)} ± ${(fou5.sigma ?? 0).toFixed(2)}× faster than life (truth 5×); Muse Spark, watching, called it real time`, href: "/x/foucault-pendulum-5x" }] : []),
     ...(sj ? [{ what: "The same clip slowed 1.5× in secret, timed jump for jump", value: `${sjText} slower (truth 1.5×)${mt ? `; whole-run ratio ${ratio.toFixed(2)}× (${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} against ${mt.rows[0].g.toFixed(2)} m/s²)` : ""}`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring#constants" }] : []),
@@ -533,7 +536,10 @@ export default async function JudgesPage() {
             <li>Muse Wonder&rsquo;s two found laws are on renders we built to need a law outside the base textbook library, and both laws (a cubic spring, dry friction) are ones a physicist knows: a library extended with them ties it, and on a later re-run with today&rsquo;s prompt Muse Spark proposed the cubic law itself. {betterText ? `${betterText.charAt(0).toUpperCase()}${betterText.slice(1)}. ` : ""}Of four springs rendered with a hidden law, it found 2: on the two from 29 October its law took the wrong form, or no proposed law described the motion (<Link href="/proof#fails">Proof</Link>). A law nobody planted is still to be shown.</li>
             <li>The benchmark clips are rendered, so the physics is clean. Real footage adds motion blur, rolling shutter and lens distortion that the renders only partly imitate.</li>
             <li>
-              It fails when the object doesn&rsquo;t stand out. On a real classroom clip of a dark pendulum bob against a dark chalkboard, SAM 3.1 couldn&rsquo;t hold the bob and Ansatz reported no usable g (<Link href="/proof#fails">Proof, where it fails</Link>).
+              Real footage is still a handful: Apollo 16, the Foucault pendulum twice (real time and sped up 5×), and a 50 cm pendulum on black filmed in Aachen{aachenG ? ` (g = ${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s²)` : ""}. On 2 November we ran five clips strangers filmed: one published, one where the number landed but the law did not, and three with no checked number (two misses, and one clip whose maker published no answer). All five are shown (<Link href="/proof#strangers">Proof, footage from strangers</Link>).
+            </li>
+            <li>
+              It fails when the object doesn&rsquo;t stand out. On a real classroom clip of a dark pendulum bob against a dark chalkboard, SAM 3.1 couldn&rsquo;t hold the bob and Ansatz reported no usable g; a green gym ball in a green-lit corridor was held only in part, so its scale and clock were wrong (<Link href="/proof#fails">Proof, where it fails</Link>).
             </li>
             <li>One object at a time: two bodies colliding, or anything moving toward the camera, isn&rsquo;t measured.</li>
             <li>

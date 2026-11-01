@@ -94,6 +94,68 @@ const NAMES: Record<string, string> = {
 // the real classroom clip that failed (see "Where it fails"); the figures are from its run, quoted as measured
 const PENDEL = "https://commons.wikimedia.org/wiki/File:Pendelgesetz_(mit_Rechnung).webm";
 
+// five clips strangers filmed and published under free licences, run on 2 November with only what their makers stated.
+// Figures are from that night's runs (.probe/real-2026-11-02/NOTES.md); the promoted one is read from its record below.
+const COMMONS = "https://commons.wikimedia.org/wiki/File:";
+const STRANGERS: { clip: string; href?: string; who: string; whoHref: string; licence: string; told: string; measured: string; truth: string; verdict: "measured" | "number right, law wrong" | "miss" | "nothing to check"; note: string }[] = [
+  {
+    clip: "Pendulum, 50 cm: a grey bob on black",
+    href: "/x/aachen-pendulum-50cm",
+    who: "Rhetos, Mathe-AC Lernwerkstatt Aachen",
+    whoHref: `${COMMONS}Schwingung_(Definition).webm`,
+    licence: "CC BY-SA 4.0",
+    told: "“The string is about fifty centimetres long.”",
+    measured: "g = 9.82 ± 0.10 m/s². Clock check: real time.",
+    truth: "9.81 m/s². The film’s own stopwatch, cropped out before the run, times a swing at about 1.42 s (theory 1.418 s).",
+    verdict: "measured",
+    note: "0.16% off, 0.2σ. The ± carries the stated length’s uncertainty. Published as an experiment.",
+  },
+  {
+    clip: "Pendulum, 25 cm, in a test rig",
+    who: "NS (Nikos.kse)",
+    whoHref: `${COMMONS}Pendulum_in_controlled_gravity.ogv`,
+    licence: "CC BY-SA 4.0",
+    told: "“The pendulum is twenty-five centimetres long.”",
+    measured: "g = 9.84 ± 0.17 m/s². Clock check: real time.",
+    truth: "9.81 m/s²; a period of 1 s (theory 1.003 s).",
+    verdict: "number right, law wrong",
+    note: "0.3% off. But the simple-harmonic law misses the unseen swing by 15% of the motion, so the publish gate refused it. The number landed; the law did not earn it.",
+  },
+  {
+    clip: "Metronome at 96 beats a minute",
+    who: "Daniel Eriksson (Belteshassar)",
+    whoHref: `${COMMONS}Metronome.webm`,
+    licence: "CC BY 4.0",
+    told: "No length, and no scale in view.",
+    measured: "No law fitted. The large-angle pendulum misses by 25× the noise; with no scale there is no clock check.",
+    truth: "The dial: 96 beats a minute, 1.25 s a full cycle.",
+    verdict: "miss",
+    note: "No law in the library is a metronome. Offline, the tracked arm repeats every 1.235 s: 1.2% short, within the 30 fps timing.",
+  },
+  {
+    clip: "Brass bob in front of a metre stick",
+    who: "Lim Jit Ning, shared by Loo Kang Wee",
+    whoHref: "https://www.youtube.com/watch?v=ZZBGxkgtXN8",
+    licence: "YouTube CC BY",
+    told: "Nothing. Muse Spark picked the metre stick on its own; SAM 3.1 read it as 1281 ± 1 px.",
+    measured: "A pendulum with viscous drag fits within the noise: L = 0.716 ± 0.072 m, with g held at Earth’s.",
+    truth: "Not published: no length, no period.",
+    verdict: "nothing to check",
+    note: "Nothing to compare with, so it is not counted as a result.",
+  },
+  {
+    clip: "Gym ball bouncing, filmed at 240 fps, stored at 50",
+    who: "Rhetos",
+    whoHref: `${COMMONS}Flummiversuch_(Gymnastikball-R%C3%BCcksteigh%C3%B6he).webm`,
+    licence: "CC BY-SA 4.0",
+    told: "The ball is about 75 cm across. The second try added that it bounces on the floor.",
+    measured: "Try 1: flight laws with no floor; the ball left the frame. Try 2: bounce laws, all missing by hundreds of noise units. Both called it real time.",
+    truth: "It plays 4.8× slower than life; the ball rebounds to about 70% of its drop.",
+    verdict: "miss",
+    note: "A green ball in a green-lit corridor: SAM 3.1 held only part of it (89 px across for 75 cm), so every scale was wrong and the slowdown was not detected.",
+  },
+];
+
 export default async function ProofPage() {
   const b = await bench();
   // the referee and Muse Wonder, each run over every benchmark clip on its own (data/bench/referee.json, wonder.json)
@@ -141,6 +203,9 @@ export default async function ProofPage() {
   const fouSpark = fou?.extras?.truth?.rows.find((r) => r.param === "g_spark");
   const fou5 = await getExperiment("foucault-pendulum-5x").catch(() => null);
   const fou5Row = fou5?.extras?.truth?.rows.find((r) => r.param === "speedup");
+  // the stranger's pendulum on black that became an experiment (the same source's chalkboard clip is in "Where it fails")
+  const aachen = await getExperiment("aachen-pendulum-50cm").catch(() => null);
+  const aachenG = aachen?.comparisons.find((c) => c.param === "g");
   const slowG = slow?.comparisons.find((c) => c.param === "g");
   // the held-out test's example: a law that fits the seen frames and fails after them, read from the stored run
   const bb = await getExperiment("beach-ball-drag").catch(() => null);
@@ -293,12 +358,12 @@ export default async function ProofPage() {
         {phone.length > 0 && <Note who="code, against a tape">The truth for each phone clip was measured with a tape before the run and stored with it.</Note>}
 
         <Section n={2} title="Real footage" id="real-footage">
-          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion.</p>
+          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion. Then, on 2 November, <a href="#strangers">five clips strangers filmed</a>, misses included.</p>
         </Section>
       </Page>
 
       {(moon || slow) && (
-        <Plate n={plates.footage} title="Real clips: the Moon from 1972 television, a museum's Foucault pendulum at real speed and sped up 5×, and a pendulum whose clip may hide its slow motion." caption="Each print lays a run's frames over one another, as Marey photographed motion.">
+        <Plate n={plates.footage} title="Real clips: the Moon from 1972 television, a museum's Foucault pendulum at real speed and sped up 5×, a stranger's pendulum on black, and a pendulum whose clip may hide its slow motion." caption="Each print lays a run's frames over one another, as Marey photographed motion.">
           <div className={styles.footage}>
             {moon && moonG && (
               <Link href="/x/moon-jump" className={styles.specimen}>
@@ -329,11 +394,19 @@ export default async function ProofPage() {
                 <Reading value={`${fou5Row.measured.toFixed(2)}×`} pm={(fou5Row.sigma ?? 0).toFixed(2)} tone="measured" label="how much faster than life it plays, from gravity alone; the filmmaker's label says 5×" />
               </Link>
             )}
+            {aachen && aachenG && (
+              <Link href="/x/aachen-pendulum-50cm" className={styles.specimen}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/prints/aachen-pendulum-50cm.webp" alt="A grey pendulum bob swinging on black, frames laid over one another" className={styles.print} loading="lazy" />
+                <span className={styles.fig}>Fig. d. A 50 cm pendulum on black, filmed in Aachen</span>
+                <Reading value={aachenG.measured.toFixed(2)} pm={aachenG.sigma.toFixed(2)} unit="m/s²" tone="measured" label={`Earth's gravity from a stranger's film, told only "about fifty centimetres"; 9.81 there`} />
+              </Link>
+            )}
             {slow?.clock && (
               <Link href="/x/sample-pendulum" className={styles.specimen}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/sample-pendulum.webp" alt="A pendulum posted online, frames laid over one another" className={styles.print} loading="lazy" />
-                <span className={styles.fig}>Fig. d. A pendulum posted online</span>
+                <span className={styles.fig}>Fig. {aachen && aachenG ? "e" : "d"}. A pendulum posted online</span>
                 <Reading value="no factor" label="how much slower than life the clip plays: a re-run with today's stricter pipeline claims none" />
               </Link>
             )}
@@ -370,6 +443,55 @@ export default async function ProofPage() {
           </p>
         )}
         {slow?.clock && <Note who="code">Gravity scales with the square of time, so a g that is too weak names the slowdown that would fix it. <Link href="/x/sample-pendulum">Open the run</Link>.</Note>}
+        <p className={styles.para} id="strangers">
+          <b>Footage from strangers.</b> Judges asked for footage nobody made for us. On 2 November we took five clips that strangers filmed and published under free licences, and ran them through today&rsquo;s pipeline. Ansatz was told only what each maker stated. Table 1a shows all five: one measured, one where the number landed but the law did not, and three with no checked number (two misses, and one clip whose maker published no answer).
+        </p>
+        <Note who="SAM 3.1, Muse Spark, then code">The same pipeline as any run. Six runs in all (the gym ball twice), $2.51 of model calls.</Note>
+        {aachen && aachenG && (
+          <p className={styles.para}>
+            <b>The headline: a stranger&rsquo;s pendulum on black.</b> Rhetos of the Mathe-AC Lernwerkstatt Aachen filmed a grey metal bob on a yellow string against black (&ldquo;Schwingung (Definition)&rdquo;, CC BY-SA 4.0). It is the same source whose chalkboard clip defeated SAM 3.1 on 29 October (§8). Told only &ldquo;the string is about fifty centimetres long&rdquo;, Ansatz measured g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s² against 9.81: {Math.abs(aachenG.errorPct).toFixed(2)}% off, {aachenG.withinSigma.toFixed(1)}σ. The error bar carries the stated length&rsquo;s uncertainty. The clock check read real time. The film has its own stopwatch, which we cropped out before the run: it times a swing at about 1.42 s, and theory gives 1.418 s.
+          </p>
+        )}
+        {aachen && <Note who="SAM 3.1, then code">SAM 3.1 followed &ldquo;{aachen.tracking.noun}&rdquo; in {aachen.tracking.framesSeen} frames; the length was said, not measured. <Link href="/x/aachen-pendulum-50cm">Open the run</Link>.</Note>}
+      </Page>
+
+      <div className={styles.tableBlock}>
+        <table className={`journal ${styles.bench}`}>
+          <caption>Table 1a. Five clips strangers filmed, run on 2 November with only what their makers stated. Green: measured and published. Red: the law or the number failed.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Clip</th>
+              <th scope="col">Filmed by, licence</th>
+              <th scope="col">What Ansatz was told</th>
+              <th scope="col">What it measured</th>
+              <th scope="col">The truth</th>
+              <th scope="col">Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            {STRANGERS.map((r) => (
+              <tr key={r.clip}>
+                <th scope="row" data-label="Clip">
+                  <span className={styles.clip}>{r.href ? <Link href={r.href}>{r.clip}</Link> : r.clip}</span>
+                </th>
+                <td data-label="Filmed by, licence">
+                  <a href={r.whoHref}>{r.who}</a>
+                  <span className={styles.sub}>{r.licence}</span>
+                </td>
+                <td data-label="What Ansatz was told">{r.told}</td>
+                <td data-label="What it measured">{r.measured}</td>
+                <td data-label="The truth">{r.truth}</td>
+                <td data-label="Verdict">
+                  <em className={r.verdict === "measured" ? styles.good : r.verdict === "nothing to check" ? undefined : styles.bad}>{r.verdict}</em>
+                  <span className={styles.sub}>{r.note}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Page>
 
         {b && (
           <Section n={3} title="Every clip with a known answer" id="benchmark">
@@ -683,13 +805,20 @@ export default async function ProofPage() {
         <p className={styles.para}>
           The fits were poor, and Ansatz did not report a usable g. The best pendulum law gave g = 8.58 ± 0.14 m/s², 12% low, and it lost to a control with no swing at all.
         </p>
-                <p className={`${styles.para} ${styles.lesson}`}>
-          The lesson: the object must stand out from its background. A light ball against a plain wall works; a dark weight against a dark board does not.
+        <p className={styles.para}>
+          On 2 November we ran another clip from the same source: a grey metal bob on black, the same 0.5 m string. SAM 3.1 held it, and Ansatz measured g = {aachenG ? `${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)}` : "9.82 ± 0.10"} m/s² against 9.81 (<Link href="/x/aachen-pendulum-50cm">open the run</Link>). Same maker, same pendulum law; only the background changed.
+        </p>
+        <p className={`${styles.para} ${styles.lesson}`}>
+          The lesson: the object must stand out from its background. A light ball against a plain wall works, and so does a grey bob on black; a dark weight against a dark board does not.
         </p>
         <Note who="code">Every law was ranked by the same held-out test as any other run.</Note>
         <p className={styles.para}>
           The same thing stopped the most famous experiment filmed on the Moon, the hammer and feather on Apollo 15: the hammer is a few pixels wide against a white suit. <Link href="/how#limits">How it works</Link> tells that story.
         </p>
+        <p className={styles.para}>
+          <b>Two misses on strangers&rsquo; footage</b> (<a href="#strangers">Table 1a</a>). A metronome at 96 beats a minute: no law in the library is a metronome, and the best one missed by 25× the noise, so no fit was reported. Its period, measured offline from the tracked arm, is 1.235 s against the dial&rsquo;s 1.25 s. A gym ball filmed at 240 fps and stored at 50, so it plays 4.8× slower than life: it is green, in a green-lit corridor, and SAM 3.1 held only part of it, so every scale was wrong. Two tries, two misses, and both called the clip real time. The clock check is only as good as the ruler, and here the ruler was the ball.
+        </p>
+        <Note who="SAM 3.1, then code">A mask that holds part of the object gives a wrong size, and a wrong size gives a wrong scale and a wrong clock.</Note>
         <p className={styles.para}>
           <b>Two laws nobody proposed.</b> On 29 October we rendered two springs whose laws are not in any textbook list and ran them with no hints, on today&rsquo;s pipeline. A lopsided spring, stiffer stretched than squashed: every law Muse Spark wrote missed, and Muse Wonder&rsquo;s law halved the miss on the unseen frames (4.1 px against 8.9 px), but it did so with a drifting rest position, not the lopsided term that was really there. A spring that tires as it works, its stiffness falling through the clip: no proposed law described it, and a textbook control ranked first. Neither is published as a win; both runs are in <code>bench/runs/synth</code>.
         </p>

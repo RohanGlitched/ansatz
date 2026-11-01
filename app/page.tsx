@@ -40,6 +40,7 @@ export default async function Home() {
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x");
   const fou5Row = fou5?.extras?.truth?.rows.find((r) => r.param === "speedup");
+  const aachenG = exps.find((e) => e.id === "aachen-pendulum-50cm")?.comparisons.find((c) => c.param === "g");
   const recent = await recentExperiments().catch(() => []);
   const spec = hero;
   const specMuse = spec?.candidates.filter((c) => c.origin === "muse").slice(0, 2) ?? [];
@@ -134,6 +135,11 @@ export default async function Home() {
           </p>
         )}
         {fou5Row && <Note who="code">Gravity came out 25 times too strong: 5 times too fast, since gravity scales with the square of time.</Note>}
+        {aachenG && (
+          <p className={styles.para}>
+            Then five clips strangers filmed and published. A 50 cm pendulum on black, filmed in Aachen: told only &ldquo;the string is about fifty centimetres long&rdquo;, Ansatz measured g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s² against 9.81 (<Link href="/x/aachen-pendulum-50cm">open the run</Link>). The other four, misses included, are in <Link href="/proof#strangers">one table</Link>.
+          </p>
+        )}
         <Section n={2} title="How a law wins" id="method">
           <p>
             Ansatz doesn&rsquo;t ask a model for the answer. It asks models to look, measure and guess, and lets the data decide. Plate II is a run you can test yourself; under each step below, what it produced on that spring.
