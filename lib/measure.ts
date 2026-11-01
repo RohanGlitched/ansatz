@@ -40,6 +40,8 @@ export type Measured = {
   pivot?: Pivot;
   /** why a near-circular path was not given a pivot */
   pivotNote?: string;
+  /** a circle that was fitted to the path but refused as a pivot (no theta was measured about it), and why */
+  rejectedPivot?: Pivot & { reason: string };
   line?: { x0: number; y0: number; ux: number; uy: number };
   coverage: number; // fraction of frames in the window where the body was seen
   noise: Record<string, number>;
@@ -48,6 +50,8 @@ export type Measured = {
   /** how many of the samples the laws are fitted to. The scale, the pivot, the line and the noise unit come from these
    * alone, and the flight window was chosen from them, so nothing measured on the held-out frames reaches a law */
   split?: number;
+  /** the frames the flight search scanned (kind "flight" or "along a path"): every held-out frame comes after f1 */
+  flightSearch?: { f0: number; f1: number };
 };
 
 /**
@@ -291,6 +295,33 @@ export function pendulumLength(p: Pivot, metresPerPixel: number, rulerRel = 0): 
   return { L: p.r * metresPerPixel, sigma: rel * p.r * metresPerPixel, rel };
 }
 
+/** A pendulum hangs below its pivot: a path whose mean direction from the centre is further than this from straight down isn't swinging about it. */
+export const MAX_PIVOT_TILT_DEG = 30;
+/** A centre further than this many frame diagonals from the middle of the picture is a near-straight path's circle, not a pivot. */
+export const MAX_PIVOT_DIAGONALS = 1.5;
+
+/**
+ * Why a fitted circle can't serve as the pivot an angle is measured about, or null when it can. A short arc is no reason
+ * (theta is still an angle about a real pivot; only L is undetermined), but a path that is not one circle (two arcs, or
+ * distances in two bands), a centre to the side rather than above (a swing seen from a high angle is a near-
+ * vertical line in pixels, whose circle sits beside it), or a centre far outside the frame, is: an angle about such a
+ * centre is a coordinate artefact (θ ≈ π/2 for a sideways centre), not a pendulum's swing.
+ */
+export function pivotUnusable(p: Pivot, pts: Pt[], frame?: { width: number; height: number }): string | null {
+  if (p.twoRadii) return p.why ?? "the path is two arcs";
+  // fitCircle's bimodality test: the distances split into two bands. (A radius that drifts with angle by a fraction of a
+  // pixel, perspective say, spoils L but not the angle: the centre is still above the swing)
+  const bimodal = p.drift !== undefined && p.drift.p < 0.01 && (p.bimodality ?? 0) > 5 / 9;
+  if (p.lengthOk === false && bimodal) return p.why ?? "the distances from the centre split into two bands, so the path is not one circle";
+  const tilt = (Math.abs(Math.atan2(avg(pts.map((q) => q.x - p.x)), avg(pts.map((q) => q.y - p.y)))) * 180) / Math.PI;
+  if (tilt > MAX_PIVOT_TILT_DEG) return `the path sits ${tilt.toFixed(0)}° from straight down below that centre (over ${MAX_PIVOT_TILT_DEG}°), so it is not hanging from it`;
+  if (frame && frame.width > 0 && frame.height > 0) {
+    const diag = Math.hypot(frame.width, frame.height), d = Math.hypot(p.x - frame.width / 2, p.y - frame.height / 2) / diag;
+    if (d > MAX_PIVOT_DIAGONALS) return `that centre lies ${d.toFixed(1)} frame diagonals from the middle of the picture (over ${MAX_PIVOT_DIAGONALS})`;
+  }
+  return null;
+}
+
 /** Principal line through the path (for 1-D motion such as a ramp). */
 export function fitLine(pts: { x: number; y: number }[]) {
   const mx = avg(pts.map((p) => p.x)), my = avg(pts.map((p) => p.y));
@@ -515,6 +546,8 @@ export function measure(args: {
   /** the share of the samples the laws will be fitted to (the rest are held out): only these may set the scale, the
    * pivot, the line, the noise unit and the flight window */
   trainFrac?: number;
+  /** the picture's size in (square) pixels: a fitted circle centred far outside it is not taken as a pivot */
+  frame?: { width: number; height: number };
 }): Measured {
   const frac = args.trainFrac ?? 0.7;
   const slow = args.slowMotion && args.slowMotion > 1 ? args.slowMotion : 1;
@@ -549,23 +582,45 @@ export function measure(args: {
   // row are a repeated frame (slow motion by repetition, or a 24 fps source padded to 30 fps, one in five)
   const repeated = samples.length - dedup.length;
   if (repeated >= Math.max(2, samples.length * 0.08)) samples = dedup;
+  let flightSearch: { f0: number; f1: number } | undefined;
   if (!airborne && (args.kind === "flight" || args.kind === "along a path") && samples.length >= 12) {
-    // sealed: the flight is looked for in the first `frac` of the window's frames only, and the stretch found there
-    // becomes the fitted part; the held-out part is the frames after it, which the search never looked at. A flight
-    // that ends early leaves its landing in the held-out frames, where every law is judged on predicting it
-    const nP = Math.max(12, splitIndex(samples.length, frac));
-    const ts = samples.slice(0, nP).map((s) => T(s.f)), ysPx = samples.slice(0, nP).map((s) => s.cy);
-    const fw = flightWindow(ts, ysPx);
-    // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
-    const ps = parabolicSegment(ts, ysPx);
-    // the global search only overrides the local one when that clearly failed; it is trimmed by a frame at
-    // each end, where a take-off or a landing bends the path
-    const pick = ps && (!fw || ps.b - ps.a > 1.4 * (fw.b - fw.a)) ? { a: ps.a + 1, b: ps.b - 1 } : fw;
-    if (pick) samples = samples.slice(pick.a, Math.min(samples.length, pick.a + Math.round((pick.b - pick.a + 1) / frac)));
-    // the stretch above is scaled out into the held-out frames blind, so it can run past a landing; the free flight
-    // ends where the body stops, which is an event seen in the motion, not a value any law is tuned to
-    const land = landingIndex(samples.map((s) => T(s.f)), samples.map((s) => s.cy));
-    if (land >= 6) samples = samples.slice(0, land + 1);
+    // sealed: the flight search may read only frames that end up fitted. It looks in the first `frac` of the window,
+    // the stretch it finds is scaled out blind by 1/frac into the frames after it, and the free flight is cut where the
+    // body stops (landingIndex: an event seen in the motion, not a value any law is tuned to). The 70/30 split is then
+    // taken once, on that final series, and every held-out frame must come after the last frame the search scanned.
+    // When the split falls short of that by rounding (or because the flight the search found ended inside its range),
+    // the series is lengthened until the fitted part covers the scanned range; when a landing inside the scanned range
+    // forbids that (a toss that lands early), the search range is cut to end where the fitted part ends and the search
+    // runs again on those frames alone. If no range is long enough for a search, the window is used as it is, cut at
+    // the landing, with no search at all
+    const all = samples;
+    const cut = (from: number, to: number) => {
+      const s = all.slice(from, to);
+      const land = landingIndex(s.map((q) => T(q.f)), s.map((q) => q.cy));
+      return land >= 6 ? s.slice(0, land + 1) : s;
+    };
+    let nP = Math.max(12, splitIndex(all.length, frac));
+    let chosen: Sample[] | null = null;
+    while (nP >= 12) {
+      const ts = all.slice(0, nP).map((s) => T(s.f)), ysPx = all.slice(0, nP).map((s) => s.cy);
+      const fw = flightWindow(ts, ysPx);
+      // one long arc found globally beats a short run of noisy local accelerations; several arcs (bounces) keep fw
+      const ps = parabolicSegment(ts, ysPx);
+      // the global search only overrides the local one when that clearly failed; it is trimmed by a frame at
+      // each end, where a take-off or a landing bends the path
+      const pick = ps && (!fw || ps.b - ps.a > 1.4 * (fw.b - fw.a)) ? { a: ps.a + 1, b: ps.b - 1 } : fw;
+      if (!pick) break;
+      const a = pick.a;
+      // the stretch scaled out by 1/frac, as before; longer only if its fitted part would stop short of the scanned range
+      let n = Math.round((pick.b - pick.a + 1) / frac);
+      while (a + n < all.length && a + splitIndex(n, frac) < nP) n++;
+      const s = cut(a, Math.min(all.length, a + n));
+      // in window samples, the held-out frames start at a + split: all of them must come after the scanned range
+      const fitEnd = a + splitIndex(s.length, frac);
+      if (fitEnd >= nP) { chosen = s; flightSearch = { f0: all[0].f, f1: all[nP - 1].f }; break; }
+      nP = fitEnd;
+    }
+    samples = chosen ?? cut(0, all.length);
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);
   const f0 = samples[0].f, f1 = samples[samples.length - 1].f;
@@ -601,14 +656,21 @@ export function measure(args: {
   // a pendulum: the path hugs a circle whose centre sits above the body, over a real arc. Two arcs of different
   // radius (an interrupted pendulum) have no one pivot to measure an angle about
   let pivotNote: string | undefined;
+  let rejectedPivot: Measured["rejectedPivot"];
+  const unfit = pc && !pc.twoRadii ? pivotUnusable(pc, fitted.map((s) => ({ x: s.cx, y: s.cy })), args.frame) : null;
   if (pc?.twoRadii) pivotNote = pc.why;
-  else if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys.slice(0, split))) {
+  else if (pc && unfit) {
+    // no angle about a centre that isn't a pivot: the motion is measured along the path's line (s) instead, if it has one
+    rejectedPivot = { ...pc, reason: unfit };
+    pivotNote = `a circle was fitted (centre at ${pc.x.toFixed(0)}, ${pc.y.toFixed(0)} px, radius ${pc.r.toFixed(0)} px) but it is not a pivot: ${unfit}; no angle is measured about it`;
+  } else if (pc && pc.rmsPx < Math.max(1.5, pc.r * 0.02) && pc.arcDeg > 3 && pc.arcDeg < 340 && pc.y < avg(ys.slice(0, split))) {
     pivot = pc;
     ch.theta = samples.map((s) => Math.atan2(s.cx - pc.x, s.cy - pc.y));
     ch.r = samples.map((s) => Math.hypot(s.cx - pc.x, s.cy - pc.y) * k);
   }
   const line = fitLine(fitted.map((s) => ({ x: s.cx, y: s.cy })));
   if (line.rmsOffPx < 3) ch.s = samples.map((s) => ((s.cx - line.x0) * line.ux + (s.cy - line.y0) * line.uy) * k);
+  if (rejectedPivot) pivotNote += ch.s ? "; the motion is measured as the distance s along the path's straight line instead" : "; the path has no straight line either, so the motion is measured in x and y only";
   const noise = Object.fromEntries(Object.entries(ch).map(([c, v]) => [c, noiseScale(v.slice(0, split), t.slice(0, split))]));
   return {
     series: { t, ch },
@@ -617,12 +679,14 @@ export function measure(args: {
     calibration: cal,
     pivot,
     ...(pivotNote ? { pivotNote } : {}),
+    ...(rejectedPivot ? { rejectedPivot } : {}),
     line: line.rmsOffPx < 3 ? { x0: line.x0, y0: line.y0, ux: line.ux, uy: line.uy } : undefined,
     coverage,
     noise,
     window: { f0, f1, t0: T(f0), t1: T(f1) },
     slowMotion: slow,
     split,
+    ...(flightSearch ? { flightSearch } : {}),
   };
 }
 

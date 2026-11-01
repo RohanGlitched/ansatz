@@ -33,6 +33,25 @@ function power(unit: string | undefined, base: RegExp): number {
   return count(num) - dens.reduce((s, d) => s + count(d), 0);
 }
 
+/** The power of pixels in a unit string ("pixel/s^2" → 1, "px" → 1, "1/px" → -1): what a no-ruler fit carries. */
+export function pixelPower(unit: string | undefined): number {
+  return power(unit, /^(px|pixels?)$/i);
+}
+
+/**
+ * A constant fitted in pixels, in metres, given a scale from outside the run (a render's own metres per pixel, or a
+ * ruler read afterwards): value and σ times metresPerPixel to the unit's pixel power, and the unit's pixels become
+ * metres ("pixel/s^2" → "m/s^2"). The scale's own uncertainty, `scaleRel`, is added to σ in quadrature by that power.
+ * Null when the unit carries no pixels.
+ */
+export function pixelsToMetres(value: number, sigma: number, unit: string | undefined, metresPerPixel: number, scaleRel = 0): { value: number; sigma: number; unit: string } | null {
+  const pw = pixelPower(unit);
+  if (!pw || !(metresPerPixel > 0)) return null;
+  const k = metresPerPixel ** pw;
+  const v = value * k;
+  return { value: v, sigma: Math.hypot((Number.isFinite(sigma) ? sigma : 0) * Math.abs(k), Math.abs(pw) * scaleRel * Math.abs(v)), unit: unit!.replace(/\b(px|pixels?)\b/gi, "m") };
+}
+
 /** "m/s^2" → "m/s²", "1/m" stays, "s^-1" → "s⁻¹": units as a textbook prints them. */
 export function prettyUnit(unit: string | undefined): string {
   if (!unit) return "";

@@ -220,7 +220,17 @@ export type Fit = {
   cov?: { method: CovMethod; rho: number; lag?: number; whiteShare?: number };
   /** sigma under every estimator (only when asked for: the coverage Monte Carlo compares them) */
   sigmaBy?: Partial<Record<CovMethod, Record<string, number>>>;
+  /** free parameters this data does not determine: no finite σ, or one end of a ridge (correlation beyond
+   * UNDETERMINED_CORR with another parameter) along which σ exceeds a third of the value. Only their combination is
+   * measured (g and L of a small swing filmed without a length: only g/L); pages print "not determined", never a ± */
+  undetermined?: string[];
+  /** leave-one-flight-out jackknife σ of each event-reset parameter (withEventJackknife); `sigma` holds the larger of it
+   * and the sandwich σ */
+  jackknife?: Record<string, number>;
 };
+
+/** Two parameters correlated beyond this move together: the data fixes a combination of them, not each one. */
+export const UNDETERMINED_CORR = 0.999;
 
 /**
  * Robust per-channel noise: MAD of normalised third divided differences. Third differences cancel a constant
@@ -304,12 +314,17 @@ function solve(A: number[][], b: number[]): number[] | null {
  * Fits a law to the first `trainFrac` of the clip and predicts the rest. Residuals are weighted per channel
  * by that channel's measured noise, so pixels-to-metres scale doesn't decide which channel matters.
  */
-type FitOpts = { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number; covariance?: CovMethod; allCovariances?: boolean };
+type FitOpts = { trainFrac?: number; maxIter?: number; theta0?: Float64Array; starts?: number; covariance?: CovMethod; allCovariances?: boolean; jackknife?: boolean };
 
 /** Chosen by scripts/coverage.ts: the estimator whose 1σ intervals hold ~68% under white and AR(0.8) noise. */
 export const COVARIANCE: CovMethod = "ar1-white";
 
 export function fitLaw(law: Law, data: Series, opts: FitOpts = {}): Fit {
+  const best = fitStarts(law, data, opts);
+  return opts.theta0 || opts.jackknife === false ? best : withEventJackknife(law, data, best, opts);
+}
+
+function fitStarts(law: Law, data: Series, opts: FitOpts): Fit {
   const starts = opts.starts ?? Number(process.env.FIT_STARTS ?? 6);
   let best = fitOnce(law, data, opts);
   const nFree = law.params.filter((p) => !p.fixed).length;
@@ -322,6 +337,52 @@ export function fitLaw(law: Law, data: Series, opts: FitOpts = {}): Fit {
     if (f.ok && (!best.ok || f.trainCost < best.trainCost)) best = f;
   }
   return best;
+}
+
+/**
+ * Leave-one-flight-out jackknife for the parameters an event resets the state with (restitution e in "vy: -e*vy"). An
+ * impact's timing is quantised by the frame clock, a deterministic error the residual model (white noise plus AR(1)
+ * wander) doesn't contain, so the sandwich σ of such a parameter runs 3-4 times too small on the renders. The fitted
+ * frames are cut into flights at the fitted impacts; each flight in turn is dropped and the law refitted from the fit's
+ * own values; σ_jack² = (m−1)/m Σ (θ_k − θ̄)². The larger of σ_jack and the sandwich σ is kept, and σ_jack is stored
+ * (Fit.jackknife). Needs at least two impacts in the fitted frames; the held-out frames play no part.
+ */
+export function withEventJackknife(law: Law, data: Series, fit: Fit, opts: FitOpts = {}): Fit {
+  if (!fit.ok || !law.events?.length) return fit;
+  const reset = new Set<string>();
+  for (const ev of law.events) for (const e of Object.values(ev.then)) for (const n of names(parse(e))) if (law.params.some((p) => p.name === n && !p.fixed)) reset.add(n);
+  if (!reset.size) return fit;
+  const N = data.t.length, split = splitIndex(N, opts.trainFrac ?? 0.7), tEnd = data.t[split - 1];
+  const cuts = [...new Set(fit.events.map((e) => e.t).filter((t) => t > data.t[0] && t < tEnd))].sort((a, b) => a - b);
+  if (cuts.length < 2) return fit;
+  let c: CompiledLaw;
+  try {
+    c = compileLaw(law);
+  } catch {
+    return fit;
+  }
+  const theta0 = Float64Array.from(c.free.map((n) => fit.theta[n]));
+  if (theta0.some((v) => !Number.isFinite(v))) return fit;
+  const bounds = [-Infinity, ...cuts, Infinity];
+  const est = Object.fromEntries([...reset].map((n) => [n, [] as number[]]));
+  for (let k = 0; k + 1 < bounds.length; k++) {
+    const drop = (i: number) => i < split && data.t[i] >= bounds[k] && data.t[i] < bounds[k + 1];
+    const ch = Object.fromEntries(Object.entries(data.ch).map(([name, v]) => [name, v.map((x, i) => (drop(i) ? NaN : x))]));
+    const f = fitOnce(law, { t: data.t, ch }, { ...opts, theta0 });
+    if (!f.ok) return fit;
+    for (const n of reset) est[n].push(f.theta[n]);
+  }
+  const m = bounds.length - 1;
+  const jackknife: Record<string, number> = {};
+  const sigma = { ...fit.sigma };
+  for (const n of reset) {
+    const v = est[n], mean = v.reduce((a, b) => a + b, 0) / m;
+    const sj = Math.sqrt(((m - 1) / m) * v.reduce((a, x) => a + (x - mean) ** 2, 0));
+    if (!Number.isFinite(sj)) continue;
+    jackknife[n] = sj;
+    if (!(sigma[n] >= sj)) sigma[n] = sj;
+  }
+  return Object.keys(jackknife).length ? { ...fit, sigma, jackknife } : fit;
 }
 
 function clampTo(p: ParamSpec, v: number) {
@@ -426,6 +487,16 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
   const main = sigmaOf(method);
   const sigma = main.sigma;
   c.free.forEach((name, i) => (theta2[name] = theta[i]));
+  // a parameter on a ridge (|correlation| > 0.999 with another) whose σ is over a third of its value was not measured:
+  // the fit slid along the ridge from where it started. Initial conditions (name@0) are left out
+  const cm = main.cv.cov;
+  const undetermined = c.free.filter((name, i) => {
+    if (name.endsWith("@0")) return false;
+    const sg = sigma[name], v = theta[i];
+    if (!Number.isFinite(sg)) return true;
+    if (!cm || !(sg > Math.abs(v) / 3)) return false;
+    return c.free.some((other, j) => j !== i && !other.endsWith("@0") && Math.abs(cm[i][j] / Math.sqrt(cm[i][i] * cm[j][j])) > UNDETERMINED_CORR);
+  });
   let sigmaBy: Fit["sigmaBy"];
   if (opts.allCovariances) sigmaBy = Object.fromEntries((["ols", "ar1-inflate", "newey-west", "ar1-sandwich", "ar1-white"] as CovMethod[]).map((m) => [m, sigmaOf(m).sigma]));
   for (const p of law.params) if (p.fixed) { theta2[p.name] = p.guess; sigma[p.name] = 0; }
@@ -459,5 +530,6 @@ function fitOnce(law: Law, data: Series, opts: FitOpts = {}): Fit {
     predicted: full.obs,
     cov: { method, rho: main.cv.rho, ...(main.cv.lag !== undefined ? { lag: main.cv.lag } : {}), ...(main.cv.whiteShare !== undefined ? { whiteShare: main.cv.whiteShare } : {}) },
     ...(sigmaBy ? { sigmaBy } : {}),
+    ...(undetermined.length ? { undetermined } : {}),
   };
 }

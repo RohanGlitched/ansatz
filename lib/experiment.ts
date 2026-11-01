@@ -7,7 +7,7 @@
 import { deleteFile, Ledger, transcribe, uploadFile, type Call } from "./meta/client";
 import { segmentImage, trackBoxes, trackNoun, type LiveMask, type SamResult, type Sample, type Track } from "./meta/sam";
 import { digest, localGravity, mainTrack, measure, rulerExtent, type Calibration, type Measured, type Pivot } from "./measure";
-import { compileLaw, fitLaw, splitIndex, type Fit, type Law, type Series } from "./physics/law";
+import { compileLaw, fitLaw, splitIndex, withEventJackknife, type Fit, type Law, type Series } from "./physics/law";
 import { asrKeywords, releaseTurn, timedTurns } from "./i18n";
 import { controls } from "./physics/library";
 import { critique, eyeball, hypothesise, MODELS, observe, point as pointAt, presetUncertainty, reviseAgentic, WONDER_EFFORT, WONDER_PLOT, type Critique, type Eyeball, type Observation, type WonderAttempt, type WonderTurn } from "./scientist";
@@ -50,7 +50,7 @@ export type Experiment = {
   observation: Observation;
   observationSources: { url: string; title: string }[];
   tracking: { noun: string; tracks: number; framesSeen: number; meanConfidence: number };
-  measured: Pick<Measured, "calibration" | "pivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin" | "split"> & { series: Measured["series"]; px: Measured["px"]; point?: "centroid" | "top" };
+  measured: Pick<Measured, "calibration" | "pivot" | "pivotNote" | "rejectedPivot" | "line" | "coverage" | "noise" | "window" | "slowMotion" | "origin" | "split" | "flightSearch"> & { series: Measured["series"]; px: Measured["px"]; point?: "centroid" | "top" };
   given: string[];
   reasoning: string;
   candidates: Candidate[];
@@ -66,6 +66,10 @@ export type Experiment = {
   eyeball: (Eyeball & { model: string; seen?: { fps: number; frames: number } }) | null;
   /** set when the measured gravity says the clip's clock isn't real time */
   clock: { factor: number; sigma?: number; note: string } | null;
+  /** whether the clock check could run at all (absent on records before it): `checked` is false when gravity set the
+   * scale, when there was no ruler and no stated length, when no gravity was measured, or when a slow-motion factor was
+   * set; `why` says which, in a sentence a page can show as it is */
+  clockCheck?: ClockCheck;
   whatIf: { label: string; param: string; factor: number; px: { x: number; y: number }[] }[];
   strobe: { f: number; t: number; box: Sample["box"]; rle: Sample["rle"] }[];
   trainFrac: number;
@@ -101,7 +105,7 @@ export type Experiment = {
     telecine?: { g: number; sigma: number; note: string; method: string; cadence?: { period: number; phase: number; repeats: number; frames: number }; jumps?: { jump: number; g: number; sigma: number; n: number }[]; subpixel?: { g: number; sigma: number; note: string } };
     /** a second ruler nobody tuned: the flag, at its documented size */
     flagRuler?: { note: string; source: string; sizeM: { width: number; height: number; rel: number }; px: { width: number; height: number; sigma: number; frames: number }; g: number; sigma: number; gHeightRuler: number; sam?: { usd: number; frames: number } };
-    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
+    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string; si?: TruthInMetres }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -111,6 +115,9 @@ export type Experiment = {
   class?: string;
   student?: string;
 };
+
+/** A truth row fitted in pixels (no ruler in view), restated in metres with a scale from outside the run (scripts/truth-in-metres.ts). */
+export type TruthInMetres = { measured: number; sigma: number; truth: number; unit: string; metresPerPixel: number; scale: string };
 
 /** Bumped when the method changes in a way that changes results; older visitor runs stop being listed. */
 export const PIPELINE = "2026-10-27c";
@@ -142,14 +149,30 @@ export function newId() {
 // plain decimals down to a millionth (0.00037, not 3.70e-4); exponents only for the very large or very small
 const fmtNum = (v: number, sig = 3) => (Math.abs(v) >= 1e4 || (Math.abs(v) < 1e-6 && v !== 0) ? v.toExponential(2) : (+v.toPrecision(sig)).toString());
 
-/** Writes "g = {g}" as "g = 9.79 ± 0.04 m/s²" using the fitted values, never the model's numbers. */
+/** A winner that misses its unseen frames by more than this many times the noise is "rough": its values carry no ±. */
+export const ROUGH_Z = 5;
+/** The page's rule (app/x/[id]/view.tsx, data.csv): a rough fit's constants are printed as "about 9.8", never with a ±. */
+export const isRoughFit = (fit: Pick<Fit, "testZ">) => Number.isFinite(fit.testZ) && fit.testZ! > ROUGH_Z;
+/** What a parameter the clip does not determine (Fit.undetermined) is printed as, in place of a value. */
+export const NOT_DETERMINED = "not determined by this clip";
+
+/**
+ * Writes "g = {g}" as "g = 9.79 ± 0.04 m/s²" using the fitted values, never the model's numbers. A rough fit (testZ over
+ * ROUGH_Z) gets "about 9.8" with no ±, as on the readout card and in data.csv; a parameter the clip doesn't determine
+ * gets NOT_DETERMINED, never a value with a ± wider than itself.
+ */
 export function fillPlaceholders(text: string, fit: Fit, law: Law) {
+  const rough = isRoughFit(fit);
   return text.replace(/\{([A-Za-z_][A-Za-z_0-9]*)\}/g, (m, name) => {
     if (!(name in fit.theta)) return m;
     const p = law.params.find((q) => q.name === name);
     const v = fit.theta[name], s = fit.sigma[name];
     const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${prettyUnit(p.unit)}` : "";
-    return s && Number.isFinite(s) && !p?.fixed && Math.abs(v) < 1e5 ? `${fmtPair(v, s)}${unit}` : `${fmtNum(v)}${unit}`;
+    if (!p?.fixed && fit.undetermined?.includes(name)) return NOT_DETERMINED;
+    if (!p?.fixed && rough) return `about ${+v.toPrecision(2)}${unit}`;
+    // a value held fixed was given, not measured, and says so
+    if (p?.fixed) return `${fmtNum(v)}${unit} (given)`;
+    return s && Number.isFinite(s) && Math.abs(v) < 1e5 ? `${fmtPair(v, s)}${unit}` : `${fmtNum(v)}${unit}`;
   });
 }
 
@@ -356,11 +379,22 @@ export function inflateForRuler(c: Candidate, share: { rulerRel: number; gRel: n
 /** the uncertainty a stated length carries into g = ω²L */
 const STATED_REL = Number(process.env.STATED_LENGTH_REL ?? 0.01);
 
+/**
+ * Whether a fitted value may be compared with a known one (and so feed the clock check): the clip determined it (not on a
+ * ridge with another parameter) and its σ is under a third of it. A g of 10 ± 830 matching Earth's 9.81 is the fit's
+ * starting guess surviving along a ridge, not a measurement.
+ */
+export function comparable(fit: Fit, name: string) {
+  const v = fit.theta[name], s = fit.sigma[name];
+  return Number.isFinite(v) && !fit.undetermined?.includes(name) && !(Number.isFinite(s) && s > Math.abs(v) / 3);
+}
+
 function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"], m?: Measured): Comparison[] {
   const out: Comparison[] = [];
   // a free flight written as uniform acceleration along a vertical path: |a| is the gravity it measured
   const a = law.params.find((p) => !p.fixed && /^a$/i.test(p.name) && /m\/s/.test(p.unit ?? ""));
-  if (a && gUsed === null && obs.motion_kind === "flight" && line && Math.abs(line.uy) > 0.95 && !law.params.some((p) => p.name === "g" && !p.fixed)) {
+  // (in metres only: with no ruler and no stated length an acceleration is in pixels, and no clock check can run)
+  if (a && comparable(fit, a.name) && m && m.calibration.kind !== "none" && gUsed === null && obs.motion_kind === "flight" && line && Math.abs(line.uy) > 0.95 && !law.params.some((p) => p.name === "g" && !p.fixed)) {
     const v = Math.abs(fit.theta[a.name]), s = fit.sigma[a.name] || 0;
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
     if (Number.isFinite(v)) out.push({ param: a.name, measured: v, sigma: s, reference: ref, label: `${obs.body === "earth" ? "standard gravity on Earth" : `surface gravity of the ${obs.body === "moon" ? "Moon" : obs.body}`} (a fall straight down accelerates at g)`, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
@@ -372,13 +406,13 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
   const Lm = stated.l ?? (ruled ? m!.pivot!.r * m!.calibration.metresPerPixel : undefined);
   // a spoken or typed length is rounded ("fifty centimetres"): it carries 1% unless the arc measured it
   const relL = stated.l !== undefined ? STATED_REL : ruled ? Math.hypot((m!.pivot!.sigmaR ?? m!.pivot!.rmsPx) / m!.pivot!.r, obs.reference.relative_uncertainty ?? 0.05, rulerShare(obs, m!.calibration, null).pxRel) : 0;
-  if (w && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
+  if (w && comparable(fit, w.name) && Lm !== undefined && !law.params.some((p) => p.name === "g" && !p.fixed) && gUsed === null) {
     const v = fit.theta[w.name] ** 2 * Lm, s = Math.hypot(2 * fit.theta[w.name] * Lm * (fit.sigma[w.name] || 0), v * relL);
     const ref = localGravity(obs.body, obs.location.latitude_deg ?? undefined);
     if (Number.isFinite(v)) out.push({ param: "g", measured: v, sigma: s, reference: ref, label: `${obs.body === "earth" ? "standard gravity on Earth" : `gravity on the ${obs.body}`} (g = ω₀²L)`, errorPct: ((v - ref) / ref) * 100, withinSigma: s ? Math.abs(v - ref) / s : NaN });
   }
   for (const p of law.params) {
-    if (p.fixed || p.name === "cal") continue;
+    if (p.fixed || p.name === "cal" || !comparable(fit, p.name)) continue;
     const v = fit.theta[p.name], s = fit.sigma[p.name];
     let ref: number | undefined, label = "";
     const nm = p.name.toLowerCase();
@@ -397,6 +431,33 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
     if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: sd, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: sd ? Math.abs(v - ref) / sd : NaN });
   }
   return out;
+}
+
+/** A swing measured as an angle: which of g and L code holds when a law leaves both free (only g/L is in the motion). */
+export type PendulumHold = { name: "g" | "L"; value: number } | null;
+
+/**
+ * A stated length, or one measured from the swing's radius against a ruler, is held and g measured; with neither, the
+ * world's gravity is held and L measured. Null when there is no swing (no angle channel, and no circle refused as a
+ * pivot, whose swing is then measured along s) or the fall already set g.
+ */
+export function pendulumHold(ch: Record<string, number[]>, gUsed: number | null, statedL: number | undefined, gWorld: number, swingOnLine = false): PendulumHold {
+  if ((!ch.theta && !swingOnLine) || gUsed !== null) return null;
+  return statedL !== undefined && statedL > 0 ? { name: "L", value: statedL } : { name: "g", value: gWorld };
+}
+
+const isGParam = (p: Law["params"][number]) => /^g$/i.test(p.name) || (/gravit/i.test(p.meaning ?? "") && metrePower(p.unit) === 1 && secondPower(p.unit) === -2);
+const isLParam = (p: Law["params"][number]) => /^(l|len|length|l_m)$/i.test(p.name) || (/length/i.test(p.meaning ?? "") && metrePower(p.unit) === 1 && !secondPower(p.unit));
+
+/** Holds g or L (as `hold` says) in a law that leaves both free; a law that already fixes one of them is left alone. */
+export function holdPendulum(law: Law, hold: PendulumHold) {
+  if (!hold) return law;
+  const g = law.params.find((p) => !p.fixed && isGParam(p)), L = law.params.find((p) => !p.fixed && isLParam(p));
+  if (!g || !L) return law;
+  const p = hold.name === "g" ? g : L;
+  p.guess = hold.value;
+  p.fixed = true;
+  return law;
 }
 
 export type RunInput = {
@@ -640,7 +701,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const m = await step("measure", async () => {
       // gravity can only stand in for a ruler when the body flies freely: a ball rolling down a ramp accelerates at less than g
       const once = () => {
-        let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind === "swing" || obs.motion_kind === "oscillation", trainFrac: TRAIN });
+        let mm = measure({ track, times: vi.times, window: winT, slowMotion: slow, metresPerPixel: scale, gravity: gBody, kind: obs.motion_kind, point, noGravityRuler: obs.motion_kind === "swing" || obs.motion_kind === "oscillation", trainFrac: TRAIN, frame: { width: vi.width, height: vi.height } });
         if (obs.motion_kind === "swing" || obs.motion_kind === "oscillation") mm = trimStatic(mm, track, vi, winT, slow, scale, gBody, obs.motion_kind, { point, noGravityRuler: true });
         return mm;
       };
@@ -687,11 +748,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       stated.l = lGeo;
       arcRel = (m.pivot.sigmaR ?? 0) / m.pivot.r;
       given.push(`pendulum length L = ${lGeo.toFixed(3)} m, measured from the radius of the swing with the ruler: hold L fixed and measure g`);
-    } else if (m.series.ch.theta && !m.series.ch.x) {
+    } else if (m.series.ch.theta || m.rejectedPivot) {
+      // whatever channels are kept (a ruler keeps x and y): a swing alone measures only g/L, so one of them is held
       if (stated.l !== undefined) given.push(`pendulum length L = ${stated.l} m (stated): hold L fixed and measure g`);
       else given.push(`g = ${gBody.toFixed(3)} m/s² (${obs.body === "earth" ? "Earth" : obs.body}): hold g fixed and measure the pendulum's length L in metres from its swing${m.pivot?.lengthOk === false && m.pivot.why ? ` (L isn't determined from the arc: ${m.pivot.why})` : ""}`);
     }
     const gUsed = m.calibration.kind === "gravity" ? m.calibration.g : null;
+    // what code holds whatever the theorist writes: a law with both g and L free gets the one the given says is known
+    const hold = pendulumHold(m.series.ch, gUsed, stated.l, gBody, !!m.rejectedPivot);
 
     // 6. hypothesise
     // the theorist sees only the frames the laws are fitted to: no number from the last 30% reaches any model
@@ -712,6 +776,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         seen.add(id);
         const l = { ...law, id };
         if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+        holdPendulum(l, hold);
         // the scale correction is the measurement's business, not the law's: fit the wrapped law, show the inner one
         const wrap = (x: Law) => (gUsed !== null ? withScaleCorrection(x) : x);
         const { law: law2, fitted, fit } = fitWithRoom(l, m.series, wrap);
@@ -774,8 +839,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           const tryLaw = async (law: Law) => {
             const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
             if (gUsed !== null) for (const p of l2.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+            holdPendulum(l2, hold);
             const wrapped = gUsed !== null ? withScaleCorrection(l2) : l2;
-            const f = fitLaw(wrapped, m.series, { trainFrac: TRAIN });
+            // (an attempt's σ is only shown to Muse Wonder: no jackknife here; the law it submits is refitted with one)
+            const f = fitLaw(wrapped, m.series, { trainFrac: TRAIN, jackknife: false });
             // the attempt's misses on the fitted frames as a picture, the same kind the referee reads (best effort)
             const per = f.ok ? Object.values(fittedResiduals(f, m, TRAIN)) : [];
             const plot = per.length ? await residualPlot([{ title: law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) }], 1).catch(() => undefined) : undefined;
@@ -796,6 +863,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           const law = revised;
           compileLaw(law);
           if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+          holdPendulum(law, hold);
           const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
           const rev = gUsed !== null ? withScaleCorrection(inner) : inner;
           cands.push({ law: inner, fitted: rev, fit: fitLaw(rev, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
@@ -819,6 +887,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const eye = await Promise.race([eyePromise, new Promise<null>((res) => setTimeout(() => res(null), Number(process.env.EYEBALL_GRACE_MS ?? 25_000)))]);
 
     // 9. report
+    // the winner's restitution σ: the larger of the sandwich and a leave-one-flight-out jackknife
+    jackknifeLeader(cands, m.series);
     const win = cands[0];
     const rep = await step("report", async () => {
       const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line, m);
@@ -861,13 +931,17 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           // a g with no error bar (a rough fit) gives a factor with none either: a range in words, never a ±
           const rough = !(gc.sigma > 0 && Number.isFinite(gc.sigma));
           const say = (x: number) => (rough ? roughFactor(x) : fmtNum(x, 2));
-          clock = { factor: f, ...(rough ? {} : { sigma: 0.5 * f * (gc.sigma / gc.measured) }), note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${say(f)}× slower than real life (slow motion). Run it again with the slow-motion factor set.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${say(1 / f)}× faster than real life (time-lapse or dropped frames).` };
+          // g scales with the length that set the scale as well as with 1/time²: a misread ruler looks like a changed clock
+          const scaleBy = lengthBehindG(m.calibration, stated.l !== undefined, obs.reference.noun_phrase);
+          const orRuler = scaleBy ? ` Or ${scaleBy} is not the length assumed: g scales with it, so a length read ${fmtNum(1 / r, 2)}× too long looks just like a clip slowed ${say(f)}×.` : "";
+          clock = { factor: f, ...(rough ? {} : { sigma: 0.5 * f * (gc.sigma / gc.measured) }), note: r < 1 ? `Gravity came out ${fmtNum(1 / r, 2)}× too weak. Either this happened somewhere with ${fmtNum(r, 2)}× ${obs.body === "earth" ? "Earth’s" : `the ${obs.body === "moon" ? "Moon’s" : `${obs.body}’s`}`} gravity, or the clip plays about ${say(f)}× slower than real life (slow motion).${orRuler} Run it again with the slow-motion factor set${scaleBy ? ", or check the length" : ""}.` : `Gravity came out ${fmtNum(r, 2)}× too strong: the clip probably plays about ${say(1 / f)}× faster than real life (time-lapse or dropped frames)${scaleBy ? `, or ${scaleBy} is not the length assumed (a length read ${fmtNum(r, 2)}× too short looks the same)` : ""}.` };
         }
       }
       // a number the clock casts doubt on is never left standing on its own
-      if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body, clock.sigma === undefined)}`;
+      if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body, clock.sigma === undefined, lengthBehindG(m.calibration, stated.l !== undefined, obs.reference.noun_phrase))}`;
+      const clockCheck = clockCheckOf({ slowSet: slow > 1, calibration: m.calibration.kind, statedLength: stated.l !== undefined, gravity: gc ?? null, flagged: !!clock, body: obs.body });
       const headline = crit?.headline && refereedWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
-      return { comps, finding, whatIf, clock, headline };
+      return { comps, finding, whatIf, clock, clockCheck, headline };
     }, (r) => r.finding);
 
     // strobe frames: ~16 evenly spaced masks across the window
@@ -885,7 +959,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       observation: obs,
       observationSources: sources,
       tracking: { noun: subj.tracks[0]?.noun ?? subjectNoun, tracks: subj.tracks.length, framesSeen: track.samples.length, meanConfidence: track.samples.reduce((s, x) => s + (x.conf ?? 0), 0) / track.samples.length },
-      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin, point, split: m.split },
+      measured: { series: m.series, px: m.px, calibration: m.calibration, pivot: m.pivot, ...(m.pivotNote ? { pivotNote: m.pivotNote } : {}), ...(m.rejectedPivot ? { rejectedPivot: m.rejectedPivot } : {}), line: m.line, coverage: m.coverage, noise: m.noise, window: m.window, slowMotion: m.slowMotion, origin: m.origin, point, split: m.split, ...(m.flightSearch ? { flightSearch: m.flightSearch } : {}) },
       ...(voiceWindow ? { voiceWindow } : {}),
       given,
       reasoning: hyp.reasoning,
@@ -898,6 +972,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       eyeball: eye ? { ...eye, model: MODELS.eyeball } : null,
       whatIf: rep.whatIf,
       clock: rep.clock,
+      clockCheck: rep.clockCheck,
       wonder,
       strobe,
       trainFrac: TRAIN,
@@ -910,13 +985,44 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
   }
 }
 
-/** One sentence for the finding when the measured gravity says the clip's clock isn't real time. */
-export function clockSentence(r: number, factor: number, body: string, rough = false) {
+/**
+ * One sentence for the finding when the measured gravity says the clip's clock isn't real time. `scaleBy` names the
+ * length that set the scale (lengthBehindG): a misread length and a changed clock look alike, so both are offered.
+ */
+export function clockSentence(r: number, factor: number, body: string, rough = false, scaleBy?: string | null) {
   const world = body === "earth" ? "Earth’s" : body === "moon" ? "the Moon’s" : `${body}’s`;
   const say = (x: number) => (rough ? roughFactor(x) : fmtNum(x, 2));
+  const or = scaleBy ? `, or ${scaleBy} is not the length assumed` : "";
   return r < 1
-    ? `That is ${fmtNum(1 / r, 2)}× weaker than ${world} gravity, so the clip most likely plays about ${say(factor)}× slower than real life.`
-    : `That is ${fmtNum(r, 2)}× stronger than ${world} gravity, so the clip most likely plays about ${say(1 / factor)}× faster than real life.`;
+    ? `That is ${fmtNum(1 / r, 2)}× weaker than ${world} gravity, so the clip most likely plays about ${say(factor)}× slower than real life${or}.`
+    : `That is ${fmtNum(r, 2)}× stronger than ${world} gravity, so the clip most likely plays about ${say(1 / factor)}× faster than real life${or}.`;
+}
+
+/** The length a measured g rests on, in words ("the metre stick"), or null when no length set the scale. */
+export function lengthBehindG(cal: Pick<Calibration, "kind">, statedLength: boolean, rulerNoun?: string) {
+  if (cal.kind === "reference") return rulerNoun ? `the ${rulerNoun.replace(/^(the|a|an)\s+/i, "")}` : "the ruler";
+  if (cal.kind === "stated") return "the stated scale";
+  if (statedLength) return "the stated pendulum length";
+  return null;
+}
+
+/** Whether a run's clock could be checked against gravity, and why not when it couldn't. */
+export type ClockCheck = { checked: boolean; why: string };
+
+/**
+ * The clock check runs only when gravity is a measurement: a ruler or a stated length gives metres, and the winning law
+ * measured a g. When gravity set the scale it was assumed, so it can't test the clock; with no ruler and no stated length
+ * there are no metres to measure it in; a slow-motion factor that was set is a correction, not a check.
+ */
+export function clockCheckOf(a: { slowSet: boolean; calibration: Calibration["kind"]; statedLength: boolean; gravity: Pick<Comparison, "measured" | "reference"> | null; flagged: boolean; body: string }): ClockCheck {
+  const world = a.body === "earth" ? "Earth’s" : a.body === "moon" ? "the Moon’s" : `${a.body}’s`;
+  if (a.slowSet) return { checked: false, why: "Clock not checked: a slow-motion factor was set, so times were corrected by it, not tested." };
+  if (a.calibration === "gravity") return { checked: false, why: "Clock not checked: the fall set the scale, so gravity was assumed, not measured. A slowed clip would look the same." };
+  if (a.calibration === "none" && !a.statedLength) return { checked: false, why: "Clock not checked: with no ruler in view and no length stated, gravity can’t be measured in metres. A slowed clip would look the same." };
+  if (!a.gravity) return { checked: false, why: "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)." };
+  if (a.flagged) return { checked: true, why: "Clock checked: gravity came out far from the world’s, so the clip’s clock, or the length behind the scale, is in doubt." };
+  const pct = Math.abs(a.gravity.measured / a.gravity.reference - 1) * 100;
+  return { checked: true, why: `Clock checked: gravity came out within ${fmtNum(pct, 2)}% of ${world}, so the clip plays in real time.` };
 }
 
 /**
@@ -986,7 +1092,8 @@ export function atBound(law: Law, name: string, v: number) {
  * restarting from where it stopped, and keeps the wider law unless that fits the seen frames worse.
  */
 export function fitWithRoom(l: Law, series: Series, wrap: (x: Law) => Law = (x) => x) {
-  let law2 = l, fitted = wrap(l), fit = fitLaw(fitted, series, { trainFrac: TRAIN });
+  // the restitution jackknife runs on the leading law only, once it is known (jackknifeLeader), not on every candidate
+  let law2 = l, fitted = wrap(l), fit = fitLaw(fitted, series, { trainFrac: TRAIN, jackknife: false });
   for (let round = 0; round < 2 && fit.ok; round++) {
     // a ratio that physics caps at 1 (restitution, a fraction kept) is never widened past it
     const capped = (p: Law["params"][number]) => p.max !== undefined && p.max <= 1 && Math.abs(fit.theta[p.name] - p.max) < Math.abs(fit.theta[p.name] - (p.min ?? -Infinity)) && (/restitution|fraction|ratio|kept/i.test(p.meaning ?? "") || /^e(_r)?$/i.test(p.name));
@@ -1004,7 +1111,7 @@ export function fitWithRoom(l: Law, series: Series, wrap: (x: Law) => Law = (x) 
       }),
       initialGuess: { ...(law2.initialGuess ?? {}), ...Object.fromEntries(Object.entries(fit.theta).filter(([k]) => k.endsWith("@0")).map(([k, v]) => [k.slice(0, -2), v])) },
     };
-    const fitted2 = wrap(wider), fit2 = fitLaw(fitted2, series, { trainFrac: TRAIN });
+    const fitted2 = wrap(wider), fit2 = fitLaw(fitted2, series, { trainFrac: TRAIN, jackknife: false });
     // the wider law stands if it fits no worse: then the old bound wasn't what held the value there
     if (!fit2.ok || !(fit2.trainCost <= fit.trainCost * (1 + 1e-6))) break;
     law2 = wider;
@@ -1012,6 +1119,19 @@ export function fitWithRoom(l: Law, series: Series, wrap: (x: Law) => Law = (x) 
     fit = fit2;
   }
   return { law: law2, fitted, fit };
+}
+
+/**
+ * The leading law's event-reset parameters (restitution) get the leave-one-flight-out jackknife σ when it is larger than
+ * the sandwich σ (lib/physics/law.ts withEventJackknife). Run on the leader alone, after ranking: it refits the law once
+ * per flight (up to a few seconds on a bouncing ball), and ranking doesn't use σ except to spot a parameter pinned at
+ * its bound.
+ */
+export function jackknifeLeader(cands: Candidate[], series: Series) {
+  const c = cands[0];
+  if (!c?.fit.ok || !c.law.events?.length) return;
+  const f = withEventJackknife(c.fitted ?? c.law, series, c.fit, { trainFrac: TRAIN });
+  if (f !== c.fit) c.fit = Object.assign(f, (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded ? { rulerAdded: true } : {});
 }
 
 /**
@@ -1106,7 +1226,7 @@ function trimStatic(m: Measured, track: Track, vi: VideoInfo, win: { t0: number;
   if (b - a < 10 || (a < 2 && b > px.length - 3)) return m;
   const fa = px[a].f, fb = px[b].f;
   const T = (f: number) => vi.times[f] ?? 0;
-  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind, trainFrac: TRAIN, ...extra });
+  return measure({ track, times: vi.times, window: { t0: Math.max(win.t0, T(fa)), t1: Math.min(win.t1, T(fb)) }, slowMotion: slow, metresPerPixel: scale, gravity: g, kind, trainFrac: TRAIN, frame: { width: vi.width, height: vi.height }, ...extra });
 }
 
 export type { Pivot };

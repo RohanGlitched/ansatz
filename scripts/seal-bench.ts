@@ -3,7 +3,7 @@
 // <dst>/ for scripts/score.ts. With --unsealed the scale, pivot, line and noise are read from every frame, as before.
 // usage: tsx scripts/seal-bench.ts [src=.probe/bench_r7] [dst=.probe/bench_sealed] [--unsealed]
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { fitWithRoom, inflateForRuler, noiseFloorOf, rankCandidates, rulerShare, withScaleCorrection, type Experiment } from "../lib/experiment";
+import { fitWithRoom, inflateForRuler, jackknifeLeader, noiseFloorOf, rankCandidates, rulerShare, withScaleCorrection, type Experiment } from "../lib/experiment";
 import { fitCircle, fitLine, pixelGravity } from "../lib/measure";
 import { noiseScale, splitIndex } from "../lib/physics/law";
 import { toMetres } from "../lib/units";
@@ -62,6 +62,8 @@ for (const f of readdirSync(src).filter((x) => x.endsWith(".json")).sort()) {
   const arcRel = ch.theta && m.pivot && m.pivot.lengthOk !== false && m.calibration.kind === "reference" && !stated ? (m.pivot.sigmaR ?? 0) / m.pivot.r : 0;
   const share = rulerShare(e.observation, m.calibration, gUsed);
   for (const c of e.candidates) inflateForRuler(c, share, e.observation.body, arcRel);
+  // the winner's restitution σ: the larger of the sandwich and the leave-one-flight-out jackknife, as the run applies it
+  jackknifeLeader(e.candidates, m.series);
   const old = e.winner;
   e.winner = e.candidates[0].law.id;
   e.pipeline = sealed ? "2026-10-27c sealed re-score" : "2026-10-27c re-score (unsealed)";

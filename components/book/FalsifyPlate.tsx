@@ -72,7 +72,8 @@ export default function FalsifyPlate({ id, video, t0, laws: meta, start = 0.7 }:
 
   const frac = g ? g.fracs[k] : start;
   const n = g?.t.length ?? 0;
-  const cut = g ? Math.max(1, Math.min(n - 1, Math.round(frac * (n - 1)))) : 0;
+  const cutAt = (j: number) => (g ? Math.max(1, Math.min(n - 1, Math.round(g.fracs[j] * (n - 1)))) : 0);
+  const cut = g ? cutAt(k) : 0;
 
   // the film shows the instant the line stands at
   useEffect(() => {
@@ -139,6 +140,65 @@ export default function FalsifyPlate({ id, video, t0, laws: meta, start = 0.7 }:
     <div className={styles.plate}>
       <div className={styles.top}>
         <div className={styles.left}>
+        <p className={styles.cue} id={`${id}-cue`}>
+          <svg viewBox="0 0 28 14" aria-hidden="true">
+            <path d="M1 7h26M1 7l5-5M1 7l5 5M27 7l-5-5M27 7l-5 5" />
+          </svg>
+          Drag the line between seen and unseen
+        </p>
+        <div className={styles.chartWrap}>
+          <svg viewBox={`0 0 ${CW} ${CH}`} className={styles.chart} role="img" aria-label={`The motion against time. The laws see the first ${Math.round(frac * 100)}% and predict the rest.`}>
+            <rect x={xCut} y={0} width={CW - xCut} height={CH} className={styles.future} />
+            {g.seen.map((p, i) => (p ? <circle key={i} cx={X(g.t[i])} cy={Y(p[view.ax])} r={i <= cut ? 3.4 : 2.6} className={i <= cut ? styles.cDot : styles.cGhost} style={i <= cut ? { animationDelay: `${Math.min(1.6, i * 0.012)}s` } : undefined} /> : null))}
+            {rows.map((r) => {
+              const pts = r.p.path
+                .map((q, i) => [X(g.t[i]), Y(q[view.ax])] as const)
+                .slice(cut)
+                .filter((q) => Number.isFinite(q[1]));
+              if (pts.length < 2) return null;
+              const struck = isStruck(r.score);
+              return <polyline key={r.L.id} points={pts.map((q) => q.join(",")).join(" ")} className={struck ? styles.cLawStruck : r === winnerNow ? styles.cLawBest : styles.cLaw} />;
+            })}
+            <line x1={sealedX} x2={sealedX} y1={CH - 14} y2={CH} className={styles.sealed} />
+            <line x1={xCut} x2={xCut} y1={0} y2={CH} className={styles.cut} />
+            {/* the labels stay inside the chart wherever the line stands (on a phone their type is large) */}
+            <text x={xCut - 10} y={narrow ? 34 : 24} textAnchor="end" className={styles.lab}>
+              {!narrow || xCut > 560 ? "the past the laws may see" : "past"}
+            </text>
+            <text x={xCut + 10} y={narrow ? 34 : 24} className={styles.lab}>
+              {!narrow || xCut < 420 ? "the future they must predict" : "future"}
+            </text>
+          </svg>
+          <input
+            type="range"
+            min={0}
+            max={g.fracs.length - 1}
+            step={1}
+            value={k}
+            onChange={(e) => {
+              setPlaying(false);
+              setK(+e.target.value);
+            }}
+            className={styles.range}
+            style={{ left: `calc(${(X(g.t[cutAt(0)]) / CW) * 100}% - 14px)`, width: `calc(${((X(g.t[cutAt(g.fracs.length - 1)]) - X(g.t[cutAt(0)])) / CW) * 100}% + 28px)` }}
+            aria-describedby={`${id}-cue`}
+            aria-label="How much of the motion the laws may see"
+            aria-valuetext={`${Math.round(frac * 100)}% seen, ${Math.round((1 - frac) * 100)}% to predict`}
+          />
+          <span className={styles.handle} style={{ left: `${(xCut / CW) * 100}%` }} aria-hidden="true" />
+        </div>
+
+        <div className={styles.foot}>
+          <p className={styles.status}>
+            The laws see <b>{Math.round(frac * 100)}%</b> of the motion and predict the last <b>{Math.round((1 - frac) * 100)}%</b>.{" "}
+            {rows.filter((r) => isStruck(r.score)).length} of {rows.length} refuted.
+            {Math.abs(frac - 0.7) < 0.026 && " This is where the run sealed its line."}
+          </p>
+          <button type="button" className="btn ghost" onClick={() => (playing ? setPlaying(false) : (setK(0), setPlaying(true)))}>
+            {playing ? "Stop" : "Sweep the line from 30% to 90%"}
+          </button>
+        </div>
+
           <div className={styles.film} style={{ aspectRatio: `${W} / ${Hh}` }}>
             {video && (
               <video
@@ -171,57 +231,6 @@ export default function FalsifyPlate({ id, video, t0, laws: meta, start = 0.7 }:
               </button>
             )}
           </div>
-
-
-        <div className={styles.chartWrap}>
-          <svg viewBox={`0 0 ${CW} ${CH}`} className={styles.chart} role="img" aria-label={`The motion against time. The laws see the first ${Math.round(frac * 100)}% and predict the rest.`}>
-            <rect x={xCut} y={0} width={CW - xCut} height={CH} className={styles.future} />
-            {g.seen.map((p, i) => (p ? <circle key={i} cx={X(g.t[i])} cy={Y(p[view.ax])} r={i <= cut ? 3.4 : 2.6} className={i <= cut ? styles.cDot : styles.cGhost} style={i <= cut ? { animationDelay: `${Math.min(1.6, i * 0.012)}s` } : undefined} /> : null))}
-            {rows.map((r) => {
-              const pts = r.p.path
-                .map((q, i) => [X(g.t[i]), Y(q[view.ax])] as const)
-                .slice(cut)
-                .filter((q) => Number.isFinite(q[1]));
-              if (pts.length < 2) return null;
-              const struck = isStruck(r.score);
-              return <polyline key={r.L.id} points={pts.map((q) => q.join(",")).join(" ")} className={struck ? styles.cLawStruck : r === winnerNow ? styles.cLawBest : styles.cLaw} />;
-            })}
-            <line x1={sealedX} x2={sealedX} y1={CH - 14} y2={CH} className={styles.sealed} />
-            <line x1={xCut} x2={xCut} y1={0} y2={CH} className={styles.cut} />
-            {/* the labels stay inside the chart wherever the line stands (on a phone their type is large) */}
-            <text x={xCut - 10} y={20} textAnchor="end" className={styles.lab}>
-              {!narrow || xCut > 330 ? "the past the laws may see" : "past"}
-            </text>
-            <text x={xCut + 10} y={20} className={styles.lab}>
-              {!narrow || xCut < 640 ? "the future they must predict" : "future"}
-            </text>
-          </svg>
-          <input
-            type="range"
-            min={0}
-            max={g.fracs.length - 1}
-            step={1}
-            value={k}
-            onChange={(e) => {
-              setPlaying(false);
-              setK(+e.target.value);
-            }}
-            className={styles.range}
-            aria-label="How much of the motion the laws may see"
-            aria-valuetext={`${Math.round(frac * 100)}% seen, ${Math.round((1 - frac) * 100)}% to predict`}
-          />
-        </div>
-
-        <div className={styles.foot}>
-          <p className={styles.status}>
-            The laws see <b>{Math.round(frac * 100)}%</b> of the motion and predict the last <b>{Math.round((1 - frac) * 100)}%</b>.{" "}
-            {rows.filter((r) => isStruck(r.score)).length} of {rows.length} refuted.
-            {Math.abs(frac - 0.7) < 0.026 && " This is where the run sealed its line."}
-          </p>
-          <button type="button" className="btn ghost" onClick={() => (playing ? setPlaying(false) : (setK(0), setPlaying(true)))}>
-            {playing ? "Stop" : "Sweep the line from 30% to 90%"}
-          </button>
-        </div>
         </div>
 
         <ol className={styles.ledger} aria-live="polite">

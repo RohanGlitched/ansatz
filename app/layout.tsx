@@ -9,6 +9,7 @@ import NavLinks from "./nav-links";
 import { CyanotypeDefs, Mark } from "@/components/book/Cyanotype";
 import Develop, { PREARM } from "@/components/book/Develop";
 import Rail from "@/components/book/Rail";
+import { DEMO_VIDEO_LENGTH, demoVideoUrl } from "./video";
 
 // a lab book: Computer Modern, the face physics papers are set in (so text and equations share one voice), and a
 // plain grotesque for the controls
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: { default: "Ansatz: film anything that moves, get the law that moves it", template: "%s · Ansatz" },
   description:
-    "Ansatz turns a phone video into a physics experiment. SAM 3.1 measures every frame, Muse Spark and Muse Wonder propose equations of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to, wins.",
+    "Ansatz turns a phone video into a physics experiment. SAM 3.1 measures the object frame by frame, Muse Spark and Muse Wonder propose equations of motion, and the law that best predicts the last 30% of the motion, which no law was fitted to, wins.",
   openGraph: { type: "website", siteName: "Ansatz" },
   twitter: { card: "summary_large_image" },
 };
@@ -82,6 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p className={styles.small}>
                 Set in Computer Modern and Archivo. Plates printed as cyanotypes, after Anna Atkins&rsquo; <em>Photographs of British Algae</em> (1843).
               </p>
+              <p className={styles.small}>Made for the Meta Global AI Developer Hackathon, 2026.</p>
             </div>
             <div className={styles.cols}>
               <div>
@@ -96,21 +98,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/proof">Proof: the benchmark</Link>
                 <Link href="/how">How a law wins</Link>
                 <Link href="/judges">For judges, in one page</Link>
+                <a href={demoVideoUrl}>The demo video ({DEMO_VIDEO_LENGTH})</a>
                 <a href="https://github.com/RohanGlitched/ansatz">The code, on GitHub</a>
               </div>
               <div>
                 <h3>Built with Meta</h3>
-                <span>SAM 3.1 measures every frame</span>
-                <span>Muse Spark watches, proposes laws, referees</span>
-                <span>Muse Wonder tries laws with a fitting tool</span>
-                <span>Muse Voice Transcribe hears the narration</span>
+                <Link href="/how#measure">SAM 3.1 measures frame by frame</Link>
+                <Link href="/how#propose">Muse Spark watches, proposes laws, referees</Link>
+                <Link href="/how#referee">Muse Wonder tries laws with a fitting tool</Link>
+                <Link href="/how#watch">Muse Voice Transcribe hears the narration</Link>
               </div>
               <div>
                 <h3>For machines</h3>
                 <a href="/llms.txt">llms.txt</a>
                 <a href="/bench">Benchmark data (JSON)</a>
-                <span>Meta Global AI Developer Hackathon, 2026</span>
-                <span>Clips credited on each experiment</span>
+                <Link href="/x">Clips credited on each experiment</Link>
               </div>
             </div>
           </div>

@@ -4,7 +4,8 @@ import Tex from "@/components/Tex";
 import Plate, { Note, Page, Section } from "@/components/book/Plate";
 import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { getSeries } from "@/lib/series";
-import { lawLatex } from "@/lib/latex";
+import { lawTex } from "./lawTex";
+import { printOf } from "./prints";
 import type { Experiment } from "@/lib/experiment";
 import { fmtOff, summarise, type Summary } from "./summary";
 import styles from "./index.module.css";
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 const eqOf = (e: Experiment) => {
-  const l = lawLatex(winnerOf(e).law);
+  const l = lawTex(winnerOf(e).law);
   return l[l.length > 1 ? 1 : 0] ?? "";
 };
 
@@ -54,9 +55,9 @@ function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean
       <Link href={`/x/${e.id}`} className={styles.printLink} tabIndex={-1} aria-hidden="true">
         <span className={styles.print}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/prints/${e.id}.webp`} alt="" className={styles.orig} loading="lazy" decoding="async" />
+          <img src={printOf(e.id)} alt="" className={styles.orig} loading="lazy" decoding="async" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/prints/${e.id}.webp`} alt="" className={styles.cyan} loading="lazy" decoding="async" />
+          <img src={printOf(e.id)} alt="" className={styles.cyan} loading="lazy" decoding="async" />
         </span>
       </Link>
       <p className={styles.fig}>

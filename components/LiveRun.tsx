@@ -56,8 +56,8 @@ function tex(s: string) {
 
 /**
  * What the experiment has found so far, printed on the plate: the clip as a cyanotype with SAM 3.1's measurements on
- * it in orange, the photo-finish strip it builds frame by frame, then the laws in white ink racing across the frames
- * none of them saw. A law the unseen frames refute is struck through in red.
+ * it in orange, the photo-finish strip it builds frame by frame, then the laws in white ink racing across the last
+ * 30%, which no law was fitted to. A law the unseen frames refute is struck through in red.
  */
 function LiveRun({ src, live, footer, readout }: { src: string | null; live: LiveData; footer?: ReactNode; /** the result in large type, once the run has ended */ readout?: Readout | null }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -318,7 +318,7 @@ function LiveRun({ src, live, footer, readout }: { src: string | null; live: Liv
         )}
         {settled && winner && (
           <p className={styles.verdictLine}>
-            <strong>{winner.title}</strong> predicted the last {unseenPct}% of the motion, which no law was fitted to, to within <span className="num">{winMiss ? fmtMiss(winMiss.value, winMiss.unit) : winner.miss}</span>.{live.summary ? ` ${live.summary}` : ""}
+            <strong>{winner.title}</strong> predicted the last {unseenPct}% of the motion{/which no law was fitted to/.test(live.summary ?? "") ? "" : ", which no law was fitted to,"} to within <span className="num">{winMiss ? fmtMiss(winMiss.value, winMiss.unit) : winner.miss}</span>.{live.summary ? ` ${live.summary}` : ""}
           </p>
         )}
         {readout && (

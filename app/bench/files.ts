@@ -15,7 +15,7 @@ export const BENCH_FILES: Record<string, { script?: string; what: string; shownO
   "clock-controls.json": { what: "Clock-check controls: real-time renders with a ruler in view (a flag would be a false alarm) and small slowdowns.", shownOn: "/proof#slow-motion" },
   "coverage.json": { script: "scripts/coverage.ts", what: "Error-bar calibration: how often the fitter's ±1σ and ±2σ intervals hold the truth over many synthetic fits.", shownOn: "/proof#checks" },
   "ablation.json": { script: "scripts/ablation.ts", what: "Muse Spark's proposed laws against a fixed library of textbook laws on the same clips, and Muse Wonder's laws where the library ran out.", shownOn: "/proof#library" },
-  "pendulum-stopwatch.json": { script: "scripts/series-tape.ts", what: "The pendulum series with tape-measured lengths, and Ansatz's periods against a hand stopwatch's.", shownOn: "/series/pendulum-lengths#stopwatch" },
+  "pendulum-stopwatch.json": { script: "scripts/series-tape.ts", what: "The pendulum series on rendered clips, with lengths set to the renders' true lengths (standing in for a tape) or read from the A4 sheet in view, and Ansatz's periods against a hand stopwatch's estimate.", shownOn: "/series/pendulum-lengths#stopwatch" },
 };
 
 /** "synth, observer, wonder, … and pendulum-stopwatch": the file names in words, for a sentence. */

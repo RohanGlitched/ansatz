@@ -101,7 +101,7 @@ export default async function ProofPage() {
   type Won = { summary: { clips: number; beat: number; tie: number; worse: number; none: number; usd: number }; rows: { verdict: string; submitted?: string; ratio?: number }[] };
   const refb = await readFile(path.join(process.cwd(), "data", "bench", "referee.json"), "utf8").then((t) => JSON.parse(t) as Ref, () => null);
   const wonb = await readFile(path.join(process.cwd(), "data", "bench", "wonder.json"), "utf8").then((t) => JSON.parse(t) as Won, () => null);
-  type Obs = { summary: { runs: number; subjectRight: number; subjectScored: number; firstNounFound: number; worldRight: number; motionKindRight: number; naiveWouldFail: number; rulerPicked: number; rulerNeeded: number; rulerLengthRight: number; windowMedianIoU: number; windowNaiveWholeClipMedianIoU: number; narrationFactFound: number; narrationFacts: number } };
+  type Obs = { summary: { runs: number; subjectRight: number; subjectScored: number; firstNounFound: number; worldRight: number; motionKindRight: number; naiveWouldFail: number; naiveWouldFailBy?: Record<string, number>; rulerPicked: number; rulerNeeded: number; rulerLengthRight: number; windowMedianIoU: number; windowNaiveWholeClipMedianIoU: number; narrationFactFound: number; narrationFacts: number } };
   const obsb = await readFile(path.join(process.cwd(), "data", "bench", "observer.json"), "utf8").then((t) => JSON.parse(t) as Obs, () => null);
   const wab = await readFile(path.join(process.cwd(), "data", "bench", "wonder-ab.json"), "utf8").then((t) => JSON.parse(t) as { arms: string[]; rows: { clip: string; needsNew: boolean; arm: string; verdict: string; ratio?: number }[]; usd: number }, () => null);
   const abArm = (arm: string) => {
@@ -117,6 +117,18 @@ export default async function ProofPage() {
     (t) => JSON.parse(t) as { summary: { clips: number; sparkBetter: number; tied: number; libraryBetter: number }; extra?: { id: string; title: string; libraryLaw: string; libraryMissMm: number; modelMissMm: number; unit?: string }[] },
     () => null,
   );
+  // the published run of each clip in the library table, to say when the table's figures come from an earlier run
+  const abPublished = await Promise.all((ab?.extra ?? []).map((x) => getExperiment(x.id).catch(() => null)));
+  const abNow = (i: number) => {
+    const e = abPublished[i], x = ab?.extra?.[i];
+    if (!e || !x) return null;
+    const k = (x.unit ?? "mm") === "mm" ? 1000 : 1;
+    const won = winnerOf(e).fit.testRms * k;
+    const spark = e.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0]?.fit.testRms;
+    // a published record that replaced an earlier run of the same clip (rerunOf): the library table was scored on the earlier one
+    if (!(e as typeof e & { rerunOf?: unknown }).rerunOf || spark === undefined) return null;
+    return `These figures are from an earlier run of this clip. On the published re-run, Muse Wonder’s law misses by ${won.toFixed(2)} ${x.unit ?? "mm"}, against ${(spark * k).toFixed(1)} ${x.unit ?? "mm"} for Muse Spark’s best.`;
+  };
   // clips filmed on a phone, each with the person's own tape-measured truth
   const phone = (await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e) => e?.source.phone && e.extras?.truth?.rows.length);
   const phoneErr = phone.flatMap((e) => e!.extras!.truth!.rows.map((r) => Math.abs((r.measured - r.truth) / r.truth) * 100)).sort((a, b) => a - b);
@@ -301,7 +313,12 @@ export default async function ProofPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/foucault-pendulum.webp" alt="The Foucault pendulum in Békéscsaba, frames laid over one another" className={styles.print} loading="lazy" />
                 <span className={styles.fig}>Fig. b. A Foucault pendulum, Békéscsaba, real time</span>
-                <Reading value={fouRow.measured.toFixed(2)} pm={(fouRow.sigma ?? 0).toFixed(2)} unit="m/s²" tone="measured" label="Earth's gravity from the swing and the published length; 9.81 there" />
+                <Reading
+                  value={`about ${fouRow.measured.toFixed(1)}`}
+                  unit="m/s²"
+                  tone="measured"
+                  label={`Earth's gravity from the swing and the published length; 9.81 there. No error bar: the winning law misses the unseen frames by ${Math.round(winnerOf(fou).fit.testZ ?? NaN)}× the noise${fouSpark ? `; Muse Spark's plain law gives ${fouSpark.measured.toFixed(2)} ± ${(fouSpark.sigma ?? 0).toFixed(2)}` : ""}`}
+                />
               </Link>
             )}
             {fou5 && fou5Row && (
@@ -317,7 +334,7 @@ export default async function ProofPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/sample-pendulum.webp" alt="A pendulum posted online, frames laid over one another" className={styles.print} loading="lazy" />
                 <span className={styles.fig}>Fig. d. A pendulum posted online</span>
-                <Reading value="4 to 4.5×" tone="measured" label="about how much slower than life the clip plays; unconfirmed" />
+                <Reading value="no factor" label="how much slower than life the clip plays: a re-run with today's stricter pipeline claims none" />
               </Link>
             )}
           </div>
@@ -333,10 +350,14 @@ export default async function ProofPage() {
         {moon && moonG && <Note who="SAM 3.1, then code">SAM 3.1 followed &ldquo;astronaut&rdquo;; code took the airborne frames, fitted the laws and scaled by the ruler. <Link href="/x/moon-jump">Open the run</Link>.</Note>}
         {fou && fouRow && fouSpark && (
           <p className={styles.para}>
-            <b>A museum&rsquo;s Foucault pendulum, real footage.</b> The pendulum in Békéscsaba, Hungary, filmed by its keeper and published on Wikimedia Commons with its length (8.97 m) and period (6.0 s). Ansatz was told the length and nothing else; the camera looks down along the swing, so the bob moves toward and away from the lens. Muse Spark&rsquo;s plain pendulum law gives g = {fouSpark.measured.toFixed(2)} ± {(fouSpark.sigma ?? 0).toFixed(2)} m/s²; Muse Wonder, asked by the referee, added the camera&rsquo;s perspective to the law and won with {fouRow.measured.toFixed(3)} ± {(fouRow.sigma ?? 0).toFixed(3)} m/s². Earth&rsquo;s gravity there is 9.81: about 1% low, a little more than the error bar, most likely because the published length is to a slightly different point of the bob.
+            <b>A museum&rsquo;s Foucault pendulum, real footage.</b> The pendulum in Békéscsaba, Hungary, filmed by Zátonyi Sándor (ifj.) of FizFilm and published on Wikimedia Commons (CC BY 4.0) with its length (8.97 m) and period (6.0 s). Ansatz was told the length and nothing else. The camera looks down along the swing, so the bob moves toward and away from the lens. Muse Spark&rsquo;s plain pendulum law gives g = {fouSpark.measured.toFixed(2)} ± {(fouSpark.sigma ?? 0).toFixed(2)} m/s². Muse Wonder, asked by the referee, added the camera&rsquo;s perspective to the law and won: it misses the unseen frames by {winnerOf(fou).fit.testRms.toFixed(1)} px, against {(fou.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0]?.fit.testRms ?? NaN).toFixed(1)} px for Muse Spark&rsquo;s best. Its g is about {fouRow.measured.toFixed(1)} m/s², with no error bar: even this law misses the unseen frames by {Math.round(winnerOf(fou).fit.testZ ?? NaN)}× the noise. Earth&rsquo;s gravity there is 9.81, so about 1% low.
           </p>
         )}
-        {fou && <Note who="SAM 3.1, Muse Spark, Muse Wonder, then code">SAM 3.1 followed &ldquo;silver ball&rdquo; in all 350 frames; the length was said, not measured. <Link href="/x/foucault-pendulum">Open the run</Link>.</Note>}
+        {fou && (
+          <Note who="SAM 3.1, Muse Spark, Muse Wonder, then code">
+            SAM 3.1 followed &ldquo;{fou.tracking.noun}&rdquo; in {fou.tracking.framesSeen} frames, one in {Math.round(fou.video.frames / fou.tracking.framesSeen)} of the clip&rsquo;s {fou.video.frames.toLocaleString("en")}; the length was said, not measured. <Link href="/x/foucault-pendulum">Open the run</Link>.
+          </Note>
+        )}
         {fou5 && fou5Row && (
           <p className={styles.para}>
             <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. Muse Spark, watching it, wrote that the &ldquo;swing appears in real time&rdquo;. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster than life. The label says 5×.
@@ -345,7 +366,7 @@ export default async function ProofPage() {
         {fou5 && <Note who="code">Gravity scales with the square of time: 25 times too strong is 5 times too fast. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.</Note>}
         {slow?.clock && (
           <p className={styles.para}>
-            <b>A clip that may hide its slow motion, flagged.</b> A pendulum posted online. With the tennis ball as the ruler, the swing implied a gravity of {slowG?.measured.toFixed(2)} m/s². Ansatz flagged it: either the experiment was done somewhere with a twentieth of Earth&rsquo;s gravity, or the clip plays slower than life: about 4 to 4.5×, unconfirmed, because the capture rate isn&rsquo;t published and the clamp isn&rsquo;t modelled. Nothing in the frames says so; only its uploader&rsquo;s title says &ldquo;slow motion&rdquo;. A re-run with today&rsquo;s stricter pipeline declines to measure the string&rsquo;s length, because the swing isn&rsquo;t one circle, so it claims no factor at all.
+            <b>A clip that may hide its slow motion.</b> A pendulum posted online. With the tennis ball as the ruler, the first run found a gravity of {slowG?.measured.toFixed(2)} m/s², about a twentieth of Earth&rsquo;s: either a weaker world or a clip that plays slower than life. Nothing in the frames says so; only its uploader&rsquo;s title says &ldquo;slow motion&rdquo;. A re-run with today&rsquo;s stricter pipeline declines to measure the string&rsquo;s length, because the swing isn&rsquo;t one circle (the clamp catches the string), so it claims no factor at all.
           </p>
         )}
         {slow?.clock && <Note who="code">Gravity scales with the square of time, so a g that is too weak names the slowdown that would fix it. <Link href="/x/sample-pendulum">Open the run</Link>.</Note>}
@@ -476,7 +497,11 @@ export default async function ProofPage() {
         )}
         {refb && wonb && obsb && (
           <p className={styles.para}>
-            <b>The observer is what lets a clip nobody labelled become an experiment.</b> Across {obsb.summary.runs} stored runs, Muse Spark named the moving object right {obsb.summary.subjectRight} of {obsb.summary.subjectScored} times (where we didn&rsquo;t hand it the name), and SAM 3.1 found it on that first name every time; it read the world right {obsb.summary.worldRight} of {obsb.summary.runs} times and the kind of experiment {obsb.summary.motionKindRight} of {obsb.summary.runs}, and took the string length from Hindi narration. A lite default that assumes Earth and no ruler would have failed on {obsb.summary.naiveWouldFail} of these runs, every Moon and Mars clip among them. Its limits: it used a ruler on only {obsb.summary.rulerPicked} of {obsb.summary.rulerNeeded} clips that had one, because the rendered rulers are unmarked striped bars whose length it declined to guess (it read {obsb.summary.rulerLengthRight} of {obsb.summary.rulerPicked} right when it did; stating the ruler on the run form fixes the rest), and its free-motion window is only a little tighter than the whole clip (median overlap {obsb.summary.windowMedianIoU.toFixed(2)} against {obsb.summary.windowNaiveWholeClipMedianIoU.toFixed(2)}).
+            <b>The observer is what lets a clip nobody labelled become an experiment.</b> Across {obsb.summary.runs} stored runs, Muse Spark named the moving object right {obsb.summary.subjectRight} of {obsb.summary.subjectScored} times (where we didn&rsquo;t hand it the name), and SAM 3.1 found it on that first name every time; it read the world right {obsb.summary.worldRight} of {obsb.summary.runs} times and the kind of experiment {obsb.summary.motionKindRight} of {obsb.summary.runs}, and took the string length from Hindi narration. A lite default that assumes Earth and no ruler would have failed on {obsb.summary.naiveWouldFail} of these runs
+            {obsb.summary.naiveWouldFailBy
+              ? `: the ${Object.entries(obsb.summary.naiveWouldFailBy).find(([k]) => /world/i.test(k))?.[1] ?? 0} Moon and Mars clips, and ${Object.entries(obsb.summary.naiveWouldFailBy).find(([k]) => /slow/i.test(k))?.[1] ?? 0} slowed clips where the ruler it picked fixed the scale`
+              : ", every Moon and Mars clip among them"}
+            . Its limits: it used a ruler on only {obsb.summary.rulerPicked} of {obsb.summary.rulerNeeded} clips that had one, because the rendered rulers are unmarked striped bars whose length it declined to guess (it read {obsb.summary.rulerLengthRight} of {obsb.summary.rulerPicked} right when it did; stating the ruler on the run form fixes the rest), and its free-motion window is only a little tighter than the whole clip (median overlap {obsb.summary.windowMedianIoU.toFixed(2)} against {obsb.summary.windowNaiveWholeClipMedianIoU.toFixed(2)}).
           </p>
         )}
         {refb && wonb && obsb && <Note who="Muse Spark 1.3, the observer">Scored over the stored runs by scripts/observer-score.ts; no new model calls.</Note>}
@@ -502,13 +527,16 @@ export default async function ProofPage() {
         {refb && wonb && <Note who="Muse Spark 1.3, the referee">${refb.summary.usd.toFixed(2)} of calls over {refb.summary.clips} clips.</Note>}
         {refb && wonb && (
           <p className={styles.para}>
-            <b>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</b> Told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn&rsquo;t there; each such law missed the last 30%, which no law was fitted to, by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is called in only when the referee asks for a new law or when the leading law misses even its own fitted frames by more than six times the noise; on these clips neither happened.
+            <b>Muse Wonder, challenged on every clip, rarely overreaches, and the held-out test catches it when it does.</b> With its old setting (low effort, no residual plot) and told the leading law might already be right, it kept or matched it on {wonb.summary.tie} of {wonb.summary.clips} clips. {wonb.summary.worse} times it added an effect that wasn&rsquo;t there; each such law missed the last 30%, which no law was fitted to, by more ({worse.length ? `${Math.min(...worse).toFixed(2)}× to ${Math.round(Math.max(...worse))}× the winner’s miss` : "more"}), so it lost. In a real run it is called in only when the referee asks for a new law or when the leading law misses even its own fitted frames by more than six times the noise; on these clips neither happened.
           </p>
         )}
         {refb && wonb && <Note who="Muse Wonder 1.0">${wonb.summary.usd.toFixed(2)} of calls over {wonb.summary.clips} clips, each with a fitting tool on the seen frames only.</Note>}
         {refb && wonb && (
           <p className={styles.para}>
             <b>Where a law really was missing</b>, it found it: the cubic stiffening of the <Link href="/x/hardening-spring">hardening spring</Link> and the dry friction of the <Link href="/x/dry-friction-spring">spring with friction</Link>, each winning on the unseen frames (on the published runs; on a later re-run of the hardening spring with today&rsquo;s prompt, Muse Spark proposed the cubic law itself, and both pass the same held-out test). On both, the fit check called it in (the leader missed its own fitted frames by 48× and 14× the noise), and the referee, asked separately, wanted a new law too. Both are laws a physicist knows: a textbook library extended with a cubic spring and dry friction ties Muse Wonder on both, so these wins show it finding a law the base library lacked, not physics beyond the textbook.
+            {fou && winnerOf(fou).origin === "revision"
+              ? ` On the real Foucault footage its law beat Muse Spark’s (${winnerOf(fou).fit.testRms.toFixed(1)} px against ${(fou.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0]?.fit.testRms ?? NaN).toFixed(1)} px on the unseen frames) but still misses by ${Math.round(winnerOf(fou).fit.testZ ?? NaN)}× the noise, so it is not counted as a found law.`
+              : ""}
           </p>
         )}
 
@@ -549,7 +577,7 @@ export default async function ProofPage() {
             <b>A lite mode with no language model</b>, measured offline on the same stored runs: the student names the experiment, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
           </p>
         )}
-        {lite && <Note who="SAM 3.1, then code">No Muse model in this mode. Measured offline by scripts/lite.ts; not yet a button on the site.</Note>}
+        {lite && <Note who="SAM 3.1, then code">No Muse model in this mode. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
 
         {s && (
           <Section n={6} title="What each part adds" id="ablation">
@@ -629,13 +657,13 @@ export default async function ProofPage() {
                 </td>
                 <td>The library is better: a hollow ball rolling down a ramp, whose rolling law Spark wrote less well.</td>
               </tr>
-              {ab.extra?.map((x) => (
+              {ab.extra?.map((x, i) => (
                 <tr key={x.id}>
                   <td className={`r ${styles.big}`}>
                     {x.libraryMissMm} to {x.modelMissMm} {x.unit ?? "mm"}
                   </td>
                   <td>
-                    <Link href={`/x/${x.id}`}>{x.title}</Link>: the library&rsquo;s best law ({x.libraryLaw}) misses the unseen motion by {x.libraryMissMm} {x.unit ?? "mm"}; Muse Wonder&rsquo;s, found with its fitting tool, by {x.modelMissMm} {x.unit ?? "mm"}. This is where a model that writes laws earns its place.
+                    <Link href={`/x/${x.id}`}>{x.title}</Link>: the library&rsquo;s best law ({x.libraryLaw}) misses the unseen motion by {x.libraryMissMm} {x.unit ?? "mm"}; Muse Wonder&rsquo;s, found with its fitting tool, by {x.modelMissMm} {x.unit ?? "mm"}. This is where a model that writes laws earns its place.{abNow(i) ? ` ${abNow(i)}` : ""}
                   </td>
                 </tr>
               ))}

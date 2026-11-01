@@ -51,7 +51,7 @@ const ease = (p: number) => 0.5 - Math.cos(Math.PI * p) / 2;
 /**
  * The photo-finish, built while SAM 3.1 measures: each time a mask arrives, the clip's frame is cut at the subject
  * into a 4-px column and laid beside the last, and the orange dot lands on it. When the laws are fitted, their paths
- * race across the shaded 30% none of them saw.
+ * race across the shaded last 30%, which no law was fitted to.
  */
 function LiveStrip({ video, tracking: tr, objs, subject, clock, cut, geo, race, settled, colour = false }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);

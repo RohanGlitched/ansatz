@@ -118,7 +118,7 @@ h4 {
 }
 
 h1 {
-  font-size: clamp(40px, 5.4vw, 75.7px);
+  font-size: clamp(34px, 3.9vw, 56px);
   line-height: 1.04;
   letter-spacing: -0.02em;
 }
@@ -330,4 +330,17 @@ table.journal .r {
     animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* a fold set on a cyanotype plate (components/book/Fold.tsx): paper ink on the Prussian ground */
+.onPlateFold {
+  border-color: var(--prussian-line) !important;
+}
+
+.onPlateFold > summary {
+  color: var(--paper) !important;
+}
+
+.onPlateFold > summary::before {
+  border-color: var(--paper) !important;
 }

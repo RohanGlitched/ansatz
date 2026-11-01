@@ -1,17 +1,35 @@
-// usage: tsx scripts/video-numbers.ts  prints every number the demo video shows, read from the published data
+// usage: tsx scripts/video-numbers.ts  prints every number the current demo video (v2) shows, read from the published data
 import { readFileSync } from "node:fs";
+import { median } from "../lib/median";
 const j = (f: string) => JSON.parse(readFileSync(f, "utf8"));
-const moon = j("data/showcase/moon-jump.json"), slow = j("data/showcase/moon-jump-slowed.json");
-const mt = moon.extras.memoryTest.rows;
-const ratio = Math.sqrt(mt[0].g / mt[1].g);
-const sr = 0.5 * ratio * Math.hypot((mt[0].sigmaStat ?? mt[0].sigma) / mt[0].g, (mt[1].sigmaStat ?? mt[1].sigma) / mt[1].g);
-console.log(`Moon: Spark by eye ${mt[0].eye} / ${mt[1].eye}; Ansatz ${mt[0].g.toFixed(2)} ± ${mt[0].sigma.toFixed(2)} / ${mt[1].g.toFixed(2)} ± ${mt[1].sigma.toFixed(2)}; paired slowdown ${ratio.toFixed(2)} ± ${sr.toFixed(2)}×; clock ${slow.clock.factor.toFixed(2)}×`);
+type Row = { param: string; label: string; measured: number; sigma: number; truth: number; unit: string };
+const row = (e: { extras?: { truth?: { rows: Row[] } } }, p: string) => e.extras?.truth?.rows.find((r) => r.param === p);
+
+// the Moon: Muse Spark alone on the secretly slowed copy, then SAM 3.1 jump for jump
+const moon = j("data/showcase/moon-jump.json");
+const slowed = moon.extras.speedTest.repeats.clips.find((c: { truth: string }) => /slowed/.test(c.truth));
+const real = slowed.answers.filter((a: { real_speed: boolean }) => a.real_speed).length;
+const sj = moon.extras.memoryTest.sameJump;
+console.log(`Moon: Muse Spark alone called the slowed copy "real speed" ${real} of ${slowed.answers.length}; jump for jump ${sj.combined.ratio.toFixed(3)} ± ${sj.combined.sigma.toFixed(3)}× slower (truth 1.5×); ${sj.jumps.map((r: { jump: number; ratio: number; sigma: number }) => `jump ${r.jump} ${r.ratio.toFixed(3)} ± ${r.sigma.toFixed(3)}`).join(", ")}`);
+
+// the Foucault pendulum, real footage: the 5× stretch, and the real-time stretch's g from Muse Spark's plain law
+const f5 = j("data/showcase/foucault-pendulum-5x.json"), fr = j("data/showcase/foucault-pendulum.json");
+const sp = row(f5, "speedup")!, g5 = row(f5, "g")!, gs = row(fr, "g_spark")!;
+console.log(`Foucault 5×: gravity ${(g5.measured / 9.80665).toFixed(0)}× Earth's (g = ${g5.measured.toFixed(0)} m/s²), so the clip plays ${sp.measured.toFixed(2)} ± ${sp.sigma.toFixed(2)}× faster than life (label ${sp.truth}×)`);
+console.log(`Foucault real time: g = ${gs.measured.toFixed(2)} ± ${gs.sigma.toFixed(2)} m/s² (${gs.label}; truth ${gs.truth})`);
+
+// Muse Wonder on the hardening spring: its law's unseen miss against the best proposed law's, and k₃/m against the truth
 const h = j("data/showcase/hardening-spring.json");
-for (const r of h.extras.truth.rows) console.log(`Hardening: ${r.label} ${r.measured.toPrecision(4)} ± ${r.sigma.toPrecision(2)} (true ${r.truth.toPrecision(4)})`);
-const sp = j("data/showcase/sample-pendulum.json");
-console.log(`Pendulum: g ${sp.comparisons[0].measured.toFixed(3)}, ${(9.81 / sp.comparisons[0].measured).toFixed(0)}× weak, clock ${sp.clock.factor.toFixed(1)}×`);
+const win = h.candidates.find((c: { law: { id: string } }) => c.law.id === h.winner);
+const proposed = h.candidates.filter((c: { origin: string; fit: { ok: boolean } }) => c.origin !== "revision" && c.fit.ok).sort((a: { rank: number }, b: { rank: number }) => a.rank - b.rank)[0];
+const k3 = row(h, "beta")!;
+console.log(`Muse Wonder: ${h.wonder.attempts.length} laws tried, submitted "${h.wonder.submitted}"; unseen miss ${(win.fit.testRms * 1000).toFixed(1)} mm (best proposed law, ${proposed.law.id}: ${(proposed.fit.testRms * 1000).toFixed(0)} mm)`);
+console.log(`Muse Wonder: k₃/m ${k3.measured.toFixed(0)} ± ${k3.sigma.toFixed(0)} (true ${k3.truth}), ${(Math.abs(k3.measured / k3.truth - 1) * 100).toFixed(1)}% off`);
+const df = j("data/showcase/dry-friction-spring.json"), ac = row(df, "ac") as (Row & { si?: { measured: number; sigma: number; truth: number; unit: string } }) | undefined;
+if (ac?.si) console.log(`Muse Wonder (dry friction): ${ac.si.measured.toFixed(3)} ± ${ac.si.sigma.toFixed(3)} ${ac.si.unit} (true ${ac.si.truth.toFixed(2)}), from ${ac.measured.toFixed(0)} ± ${ac.sigma.toFixed(0)} ${ac.unit}`);
+
+// the benchmark
 const b = j("data/bench/synth.json");
 const all = b.rows.flatMap((r: { checks: { quantity: string; errPct: number }[] }) => r.checks);
 const phys = all.filter((c: { quantity: string }) => !c.quantity.startsWith("scale")), sc = all.filter((c: { quantity: string }) => c.quantity.startsWith("scale"));
-const med = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2; };
-console.log(`Bench: ${phys.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${phys.length} constants within 5% (median ${med(phys.map((c: { errPct: number }) => Math.abs(c.errPct))).toFixed(2)}%); scales ${sc.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${sc.length}; by eye ${b.summary.medianEyeballErrPct}%`);
+console.log(`Bench: ${b.summary.cases} clips; ${phys.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${phys.length} constants within 5% (median ${median(phys.map((c: { errPct: number }) => Math.abs(c.errPct))).toFixed(2)}%); scales ${sc.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${sc.length}; by eye ${Math.round(b.summary.medianEyeballErrPct)}%`);

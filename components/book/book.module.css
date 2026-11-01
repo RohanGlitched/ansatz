@@ -47,6 +47,15 @@
   padding: clamp(40px, 5.5vw, 84px) clamp(28px, 5.5vw, 88px);
 }
 
+.tight {
+  padding-top: 0;
+}
+
+/* the brushed edge dips up to about 50 px into the sheet: the first line sits below it */
+.tight .inner {
+  padding-top: clamp(40px, 4vw, 58px);
+}
+
 /* the develop: unexposed iron salts are pale yellow-green; light turns them Prussian blue. The pale coat lifts from
    the top, unevenly, as a print does in the wash, and the image comes up underneath it. */
 .unexposed {
@@ -248,4 +257,59 @@
 
 .held .rv {
   color: var(--held);
+}
+
+/* ---- a fold: a ruled line that opens; the heading above it stays on the page ---- */
+.fold {
+  margin: 18px 0 0;
+  border-top: 1px solid var(--paper-line);
+  border-bottom: 1px solid var(--paper-line);
+}
+
+.fold > summary {
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+  padding: 13px 0 13px 28px;
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--prussian);
+}
+
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.fold > summary::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -6px;
+  border-right: 2px solid var(--prussian);
+  border-bottom: 2px solid var(--prussian);
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+}
+
+.fold[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.fold > summary:hover {
+  color: var(--ink);
+}
+
+.foldBody {
+  padding: 4px 0 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold > summary::before {
+    transition: none;
+  }
 }

@@ -43,6 +43,14 @@ const wording = [
       .map((m) => clip(t, m.index)),
   // 1.55 is the whole-run ratio of the two accelerations; the headline is the jump-for-jump 1.494, so 1.55 must say which it is
   (t) => [...t.matchAll(/(?<![\d.])1\.55(?!\d)(?!\s?(s|ms|m|cm|mm|kg|rad)\b)/g)].filter((m) => !/whole-run|ratio/i.test(t.slice(Math.max(0, m.index - 40), m.index + 44))).map((m) => clip(t, m.index)),
+  // round 12: the last 30% is "the last 30%, which no law was fitted to", not frames "none of them saw" or a box "no model edge enters"
+  (t) => [...t.matchAll(/none of them saw|no model edge enters/gi)].map((m) => clip(t, m.index)),
+  // Muse Spark sees at most 300 frames of a clip; "at its own frame rate" must say so
+  (t) => [...t.matchAll(/at (?:its|the clip[’']s) own frame rate/gi)].filter((m) => !/300 frames/.test(t.slice(Math.max(0, m.index - 90), m.index + 90))).map((m) => clip(t, m.index)),
+  // Muse Wonder gets at most two fits in production, so it does not iterate until it submits
+  (t) => [...t.matchAll(/iterates until it submits/gi)].map((m) => clip(t, m.index)),
+  // withdrawn or overprecise: the online pendulum's slowdown as a measurement (a re-run claims no factor) and the Foucault g's ± 0.02
+  (t) => [...t.matchAll(/4\.30 ± 0\.05×|9\.68\d*\s*±\s*0\.0[12]\d*/g)].map((m) => clip(t, m.index)),
 ];
 const clip = (t, i) => `“…${t.slice(Math.max(0, i - 50), i + 60).trim()}…”`;
 

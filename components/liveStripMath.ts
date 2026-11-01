@@ -166,11 +166,14 @@ type ReadoutRecord = {
   winner: string;
   clock: { factor: number; sigma?: number } | null;
   comparisons: { param: string; measured: number; sigma: number; reference: number; label: string; errorPct: number; withinSigma: number }[];
-  candidates: { law: { id: string; params: { name: string; unit?: string; fixed?: boolean }[] }; fit: { ok?: boolean; testRms: number; testZ?: number; trainZ?: number; predicted?: Record<string, number[]> }; rank: number }[];
+  candidates: { law: { id: string; params: { name: string; unit?: string; fixed?: boolean; meaning?: string }[] }; fit: { ok?: boolean; testRms: number; testZ?: number; trainZ?: number; predicted?: Record<string, number[]> }; rank: number }[];
   measured: { calibration: { kind: string }; px: unknown[] };
   trainFrac?: number;
   extras?: { truth?: { rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string }[] }; errorBudget?: { rows: { source: string; value: number; included: boolean }[] } };
 };
+
+/** The label a comparison carries when its reference is the value a clip was rendered with (data/showcase). */
+export const RENDERED = /^the value the clip was rendered with/i;
 
 const sig = (v: number, n = 2) => (Number.isFinite(v) ? String(+v.toPrecision(n)) : "—");
 
@@ -190,6 +193,17 @@ export function readoutOf(e: ReadoutRecord): Readout {
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const free = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
   const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  if (e.clock && e.clock.factor < 1) {
+    // gravity came out too strong: the clip plays faster than life
+    const f = 1 / e.clock.factor, s = e.clock.sigma ? e.clock.sigma / (e.clock.factor * e.clock.factor) : 0;
+    return {
+      label: "How much faster than life the clip plays",
+      value: rough ? `about ${f.toFixed(1)}×` : `${f.toFixed(2)}${s ? ` ± ${s.toFixed(2)}` : ""}×`,
+      against: rough
+        ? `Unconfirmed: gravity came out too strong for the world, and the winning law misses the unseen frames by ${sig(win.fit.testZ!)}× the noise.`
+        : "From gravity coming out too strong against the world’s known value, so it assumes the world.",
+    };
+  }
   if (e.clock) {
     return {
       label: "How much slower than life the clip plays",
@@ -200,7 +214,8 @@ export function readoutOf(e: ReadoutRecord): Readout {
     };
   }
   const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
-  const cmp = e.comparisons.find((c) => free.some((p) => p.name === c.param));
+  // a comparison against the value a clip was rendered with is read below, with the render's wording
+  const cmp = e.comparisons.find((c) => free.some((p) => p.name === c.param) && !RENDERED.test(c.label));
   if (cmp) {
     const p = free.find((q) => q.name === cmp.param)!;
     const v = /accelerates at g|gravity/i.test(cmp.label) ? Math.abs(cmp.measured) : cmp.measured;
@@ -208,7 +223,7 @@ export function readoutOf(e: ReadoutRecord): Readout {
     return {
       label: cmp.label.charAt(0).toUpperCase() + cmp.label.slice(1),
       value: rough ? `about ${sig(v)}${u}` : `${fmtPair(v, cmp.sigma)}${u}`,
-      against: `Known value ${+cmp.reference.toPrecision(4)}${u}: off by ${sig(Math.abs(cmp.errorPct))}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${sig(cmp.withinSigma)}σ` : ""}.${point ? ` Which point of the body is followed adds a further ±${point.value}${u}.` : ""}`,
+      against: `Known value ${+cmp.reference.toPrecision(4)}${u}: off by ${sig(Math.abs(cmp.errorPct))}%${!rough && Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${sig(cmp.withinSigma)}σ` : ""}.${point ? ` Which point of the body is followed adds a further ±${point.value}${u}.` : ""}`,
     };
   }
   // a rendered clip: the constant only the winning law has, against the value the clip was rendered with
@@ -223,6 +238,17 @@ export function readoutOf(e: ReadoutRecord): Readout {
       label: own.label.charAt(0).toUpperCase() + own.label.slice(1),
       value: `${fmtPair(own.measured, own.sigma)}${u}`,
       against: `Rendered with ${+own.truth.toPrecision(4)}${u}: off by ${sig(Math.abs(errPct))}%${Number.isFinite(z) && z < 20 ? `, ${sig(z)}σ` : ""}.`,
+    };
+  }
+  const rc = e.comparisons.find((c) => free.some((p) => p.name === c.param) && RENDERED.test(c.label) && c.reference !== 0);
+  if (rc) {
+    const p = free.find((q) => q.name === rc.param)!;
+    const u = unitText(p.unit);
+    const name = p.meaning ?? rc.param;
+    return {
+      label: name.charAt(0).toUpperCase() + name.slice(1),
+      value: rough ? `about ${sig(rc.measured)}${u}` : `${fmtPair(rc.measured, rc.sigma)}${u}`,
+      against: `Rendered with ${+rc.reference.toPrecision(4)}${u}: off by ${sig(Math.abs(rc.errorPct))}%${!rough && Number.isFinite(rc.withinSigma) && rc.withinSigma < 20 ? `, ${sig(rc.withinSigma)}σ` : ""}.`,
     };
   }
   const n = e.measured.px.length;

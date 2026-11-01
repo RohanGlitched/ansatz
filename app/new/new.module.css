@@ -1,0 +1,38 @@
+/* /new: what a visitor should know before a run, set as a short ruled list beside the lede */
+.before {
+  margin: 4px 0 0;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--paper-line);
+}
+
+.before > div {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  gap: 2px 14px;
+  padding: 8px 0 9px;
+  border-top: 1px solid var(--paper-line);
+}
+
+.before > div:first-child {
+  border-top: 0;
+}
+
+.before dt {
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-2);
+  padding-top: 2px;
+}
+
+.before dd {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+@media (max-width: 520px) {
+  .before > div {
+    grid-template-columns: 1fr;
+  }
+}

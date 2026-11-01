@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { getClass, JUDGES_CODE } from "@/lib/classes";
 import { getSeries } from "@/lib/series";
-import { getExperiment } from "@/lib/experiments";
+import { getExperiment, showcaseIds } from "@/lib/experiments";
+import type { Experiment } from "@/lib/experiment";
+import { PER_VISITOR } from "@/lib/limits";
+import { runTime, runTimeText } from "@/app/runtime";
+import styles from "./new.module.css";
 import NewExperiment, { type Sample } from "@/components/NewExperiment";
 import { buildReplay, type Replay, type StoredReplay } from "@/data/replays/derive";
 import springReplay from "@/data/replays/hardening-spring.json";
@@ -9,7 +13,7 @@ import moonReplay from "@/data/replays/moon-jump.json";
 import pendulumReplay from "@/data/replays/pendulum.json";
 import observerBench from "@/data/bench/observer.json";
 import liteBench from "@/data/bench/lite.json";
-import { costText, headline, timeText } from "@/lib/headline";
+import { costText, headline } from "@/lib/headline";
 
 export const metadata: Metadata = {
   title: "Run an experiment",
@@ -40,6 +44,8 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
   const ser = sp.series ? await getSeries(sp.series).catch(() => null) : null;
   const cls = code ? await getClass(code).catch(() => null) : null;
   const hl = await headline();
+  // how long a run takes, from the published runs' own ledgers
+  const rt = runTime((await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => !!e));
   // each replay's words and numbers come from its showcase record as it stands today
   const replays = (await Promise.all(STORED.map(async (s) => {
     const e = await getExperiment(s.record).catch(() => null);
@@ -64,6 +70,26 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
         lede="Film something move with the phone held still: a drop, a throw, a swing, a bounce, a roll. Ansatz measures it frame by frame, proposes laws of motion, and keeps the one that best predicts the last 30% of your clip, which no law was fitted to."
         notes={
           <>
+            {!cls && !ser && (
+              <dl className={styles.before} aria-label="Before you run">
+                <div>
+                  <dt>What to film</dt>
+                  <dd>Something that falls, swings, bounces or rolls across the frame, 3 to 20 seconds, with the phone held still. A ruler or an A4 sheet in view helps.</dd>
+                </div>
+                <div>
+                  <dt>How long</dt>
+                  <dd>A run takes {runTimeText(rt)}.</dd>
+                </div>
+                <div>
+                  <dt>How many</dt>
+                  <dd>{PER_VISITOR} runs a day for each visitor. Recorded runs are free and call no model.</dd>
+                </div>
+                <div>
+                  <dt>Where it goes</dt>
+                  <dd>The result gets its own page, /x/&lt;id&gt;. Once the run starts it is safe to leave: it finishes without you, and the page shows its address.</dd>
+                </div>
+              </dl>
+            )}
             {cls && (
               <p>
                 Running for <strong>{cls.name}</strong>: {Math.max(0, cls.quota - cls.used)} of the class’s {cls.quota} runs left. Results appear on the <a href={`/class/${cls.code}`}>class page</a>.
@@ -88,7 +114,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
         autoReplay={autoReplay}
         liteDefault={liteDefault}
         liteNote={liteNote}
-        runNote={`Published runs took ${timeText(hl)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, about ${rs(hl.usd.median)} (${rs(hl.usd.min)} to ${rs(hl.usd.max)}), which we pay.`}
+        runNote={`A run takes ${runTimeText(rt)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, about ${rs(hl.usd.median)} (${rs(hl.usd.min)} to ${rs(hl.usd.max)}), which we pay.`}
       />
   );
 }

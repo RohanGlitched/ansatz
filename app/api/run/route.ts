@@ -85,6 +85,8 @@ export async function POST(req: Request) {
       const send = (event: string, data: unknown) => write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
       const ping = setInterval(() => write(": keep-alive\n\n"), 10_000);
       send("started", { id });
+      // the run exists from now on: /api/status answers "running" (not 404) for an id with a progress log
+      void putObject(`progress/${id}.json`, "[]", "application/json").catch(() => {});
       // the function is stopped at 300 s; record a readable failure first so a waiting page can say what happened
       let finished = false;
       const watchdog = setTimeout(async () => {

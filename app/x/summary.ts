@@ -34,14 +34,42 @@ const num = (v: number) => String(+v.toPrecision(4));
 export function summarise(e: Experiment): Summary | null {
   const w = winnerOf(e);
   const rough = Number.isFinite(w.fit.testZ) && (w.fit.testZ ?? 0) > 5;
-  const pair = (v: number, s: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${+v.toPrecision(3)}` : fmtPair(v, s));
+  // two significant figures with no error bar, as the experiment page writes it ("about 9.7")
+  const pair = (v: number, s: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${+v.toPrecision(2)}` : fmtPair(v, s));
   const sj = e.extras?.memoryTest?.sameJump?.combined;
   const also = sj ? `the copy we slowed 1.5× in secret, timed against this clip jump for jump: ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower` : undefined;
 
-  // a clip whose gravity says its clock is wrong: the slowdown is the result, not the weak acceleration
+  // a clip whose gravity says its clock is wrong: the speed of the clip is the result, not the wrong acceleration
   if (e.clock) {
-    const truth = /slowed (\d+(?:\.\d+)?)×/.exec(e.title)?.[1];
     const f = e.clock.factor, s = e.clock.sigma ?? NaN;
+    // gravity came out too strong: the clip plays faster than life (the filmmaker's own label is the truth, where there is one)
+    if (f < 1) {
+      const sp = e.extras?.truth?.rows.find((r) => r.param === "speedup");
+      const v = sp ? sp.measured : 1 / f, sv = sp ? sp.sigma ?? NaN : s / (f * f);
+      return {
+        what: "how much faster than real time the clip plays, from its gravity",
+        symbol: "speedup",
+        value: Number.isFinite(sv) && sv > 0 ? `${v.toFixed(2)} ± ${sv.toFixed(2)}` : `about ${v.toFixed(1)}`,
+        unit: "×",
+        known: sp ? { value: `${+sp.truth.toPrecision(3)}×`, source: "the filmmaker’s on-screen label" } : undefined,
+        offPct: sp ? (v / sp.truth - 1) * 100 : undefined,
+        note: sp
+          ? `Gravity came out too strong, so the clip runs faster than life. The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen; we cropped the label out before the run.`
+          : "Gravity came out too strong, so the clip runs faster than life.",
+      };
+    }
+    // a later re-run that withdrew the factor: no number is claimed
+    const rerunNote = (e as Experiment & { rerun?: { note: string } }).rerun?.note ?? "";
+    if (/no factor is claimed|claims no factor/i.test(rerunNote)) {
+      return {
+        what: "how much slower than real time the clip plays",
+        symbol: "slowdown",
+        value: "no factor claimed",
+        unit: "",
+        note: "A re-run with today’s stricter pipeline does not measure the string’s length, so no slowdown is claimed.",
+      };
+    }
+    const truth = /slowed (\d+(?:\.\d+)?)×/.exec(e.title)?.[1];
     return {
       what: "how much slower than real time the clip plays, from its gravity",
       symbol: "slowdown",

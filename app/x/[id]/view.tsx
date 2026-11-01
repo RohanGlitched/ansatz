@@ -10,12 +10,14 @@ import Plate, { Note, Page, Reading, Section } from "@/components/book/Plate";
 import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import { clipData, getExperiment, plateData, showcaseIds, videoUrl, winnerOf } from "@/lib/experiments";
-import { lawLatex, paramLatex } from "@/lib/latex";
+import { paramLatex } from "@/lib/latex";
 import { atBound, type Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { prettyUnit, secondPower } from "@/lib/units";
 import { fmtDate, fmtPair, fmtProse } from "@/lib/format";
 import { dampingTie, noiseScore, tied } from "@/lib/tie";
+import { RENDERED } from "@/components/liveStripMath";
+import { lawHtml, lawTex } from "../lawTex";
 import { LANGUAGES, translation } from "@/lib/translate";
 import { CountUp, Reveal } from "./Reveal";
 import SeriesFigure from "./SeriesFigure";
@@ -61,10 +63,11 @@ export async function experimentMetadata(id: string, lang?: string): Promise<Met
   if (lang && !langs.includes(lang)) notFound();
   const win = winnerOf(e);
   const params = Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }]));
-  const lede = fmtProse(strip(e.finding), params);
+  const prose = proseOf(e, params);
+  const lede = prose(strip(e.finding));
   const languages = Object.fromEntries([["en", `/x/${e.id}`], ...langs.map((code) => [code, `/x/${e.id}/${code}`])]);
   return {
-    title: shortTitle(`${e.title}: ${fmtProse(strip(e.headline ?? e.finding), params)}`),
+    title: shortTitle(`${e.title}: ${prose(strip(e.headline ?? e.finding))}`),
     description: lede.length > 300 ? `${lede.slice(0, lede.lastIndexOf(" ", 297))}…` : lede,
     alternates: { canonical: lang ? `/x/${e.id}/${lang}` : `/x/${e.id}`, languages },
   };
@@ -78,6 +81,9 @@ type OwnPick = { noun: string; ruler: string | null; window: { start_s: number; 
 const ownPick = (e: Experiment) => (e as Experiment & { ownPick?: OwnPick }).ownPick ?? null;
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+
+// when the held-out frames were sealed from Muse Wonder (a rankless board): runs stored before this saw the candidates' ranks
+const SEALED_AT = "2026-10-27T03:06:05Z";
 
 export default async function ExperimentView({ id, lang: langIn }: { id: string; lang?: string }) {
   const e = await getExperiment(id);
@@ -94,7 +100,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const win = winnerOf(e);
   // numbers in the model-written sentences, rewritten to the fit's own value and error bar ("0.7999 ± 0.0021 m")
   const pv = Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }]));
-  const prose = (t: string) => fmtProse(t, pv);
+  const prose = proseOf(e, pv);
   const damping = dampingTie(e);
   const pick = ownPick(e);
   // previous and next entries, in the order the experiments index lists them
@@ -130,31 +136,57 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
   // a systematic listed outside the quoted ± (the Moon's choice of tracked point) is named next to the headline value
   const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
+  // a re-run can withdraw a clock check (data/showcase sets clock.withdrawn): no factor is then claimed or rescaled
+  const clockOut = !!(e.clock as (NonNullable<Experiment["clock"]> & { withdrawn?: boolean }) | null)?.withdrawn;
+  const clock = clockOut ? null : e.clock;
+  // a rendered clip's comparisons are against the value it was rendered with, worded as such
+  const renderedCmp = (c: { label: string }) => RENDERED.test(c.label);
+  const truthLabel = (param: string) => e.extras?.truth?.rows.find((r) => r.param === param)?.label;
   // the reading leads with what was measured against what it should be; the prediction test follows
   const lead = (() => {
-    if (e.clock) {
+    if (clockOut && e.clock) {
+      return { label: "No slow-motion factor claimed", v: "None", pm: undefined, unit: undefined, against: e.clock.note };
+    }
+    if (clock && clock.factor < 1) {
+      // gravity came out too strong: the clip plays faster than life; the filmmaker's on-screen label, where there is one, is the truth
+      const sp = e.extras?.truth?.rows.find((r) => r.param === "speedup");
+      const gc = e.comparisons.find((c) => c.param === "g" || /gravity/i.test(c.label));
+      const v = sp ? sp.measured : 1 / clock.factor;
+      const s = sp ? sp.sigma : clock.sigma ? clock.sigma / (clock.factor * clock.factor) : undefined;
+      const strong = gc ? `Found from gravity coming out ${Math.round(Math.abs(gc.measured) / gc.reference)}× too strong against Earth’s known value: gravity scales with the square of time, so the clip runs faster than life.` : "Found from gravity coming out too strong against the world’s known value, so the clip runs faster than life.";
+      return {
+        label: "How much faster than life the clip plays",
+        v: v.toFixed(2),
+        pm: s ? s.toFixed(2) : undefined,
+        unit: "×",
+        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar; the speed-up keeps its own ±${sp && s && Math.abs(v - sp.truth) <= s ? `, and the label’s ${+sp.truth.toPrecision(3)}× sits inside it` : ""}.` : ""}`,
+      };
+    }
+    if (clock) {
       return {
         label: "How much slower than life the clip plays",
-        v: rough ? `about ${e.clock.factor.toFixed(1)}` : e.clock.factor.toFixed(2),
-        pm: !rough && e.clock.sigma ? e.clock.sigma.toFixed(2) : undefined,
+        v: rough ? `about ${clock.factor.toFixed(1)}` : clock.factor.toFixed(2),
+        pm: !rough && clock.sigma ? clock.sigma.toFixed(2) : undefined,
         unit: "×",
         against: rough
           ? `Unconfirmed: found from gravity coming out too weak against the world’s known value, and the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so something it leaves out matters.`
           : "Found from gravity coming out too weak against the world’s known value, so it assumes the world.",
       };
     }
-    const cmp = e.comparisons.find((c) => freeParams.some((p) => p.name === c.param));
+    const cmp = e.comparisons.find((c) => freeParams.some((p) => p.name === c.param) && c.reference !== 0);
     if (!cmp) return null;
     const p = freeParams.find((q) => q.name === cmp.param)!;
     const v = /accelerates at g|gravity/i.test(cmp.label) ? Math.abs(cmp.measured) : cmp.measured;
     const unit = p.unit && p.unit !== "1" ? prettyUnit(p.unit) : undefined;
     const [pv0, ps0] = fmtPair(v, cmp.sigma).split(" ± ");
+    const rend = renderedCmp(cmp);
+    const name = rend ? (truthLabel(cmp.param) ?? p.meaning ?? cmp.param) : cmp.label;
     return {
-      label: cmp.label.charAt(0).toUpperCase() + cmp.label.slice(1),
+      label: name.charAt(0).toUpperCase() + name.slice(1),
       v: rough ? `about ${fmt(v, 2)}` : pv0,
       pm: rough ? undefined : ps0,
       unit,
-      against: `Known value ${+cmp.reference.toPrecision(4)}${unit ? ` ${unit}` : ""}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.${point ? ` The ± is statistical and ruler; which point of the body is followed adds a further ± ${point.value.toFixed(2)} (see the error budget below).` : ""}`,
+      against: `${rend ? "Rendered with" : "Known value"} ${+cmp.reference.toPrecision(4)}${unit ? ` ${unit}` : ""}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${!rough && Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.${point ? ` The ± is statistical and ruler; which point of the body is followed adds a further ± ${point.value.toFixed(2)} (see the error budget below).` : ""}`,
     };
   })();
 
@@ -181,6 +213,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
 
   const credit = e.source.kind === "showcase" ? e.source.credit : undefined;
   const rendered = !!credit && /^Rendered\b/.test(credit);
+  // real footage that carries published figures (the Foucault films): the title block leads with them, in English
+  const realTruth = !rendered && !lang && e.source.kind === "showcase" && e.extras?.truth?.rows.length ? e.extras.truth.rows : null;
   const video = videoUrl(e);
   const phenomenon = e.observation.phenomenon.charAt(0).toUpperCase() + e.observation.phenomenon.slice(1);
   const rerun = (e as Experiment & { rerun?: { note: string } }).rerun;
@@ -206,12 +240,40 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             <p className={styles.lede} lang={trLang}>
               {prose(tr?.headline ?? e.headline ?? e.finding)}
             </p>
-            {(tr || e.headline) && (
-              <p className={styles.finding} lang={trLang}>
-                {prose(tr?.finding ?? e.finding)}
-              </p>
+            {realTruth ? (
+              // real footage with published figures: the figures first, in plain words; the referee's sentence folds away
+              <>
+                <ul className={styles.findingList}>
+                  {realTruth.map((r) => (
+                    <li key={r.param}>
+                      {r.label.charAt(0).toUpperCase() + r.label.slice(1)}:{" "}
+                      <b>
+                        {rough && r.param !== "g_spark" && r.param !== "speedup" ? `about ${fmt(r.measured, 3)}` : fmtPair(r.measured, r.sigma)} {r.unit}
+                      </b>
+                      , against a known {fmt(r.truth)} {r.unit} ({fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% off).
+                    </li>
+                  ))}
+                </ul>
+                <details className={styles.more}>
+                  <summary>The referee&rsquo;s own summary of this run</summary>
+                  <p className={styles.finding}>{prose(e.finding)}</p>
+                </details>
+              </>
+            ) : (
+              (tr || e.headline) && (
+                <p className={styles.finding} lang={trLang}>
+                  {prose(tr?.finding ?? e.finding)}
+                </p>
+              )
             )}
             {rerun && <p className={styles.rerun}>{rerun.note}</p>}
+            {/* the Moon's first screen: the known value beside the measured one, and the memory test in one line */}
+            {sj && moonG && !lang && (
+              <p className={styles.finding}>
+                Known value {moonG.reference} m/s²: off by {fmt(Math.abs(moonG.errorPct), 2)}%, {fmt(moonG.withinSigma, 2)}σ. The memory test: we slowed this clip {st?.truth ?? 1.5}× in secret
+                {sparkWrongB !== undefined ? `; shown the copy alone, Muse Spark called it real speed ${sparkWrongB} of ${st?.repeats?.n ?? 5} times` : ""}. Timed jump for jump (jump windows set by hand), the copy runs {sj.combined.ratio.toFixed(3)} ± {sj.combined.sigma.toFixed(3)}× slower. <a href="#memory">The memory test</a>.
+              </p>
+            )}
           </div>
           <dl className={styles.colophon}>
             <div>
@@ -262,6 +324,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
       {falsify ? (
         <Plate
           n={nextPlate()}
+          tight
           title={<>Drag the line: every law sees only the motion to its left and must predict the rest.</>}
           caption={
             <>
@@ -269,7 +332,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             </>
           }
         >
-          <FalsifyPlate id={e.id} video={video} t0={e.measured.window.t0} laws={plateLaws(e)} start={e.trainFrac} />
+          <FalsifyPlate id={e.id} video={video} t0={e.measured.window.t0} laws={plateLaws(e).map((l) => { const c = e.candidates.find((x) => x.law.id === l.id); return c ? { ...l, html: lawHtml(c.law, l.html) } : l; })} start={e.trainFrac} />
         </Plate>
       ) : (
         <Plate n={nextPlate()} title="The clip, measured in every frame." caption={plateCaption}>
@@ -332,7 +395,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           <p className={styles.lawTitle}>{win.law.title}</p>
         </Section>
         <div className={`eqn ${styles.eqns}`}>
-          {lawLatex(win.law).map((l, i) => (
+          {lawTex(win.law).map((l, i) => (
             <Tex key={i} display>
               {l}
             </Tex>
@@ -388,18 +451,26 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                       )}
                     </td>
                     <td data-h="Against the known value" className={styles.against}>
-                      {cmp && e.clock && (cmp.param === "g" || /accelerates at g|gravity/i.test(cmp.label)) ? (
+                      {cmp && clock && (cmp.param === "g" || /accelerates at g|gravity/i.test(cmp.label)) ? (
                         // a clock problem explains the miss: say so first, and what the value is at the detected speed
                         <>
-                          Clock check: the clip plays about {e.clock.sigma ? fmtPair(e.clock.factor, e.clock.sigma) : e.clock.factor.toFixed(2)}× slower than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(e.clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
+                          Clock check: the clip plays about{" "}
+                          {clock.factor < 1
+                            ? `${clock.sigma ? fmtPair(1 / clock.factor, clock.sigma / (clock.factor * clock.factor)) : (1 / clock.factor).toFixed(2)}× faster`
+                            : `${clock.sigma ? fmtPair(clock.factor, clock.sigma) : clock.factor.toFixed(2)}× slower`}{" "}
+                          than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
+                        </>
+                      ) : cmp && cmp.reference === 0 ? (
+                        <>
+                          {renderedCmp(cmp) ? "Rendered with none (0)" : `${cmp.label}: 0`}. The measured value is {fmt(cmp.withinSigma, 2)}σ from zero.
                         </>
                       ) : cmp ? (
                         <>
-                          {cmp.label}: {fmt(cmp.reference)} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%
-                          {Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
+                          {renderedCmp(cmp) ? `Rendered with ${+cmp.reference.toPrecision(5)}` : `${cmp.label}: ${fmt(cmp.reference)}`} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%
+                          {!rough && Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
                         </>
                       ) : (
-                        <span className={styles.muted}>no known value to compare with</span>
+                        <span className={styles.muted}>{rendered ? "a position in the frame: the render sets no value for it in these units" : "no known value to compare with"}</span>
                       )}
                     </td>
                   </tr>
@@ -429,13 +500,21 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           </>
         )}
 
-        {e.clock && (
+        {clockOut && e.clock && (
+          <>
+            <h3 className={styles.h3} id="clock">
+              Clock check: withdrawn on re-run
+            </h3>
+            <p>No slow-motion factor is claimed for this clip, so no constant is rescaled. Why: <a href="#finding">the finding</a>.</p>
+          </>
+        )}
+        {clock && (
           <>
             <h3 className={styles.h3} id="clock">
               Clock check
             </h3>
-            <p>{e.clock.note}</p>
-            <p className={styles.para}>Time rescales every constant by its power of seconds, so no new run is needed to see what a slow-motion clip would mean:</p>
+            <p>{clock.note}</p>
+            <p className={styles.para}>Time rescales every constant by its power of seconds, so no new run is needed to see what a {clock.factor < 1 ? "sped-up" : "slow-motion"} clip would mean:</p>
             <div className={styles.tableWrap}>
               <table className={`journal ${styles.stack}`}>
                 <thead>
@@ -445,9 +524,9 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                   </tr>
                 </thead>
                 <tbody>
-                  {[e.clock.factor, ...[2, 4, 8].filter((f) => Math.abs(Math.log(f / e.clock!.factor)) < 0.9)].map((f, i) => (
+                  {[clock.factor, ...[2, 4, 8].filter((f) => Math.abs(Math.log(f / clock.factor)) < 0.9)].map((f, i) => (
                     <tr key={f}>
-                      <td data-h="If the clip plays">{i === 0 ? `${f.toFixed(2)}× slower (detected)` : `${f}× slower`}</td>
+                      <td data-h="If the clip plays">{i === 0 ? (f < 1 ? `${(1 / f).toFixed(2)}× faster (detected)` : `${f.toFixed(2)}× slower (detected)`) : `${f}× slower`}</td>
                       <td data-h="The constants would be" className="num">
                         {freeParams.map((p) => `${p.name} = ${fmt(win.fit.theta[p.name] * Math.pow(f, -secondPower(p.unit)))} ${prettyUnit(p.unit)}`).join(", ")}
                         {i === 0 && <span className={styles.nd}>gravity matches by construction: that is how the factor was found</span>}
@@ -510,7 +589,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <td data-h="Law" className={styles.lawCell}>
                       <span className={`${styles.candTitle} ${struck ? "struck" : ""}`}>{c.law.title}</span>
                       <span className={`${styles.candEq} ${struck ? styles.eqStruck : ""}`}>
-                        {lawLatex(c.law).map((l, i) => (
+                        {lawTex(c.law).map((l, i) => (
                           <Tex key={i}>{l}</Tex>
                         ))}
                       </span>
@@ -557,7 +636,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               Muse Wonder&rsquo;s notebook
             </h3>
             <p>
-              Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one. No number from the held-out frames reached it.
+              Asked for one more law ({e.wonder.idea.replace(/\.$/, "")}), it tried {e.wonder.attempts.length} on the fitted frames before submitting one.{" "}
+              {e.createdAt >= SEALED_AT
+                ? "No number from the held-out frames reached it."
+                : "This run predates the sealed board: Muse Wonder saw the candidates’ ranks, which the held-out misses set, though not the misses themselves. That older pipeline also let it fit several laws in one turn; today it fits one law per turn, up to two fits in production."}
             </p>
             <Note who="Muse Wonder 1.0">
               {e.wonder.trigger === "referee"
@@ -651,8 +733,18 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <tr key={r.label}>
                       <td data-h="Constant">{r.label}</td>
                       <td data-h="Measured" className={`r ${styles.value}`}>
-                        {fmtPair(r.measured, r.sigma).split(" ± ")[0]}
-                        <span className={styles.pmS}> ± {fmtPair(r.measured, r.sigma).split(" ± ")[1]}</span> <span className={styles.unitS}>{r.unit}</span>
+                        {/* on a rough run the winning law's values carry no error bar; a figure from another law, or the clock's speed-up, keeps its own */}
+                        {rough && r.param !== "g_spark" && r.param !== "speedup" ? (
+                          <>
+                            about {fmt(r.measured, 2)} <span className={styles.unitS}>{r.unit}</span>
+                            <span className={styles.nd}>no error bar: the winning law misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise</span>
+                          </>
+                        ) : (
+                          <>
+                            {fmtPair(r.measured, r.sigma).split(" ± ")[0]}
+                            <span className={styles.pmS}> ± {fmtPair(r.measured, r.sigma).split(" ± ")[1]}</span> <span className={styles.unitS}>{r.unit}</span>
+                          </>
+                        )}
                       </td>
                       <td data-h="True value" className="r num">
                         {fmt(r.truth)} {r.unit}
@@ -665,7 +757,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                 </tbody>
               </table>
             </div>
-            <Note who="Code">The true values were set when the clip was rendered and were kept out of the run.</Note>
+            <Note who="Code">{truthSource(e)}</Note>
           </>
         )}
 
@@ -1419,6 +1511,32 @@ function modelName(id: string) {
 
 function strip(s: string) {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/** When even the winning law misses its unseen frames by more than five times the noise, a precise ± would overclaim. */
+function isRough(e: Experiment) {
+  const w = winnerOf(e);
+  return Number.isFinite(w.fit.testZ) && w.fit.testZ! > 5;
+}
+
+/**
+ * The model-written sentences with their numbers rewritten to the fit's own value and error bar; on a rough run the
+ * error bars are dropped ("about 9.7"), as everywhere else on the page.
+ */
+function proseOf(e: Experiment, params: Record<string, { v: number; s: number }>) {
+  const rough = isRough(e);
+  return (t: string) => {
+    const out = fmtProse(t, params);
+    return rough ? out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmt(Number(x), 2)}`) : out;
+  };
+}
+
+/** Real footage carries its truth from outside the run (a filmmaker's published figures); a render's was set when it was made. */
+function truthSource(e: Experiment) {
+  const credit = e.source.kind === "showcase" ? e.source.credit ?? "" : "";
+  if (/^Rendered\b/.test(credit)) return "The true values were set when the clip was rendered and were kept out of the run.";
+  if (/filmmaker|published/i.test(e.extras?.truth?.note ?? "")) return "The reference values are the filmmaker’s published figures, not ours; Ansatz was told only what the note above says.";
+  return "The reference values were kept out of the run.";
 }
 
 function fmt(v: number | undefined, sig = 3) {

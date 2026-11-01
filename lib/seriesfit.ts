@@ -68,7 +68,9 @@ export function seriesPoint(e: Pick<Experiment, "id" | "title" | "given" | "meas
   const T = (2 * Math.PI) / Math.sqrt(o.w2), sT = 0.5 * T * (Number.isFinite(o.rel) ? o.rel : 0);
   const text = e.given.join(" ");
   const stated = Number(/pendulum length L = ([\d.]+) m \(stated\)/.exec(text)?.[1]);
-  const sheet = Number(/pendulum length L = ([\d.]+) m, measured from the radius/.exec(text)?.[1]) || (w.fit.theta.L > 0 ? w.fit.theta.L : NaN);
+  // the sheet's length is the swing's radius measured against it, and only that: a fitted L (a short arc with g held, or a
+  // g/L ridge) came from an assumed g or a starting guess, not from the sheet; such a run needs a tape length
+  const sheet = Number(/pendulum length L = ([\d.]+) m, measured from the radius/.exec(text)?.[1]);
   let L: number, sL: number, lengthFrom: SeriesPoint["lengthFrom"], relShared = 0;
   if (tape && tape > 0) [L, sL, lengthFrom] = [tape, TAPE_SIGMA_M, "tape"];
   else if (stated > 0) [L, sL, lengthFrom] = [stated, TAPE_SIGMA_M, "stated"];

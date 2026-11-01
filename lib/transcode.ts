@@ -1,5 +1,5 @@
 /**
- * Every clip is normalised before anything measures it: H.264 at most 1280 px wide, every original frame
+ * Every clip is normalised before anything measures it: square pixels, H.264 at most 1280 px wide, every original frame
  * kept with its original timestamp (no frame-rate conversion), audio split off as 16 kHz mono WAV for
  * Muse Voice Transcribe. iPhone HEVC .mov files become playable in any browser, and SAM gets fewer pixels
  * to segment. A second pass cuts the window where the motion happens, so SAM bills only those frames.
@@ -30,7 +30,7 @@ function run(bin: string, args: string[], timeoutMs = 120_000): Promise<string> 
 
 export type Prepared = { video: Uint8Array; wav: Uint8Array | null; hadAudio: boolean };
 
-/** Normalise a whole clip (≤ maxSeconds): H.264 ≤ 1280 wide, original frame timing, WAV narration. */
+/** Normalise a whole clip (≤ maxSeconds): square pixels, H.264 ≤ 1280 wide, original frame timing, WAV narration. */
 export async function prepare(input: Uint8Array, opts: { maxSeconds?: number; maxWidth?: number } = {}): Promise<Prepared> {
   const bin = await ffmpeg();
   const dir = await mkdtemp(path.join(tmpdir(), "ansatz-"));
@@ -46,7 +46,9 @@ export async function prepare(input: Uint8Array, opts: { maxSeconds?: number; ma
       "-hide_banner", "-y", "-i", src,
       "-t", String(opts.maxSeconds ?? 60),
       "-map", "0:v:0", "-an",
-      "-vf", `scale='if(gt(iw,ih),min(${W},iw),-2)':'if(gt(iw,ih),-2,min(${W},ih))'`,
+      // square the pixels first (old broadcast TV and DV store 352 or 720 px for a narrower picture): SAM's x and y then
+      // share one scale, so one metres-per-pixel serves both, and the stored clip's width is its display width
+      "-vf", `scale='trunc(iw*sar/2)*2':ih,setsar=1,scale='if(gt(iw,ih),min(${W},iw),-2)':'if(gt(iw,ih),-2,min(${W},ih))'`,
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
       "-fps_mode", "passthrough", "-movflags", "+faststart", out,
       ...(hasAudio ? ["-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", String(opts.maxSeconds ?? 60), wav] : []),

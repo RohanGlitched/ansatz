@@ -10,7 +10,8 @@ type Stop = { id: string; label: string; kind: "section" | "plate" };
  * Finding your way through a page, the way Ansatz reads a clip: every section and plate is a point on a track down
  * the margin. The ones you have read are measured (solid orange), the ones ahead are the future (hollow), and
  * where you are now is the white ring, the same ring that marks a law's prediction. On phones it folds into a
- * "Contents" sheet. A back-to-the-top button draws a throw going up.
+ * "Contents" sheet. A back-to-the-top button draws a throw going up. The dock shows only while the reader scrolls
+ * back up, and never over the footer, so it never sits on text being read.
  */
 export default function Rail() {
   const path = usePathname();
@@ -18,6 +19,27 @@ export default function Rail() {
   const [at, setAt] = useState(-1);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  // the dock is for going back: it shows while scrolling up, and hides over the footer
+  const [goingUp, setGoingUp] = useState(false);
+  const [atFoot, setAtFoot] = useState(false);
+
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < last - 6) setGoingUp(true);
+      else if (y > last + 6) setGoingUp(false);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    const foot = document.querySelector("body > footer");
+    const io = foot ? new IntersectionObserver((es) => setAtFoot(es.some((x) => x.isIntersecting)), { threshold: 0 }) : null;
+    if (foot && io) io.observe(foot);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      io?.disconnect();
+    };
+  }, [path]);
 
   // collect the page's sections (h2) and plates (figures with a caption); give each an id to jump to
   useEffect(() => {
@@ -48,6 +70,28 @@ export default function Rail() {
     // pages that load parts of themselves after the first paint
     const t = setTimeout(collect, 1500);
     return () => clearTimeout(t);
+  }, [path]);
+
+  // a #fragment that points inside a closed fold opens the fold and goes there
+  useEffect(() => {
+    const openTo = () => {
+      const id = decodeURIComponent(window.location.hash.slice(1));
+      const el = id ? document.getElementById(id) : null;
+      if (!el) return;
+      let d = el.closest("details");
+      let opened = false;
+      while (d) {
+        if (!d.open) {
+          d.open = true;
+          opened = true;
+        }
+        d = d.parentElement?.closest("details") ?? null;
+      }
+      if (opened) el.scrollIntoView({ block: "start" });
+    };
+    openTo();
+    window.addEventListener("hashchange", openTo);
+    return () => window.removeEventListener("hashchange", openTo);
   }, [path]);
 
   // which stop the reader is at: the last one whose top has passed a line a third of the way down the screen
@@ -97,7 +141,7 @@ export default function Rail() {
         </nav>
       )}
 
-      <div className={`${styles.dock} ${scrolled || open ? styles.show : ""}`}>
+      <div className={`${styles.dock} ${(scrolled && goingUp && !atFoot) || open ? styles.show : ""}`}>
         {stops.length > 0 && (
           <button type="button" className={styles.contents} aria-expanded={open} aria-controls="page-contents" onClick={() => setOpen((o) => !o)}>
             Contents

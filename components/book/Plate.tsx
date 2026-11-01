@@ -12,6 +12,7 @@ export default function Plate({
   wide = true,
   className = "",
   caption,
+  tight = false,
 }: {
   n?: string;
   title?: React.ReactNode;
@@ -21,9 +22,11 @@ export default function Plate({
   className?: string;
   /** extra caption text after the title */
   caption?: React.ReactNode;
+  /** less room above the plate, for a plate that should reach the first screen */
+  tight?: boolean;
 }) {
   return (
-    <figure id={id} className={`${styles.plate} ${wide ? styles.wide : ""} ${className}`} data-develop="" suppressHydrationWarning>
+    <figure id={id} className={`${styles.plate} ${wide ? styles.wide : ""} ${tight ? styles.tight : ""} ${className}`} data-develop="" suppressHydrationWarning>
       <div className={`${styles.sheet} onPlate`}>
         <div className={styles.inner}>{children}</div>
         <span className={styles.unexposed} aria-hidden="true" />

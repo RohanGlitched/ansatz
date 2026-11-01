@@ -11,21 +11,22 @@
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
   gap: clamp(20px, 5vw, 80px);
-  align-items: end;
+  align-items: start;
 }
 
 .title h1 {
-  font-size: clamp(40px, 4.9vw, 70px);
+  margin-bottom: 18px;
+  font-size: clamp(34px, 3.9vw, 56px);
 }
 
-.abstract > p:first-child {
+.abstract > p {
   font-size: 20px;
   line-height: 1.55;
   max-width: 36em;
 }
 
 .notes {
-  margin-top: 16px;
+  margin-top: 6px;
   display: grid;
   gap: 10px;
 }
@@ -63,6 +64,27 @@
 .runTitle {
   font-size: clamp(26px, 2.6vw, 34px);
   flex: none;
+}
+
+/* the run's clock, beside the title: on a laptop the title bar stays under the site header while the steps run on */
+.runClock {
+  font-family: var(--ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--prussian);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 901px) {
+  .runHead {
+    position: sticky;
+    top: 66px;
+    z-index: 6;
+    width: 100%;
+    padding-inline: max(20px, calc((100% - 1400px) / 2));
+    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    backdrop-filter: blur(8px);
+  }
 }
 
 .replayNote {

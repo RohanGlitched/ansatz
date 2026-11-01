@@ -5,6 +5,9 @@ import { PIPELINE, type Experiment } from "./experiment";
 import { toPixels } from "./pixels";
 import type { PlateData } from "@/components/StrobePlate";
 import { getObject, listKeys } from "./store";
+import { visibleRecent, type RecentItem } from "./recent";
+// the runs a person has opened and allowed onto the home page; empty means none are listed
+import recentAllow from "@/data/recent-allow.json";
 
 const SHOWCASE_DIR = path.join(process.cwd(), "data", "showcase");
 
@@ -98,18 +101,18 @@ export function clipData(e: Experiment) {
   };
 }
 
-let recentCache: { at: number; items: { id: string; title: string; headline: string; createdAt: string }[] } | null = null;
+let recentCache: { at: number; items: RecentItem[] } | null = null;
 
-/** The latest experiments visitors ran on the live site (cached a minute). */
+/**
+ * The latest experiments visitors ran on the live site (cached a minute): only runs whose id is in
+ * data/recent-allow.json, so no stranger's run reaches the home page unseen, and only headlines with no digits.
+ */
 export async function recentExperiments(limit = 6) {
   if (recentCache && Date.now() - recentCache.at < 60_000) return recentCache.items;
-  const ids = await recentIds(40).catch(() => []);
-  const items = (await Promise.all(ids.map((id) => getExperiment(id).catch(() => null))))
-    // only visitors' own clips, measured by the current method
-    .filter((e): e is Experiment => !!e && !e.sample && e.pipeline === PIPELINE)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, limit)
-    .map((e) => ({ id: e.id, title: e.title, headline: e.headline ?? e.finding, createdAt: e.createdAt }));
+  const allow = (Array.isArray(recentAllow) ? recentAllow : []) as string[];
+  // only the allow-listed ids are fetched at all
+  const runs = await Promise.all(allow.slice(0, 40).map((id) => getExperiment(id).catch(() => null)));
+  const items = visibleRecent(runs, allow, PIPELINE, limit);
   recentCache = { at: Date.now(), items };
   return items;
 }

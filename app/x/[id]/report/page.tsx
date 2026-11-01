@@ -45,6 +45,9 @@ export default async function ReportPage({ params, searchParams }: Params) {
   const rows = m.series.t.map((t, i) => ({ t, i })).filter((r) => r.i % step === 0);
   const trans = lang ? await translation(e, lang).catch(() => null) : null;
   const fmt = (v: number, sig = 3) => (Number.isFinite(v) ? String(+v.toPrecision(sig)) : "—");
+  // when even the winning law misses its unseen frames by more than five times the noise, its values carry no error bar
+  const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  const finding = fmtProse(trans?.finding ?? e.finding, Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }])));
   return (
     <article className={styles.page} lang={lang ?? "en"}>
       {/* on paper the report is the whole page: the site's bar and footer stay on screen only */}
@@ -137,19 +140,19 @@ export default async function ReportPage({ params, searchParams }: Params) {
                   <Tex>{paramLatex(p.name)}</Tex> {p.meaning}
                 </td>
                 <td>
-                  {fmtParam(win.fit.theta[p.name], win.fit.sigma[p.name])} {prettyUnit(p.unit)}
+                  {rough ? `≈ ${fmt(win.fit.theta[p.name], 2)}` : fmtParam(win.fit.theta[p.name], win.fit.sigma[p.name])} {prettyUnit(p.unit)}
                 </td>
                 <td>{c ? `${fmt(c.reference)} ${prettyUnit(p.unit)}` : "—"}</td>
-                <td>{c ? `${c.errorPct >= 0 ? "+" : ""}${c.errorPct.toFixed(1)}%` : "—"}</td>
+                <td>{c && c.reference !== 0 ? `${c.errorPct >= 0 ? "+" : ""}${c.errorPct.toFixed(1)}%` : c ? `${c.withinSigma.toFixed(1)}σ` : "—"}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <p>{fmtProse(trans?.finding ?? e.finding, Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }])))}</p>
+      <p>{rough ? finding.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `≈ ${sign}${fmt(Number(x), 2)}`) : finding}</p>
 
       <h2>{t("conclusion")}</h2>
-      <p>{conclusion(e, win.law.title, t)}</p>
+      <p>{conclusion(e, win.law.title, t, rough, !lang)}</p>
 
       <h2>{t("precautions")}</h2>
       <ul>
@@ -173,12 +176,15 @@ export default async function ReportPage({ params, searchParams }: Params) {
 }
 
 /** One paragraph a student can stand behind: the law, how well its constants agree with accepted values, and any clock doubt. */
-function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string, t: ReturnType<typeof tr>) {
+function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string, t: ReturnType<typeof tr>, rough: boolean, english: boolean) {
   const parts = [t("conc_law", { law })];
-  for (const c of e.comparisons.slice(0, 2)) {
+  // a rough fit has no error bar to agree within, so no agreement is claimed
+  for (const c of rough ? [] : e.comparisons.filter((x) => x.reference !== 0).slice(0, 2)) {
     const n = c.withinSigma;
     parts.push(t(Number.isFinite(n) && n <= 2 ? "conc_agree" : "conc_differ", { q: c.param, label: c.label, pct: Math.abs(c.errorPct).toFixed(1) }));
   }
-  if (e.clock) parts.push(t("conc_clock", { f: e.clock.factor.toFixed(1) }));
+  // the translated sentence says "slower"; a clip whose gravity came out too strong plays faster, which is said in English only
+  if (e.clock && e.clock.factor >= 1) parts.push(t("conc_clock", { f: e.clock.factor.toFixed(1) }));
+  else if (e.clock && english) parts.push(`This points to the clip’s clock rather than the physics: the clip most likely plays about ${(1 / e.clock.factor).toFixed(1)}× faster than real life.`);
   return parts.join(" ");
 }

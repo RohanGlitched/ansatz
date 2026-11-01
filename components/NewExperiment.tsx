@@ -106,6 +106,8 @@ export default function NewExperiment({
   /** the run is over and the page holds on its result, until the visitor opens it or replays */
   const [held, setHeld] = useState<{ id: string; replay?: Replay; secs: number } | null>(null);
   const [readout, setReadout] = useState<Readout | null>(null);
+  /** a live run's id, known once the server starts it: its page is /x/<id>, and the run carries on if the tab closes */
+  const [startedId, setStartedId] = useState<string | null>(null);
   const [runKey, setRunKey] = useState(0);
   const replayToken = useRef(0);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -341,6 +343,7 @@ export default function NewExperiment({
     speed.current = 1;
     replayToken.current++;
     liveRun.current = { noun: noun.trim(), lite };
+    setStartedId(null);
     setReplaying(false);
     setReplayNow(null);
     setHeld(null);
@@ -411,6 +414,7 @@ export default function NewExperiment({
           const d = JSON.parse(data);
           if (ev === "started") {
             runId = d.id;
+            setStartedId(d.id);
           } else if (ev === "progress") {
             apply(d);
           } else if (ev === "done") {
@@ -503,17 +507,34 @@ export default function NewExperiment({
       {busy ? (
         <header className={styles.runHead}>
           <h1 className={styles.runTitle}>{replaying ? "Watching a recorded run" : title}</h1>
+          {/* the clock stays in view while the steps run on below the plate */}
+          <p className={`num ${styles.runClock}`} aria-hidden="true">
+            {held ? `Done in ${Math.round(held.secs)} s` : `${replaying ? "Replaying" : "Running"}… ${elapsed.toFixed(0)} s`}
+          </p>
           {replaying && (
             <p className={styles.replayNote}>
               Replay of a real run at {REPLAY_SPEED}× speed: no model is called. The time beside each step is the real one.{replayNow?.rebuilt ? ` ${replayNow.rebuilt}` : ""}
             </p>
           )}
+          {!replaying && !held && (
+            <p className={styles.replayNote}>
+              {startedId ? (
+                <>
+                  Safe to leave: the run carries on without this tab, and its result appears at <a href={`/x/${startedId}`}>/x/{startedId}</a> when it finishes.
+                </>
+              ) : (
+                "Uploading. Once the run starts, its page address appears here, and the run carries on even if you close this tab."
+              )}
+            </p>
+          )}
         </header>
       ) : (
         <header className={styles.title}>
-          <h1>{title}</h1>
           <div className={styles.abstract}>
+            <h1>{title}</h1>
             <p>{lede}</p>
+          </div>
+          <div>
             {notes && <div className={styles.notes}>{notes}</div>}
             {replays.length > 0 && (
               <p className={styles.or}>
@@ -841,7 +862,7 @@ export default function NewExperiment({
             >
               <div className={styles.replayHead}>
                 <h2>Just want to see a run?</h2>
-                <p>Watch one from the first frame to the verdict: the clip measured, the laws proposed, and the race on the frames none of them saw.</p>
+                <p>Watch one from the first frame to the verdict: the clip measured, the laws proposed, and the race on the last 30%, which no law was fitted to.</p>
               </div>
               <ul className={styles.replays}>
                 {replays.map((r, i) => (
@@ -927,7 +948,7 @@ export default function NewExperiment({
                   <b>Put something of known size in view,</b> in the same plane as the motion: an A4 sheet on the wall, a bank card, a metre stick. Then g is measured, not assumed.
                 </li>
                 <li>
-                  <b>Say what you know</b> while filming, in any of seven languages: the string&rsquo;s length, the height of the drop.
+                  <b>Say what you know</b> while filming, in any of seven languages (tested on synthetic speech): the string&rsquo;s length, the height of the drop.
                 </li>
                 <li>
                   <b>Three to twenty seconds is plenty.</b> Trim the rest on the bench before it is sent.

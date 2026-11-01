@@ -62,9 +62,10 @@
   stroke-width: 1.5;
 }
 
+/* the time axis: set in viewBox units, so its size follows the plate (about 12 px on a laptop) */
 .tick {
   font-family: var(--ui);
-  font-size: 15px;
+  font-size: 22px;
   fill: var(--prussian-ink);
 }
 
@@ -156,5 +157,15 @@
   .panes,
   .verdicts {
     grid-template-columns: 1fr;
+  }
+
+  /* a phone shrinks the 1000-unit trace to a third: the axis labels grow to stay at least 10 px, below the axis */
+  .tick {
+    font-size: 36px;
+    transform: translateY(14px);
+  }
+
+  .trace {
+    margin-bottom: 14px;
   }
 }

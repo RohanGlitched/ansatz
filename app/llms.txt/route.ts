@@ -27,10 +27,10 @@ const PURPOSE: Record<string, string> = {
   "beach-ball-drag": "a rendered throw with quadratic air drag: the drag coefficient against the value the render was made with",
   "hardening-spring": "on the published run, a law outside Muse Spark's proposals: Muse Wonder, an agent with a fitting tool, finds the spring stiffens (on a later re-run with today's prompt, Muse Spark proposed the cubic law itself; both pass the same held-out test)",
   "dry-friction-spring": "Muse Spark's laws used air drag; Muse Wonder finds the friction is dry (Coulomb)",
-  "hindi-pendulum": "narrated in Hindi: the spoken string length becomes the ruler, and g comes out against Earth's",
-  "sample-pendulum": "a real Wikimedia clip posted as slow motion: its swing says how slow (unconfirmed by the uploader)",
-  "foucault-pendulum": "real footage of a museum's Foucault pendulum (Békéscsaba), told only its published length of 8.97 m: Earth's gravity from the swing",
-  "foucault-pendulum-5x": "the same film's stretch its maker sped up 5× (label cropped out): Muse Spark called it real time; the clock check reads it as about 5× too fast",
+  "hindi-pendulum": "narrated in Hindi by a synthetic voice: the spoken string length becomes the ruler, and g comes out against Earth's",
+  "sample-pendulum": "a real Wikimedia clip posted as slow motion: a re-run with today's stricter pipeline does not measure the string's length, so it claims no slowdown",
+  "foucault-pendulum": "real footage of a museum's Foucault pendulum (Békéscsaba; film by Zátonyi Sándor (ifj.), FizFilm, CC BY 4.0), told only its published length of 8.97 m: Earth's gravity from the swing, about 9.7 m/s² with no error bar, because even the winning law misses the unseen frames by far more than the noise",
+  "foucault-pendulum-5x": "the same film's stretch its maker sped up 5× (label cropped out): Muse Spark called it real time; gravity came out too strong, so the clock check reads the clip as running faster than life, against the filmmaker's 5× label",
   "big-swing": "a 70° swing, far past the small-angle range: the string length from the period, with g given",
   "bouncing-ball": "impacts: the coefficient of restitution from the bounces",
   spring: "a damped spring: natural frequency and damping rate",
@@ -90,7 +90,7 @@ export async function GET() {
   const p = (s = "") => L.push(s);
   p("# Ansatz");
   p();
-  p(`> Film anything that moves; Ansatz finds the law that moves it. SAM 3.1 measures the object in every frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model (Muse Spark watches the whole clip to name what moves). Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
+  p(`> Film anything that moves; Ansatz finds the law that moves it. SAM 3.1 measures the object frame by frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model (Muse Spark watches the whole clip to name what moves). Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
   p();
   p("Rule for agents: never POST to /api/run or /api/upload. They run paid models. Everything below is a GET of stored results, and the recorded replays on /new call no model.");
   p();
@@ -112,10 +112,10 @@ export async function GET() {
   if (synth) p(`- Camera scales, a separate claim (metres per pixel, worked out from a fall or a ruler): ${scale.within} of ${scale.n} within 5%, median ${scale.median.toFixed(2)}%.`);
   if (synth) p(`- Muse Spark reading the same constants by eye: median ${Math.round(synth.summary.medianEyeballErrPct)}% off (${synth.summary.eyeballChecked} readings). Page: ${SITE}/proof#headline`);
   if (rep && A && B) p(`- Muse Spark asked about each Moon clip alone, ${rep.n} times each: called the slowed copy real speed ${rep.n - B.calledSlowed} of ${rep.n} times (answering ${accs(B)} m/s², the textbook value); called the real broadcast slowed ${A.calledSlowed} of ${rep.n} times. These repeats are its answer; older single samples on the page are superseded. Page: ${SITE}/x/moon-jump#speed-test`);
-  if (referee) p(`- Referee: asked for a new law on ${referee.summary.reviseWhenNeeded} of ${referee.summary.needed} renders that needed one, and on ${referee.summary.reviseWhenRight} of ${referee.summary.right} clips that did not. Page: ${SITE}/proof#models`);
-  if (wonder) p(`- Muse Wonder challenged on every benchmark clip: kept the right law ${wonder.summary.tie} of ${wonder.summary.clips}; ${wonder.summary.worse} overreaches, all rejected by the held-out test. Page: ${SITE}/proof#models`);
+  if (referee) p(`- Referee: asked for a new law on ${referee.summary.reviseWhenNeeded} of ${referee.summary.needed} renders that needed one, and on ${referee.summary.reviseWhenRight} of ${referee.summary.right} clips whose leading law already had the right physics; it also accepted the leading law on two two-body collisions, which no law here describes. Page: ${SITE}/proof#models`);
+  if (wonder) p(`- Muse Wonder challenged on every benchmark clip, with its old setting (low effort, no residual plot): kept the leading law ${wonder.summary.tie} of ${wonder.summary.clips}; ${wonder.summary.worse} overreaches, all rejected by the held-out test. Page: ${SITE}/proof#models`);
   if (lite) p(`- Lite mode without a language model, measured offline on the stored runs: ${lite.summary.constantsWithin5} of ${lite.summary.constantsChecked} constants within 5%, median ${lite.summary.medianPhysErrPct}%. Page: ${SITE}/proof#checks`);
-  p(`- A published run costs ${costText(hl)} and takes ${timeText(hl)}.`);
+  p(`- A published run costs ${costText(hl)} and takes ${timeText(hl)}. The two Foucault films ran longer than the 5 minutes a run on the site is allowed, so they were not run through the site.`);
   p();
   p("## Which slowdown number is which");
   p("The slowed Moon clip appears with several factors. They answer different questions:");
@@ -135,8 +135,8 @@ export async function GET() {
     const why = PURPOSE[e.id] ?? e.finding;
     p(`- ${SITE}/x/${e.id} : ${e.title.replace(/([^?.!])$/, "$1.")} ${why.charAt(0).toUpperCase()}${why.slice(1).replace(/\.?$/, ".")} Winning law: ${w.law.title}. Measured ${fmtSum(e)}.`);
   }
-  if (series) p(`- ${SITE}/series/${series.id} : ${series.title}. The school pendulum practical by video: ${seriesRuns.length} string lengths, g from the slope of L against T² with tape-measured lengths.`);
-  for (const e of seriesRuns) p(`  - ${SITE}/x/${e.id} : ${e.title}, one run of the series. Measured ${fmtSum(e)}, with the length from the A4 sheet in view (the series page uses the tape).`);
+  if (series) p(`- ${SITE}/series/${series.id} : ${series.title}. The school pendulum practical by video, on ${seriesRuns.length} rendered clips (true g 9.81): g from the slope of L against T², with the lengths set to the renders' true lengths, standing in for a tape. The realistic result, lengths from the A4 sheet in view, is on the page.`);
+  for (const e of seriesRuns) p(`  - ${SITE}/x/${e.id} : ${e.title}, one run of the series. Measured ${fmtSum(e)}, with the length from the A4 sheet in view (the series page also shows the renders' true lengths).`);
   p(`- ${SITE}/class/demo23 : what a teacher sees once students have run their clips (a demo filled with the site's own runs; no real class yet).`);
   p(`- ${SITE}/proof : the benchmark (${synth?.summary.cases ?? "the"} rendered clips with known answers), model checks, error-bar calibration. Sections: #headline (the summary figures), #real-footage, #benchmark (every clip), #slow-motion (the clock check), #models, #checks, #ablation, #library (against a textbook library).`);
   p(`- ${SITE}/how : the pipeline step by step, with what each step produced on the Moon run.`);
@@ -153,6 +153,6 @@ export async function GET() {
   p(`- ${SITE}/sitemap.xml lists every page.`);
   p();
   p("## What is not shown yet");
-  p("- No clip filmed on a phone and no outside student or teacher yet; the benchmark clips are renders; Muse Wonder's two wins are on renders built to need a law outside the base library (and on a later re-run of the hardening spring with today's prompt, Muse Spark proposed the cubic law itself); one object at a time, no depth.");
+  p("- No clip filmed on a phone and no outside student or teacher yet; the benchmark clips are renders; Muse Wonder's two found laws are on renders built to need a law outside the base library (and on a later re-run of the hardening spring with today's prompt, Muse Spark proposed the cubic law itself); on the real Foucault footage its law beat Muse Spark's (held-out miss 17.6 px against 24.5 px) but still misses by far more than the noise; of four springs rendered with a hidden law, it found 2; Muse Voice Transcribe's seven languages were tested on synthetic speech only; one object at a time, no depth.");
   return new Response(L.join("\n") + "\n", { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=300" } });
 }

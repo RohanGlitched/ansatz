@@ -9,14 +9,14 @@
 .title {
   width: min(calc(var(--measure) + var(--margin) + 64px), 100% - 40px);
   margin: 0 auto;
-  padding: clamp(40px, 5vw, 72px) 0 clamp(4px, 1vw, 12px);
+  padding: clamp(20px, 2.6vw, 36px) 0 clamp(4px, 1vw, 12px);
 }
 
 .crumb {
   font-family: var(--ui);
   font-size: 15px;
   color: var(--ink-2);
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .h1 {
@@ -26,8 +26,8 @@
 .titleGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
-  margin-top: 28px;
+  gap: 22px;
+  margin-top: 18px;
 }
 
 .abstract {
@@ -35,12 +35,14 @@
 }
 
 .lede {
-  font-size: clamp(21px, 1.9vw, 24px);
+  font-size: clamp(20px, 1.7vw, 22px);
   line-height: 1.45;
 }
 
 .finding {
-  margin-top: 14px;
+  margin-top: 12px;
+  font-size: 18px;
+  line-height: 1.55;
   color: var(--ink-2);
 }
 
@@ -52,8 +54,9 @@
 }
 
 .rerun {
-  margin-top: 14px;
-  font-size: 16px;
+  margin-top: 12px;
+  font-size: 15.5px;
+  line-height: 1.5;
   color: var(--ink-2);
   padding-left: 14px;
   border-left: 2px solid var(--paper-line);
@@ -67,7 +70,7 @@
 }
 
 .colophon > div {
-  padding: 10px 0 11px;
+  padding: 7px 0 8px;
   border-top: 1px solid var(--paper-line);
 }
 
@@ -84,8 +87,8 @@
 
 .colophon dd {
   margin: 2px 0 0;
-  font-size: 16px;
-  line-height: 1.45;
+  font-size: 15px;
+  line-height: 1.42;
 }
 
 .langs {
@@ -947,4 +950,19 @@
   .more > summary {
     display: none;
   }
+}
+
+/* real footage: its published figures, one to a line, under the headline */
+.findingList {
+  margin: 14px 0 0;
+  padding: 0 0 0 18px;
+  color: var(--ink-2);
+  display: grid;
+  gap: 6px;
+}
+
+.findingList b {
+  font-weight: 400;
+  color: var(--ink);
+  font-variant-numeric: lining-nums tabular-nums;
 }

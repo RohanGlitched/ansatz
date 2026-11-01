@@ -4,9 +4,11 @@
 
 **[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:58](https://youtu.be/M4h122br2qE)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[How it works](https://ansatz-lab.vercel.app/how)**
 
-Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object in every frame (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the last 30%, which no law was fitted to, wins. Muse Spark watches the whole clip to name what moves; no number from the last 30% reaches it, and no law is fitted to it. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
+Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object frame by frame, up to 450 frames a run (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the last 30%, which no law was fitted to, wins. Muse Spark watches the whole clip to name what moves; no number from the last 30% reaches it, and no law is fitted to it. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames (up to two fits in production) and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
 
 Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab). Everything here was built during the hackathon (Oct 26 to Nov 4, 2026).
+
+**Who it is for.** Students doing the pendulum, free-fall and projectile practicals without light gates: film the motion, say the string's length, and get g, the law and the error against the textbook. Teachers: a class link gives every student's run on one page, with a grading sheet and a CSV. Anyone with a phone who needs a number from a video, or wants to know whether a clip runs at real time. No clip on the site was filmed on a phone yet, and no outside class has used it yet.
 
 ## Drag the line yourself
 
@@ -21,7 +23,7 @@ We slowed the 1972 Apollo 16 jump by 1.5× with motion-interpolated frames at an
 | Clip | Muse Spark, one clip at a time | Ansatz, one clip at a time |
 |---|---|---|
 | Apollo 16, real speed | asked 5 times: “real speed, 1.6” 3 times, “slowed 2×, 0.4” twice | **1.72 ± 0.11 m/s²**: real speed (the Moon: 1.625) |
-| The same clip, slowed 1.5× in secret | asked 5 times: “real speed, 1.6” every time (the textbook value) | **0.72 ± 0.05 m/s²**: slowed; measured jump for jump against the broadcast, **1.494 ± 0.015×** (truth: 1.5×) |
+| The same clip, slowed 1.5× in secret | asked 5 times: “real speed, 1.6” every time (the textbook value) | **0.72 ± 0.04 m/s²**: slowed; measured jump for jump against the broadcast (jump windows set by hand), **1.494 ± 0.015×** (truth: 1.5×) |
 | Three new renders, slowed 2×, 4×, 8× | g 9.8, 0.15, 9.8 | all three flagged by the clock check |
 
 Asked about each clip on its own five times, the model called the slowed copy real speed every time, answering with the textbook 1.6. Side by side it can count frames and say B is about 1.5× slower, which is impressive; given Ansatz's measurements as tools it works out the whole-run ratio of the two accelerations, 1.55 ± 0.04×, which needs no reference value. Ansatz needs no second clip.
@@ -35,10 +37,10 @@ Asked about each clip on its own five times, the model called the slowed copy re
 | Clips rendered in slow motion (1.25×, 1.5×, 2×, 4×, 8×), not declared | **3 of 5 flagged** by the clock check, factor right on 2 of 5; missed 1.25×, could not check 1.5× (the 8× clip misread its 15 cm ruler as a metre stick) | exact |
 | The same constants read off the clips by Muse Spark alone | median error 32%; on the slowed clips it answered Earth’s 9.81 | exact |
 | A hidden stiffening spring (a render): Muse Wonder’s law on the published run, found with its fitting tool | k₃/m = **4012 ± 17** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
-| A spring slowed by dry friction (a render): Muse Wonder’s law, after widening a bound it had first set too tight | friction 363 ± 5 px/s², ω₀ = 10.000 rad/s; the best of 12 textbook laws misses the unseen motion 33× worse | 372, 10 |
-| Real footage: a museum's Foucault pendulum (Békéscsaba, 8.97 m, published with the film), told only its length | g = **9.68 ± 0.02 m/s²** (Muse Wonder's law, with the camera's perspective); Muse Spark's plain pendulum law 9.70 ± 0.15 | 9.81 |
+| A spring slowed by dry friction (a render), re-run with today's pipeline: Muse Wonder’s law | friction **355 ± 23 px/s²**, or 0.430 ± 0.028 m/s² at the render's own scale (−4.5%); ω₀ = 10.0007 ± 0.0019 rad/s; it misses the unseen motion by 0.263 px, against 3.68 px for Muse Spark's best law (14×) | 372 px/s² (0.45 m/s²), 10 |
+| Real footage: a museum's Foucault pendulum (Békéscsaba, 8.97 m, published with the film by Zátonyi Sándor (ifj.), FizFilm, CC BY 4.0), told only its length | g about **9.7 m/s²**: Muse Spark's plain pendulum law gives 9.70 ± 0.15. Muse Wonder's law, with the camera's perspective, wins on the unseen frames (17.6 px against 24.5 px), but still misses them by 74× the noise, so it carries no error bar | 9.81 |
 | The same film's stretch its maker sped up 5× (we cropped out the on-screen label); Muse Spark, watching, called it real time | flagged by the clock check: plays **4.98 ± 0.02× faster** than life | 5× |
-| A pendulum filmed in slow motion (no caption says so) | flagged: about **4 to 4.5× slower than real life** (unconfirmed: the capture rate isn’t published) | the uploader titled it “slow motion” |
+| A pendulum posted online as slow motion (no caption in the frames says so) | no slowdown claimed: a re-run with today's stricter pipeline does not measure the string's length, because the clamp catches the string | the uploader titled it “slow motion” |
 
 Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).
 
@@ -52,7 +54,7 @@ flowchart LR
   B --> C[Muse Voice Transcribe: narration]
   B --> D[Muse Spark 1.3: what moves, when, ruler, slow motion?]
   C --> D
-  D --> E[SAM 3.1: masks in every frame]
+  D --> E[SAM 3.1: masks frame by frame, up to 450]
   E --> F[Measure: sub-pixel centroids, scale, angle about a pivot]
   F --> G[Muse Spark 1.3: 2–4 candidate laws as ODEs]
   G --> H[Code: RK4 + Levenberg–Marquardt on first 70%]
@@ -79,10 +81,10 @@ npx tsx scripts/run.ts path/to/clip.mp4 --ruler "A4 sheet=0.297"   # one experim
 npx tsx scripts/bench.ts --suite synth && npx tsx scripts/score.ts  # the benchmark
 ```
 
-Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). Each run costs about $0.10–0.40 of Meta API calls (a class of 40 is about $8); runs are capped per visitor and per day.
+Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). A published run cost $0.13–0.43 of Meta API calls, a median of $0.21 (a class of 40 is about $8); runs are capped per visitor and per day.
 
 ## Credits
 
-Type: Computer Modern (KaTeX fonts, SIL OFL) and Archivo (SIL OFL). Showcase clips: NASA Apollo 16 television (public domain), digitised by Ken Glover for the Apollo Lunar Surface Journal; “Blocked pendulum slow motion” by MikeRun, Wikimedia Commons, CC BY-SA 4.0. Rendered benchmark clips are made by this project.
+Type: Computer Modern (KaTeX fonts, SIL OFL) and Archivo (SIL OFL). Showcase clips: NASA Apollo 16 television (public domain), digitised by Ken Glover for the Apollo Lunar Surface Journal; “Blocked pendulum slow motion” by MikeRun, Wikimedia Commons, CC BY-SA 4.0; “Foucault pendulum in Békéscsaba” by Zátonyi Sándor (ifj.), FizFilm, Wikimedia Commons, CC BY 4.0 (cropped, and its 5× label cut out); “Pendelgesetz (mit Rechnung)” by Rhetos, Mathe-AC Lernwerkstatt Aachen, Wikimedia Commons, CC BY-SA 4.0. Rendered benchmark clips are made by this project.
 
 MIT licence for the code.
