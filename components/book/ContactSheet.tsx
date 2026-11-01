@@ -1,12 +1,13 @@
 import Link from "next/link";
 import styles from "./ContactSheet.module.css";
 
-export type SheetVerdict = "measured" | "number right, law wrong" | "no published answer" | "no factor claimed" | "miss";
+export type SheetVerdict = "measured" | "number right, law wrong" | "about right, no error bar" | "no published answer" | "no factor claimed" | "miss";
 export type SheetClip = { id: string; img: string; title: string; verdict: SheetVerdict; line: string; href?: string; anchor?: string };
 
 const TONE: Record<SheetVerdict, string> = {
   measured: styles.held,
   "number right, law wrong": styles.half,
+  "about right, no error bar": styles.half,
   "no published answer": styles.plain,
   "no factor claimed": styles.plain,
   miss: styles.struck,

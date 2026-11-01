@@ -5,10 +5,15 @@
   width: min(1400px, 100% - 40px);
   margin: 0 auto;
   padding: clamp(48px, 6vw, 88px) 0 clamp(8px, 1.5vw, 16px);
+  /* one column: the title, then the abstract and its contents under it (a second column held only the h1) */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.25fr);
-  gap: clamp(28px, 5vw, 80px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(14px, 2vw, 24px);
   align-items: start;
+}
+
+.title .toc ol {
+  max-width: 52em;
 }
 
 .title h1 {

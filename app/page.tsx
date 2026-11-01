@@ -5,7 +5,6 @@ import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import Footage from "@/components/book/Footage";
 import CanYouTell from "@/components/book/CanYouTell";
-import Fold from "@/components/book/Fold";
 import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawTex } from "./x/lawTex";
 import { printOf } from "./x/prints";
@@ -13,13 +12,14 @@ import { runTime, runTimeText } from "./runtime";
 import { plateLaws } from "@/lib/plateLaws";
 import { costText, headline } from "@/lib/headline";
 import { canYouTell } from "./cyt";
+import { fou5Long, fou5Of, fou5SameFilm, fou5Short } from "@/lib/fou5";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
-// cached and rebuilt at most once a minute: it reads shipped runs, plus the visitors' latest runs from storage (force-static keeps
+// cached and rebuilt at most once every ten minutes: it reads shipped runs, plus the visitors' latest runs from storage (force-static keeps
 // that uncached storage read from turning the page back into a per-request render)
 export const dynamic = "force-static";
-export const revalidate = 60;
+export const revalidate = 600;
 
 const HERO = "hardening-spring";
 
@@ -43,6 +43,9 @@ export default async function Home() {
   const moonG = moon?.comparisons.find((c) => c.param === "g");
   const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x");
   const fou5Row = fou5?.extras?.truth?.rows.find((r) => r.param === "speedup");
+  const fou5x = fou5Of(fou5, exps.find((e) => e.id === "foucault-pendulum"));
+  // the first single asks about each Moon clip, before the five repeats (the hook counts the repeats)
+  const single = st?.single ?? [];
   const aachenG = exps.find((e) => e.id === "aachen-pendulum-50cm")?.comparisons.find((c) => c.param === "g");
   const recent = await recentExperiments().catch(() => []);
   const spec = hero;
@@ -67,7 +70,7 @@ export default async function Home() {
             </h1>
             {hl.jumpForJump && clipB && (
               <p className={styles.hook}>
-                Shown the slowed Apollo 16 copy on its own, Muse Spark called it real speed {inWords(sparkWrongB)} times out of {inWords(rp?.n ?? 5)}. Ansatz measured {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}× slower; the truth was {st?.truth ?? 1.5}×.
+                Shown the slowed Apollo 16 copy on its own, Muse Spark called it real speed {inWords(sparkWrongB)} times out of {inWords(rp?.n ?? 5)}.<a href="#five-of-five" className={styles.fnRef} aria-label="How the five are counted">*</a> Timing it jump for jump against the broadcast, Ansatz measured {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}× slower; the truth was {st?.truth ?? 1.5}×.
               </p>
             )}
           </div>
@@ -92,6 +95,11 @@ export default async function Home() {
               </div>
               <figcaption>
                 Apollo 16, 1972 (NASA), in its original colour. Ansatz timed each jump in B against the same jump in A. <a href="#moon">How</a>.
+                {single.length > 0 && (
+                  <span id="five-of-five" className={styles.fn}>
+                    {" "}* The {inWords(rp?.n ?? 5)} of {inWords(rp?.n ?? 5)} counts the {inWords(rp?.n ?? 5)} repeats of the same question. A first single ask, before them, said B was slowed {single.find((s) => s.clip === "B")?.factor ?? 2}×, and said the same of the real broadcast.
+                  </span>
+                )}
               </figcaption>
             </figure>
           )}
@@ -109,12 +117,15 @@ export default async function Home() {
               <Link href="/judges" className="btn ghost">
                 For judges: the case in one page
               </Link>
+              <a href="#can-you-tell" className="btn ghost">
+                Try the blind test
+              </a>
             </div>
           </div>
         </div>
         {hl.moonClock && fou5Row && (
           <p className={styles.clockLine}>
-            <b>Gravity is a clock.</b> One known length turns gravity into a clock: if g comes out wrong by a square, the footage is not playing at life speed. From gravity alone, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed 1.5×, and {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster on a museum film its maker sped up 5×.
+            <b>Gravity is a clock.</b> One known length turns gravity into a clock: if g comes out wrong by a square, the footage is not playing at life speed. With no original to compare, from gravity alone against the Moon&rsquo;s known gravity, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed 1.5×. On a museum film its maker sped up 5×, it read {fou5x ? fou5Short(fou5x) : `${fou5Row.measured.toFixed(2)}×`} faster{fou5x?.rough ? ` (statistical ± ${fou5x.stat.toFixed(2)}; that law misses the unseen frames by ${fou5x.testZ.toFixed(1)}× the noise)` : ""}{fou5x && fou5SameFilm(fou5x) ? `, and ${fou5x.sameFilm!.toFixed(2)}× against the same film’s real-time stretch, with no reference value at all` : ""}.
           </p>
         )}
       </header>
@@ -146,34 +157,21 @@ export default async function Home() {
       )}
 
       {cyt && (
-        <Plate id="can-you-tell" className={styles.cytPlate} caption="Six real clips, each cut to a few seconds without retiming a frame. Every answer under them is read from a stored run; nothing here calls a model.">
+        <Plate id="can-you-tell" className={styles.cytPlate} caption="Six real clips, each cut to a few seconds without retiming a frame. Every answer is read from stored runs, and loads only when you ask for it; nothing here calls a model.">
           <div className={styles.cytHead}>
             <h2 className={styles.cytH}>Can you tell?</h2>
-            <p>For each real clip, say whether it plays in real time, slowed or sped up. Then see what Muse Spark said by eye and what Ansatz measured.</p>
-          </div>
-          <CanYouTell data={cyt} />
-          <Fold className={`onPlateFold ${styles.cytFold}`} summary="Credits, cuts and where each answer comes from (this gives the answers away)">
-            <ol className={styles.cytSources}>
-              {cyt.clips.map((c, i) => (
-                <li key={c.id}>
-                  <b>
-                    {i + 1}. {c.title}.
-                  </b>{" "}
-                  {c.source.href ? <a href={c.source.href}>{c.source.credit}</a> : c.source.credit}, {c.source.licence}. On this page: {c.source.cut}. Answers from <code>{c.source.record}</code>.
-                </li>
-              ))}
-            </ol>
             <p>
-              Muse Spark&rsquo;s answer is the one its run stored when it watched the clip (for the two Apollo clips, the same one-clip question asked five times, by majority). Ansatz&rsquo;s is the run&rsquo;s clock check: a flagged clock gives its factor; an unflagged one reads real time, with the factor its measured gravity implies. The tally counts a match with the truth; &ldquo;could not measure&rdquo; counts as a miss.
+              For each real clip, say whether it plays in real time, slowed or sped up. Muse Spark was shown the same six files with the same question, {inWords(cyt.pub.n)} times each: &ldquo;{cyt.pub.question}&rdquo; Then see what it answered and what Ansatz measured.
             </p>
-          </Fold>
+          </div>
+          <CanYouTell data={cyt.pub} />
         </Plate>
       )}
 
       <Page>
         {fou5Row && (
           <p className={styles.after}>
-            The same test on footage nobody made for us: a museum&rsquo;s Foucault pendulum, filmed by Zátonyi Sándor (ifj.) of FizFilm (CC BY 4.0), with a stretch he sped up 5× and labelled on screen. We cropped the label out. Muse Spark, watching, called the swing real time; measured, it plays {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster than life. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
+            The same test on footage nobody made for us: a museum&rsquo;s Foucault pendulum, filmed by Zátonyi Sándor (ifj.) of FizFilm (CC BY 4.0), with a stretch he sped up 5× and labelled on screen. We cropped the label out. Muse Spark, describing the clip at the start of that run, called the swing real time; measured, it plays {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
           </p>
         )}
         {fou5Row && <Note who="code">Gravity came out 25 times too strong: 5 times too fast, since gravity scales with the square of time.</Note>}
@@ -239,7 +237,7 @@ export default async function Home() {
           </li>
           <li>
             <h3>Referee, and revise</h3>
-            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run with today&rsquo;s pipeline, it still finds the friction Muse Spark&rsquo;s laws leave out.</p>
+            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run with today&rsquo;s pipeline, the two hand off: Muse Spark&rsquo;s laws used air drag, Muse Spark as referee named dry friction from their residual plot, and Muse Wonder turned it into a law that wins.</p>
             {spec?.wonder && wonderLaw && (
               <div className={styles.specimen}>
                 <ol className={styles.tries}>

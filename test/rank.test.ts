@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { rankCandidates, type Candidate } from "../lib/experiment";
+import { tieBreakReason } from "../lib/tie";
 
 const cand = (id: string, testZ: number, k: number, bic: number, origin: Candidate["origin"] = "muse"): Candidate =>
   ({
@@ -52,4 +53,38 @@ test("500 random candidate sets rank the same however they are shuffled", () => 
     }
     assert.equal(orders.size, 1, `set ${n}: ${[...orders].join(" | ")}`);
   }
+});
+
+test("a tie between equally simple laws goes to the smaller unseen miss, never to the id a model chose", () => {
+  // round 13: linear damping (the truth) missed the unseen frames by 0.335× the noise, quadratic by 0.351×; same k,
+  // same BIC bucket. The old comparator fell through to the ids, and 'quadratic-drag' < 'viscous-damped'
+  for (const [lin, quad] of [["viscous-damped", "quadratic-drag"], ["damped-linear", "damped-quadratic"], ["z-linear", "a-quadratic"]]) {
+    const list = [cand(quad, 0.351, 4, -192.4), cand(lin, 0.335, 4, -192.1)];
+    rankCandidates(list);
+    assert.equal(list[0].law.id, lin, `${lin} vs ${quad}`);
+    const back = [cand(lin, 0.335, 4, -192.1), cand(quad, 0.351, 4, -192.4)];
+    rankCandidates(back);
+    assert.equal(back[0].law.id, lin, `${lin} vs ${quad}, other arrival order`);
+  }
+});
+
+test("with equal unseen misses, the smaller fitted miss leads; ids still never decide", () => {
+  const a = cand("aaa", 0.5, 3, 10), b = cand("zzz", 0.5, 3, 10);
+  a.fit.trainZ = 1.4;
+  b.fit.trainZ = 1.1;
+  const list = [a, b];
+  rankCandidates(list);
+  assert.equal(list[0].law.id, "zzz");
+});
+
+test("the tie explanation names the key that decided", () => {
+  const f = (k: number, bic: number) => ({ fit: { ok: true, testZ: 1, trainZ: 1, k, bic } });
+  assert.match(tieBreakReason(f(3, 0), f(4, 0)), /fewer parameters/);
+  assert.match(tieBreakReason(f(4, -272), f(4, -269)), /lower BIC/);
+  assert.match(tieBreakReason(f(4, -192.4), f(4, -192.1)), /neither is preferred/);
+});
+
+test("an older record that listed the worse of two equally simple laws first says their order means nothing", () => {
+  const a = { fit: { ok: true, testZ: 0.351, trainZ: 1, k: 4, bic: -192.4 } }, b = { fit: { ok: true, testZ: 0.335, trainZ: 1, k: 4, bic: -192.1 } };
+  assert.match(tieBreakReason(a, b), /order says nothing/);
 });

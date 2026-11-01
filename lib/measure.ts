@@ -297,7 +297,11 @@ export function pendulumLength(p: Pivot, metresPerPixel: number, rulerRel = 0): 
 
 /** A pendulum hangs below its pivot: a path whose mean direction from the centre is further than this from straight down isn't swinging about it. */
 export const MAX_PIVOT_TILT_DEG = 30;
-/** A centre further than this many frame diagonals from the middle of the picture is a near-straight path's circle, not a pivot. */
+/**
+ * A centre further than this many frame diagonals from the middle of the picture is a near-straight path's circle, not a
+ * pivot, unless it sits above the swing (inside the path's horizontal span) and the distances pass the bimodality test:
+ * then it is a long pendulum filmed close up (a museum Foucault, a zoomed classroom bob), and its pivot is real.
+ */
 export const MAX_PIVOT_DIAGONALS = 1.5;
 
 /**
@@ -315,7 +319,9 @@ export function pivotUnusable(p: Pivot, pts: Pt[], frame?: { width: number; heig
   if (p.lengthOk === false && bimodal) return p.why ?? "the distances from the centre split into two bands, so the path is not one circle";
   const tilt = (Math.abs(Math.atan2(avg(pts.map((q) => q.x - p.x)), avg(pts.map((q) => q.y - p.y)))) * 180) / Math.PI;
   if (tilt > MAX_PIVOT_TILT_DEG) return `the path sits ${tilt.toFixed(0)}° from straight down below that centre (over ${MAX_PIVOT_TILT_DEG}°), so it is not hanging from it`;
-  if (frame && frame.width > 0 && frame.height > 0) {
+  const xs = pts.map((q) => q.x), x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const aboveSwing = p.x >= x0 && p.x <= x1 && avg(pts.map((q) => q.y)) > p.y && !bimodal;
+  if (frame && frame.width > 0 && frame.height > 0 && !aboveSwing) {
     const diag = Math.hypot(frame.width, frame.height), d = Math.hypot(p.x - frame.width / 2, p.y - frame.height / 2) / diag;
     if (d > MAX_PIVOT_DIAGONALS) return `that centre lies ${d.toFixed(1)} frame diagonals from the middle of the picture (over ${MAX_PIVOT_DIAGONALS})`;
   }
@@ -430,6 +436,24 @@ export function landingIndex(t: number[], ypx: number[], minSpeed = 50): number 
     }
   }
   return -1;
+}
+
+/**
+ * The first frame of the motion after any rest at the start of the window: the mirror of landingIndex, and as law-neutral
+ * (it reads only when the body starts to move, not a value any law is tuned to). A frame is at rest when its speed is under
+ * a tenth of the window's typical moving speed (and under minSpeed px/s); the take-off is the first frame of two in a row
+ * that move, less one, so the frame it leaves from is kept. 0 when the window starts in motion or never rests.
+ */
+export function takeoffIndex(t: number[], xpx: number[], ypx: number[], minSpeed = 50): number {
+  const n = t.length;
+  if (n < 6) return 0;
+  const v = t.map((_, i) => (i === 0 || i === n - 1 ? NaN : Math.hypot(xpx[i + 1] - xpx[i - 1], ypx[i + 1] - ypx[i - 1]) / (t[i + 1] - t[i - 1])));
+  const moving = v.filter(Number.isFinite).sort((a, b) => a - b);
+  const v90 = moving[Math.floor(moving.length * 0.9)] ?? 0;
+  const rest = Math.min(minSpeed, 0.1 * v90);
+  if (!(v[1] < rest)) return 0;
+  for (let i = 2; i < n - 2; i++) if (v[i] >= rest && v[i + 1] >= rest) return i - 1;
+  return 0;
 }
 
 /**
@@ -591,8 +615,9 @@ export function measure(args: {
     // When the split falls short of that by rounding (or because the flight the search found ended inside its range),
     // the series is lengthened until the fitted part covers the scanned range; when a landing inside the scanned range
     // forbids that (a toss that lands early), the search range is cut to end where the fitted part ends and the search
-    // runs again on those frames alone. If no range is long enough for a search, the window is used as it is, cut at
-    // the landing, with no search at all
+    // runs again on those frames alone. If no range is long enough for a search, the window is used from the take-off
+    // (frames at rest before the throw dropped: a free flight fitted to rest-then-flight is refuted for the wrong reason),
+    // cut at the landing, with no search at all
     const all = samples;
     const cut = (from: number, to: number) => {
       const s = all.slice(from, to);
@@ -620,7 +645,13 @@ export function measure(args: {
       if (fitEnd >= nP) { chosen = s; flightSearch = { f0: all[0].f, f1: all[nP - 1].f }; break; }
       nP = fitEnd;
     }
-    samples = chosen ?? cut(0, all.length);
+    if (chosen) samples = chosen;
+    else {
+      // read on the window's first part only, so no frame that may end up held out moves the cut
+      const head = all.slice(0, splitIndex(all.length, frac));
+      const up = takeoffIndex(head.map((q) => T(q.f)), head.map((q) => q.cx), head.map((q) => q.cy));
+      samples = cut(all.length - up >= 6 ? up : 0, all.length);
+    }
   }
   if (samples.length < 6) throw new Error(`SAM saw the ${args.track.noun} in only ${samples.length} frames of that window`);
   const f0 = samples[0].f, f1 = samples[samples.length - 1].f;

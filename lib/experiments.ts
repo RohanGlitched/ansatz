@@ -108,6 +108,8 @@ let recentCache: { at: number; items: RecentItem[] } | null = null;
  * data/recent-allow.json, so no stranger's run reaches the home page unseen, and only headlines with no digits.
  */
 export async function recentExperiments(limit = 6) {
+  // nothing allow-listed: no store call at all, so a cold page render never waits on the bucket
+  if (!Array.isArray(recentAllow) || recentAllow.length === 0) return [];
   if (recentCache && Date.now() - recentCache.at < 60_000) return recentCache.items;
   const allow = (Array.isArray(recentAllow) ? recentAllow : []) as string[];
   // only the allow-listed ids are fetched at all

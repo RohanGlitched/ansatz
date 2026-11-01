@@ -321,13 +321,25 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
       const v = c.fit.theta[p.name], sg = c.fit.sigma[p.name];
       return Number.isFinite(sg) && sg <= Math.abs(v);
     });
-  // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC, then the
-  // smaller error
-  // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"). Two
-  // laws that are the same equation fit identically; then the one written in physical quantities (g, not a) leads
+  // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC
+  // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"). When
+  // they are equally simple, the smaller miss on the unseen frames leads, then the smaller miss on the fitted frames.
+  // (each to a thousandth of a noise unit, so two laws that are the same equation, which fit identically up to rounding,
+  // tie here). Then the one written in physical quantities (g, not a) leads. The id a model chose for a law never
+  // decides: the last key is the equation itself
   const origin = (c: Candidate) => (c.origin === "control" ? 1 : 0);
+  const milli = (x: number) => (Number.isFinite(x) ? Math.round(x * 1e3) : Infinity);
+  const heldOut = (c: Candidate) => milli(Number.isFinite(c.fit.testZ) ? c.fit.testZ! : c.fit.testRms);
+  const fitted = (c: Candidate) => milli(Number.isFinite(c.fit.trainZ) ? c.fit.trainZ! : c.fit.trainRms);
+  const equation = (c: Candidate) => JSON.stringify([c.law.state, c.law.derivatives, c.law.observe]);
+  const cmp = <T extends number | string>(x: T, y: T) => (x < y ? -1 : x > y ? 1 : 0);
   const simpler = (a: Candidate, b: Candidate) =>
-    a.fit.k - b.fit.k || Math.round(a.fit.bic / 2) - Math.round(b.fit.bic / 2) || Math.round((score(a) - score(b)) * 1e3) || origin(a) - origin(b) || a.law.id.localeCompare(b.law.id);
+    a.fit.k - b.fit.k ||
+    Math.round(a.fit.bic / 2) - Math.round(b.fit.bic / 2) ||
+    cmp(heldOut(a), heldOut(b)) ||
+    cmp(fitted(a), fitted(b)) ||
+    origin(a) - origin(b) ||
+    cmp(equation(a), equation(b));
   // rank by repeated selection, so the result doesn't depend on the order the laws arrived in: each place goes to
   // the simplest law among those tied with the best remaining error
   const out: Candidate[] = [];
@@ -920,7 +932,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       // the clock check: a g far from the planet's says the clip's clock is not real time
       let clock: Experiment["clock"] = null;
       // any comparison against a world's gravity, whatever the law called its parameter (g, gmoon, a)
-      const gc = comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g|gravity/i.test(c.label)) && c.label !== "what the narrator said");
+      const gc = gravityComparison(comps);
       if (gc && slow === 1) {
         const r = gc.measured / gc.reference;
         // flag only a miss that is both significant (over 3σ, the ruler's share included) and large (over 15%, beyond
@@ -939,7 +951,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       }
       // a number the clock casts doubt on is never left standing on its own
       if (clock) finding += ` ${clockSentence(gc!.measured / gc!.reference, clock.factor, obs.body, clock.sigma === undefined, lengthBehindG(m.calibration, stated.l !== undefined, obs.reference.noun_phrase))}`;
-      const clockCheck = clockCheckOf({ slowSet: slow > 1, calibration: m.calibration.kind, statedLength: stated.l !== undefined, gravity: gc ?? null, flagged: !!clock, body: obs.body });
+      const clockCheck = clockCheckOf({ slowSet: slow > 1, calibration: m.calibration.kind, statedLength: stated.l !== undefined, gravity: gc ?? null, flagged: !!clock, body: obs.body, gHeld: hold?.name === "g" });
       const headline = crit?.headline && refereedWinner && !/\d/.test(crit.headline) && crit.headline.length < 110 ? crit.headline : win.law.summary;
       return { comps, finding, whatIf, clock, clockCheck, headline };
     }, (r) => r.finding);
@@ -1009,16 +1021,49 @@ export function lengthBehindG(cal: Pick<Calibration, "kind">, statedLength: bool
 /** Whether a run's clock could be checked against gravity, and why not when it couldn't. */
 export type ClockCheck = { checked: boolean; why: string };
 
+const GIVEN_G_WHY = "Clock not checked: gravity was given, not measured, so the clip’s clock could not be checked against it (a swing alone fixes only g/L, so g was held at the world’s value and the length measured). Type the string’s length to measure g and check the clock.";
+
+/** The comparison that carries the run's gravity, if any (what the clock check tests). */
+export const gravityComparison = (comps: Comparison[]) => comps.find((c) => (c.param.toLowerCase() === "g" || /accelerates at g|gravity/i.test(c.label)) && c.label !== "what the narrator said");
+
+/**
+ * The clock check a page shows: the record's own, with the reason corrected where g was held as given (records before
+ * that case said "no gravity was measured"), or, on a record from before the check was stored, the same rule applied
+ * to what the record holds.
+ */
+export function clockCheckFor(e: Pick<Experiment, "clockCheck" | "given" | "measured" | "comparisons" | "clock" | "observation"> & Partial<Pick<Experiment, "candidates" | "winner">>): ClockCheck {
+  const gHeld = e.given.some((g) => /hold g fixed/i.test(g));
+  const stored = e.clockCheck && !e.clockCheck.checked && gHeld && /no gravity was measured/.test(e.clockCheck.why) ? { checked: false, why: GIVEN_G_WHY } : e.clockCheck;
+  const withdrawn = !!(e.clock as { withdrawn?: boolean } | null)?.withdrawn;
+  const c =
+    stored ??
+    clockCheckOf({
+      slowSet: (e.measured.slowMotion ?? 1) > 1,
+      calibration: e.measured.calibration.kind,
+      statedLength: e.given.some((g) => /(stated)/.test(g)) || (e.observation.stated_facts ?? []).some((s) => /length|string|rope|thread|pendulum/i.test(s.quantity) && s.unit !== "px" && s.value > 0),
+      gravity: gravityComparison(e.comparisons) ?? null,
+      flagged: !!e.clock && !withdrawn,
+      body: e.observation.body,
+      gHeld,
+    });
+  // a gravity from a law that misses the unseen frames by far more than the noise has no error bar: the check is a rough one
+  const win = e.candidates?.find((x) => x.law.id === e.winner);
+  const z = win?.fit.testZ;
+  if (c.checked && z !== undefined && Number.isFinite(z) && z > 5 && !e.clock) return { checked: true, why: `${c.why.replace(/^Clock checked: gravity came out within/, "Clock checked, roughly: gravity came out within about").replace(/, so the clip plays in real time.$/, ", so the clip plays at about real time")}; the winning law misses the unseen frames by ${Math.round(z)}× the noise, so this carries no error bar.` };
+  return c;
+}
+
 /**
  * The clock check runs only when gravity is a measurement: a ruler or a stated length gives metres, and the winning law
  * measured a g. When gravity set the scale it was assumed, so it can't test the clock; with no ruler and no stated length
  * there are no metres to measure it in; a slow-motion factor that was set is a correction, not a check.
  */
-export function clockCheckOf(a: { slowSet: boolean; calibration: Calibration["kind"]; statedLength: boolean; gravity: Pick<Comparison, "measured" | "reference"> | null; flagged: boolean; body: string }): ClockCheck {
+export function clockCheckOf(a: { slowSet: boolean; calibration: Calibration["kind"]; statedLength: boolean; gravity: Pick<Comparison, "measured" | "reference"> | null; flagged: boolean; body: string; gHeld?: boolean }): ClockCheck {
   const world = a.body === "earth" ? "Earth’s" : a.body === "moon" ? "the Moon’s" : `${a.body}’s`;
   if (a.slowSet) return { checked: false, why: "Clock not checked: a slow-motion factor was set, so times were corrected by it, not tested." };
   if (a.calibration === "gravity") return { checked: false, why: "Clock not checked: the fall set the scale, so gravity was assumed, not measured. A slowed clip would look the same." };
   if (a.calibration === "none" && !a.statedLength) return { checked: false, why: "Clock not checked: with no ruler in view and no length stated, gravity can’t be measured in metres. A slowed clip would look the same." };
+  if (!a.gravity && a.gHeld) return { checked: false, why: GIVEN_G_WHY };
   if (!a.gravity) return { checked: false, why: "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)." };
   if (a.flagged) return { checked: true, why: "Clock checked: gravity came out far from the world’s, so the clip’s clock, or the length behind the scale, is in doubt." };
   const pct = Math.abs(a.gravity.measured / a.gravity.reference - 1) * 100;

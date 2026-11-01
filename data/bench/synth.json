@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-10-27T07:26:11.579Z",
- "pipeline": "2026-10-27c, sealed re-score",
+ "generatedAt": "2026-11-01T22:22:52.873Z",
+ "pipeline": "2026-10-27c sealed re-score, restitution jackknife",
  "scoredWith": "2026-10-27c",
  "summary": {
   "cases": 28,
@@ -13,11 +13,13 @@
   "constantsChecked": 44,
   "medianEyeballErrPct": 31.75,
   "eyeballChecked": 26,
+  "medianEyeballErrPctCurrent": 46.100917431192656,
+  "eyeballCurrent": 6,
   "coverage": {
    "checked": 27,
-   "within1": 19,
-   "within2": 22,
-   "worst": 5.590612322938711
+   "within1": 21,
+   "within2": 24,
+   "worst": 2.8294524074146574
   },
   "medianPredictionRel": 0.0005115229877876186,
   "medianPredictionRelControl": 0.03531247635466776,
@@ -30,9 +32,7 @@
    0.3
   ],
   "totalUsd": 3.041609249999999,
-  "medianSeconds": 87.464,
-  "medianEyeballErrPctCurrent": 46.100917431192656,
-  "eyeballCurrent": 6
+  "medianSeconds": 87.464
  },
  "rows": [
   {
@@ -62,9 +62,9 @@
      "quantity": "restitution e",
      "truth": 0.72,
      "measured": 0.7197602380952324,
-     "sigma": 0.00008097166568543646,
+     "sigma": 0.0001441092685727785,
      "errPct": -0.03330026455105544,
-     "withinSigma": 2.9610593130075955,
+     "withinSigma": 1.66375075761705,
      "eyeball": 0,
      "eyeballErrPct": -100
     },
@@ -115,9 +115,9 @@
      "quantity": "restitution e",
      "truth": 0.88,
      "measured": 0.8799048938028685,
-     "sigma": 0.000027568629526908417,
+     "sigma": 0.00003914134993565632,
      "errPct": -0.010807522401305598,
-     "withinSigma": 3.449797786961469,
+     "withinSigma": 2.4298139253713127,
      "eyeball": 0.75,
      "eyeballErrPct": -14.772727272727273
     },
@@ -168,9 +168,9 @@
      "quantity": "restitution e",
      "truth": 0.6,
      "measured": 0.5998314526584855,
-     "sigma": 0.00012987117950191696,
+     "sigma": 0.00042886028782096464,
      "errPct": -0.028091223585750374,
-     "withinSigma": 1.2978040405955842,
+     "withinSigma": 0.39301223802019486,
      "eyeball": 0.7,
      "eyeballErrPct": 16.666666666666664
     },
@@ -994,9 +994,9 @@
      "quantity": "restitution e",
      "truth": 0.85,
      "measured": 0.8497718890057417,
-     "sigma": 0.00004080250625182469,
+     "sigma": 0.0001399614149816264,
      "errPct": -0.02683658755979234,
-     "withinSigma": 5.590612322938711,
+     "withinSigma": 1.6298134331392722,
      "eyeball": 0.8,
      "eyeballErrPct": -5.882352941176463
     },
@@ -1060,9 +1060,9 @@
      "quantity": "restitution e",
      "truth": 0.78,
      "measured": 0.7801525509784266,
-     "sigma": 0.0001128842907254235,
+     "sigma": 0.0010176901519803883,
      "errPct": 0.01955781774699885,
-     "withinSigma": 1.3513924519192104,
+     "withinSigma": 0.1498992381224603,
      "eyeball": 0.65,
      "eyeballErrPct": -16.666666666666664
     },
@@ -1126,9 +1126,9 @@
      "quantity": "restitution e",
      "truth": 0.7,
      "measured": 0.6995841094127294,
-     "sigma": 0.00022160223204115148,
+     "sigma": 0.0003680859089768562,
      "errPct": -0.059412941038648553,
-     "withinSigma": 1.8767436746454298,
+     "withinSigma": 1.1298736983074498,
      "eyeball": 0.8,
      "eyeballErrPct": 14.285714285714299
     },

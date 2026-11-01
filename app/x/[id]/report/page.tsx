@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Tex from "@/components/Tex";
 import PrintButton from "@/components/PrintButton";
 import { getExperiment, plateData, winnerOf } from "@/lib/experiments";
+import { clockCheckFor } from "@/lib/experiment";
 import { lawLatex, paramLatex } from "@/lib/latex";
 import { prettyUnit } from "@/lib/units";
 import { fmtParam, fmtProse } from "@/lib/format";
@@ -47,6 +48,10 @@ export default async function ReportPage({ params, searchParams }: Params) {
   const fmt = (v: number, sig = 3) => (Number.isFinite(v) ? String(+v.toPrecision(sig)) : "—");
   // when even the winning law misses its unseen frames by more than five times the noise, its values carry no error bar
   const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  // the scale sentence and the given lines are English in the record; a showcase translation may carry them by hand
+  const scale = trans?.scale ?? m.calibration.note;
+  const given = trans?.given?.length === e.given.length ? trans.given : e.given;
+  const clockCheck = clockCheckFor(e);
   const finding = fmtProse(trans?.finding ?? e.finding, Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }])));
   return (
     <article className={styles.page} lang={lang ?? "en"}>
@@ -72,7 +77,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
       <p>{t("aim_text")}</p>
 
       <h2>{t("apparatus")}</h2>
-      <p>{t("apparatus_text", { frames: e.video.frames, fps: e.video.fps.toFixed(1), size: `${e.video.width}×${e.video.height}`, scale: m.calibration.note })}</p>
+      <p>{t("apparatus_text", { frames: e.video.frames, fps: e.video.fps.toFixed(1), size: `${e.video.width}×${e.video.height}`, scale })}</p>
 
       <h2>{t("method")}</h2>
       <ol>
@@ -165,11 +170,13 @@ export default async function ReportPage({ params, searchParams }: Params) {
 
       <h2>{t("errors")}</h2>
       <ul>
-        <li>{t("scale_err", { scale: m.calibration.note })}</li>
+        <li>{t("scale_err", { scale })}</li>
         {[...e.observation.caveats, ...(e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique.caveats : [])].slice(0, 5).map((c, i) => (
           <li key={i}>{c}</li>
         ))}
-        <li>{t("given", { given: e.given.length ? e.given.join("; ") : t("nothing") })}</li>
+        <li>{t("given", { given: given.length ? given.join("; ") : t("nothing") })}</li>
+        {/* the clock check is stated in English only (its reasons are not in the translated strings) */}
+        {!lang && <li>{clockCheck.why}</li>}
       </ul>
     </article>
   );

@@ -165,37 +165,6 @@
   color: var(--prussian-ink);
 }
 
-.cytFold {
-  margin-top: 34px;
-}
-
-.cytFold a {
-  color: var(--paper);
-}
-
-.cytSources {
-  margin: 0 0 14px;
-  padding-left: 0;
-  list-style: none;
-  display: grid;
-  gap: 10px;
-  font-size: 15.5px;
-  line-height: 1.5;
-  color: var(--prussian-ink);
-}
-
-.cytSources b {
-  color: var(--paper);
-  font-weight: 400;
-}
-
-.cytFold p {
-  font-size: 15.5px;
-  line-height: 1.5;
-  color: var(--prussian-ink);
-  max-width: 60em;
-}
-
 .who {
   margin-top: 10px;
   font-family: var(--ui);
@@ -477,4 +446,20 @@ blockquote.specimen {
       -webkit-mask-box-image: url("/book/emulsion.png") 130 130 fill / 54px 26px stretch;
     }
   }
+}
+
+/* the hook's footnote: how the five are counted (the first single asks sit in the plate's caption) */
+.fnRef {
+  margin-left: 0.1em;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.8em;
+  vertical-align: super;
+  line-height: 0;
+}
+.fn {
+  display: block;
+  margin-top: 0.35em;
+  font-size: 0.92em;
+  opacity: 0.85;
 }

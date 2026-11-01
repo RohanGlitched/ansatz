@@ -10,12 +10,13 @@ import Plate, { Note, Page, Reading, Section } from "@/components/book/Plate";
 import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import { clipData, getExperiment, plateData, showcaseIds, videoUrl, winnerOf } from "@/lib/experiments";
+import { fou5Of, fou5SameFilm } from "@/lib/fou5";
 import { paramLatex } from "@/lib/latex";
-import { atBound, type Experiment } from "@/lib/experiment";
+import { atBound, clockCheckFor, type Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { prettyUnit, secondPower } from "@/lib/units";
 import { fmtDate, fmtPair, fmtProse } from "@/lib/format";
-import { dampingTie, noiseScore, tied } from "@/lib/tie";
+import { dampingTie, noiseScore, tieBreakReason, tied } from "@/lib/tie";
 import { RENDERED } from "@/components/liveStripMath";
 import { lawHtml, lawTex } from "../lawTex";
 import { LANGUAGES, translation } from "@/lib/translate";
@@ -102,6 +103,11 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const pv = Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }]));
   const prose = proseOf(e, pv);
   const damping = dampingTie(e);
+  // why the first of the two tied damping forms is listed first, by the ranking's own keys
+  const dampingWhy = damping ? (() => {
+    const [a, b] = e.candidates.filter((c) => c.fit.ok).sort((x, y) => x.rank - y.rank);
+    return a && b ? tieBreakReason(a, b) : null;
+  })() : null;
   const pick = ownPick(e);
   // previous and next entries, in the order the experiments index lists them
   const order = await showcaseIds();
@@ -114,7 +120,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
     if (!above.some((x) => x.fit.testRms > c.fit.testRms)) return null;
     if (c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]))) return "A parameter is pressed against its limit, so it ranks after laws whose values settled freely.";
     if (Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ) && c.fit.trainZ! > c.fit.testZ!) return `Its unseen miss is small, but it misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}× the noise.`;
-    return "Tied within the noise with a law above it; the simpler law ranks first.";
+    const tiedAbove = above.filter((x) => tied(x.fit, c.fit));
+    if (tiedAbove.some((x) => x.fit.k < c.fit.k)) return "Tied within the noise with a law above it; the law with fewer parameters ranks first.";
+    if (tiedAbove.some((x) => x.fit.k === c.fit.k && Math.round(x.fit.bic / 2) < Math.round(c.fit.bic / 2))) return "Tied within the noise with a law above it; the law with the lower BIC ranks first.";
+    return "Tied within the noise with a law above it, which has as many parameters and missed the unseen frames slightly less.";
   };
   // the referee's words are shown only while the law it wrote about still leads
   const ref = e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique : null;
@@ -134,11 +143,25 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const channels = Object.keys(win.fit.predicted).filter((c) => e.measured.series.ch[c]);
   // when even the winner misses the unseen frames by far more than the noise, a precise ± would overclaim
   const rough = Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5;
+  // a truth row from Muse Spark's own plain law follows the same rule by that law's own miss
+  const sparkPlain = e.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0];
+  const sparkRough = !!sparkPlain && Number.isFinite(sparkPlain.fit.testZ) && sparkPlain.fit.testZ! > 5;
+  const rowRough = (param: string) => (param === "g_spark" ? sparkRough : rough);
+  const rowWhy = (r: { param: string; sigma: number }) =>
+    r.param === "g_spark"
+      ? `no error bar: Muse Spark’s plain law misses the unseen frames by ${fmt(sparkPlain!.fit.testZ!, 2)}× the noise`
+      : r.param === "speedup"
+        ? `statistical ± ${(r.sigma ?? 0).toFixed(2)}; the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so no error bar`
+        : `no error bar: the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise`;
+  // the sped-up Foucault film: the check that needs no reference value is the same film's real-time stretch
+  const sameFilm = e.id === "foucault-pendulum-5x" ? fou5Of(e, await getExperiment("foucault-pendulum").catch(() => null)) : null;
   // a systematic listed outside the quoted ± (the Moon's choice of tracked point) is named next to the headline value
   const point = e.extras?.errorBudget?.rows.find((r) => !r.included && /point of the body/.test(r.source));
   // a re-run can withdraw a clock check (data/showcase sets clock.withdrawn): no factor is then claimed or rescaled
   const clockOut = !!(e.clock as (NonNullable<Experiment["clock"]> & { withdrawn?: boolean }) | null)?.withdrawn;
   const clock = clockOut ? null : e.clock;
+  // whether the clock check could run, and why not when it could not: one line on every run page
+  const clockCheck = clockCheckFor(e);
   // a rendered clip's comparisons are against the value it was rendered with, worded as such
   const renderedCmp = (c: { label: string }) => RENDERED.test(c.label);
   const truthLabel = (param: string) => e.extras?.truth?.rows.find((r) => r.param === param)?.label;
@@ -157,9 +180,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
       return {
         label: "How much faster than life the clip plays",
         v: v.toFixed(2),
-        pm: s ? s.toFixed(2) : undefined,
+        // the speed-up's ± is computed from gravity's σ: on a rough fit it is only statistical, so it is said, not printed as the ±
+        pm: s && !rough ? s.toFixed(2) : undefined,
         unit: "×",
-        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar; the speed-up keeps its own ±${sp && s && Math.abs(v - sp.truth) <= s ? `, and the label’s ${+sp.truth.toPrecision(3)}× sits inside it` : ""}.` : ""}`,
+        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so neither its gravity nor the speed-up carries an error bar${s ? ` (the speed-up’s statistical ± is ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilm(sameFilm) ? ` A check that needs no reference value: gravity scales as one over time squared, so against the same film’s real-time stretch the speed-up is √(g here ÷ g there) = ${fou5SameFilm(sameFilm)}.` : ""}`,
       };
     }
     if (clock) {
@@ -248,9 +272,9 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <li key={r.param}>
                       {r.label.charAt(0).toUpperCase() + r.label.slice(1)}:{" "}
                       <b>
-                        {rough && r.param !== "g_spark" && r.param !== "speedup" ? `about ${fmt(r.measured, 3)}` : fmtPair(r.measured, r.sigma)} {r.unit}
+                        {rowRough(r.param) ? (r.param === "speedup" ? `${r.measured.toFixed(2)}` : `about ${fmt(r.measured, 3)}`) : fmtPair(r.measured, r.sigma)} {r.unit}
                       </b>
-                      , against a known {fmt(r.truth)} {r.unit} ({fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% off).
+                      , against a known {fmtRef(r.truth)} {r.unit} ({fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% off).
                     </li>
                   ))}
                 </ul>
@@ -407,7 +431,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         <p className={styles.para} lang={tr?.summary ? trLang : undefined}>
           {tr?.summary ?? win.law.summary}
         </p>
-        {damping && <p className={styles.caution}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: it ranks first only because a tie goes to the simpler law.</p>}
+        {damping && dampingWhy && <p className={styles.caution}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: {dampingWhy.startsWith("a tie") ? `it ranks first only because ${dampingWhy}.` : `${dampingWhy}.`}</p>}
         {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 10 && <p className={styles.caution}>Misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise: read this as a description, not a law.</p>}
 
         <h3 className={styles.h3} id="constants">
@@ -424,8 +448,12 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             </thead>
             <tbody>
               {freeParams.map((p) => {
-                const v = win.fit.theta[p.name], s = win.fit.sigma[p.name];
+                const v = win.fit.theta[p.name], s0 = win.fit.sigma[p.name];
                 const cmp = e.comparisons.find((c) => c.param === p.name);
+                // a comparison whose ± also carries a stated length (a fixed share, STATED_REL) prints that total ±, the one
+                // its σ is counted in, with the fit's own ± beside it
+                const statedShare = !rough && cmp && Number.isFinite(s0) && cmp.sigma > 1.5 * s0 ? Math.sqrt(cmp.sigma ** 2 - s0 ** 2) / Math.abs(v) : 0;
+                const s = statedShare ? cmp!.sigma : s0;
                 const unit = p.unit && p.unit !== "1" ? prettyUnit(p.unit) : "";
                 return (
                   <tr key={p.name}>
@@ -442,6 +470,11 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         <>
                           {fmtPair(v, s).split(" ± ")[0]}
                           <span className={styles.pmS}> ± {fmtPair(v, s).split(" ± ")[1]}</span> <span className={styles.unitS}>{unit}</span>
+                          {statedShare > 0 && (
+                            <span className={styles.nd}>
+                              the ± assumes the stated length is good to {Math.round(statedShare * 100)}%; the fit alone gives ± {fmtPair(v, s0).split(" ± ")[1]}
+                            </span>
+                          )}
                         </>
                       ) : (
                         <>
@@ -456,9 +489,9 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         <>
                           Clock check: the clip plays about{" "}
                           {clock.factor < 1
-                            ? `${clock.sigma ? fmtPair(1 / clock.factor, clock.sigma / (clock.factor * clock.factor)) : (1 / clock.factor).toFixed(2)}× faster`
-                            : `${clock.sigma ? fmtPair(clock.factor, clock.sigma) : clock.factor.toFixed(2)}× slower`}{" "}
-                          than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmt(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
+                            ? `${clock.sigma && !rough ? fmtPair(1 / clock.factor, clock.sigma / (clock.factor * clock.factor)) : (1 / clock.factor).toFixed(2)}× faster`
+                            : `${clock.sigma && !rough ? fmtPair(clock.factor, clock.sigma) : clock.factor.toFixed(2)}× slower`}{" "}
+                          than life. At that speed {cmp.param === "g" ? "g" : `|${p.name}|`} = {fmt(Math.abs(v) * Math.pow(clock.factor, -secondPower(p.unit)))} {prettyUnit(p.unit)}; {cmp.label}: {fmtRef(cmp.reference)}. As filmed it is {fmt(Math.abs(cmp.errorPct), 2)}% off.
                         </>
                       ) : cmp && cmp.reference === 0 ? (
                         <>
@@ -466,11 +499,11 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         </>
                       ) : cmp ? (
                         <>
-                          {renderedCmp(cmp) ? `Rendered with ${+cmp.reference.toPrecision(5)}` : `${cmp.label}: ${fmt(cmp.reference)}`} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%
+                          {renderedCmp(cmp) ? `Rendered with ${+cmp.reference.toPrecision(5)}` : `${cmp.label}: ${fmtRef(cmp.reference)}`} {prettyUnit(p.unit)}. Off by {fmt(Math.abs(cmp.errorPct), 2)}%
                           {!rough && Number.isFinite(cmp.withinSigma) ? (cmp.withinSigma > 20 ? ", far outside the error bar: check the clock or the ruler" : `, ${fmt(cmp.withinSigma, 2)}σ`) : ""}.
                         </>
                       ) : (
-                        <span className={styles.muted}>{rendered ? "a position in the frame: the render sets no value for it in these units" : "no known value to compare with"}</span>
+                        <span className={styles.muted}>{rendered ? "a position in the frame: the render sets no value for it in these units" : p.unit === "px" ? "no reference: camera geometry" : "no known value to compare with"}</span>
                       )}
                     </td>
                   </tr>
@@ -508,11 +541,20 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             <p>No slow-motion factor is claimed for this clip, so no constant is rescaled. Why: <a href="#finding">the finding</a>.</p>
           </>
         )}
+        {!clock && !clockOut && (
+          <>
+            <h3 className={styles.h3} id="clock">
+              Clock check
+            </h3>
+            <p className={styles.para}>{clockCheck.why}</p>
+          </>
+        )}
         {clock && (
           <>
             <h3 className={styles.h3} id="clock">
               Clock check
             </h3>
+            <p className={styles.para}>{clockCheck.why}</p>
             <p>{clock.note}</p>
             <p className={styles.para}>Time rescales every constant by its power of seconds, so no new run is needed to see what a {clock.factor < 1 ? "sped-up" : "slow-motion"} clip would mean:</p>
             <div className={styles.tableWrap}>
@@ -733,11 +775,11 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <tr key={r.label}>
                       <td data-h="Constant">{r.label}</td>
                       <td data-h="Measured" className={`r ${styles.value}`}>
-                        {/* on a rough run the winning law's values carry no error bar; a figure from another law, or the clock's speed-up, keeps its own */}
-                        {rough && r.param !== "g_spark" && r.param !== "speedup" ? (
+                        {/* on a rough run the winning law's values carry no error bar, the speed-up computed from its gravity included; Muse Spark's plain law follows the same rule by its own miss */}
+                        {rowRough(r.param) ? (
                           <>
-                            about {fmt(r.measured, 2)} <span className={styles.unitS}>{r.unit}</span>
-                            <span className={styles.nd}>no error bar: the winning law misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise</span>
+                            {r.param === "speedup" ? r.measured.toFixed(2) : `about ${fmt(r.measured, 2)}`} <span className={styles.unitS}>{r.unit}</span>
+                            <span className={styles.nd}>{rowWhy(r)}</span>
                           </>
                         ) : (
                           <>
@@ -747,7 +789,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         )}
                       </td>
                       <td data-h="True value" className="r num">
-                        {fmt(r.truth)} {r.unit}
+                        {fmtRef(r.truth)} {r.unit}
                       </td>
                       <td data-h="Off by" className="r num">
                         {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}%
@@ -1267,6 +1309,9 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     const cmp = e.comparisons.find((c) => c.param === p.name);
                     const gLike = !!cmp && /accelerates at g/.test(cmp.label);
                     const mv = gLike ? Math.abs(win.fit.theta[p.name]) : win.fit.theta[p.name];
+                    // the same ± as the Measured table: a comparison that carries a stated length prints that total
+                    const fs = win.fit.sigma[p.name];
+                    const ms = cmp && Number.isFinite(fs) && cmp.sigma > 1.5 * fs ? cmp.sigma : fs;
                     return (
                       <tr key={p.name}>
                         <td data-h="Quantity">
@@ -1280,15 +1325,15 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                             `about ${fmt(mv, 2)}`
                           ) : (
                             <>
-                              {fmtPair(mv, win.fit.sigma[p.name]).split(" ± ")[0]}
-                              {fmtPair(mv, win.fit.sigma[p.name]).includes(" ± ") && <span className={styles.pmS}> ± {fmtPair(mv, win.fit.sigma[p.name]).split(" ± ")[1]}</span>}
+                              {fmtPair(mv, ms).split(" ± ")[0]}
+                              {fmtPair(mv, ms).includes(" ± ") && <span className={styles.pmS}> ± {fmtPair(mv, ms).split(" ± ")[1]}</span>}
                             </>
                           )}{" "}
                           <span className={styles.unitS}>{prettyUnit(p.unit)}</span>
                         </td>
                         {e.comparisons.length > 0 && (
                           <td data-h="Reference" className="r num">
-                            {cmp ? `${fmt(cmp.reference)} ${prettyUnit(p.unit)}` : "—"}
+                            {cmp ? `${fmtRef(cmp.reference)} ${prettyUnit(p.unit)}` : "—"}
                           </td>
                         )}
                       </tr>
@@ -1537,6 +1582,11 @@ function truthSource(e: Experiment) {
   if (/^Rendered\b/.test(credit)) return "The true values were set when the clip was rendered and were kept out of the run.";
   if (/filmmaker|published/i.test(e.extras?.truth?.note ?? "")) return "The reference values are the filmmaker’s published figures, not ours; Ansatz was told only what the note above says.";
   return "The reference values were kept out of the run.";
+}
+
+/** A known or rendered value, to four figures, the same on every line of a page (9.807, 1.625, 6). */
+function fmtRef(v: number) {
+  return Number.isFinite(v) ? String(+v.toPrecision(4)) : "—";
 }
 
 function fmt(v: number | undefined, sig = 3) {

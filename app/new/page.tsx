@@ -22,7 +22,9 @@ export const metadata: Metadata = {
 };
 
 const SAMPLES: Sample[] = [
-  { file: "/samples/pendulum.mp4", label: "A pendulum: is it real time?", hint: "MikeRun, Wikimedia Commons, CC BY-SA 4.0", noun: "yellow tennis ball", type: "pendulum" },
+  // a stranger's half-metre pendulum that ends in a result (its published run: g = 9.82 ± 0.10 m/s², 0.16% off); the MikeRun
+  // pendulum it replaces ends with no factor claimed, a poor first run to pay for
+  { file: "/showcase/aachen-pendulum-50cm.mp4", label: "A stranger's pendulum: measure g from its swing", hint: "Rhetos (Mathe-AC Lernwerkstatt Aachen), Wikimedia Commons, CC BY-SA 4.0", noun: "gray ball", narration: "The string is about fifty centimetres long.", type: "pendulum" },
   // (a paper-bag sample was removed: its source and licence could not be verified)
 ];
 

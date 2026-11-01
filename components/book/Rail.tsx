@@ -22,6 +22,8 @@ export default function Rail() {
   // the dock is for going back: it shows while scrolling up, and hides over the footer
   const [goingUp, setGoingUp] = useState(false);
   const [atFoot, setAtFoot] = useState(false);
+  // on a phone the dock sits where the thumb drags a plate's handle: it stays away while a handle is near the bottom
+  const [nearHandle, setNearHandle] = useState(false);
 
   useEffect(() => {
     let last = window.scrollY;
@@ -30,6 +32,14 @@ export default function Rail() {
       if (y < last - 6) setGoingUp(true);
       else if (y > last + 6) setGoingUp(false);
       last = y;
+      if (window.innerWidth < 760) {
+        const h = window.innerHeight;
+        const near = [...document.querySelectorAll<HTMLElement>("input[type=range]")].some((el) => {
+          const r = el.getBoundingClientRect();
+          return r.height > 0 && r.bottom > h - 170 && r.top < h;
+        });
+        setNearHandle(near);
+      } else setNearHandle(false);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     const foot = document.querySelector("body > footer");
@@ -141,7 +151,7 @@ export default function Rail() {
         </nav>
       )}
 
-      <div className={`${styles.dock} ${(scrolled && goingUp && !atFoot) || open ? styles.show : ""}`}>
+      <div className={`${styles.dock} ${(scrolled && goingUp && !atFoot && !nearHandle) || open ? styles.show : ""}`}>
         {stops.length > 0 && (
           <button type="button" className={styles.contents} aria-expanded={open} aria-controls="page-contents" onClick={() => setOpen((o) => !o)}>
             Contents

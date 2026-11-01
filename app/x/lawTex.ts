@@ -9,12 +9,12 @@ export function lawTex(law: Law): string[] {
   const lines = lawLatex(law);
   const wIsState = (law as Law & { state?: string[] }).state?.includes("w");
   const hasOmega = law.params.some((p) => /^(omega|w)/i.test(p.name));
-  return wIsState && !hasOmega ? lines.map((l) => l.replace(/\omega(?![a-zA-Z])/g, "w")) : lines;
+  return wIsState && !hasOmega ? lines.map((l) => l.replace(/\\omega(?![a-zA-Z])/g, "w")) : lines;
 }
 
 /** The same fix for a law already set as KaTeX HTML (the Falsification Plate's ledger, from lib/plateLaws). */
 export function lawHtml(law: Law, html: string): string {
   const wIsState = (law as Law & { state?: string[] }).state?.includes("w");
   const hasOmega = law.params.some((p) => /^(omega|w)/i.test(p.name));
-  return wIsState && !hasOmega ? html.replace(/ω/g, "w").replace(/\omega(?![a-zA-Z])/g, "w") : html;
+  return wIsState && !hasOmega ? html.replace(/ω/g, "w").replace(/\\omega(?![a-zA-Z])/g, "w") : html;
 }

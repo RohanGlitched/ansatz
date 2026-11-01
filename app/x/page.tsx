@@ -10,6 +10,7 @@ import type { Experiment } from "@/lib/experiment";
 import { fmtOff, summarise, type Summary } from "./summary";
 import styles from "./index.module.css";
 import { BENCH_FILES } from "@/app/bench/files";
+import { STRANGERS } from "@/app/proof/strangers";
 
 // Muse Wonder is called in by code when the leading law misses its fitted frames by more than this many times the
 // noise (lib/experiment.ts reads the same setting)
@@ -221,7 +222,7 @@ export default async function ExperimentsIndex() {
           </>
         )}
 
-        <Section n={seriesRows.length ? 2 : 1} title="Run by visitors" id="visitors">
+        <Section n={seriesRows.length ? 2 : 1} title={recent.length > 0 ? "Run by visitors" : "Footage from strangers"} id="visitors">
           {recent.length > 0 ? (
             <>
               <p>The latest clips visitors ran on the site, measured by the current method. Nothing here was rendered or chosen by us.</p>
@@ -238,9 +239,32 @@ export default async function ExperimentsIndex() {
               </ol>
             </>
           ) : (
-            <p>
-              No visitor has run a clip with the current method yet. <Link href="/new">Run an experiment</Link> and it appears here.
-            </p>
+            <>
+              <p>
+                Until visitors&rsquo; runs are listed here: five clips strangers filmed and shared under free licences, run on 2 November with only what their makers stated. Misses included. Full table: <Link href="/proof#strangers">Proof, footage from strangers</Link>.
+              </p>
+              <ol className={styles.visitors}>
+                {STRANGERS.map((r) => (
+                  <li key={r.clip}>
+                    {r.href ? (
+                      <Link href={r.href} className={styles.vTitle}>
+                        {r.clip}
+                      </Link>
+                    ) : (
+                      <a href={r.whoHref} className={styles.vTitle}>
+                        {r.clip}
+                      </a>
+                    )}
+                    <span className={styles.vFind}>
+                      {r.verdict === "measured" ? "Measured" : r.verdict === "number right, law wrong" ? "Number right, law wrong" : r.verdict === "miss" ? "A miss" : "Nothing to check"}: {r.measured}
+                    </span>
+                    <span className={styles.vWhen}>
+                      {r.who}, {r.licence}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </>
           )}
         </Section>
         <Note who="Kept">Visitors&rsquo; clips are kept for two days; their results stay.</Note>

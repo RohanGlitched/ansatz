@@ -29,3 +29,21 @@ export function dampingTie(e: { candidates: Cand[]; winner: string }): string | 
   if (!isDamping(ta) || !isDamping(tb) || isQuadratic(ta) === isQuadratic(tb)) return null;
   return tied(a.fit, b.fit) ? "damping form not determined by this clip (linear and quadratic tie)" : null;
 }
+
+type Ranked = { fit: Fit & { k?: number; bic?: number } };
+
+/**
+ * Why the first of two tied laws is listed first, by the keys rankCandidates uses: fewer parameters, then a clearly
+ * lower BIC (steps of 2), then the smaller miss on the unseen frames. Only the first two are Occam; the third is a
+ * difference inside the noise, so it prefers neither law.
+ */
+export function tieBreakReason(first: Ranked, second: Ranked): string {
+  const ka = first.fit.k, kb = second.fit.k;
+  if (ka != null && kb != null && ka < kb) return "a tie goes to the law with fewer parameters";
+  const ba = first.fit.bic, bb = second.fit.bic;
+  if (ka === kb && ba != null && bb != null && Math.round(ba / 2) < Math.round(bb / 2)) return "a tie goes to the law with the lower BIC";
+  const za = first.fit.testZ, zb = second.fit.testZ;
+  // a record ranked before this rule may list them the other way round: then their order says nothing at all
+  if (za != null && zb != null && Number.isFinite(za) && Number.isFinite(zb) && za > zb) return "neither is simpler (both have the same number of parameters), so neither is preferred, and their order says nothing";
+  return "neither is simpler (both have the same number of parameters), so neither is preferred; it is listed first for a smaller miss on the unseen frames, a difference inside the noise";
+}

@@ -1,0 +1,327 @@
+{
+ "model": "muse-spark-1.3",
+ "effort": "low",
+ "date": "2026-11-01T21:57:49.790Z",
+ "n": 5,
+ "question": "Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+ "note": "Each clip is the file the visitor sees (public/cyt), uploaded unchanged and shown at its own frame rate (all six are under 300 frames, so none is thinned). The prompt is the quiz's question, after one line giving the frame rate and, where the page itself states one, a scale cue: the two Apollo clips got \"For scale, the astronaut is about 1.88 m tall.\", the Aachen pendulum got \"For scale, the string is about 50 cm long.\", and the other three clips (both Foucault cuts and the gym ball) got no cue. The answer is held to a closed schema: verdict \"real time\", \"slowed\" or \"sped up\", a factor and the reasoning. Each clip was asked 5 times in separate calls, at low reasoning effort; the verdict is the majority. An earlier attempt at medium effort stopped on its second call, when an answer ran past 6000 output tokens; its spend, about $0.10 (estimated from the first call's price), is counted in usd.",
+ "budgetUsd": 1.5,
+ "usd": 0.4671,
+ "usdThisRun": 0.3671,
+ "stopped": null,
+ "failures": [],
+ "clips": [
+  {
+   "id": "cyt-1",
+   "file": "public/cyt/cyt-1.mp4",
+   "fps": 25,
+   "frames": 150,
+   "durationS": 6,
+   "cue": null,
+   "cueWhy": "none: the page gives no scale for this clip",
+   "prompt": "You are shown 150 frames, 25.00 per second of the clip as it plays. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "sped up",
+   "truthFactor": 5,
+   "answers": [
+    {
+     "verdict": "sped up",
+     "factor": 3,
+     "reasoning": "The silver bob travels several floor-tile lengths from near camera to far background in ~0.6s with a full back-and-forth period ~1.2s. For a metre-scale gravity pendulum that distance implies average speeds of many m/s and a period far shorter than T=2pi sqrt(L/g) allows. The motion shows normal pendulum slowing at the ends but everything happens ~2-3x too fast, indicating fast-forward playback.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0318
+    },
+    {
+     "verdict": "sped up",
+     "factor": 3,
+     "reasoning": "The bob travels ~2-3 floor tiles each swing, implying a long suspension / long physical pendulum. A real gravity-driven pendulum with that amplitude would have a period of several seconds, but in the clip a full near-to-near oscillation takes only ~1.2 s with fast mid-swing transit and smooth harmonic turnarounds. The motion is too fast for gravity, indicating the clip is played faster than real life by about 3x.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0104
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "A metal ball pendulum swings toward and away from the camera over floor tiles between reference markers. In ~6s of video it completes ~4-5 full to-and-fro cycles, i.e. period ~1.2s. That matches a normal gravity-driven pendulum of a few tens of cm covering 2-3m with natural speed up in the middle and dwell at the ends. No floaty slow-motion hang, no motion-blur / strobing or unnaturally fast transit that would imply high-speed or time-lapse.",
+     "model": "muse-spark-1.3",
+     "usd": 0.008
+    },
+    {
+     "verdict": "slowed",
+     "factor": 4,
+     "reasoning": "The object is the bell-guard/tip of a fencing epee moving back and forth along the piste between markers. In real life a lunge/advance-retreat is an explosive ~0.3s action covering 1-2m. Here the same distance is covered in ~1s with a floaty, smooth, stop-and-reverse without motion blur, characteristic of high-fps slow-motion played back at 25fps.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0081
+    },
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "The object executes a gravity-driven pendulum-like oscillation of ~1-2m amplitude. The observed period of ~3-4s and the floaty, low-acceleration motion at the turn-around points is too slow for a ~1m physical pendulum in real time (~1.5-2s period), and the motion blur indicates faster real motion. Playback is smooth slow-motion, consistent with ~2x slower than real life.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0104
+    }
+   ],
+   "majority": null,
+   "majorityCount": 2,
+   "right": false
+  },
+  {
+   "id": "cyt-2",
+   "file": "public/cyt/cyt-2.mp4",
+   "fps": 29.97,
+   "frames": 156,
+   "durationS": 5.205,
+   "cue": "For scale, the astronaut is about 1.88 m tall.",
+   "cueWhy": "the astronaut's height, which the page states",
+   "prompt": "You are shown 156 frames, 29.97 per second of the clip as it plays. For scale, the astronaut is about 1.88 m tall. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "real time",
+   "truthFactor": 1,
+   "answers": [
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The astronaut ~1.88m tall crouches then jumps. Feet leave the ground for ~1.3-1.5s (~40 frames at 29.97 fps) for a height of ~0.3-0.4m judged against body scale, and kicked dust falls ballistically straight down. Time aloft t = 2*sqrt(2h/g). For h~0.4m, lunar g=1.62 m/s2 gives t~1.4s as observed. Earth g=9.8 would give t~0.57s, requiring ~2.5x slow-motion to match. Arm swing, knee bend and dust fall show no slow-motion float, consistent with real-time lunar gravity.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0294
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m tall makes a small crouch-hop of ~0.2-0.4m. In the clip the feet are off the ground for ~1.0-1.4s of the 5.2s / 156 frame @29.97fps clip. For ballistic flight t = 2*v0/g, h = v0^2/2g, so g ~ 8h/t^2 ~1-2 m/s2, i.e. lunar gravity. On Earth at real speed this hang time would require h >1m vertical jump in a bulky suit, impossible, and arm/crouch motions are normal speed, not slow-motion. Kicked dust falls ballistically and settles quickly with no air-suspension, consistent with vacuum at real speed, not slowed Earth footage.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0082
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88 m tall jumps/hops a few tens of cm off the surface. He stays airborne ~1-1.5 s total with a slow rise and slow fall, and kicked-up dust falls ballistically straight down with no air suspension. Drop time t=sqrt(2h/g): for h~0.3-0.4 m, lunar g~1.62 m/s2 gives ~0.6-0.7 s to fall, ~1.2-1.4 s up+down, matching what is seen in ~156 frames at 29.97 fps (~5.2 s clip). Earth g=9.8 would give only ~0.25 s to fall, ~0.5 s total - far shorter. Arm swings and body motions are quick and natural, not sluggish as 2-2.5x slow-motion Earth footage made to mimic 1/6-g would be. Motion is consistent with real-time in lunar gravity.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0087
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m tall jumps ~0.3-0.45m off surface. He is airborne ~1.2-1.4s per jump. For h~0.4m, lunar free-fall time up+down = 2*sqrt(2h/g) with g=1.62 m/s2 is ~1.4s. Earth time for same h with g=9.81 would be ~0.57s, impossible hang. Arm swings and knee bends are at normal human speed, not slow-motion. Kicked-up soil falls ballistically straight down with no air billow, as in vacuum. No ~2.5x slow-down needed to fake lunar g is present; motion matches lunar g at real time.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0075
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m tall rises ~0.3-0.4m off surface and stays aloft ~1.1-1.4s of the 156 frame / 29.97fps (~5.2s) clip. For ballistic flight h = g*(t/2)^2/2, this gives g ~1.4-1.8 m/s2, matching lunar 1.62 m/s2. On Earth same effort would be aloft only ~0.5s. Arm swing shows normal-speed motion blur at 30fps, and kicked dust falls ballistically straight down with no air lofting. A 2-2.5x slow-down used to fake 1/6-g on Earth would make limb speeds sluggish and is not seen, and sped-up would shorten hang time below lunar value.",
+     "model": "muse-spark-1.3",
+     "usd": 0.009
+    }
+   ],
+   "majority": "real time",
+   "majorityCount": 5,
+   "right": true
+  },
+  {
+   "id": "cyt-3",
+   "file": "public/cyt/cyt-3.mp4",
+   "fps": 25,
+   "frames": 125,
+   "durationS": 5,
+   "cue": "For scale, the string is about 50 cm long.",
+   "cueWhy": "the string's length, which the page states",
+   "prompt": "You are shown 125 frames, 25.00 per second of the clip as it plays. For scale, the string is about 50 cm long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "real time",
+   "truthFactor": 1,
+   "answers": [
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "A ~50 cm simple pendulum has period T=2*pi*sqrt(L/g) ~2*pi*sqrt(0.5/9.8) ~1.4 s, so side-to-side ~0.7 s. In the 5 s clip (125 frames at 25 fps) only about 1.5-2 full swings are seen, i.e. observed period ~2.8 s, about twice the physical period. Motion is smooth with correct pendulum slowing at extremes, so it is half-speed slow motion, factor ~2.",
+     "model": "muse-spark-1.3",
+     "usd": 0.025
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "A ~50 cm simple pendulum has period T=2π*sqrt(L/g) ~ 1.4 s. In the 125 frames at 25 fps = 5 s clip the ball goes left-to-left about 3.5 times, i.e. ~1.4-1.5 s per full oscillation, with fastest motion and blur at bottom center and dwelling at the turning points. This matches expected real-time pendulum dynamics, not slow or fast motion.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0053
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "A ~0.5 m simple pendulum has period T=2π*sqrt(L/g) ≈ 2π*sqrt(0.5/9.8) ≈ 1.4 s, half-period ~0.7 s. In the 125-frame 25 fps = 5 s clip the bob goes left-to-right in ~0.7 s and returns in ~1.4 s, giving ~3-3.5 full swings in 5 s. This matches the expected gravitational dynamics with normal acceleration at bottom and dwell at turning points, with no slow-motion float or fast-forward blur.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0075
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "A ~50 cm simple pendulum has period T = 2*pi*sqrt(L/g) ~ 2*pi*sqrt(0.5/9.8) ~ 1.4 s. In the 5 s clip (~125 frames at 25 fps) the ball makes ~3.5 full swings, with right-to-right peaks ~1.4-1.5 s apart, matching the expected real-world period. No slow-motion stretching or fast-motion shortening is seen.",
+     "model": "muse-spark-1.3",
+     "usd": 0.005
+    },
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "For a ~0.5 m simple pendulum T = 2*pi*sqrt(L/g) ~ 1.4 s, half-swing ~0.7 s. In the 125-frame 25 fps = 5 s clip only ~1.75 full swings are seen, i.e. apparent period ~2.8 s, about twice the real period. Motion is smooth with correct pendulum velocity profile but takes about twice as long, so playback is slowed.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0103
+    }
+   ],
+   "majority": "real time",
+   "majorityCount": 3,
+   "right": true
+  },
+  {
+   "id": "cyt-4",
+   "file": "public/cyt/cyt-4.mp4",
+   "fps": 50,
+   "frames": 125,
+   "durationS": 2.5,
+   "cue": null,
+   "cueWhy": "none: the page gives no scale for this clip",
+   "prompt": "You are shown 125 frames, 50.00 per second of the clip as it plays. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "slowed",
+   "truthFactor": 4.8,
+   "answers": [
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "The green ball thrown toward the low camera floats and grows in size too gradually, and the man's push/release motion looks floaty with reduced acceleration. The flight and bounce duration is about twice what real gravity and a normal throw over a few meters would produce, indicating half-speed slow motion.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0246
+    },
+    {
+     "verdict": "slowed",
+     "factor": 4,
+     "reasoning": "The green exercise ball falls/hovers far too slowly for gravity. The man releases the ball in the mirror and it remains suspended mid-air for over a second, and the foreground ball descends very gradually. Arm motion is also floaty. This is classic slow-motion, roughly quarter real speed.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0061
+    },
+    {
+     "verdict": "slowed",
+     "factor": 4,
+     "reasoning": "A large exercise ball is dropped/thrown toward the low camera and bounces. Under gravity it should fall and rebound in fractions of a second, but here the descent, the bounce near the floor, and especially the mirrored ball hanging in mid-air after release take ~1-2 seconds and show floaty, low-acceleration motion. Movement is smooth but clearly slower than real free-fall physics, consistent with ~quarter-speed slow motion.",
+     "model": "muse-spark-1.3",
+     "usd": 0.008
+    },
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "The green exercise ball is released/pushed and swings toward the low camera. Its fall/pendulum travel and the growth in apparent size, plus the person's arm follow-through in the mirror, are floaty and take about twice as long as a real 1m drop / ~2-3m pendulum quarter-period (~0.5-0.7s). Motion looks smooth slow-motion, consistent with ~2x slowed playback.",
+     "model": "muse-spark-1.3",
+     "usd": 0.01
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The foreground green ball swings like a ceiling-hung pendulum toward the low camera and back while the person pushes in the mirror. The transit time from top/hold to closest approach in about ~1 sec matches a ~quarter-period of a ~2m pendulum under normal gravity, and the person's arm motion looks natural with no floaty slow-motion hang or unnaturally fast gravity. Therefore motion is consistent with real-time.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0052
+    }
+   ],
+   "majority": "slowed",
+   "majorityCount": 4,
+   "right": true
+  },
+  {
+   "id": "cyt-5",
+   "file": "public/cyt/cyt-5.mp4",
+   "fps": 29.97,
+   "frames": 156,
+   "durationS": 5.205,
+   "cue": "For scale, the astronaut is about 1.88 m tall.",
+   "cueWhy": "the astronaut's height, which the page states",
+   "prompt": "You are shown 156 frames, 29.97 per second of the clip as it plays. For scale, the astronaut is about 1.88 m tall. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "slowed",
+   "truthFactor": 1.5,
+   "answers": [
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The astronaut crouches and makes a small vertical hop of ~0.3-0.4 m relative to his 1.88 m height. Time from leave-ground to peak to touchdown is ~1.2-1.5 s total in the 156 frames / 29.97 fps = ~5.2 s clip. For lunar g=1.62 m/s2, t_up = sqrt(2h/g) ~0.6 s and total ~1.2 s, which matches. On Earth the same hop would be ~0.5-0.6 s total. Dust kicked at the feet falls ballistically and settles fast with no air-suspension floating. There is no uniform slow-float that would indicate ~2.5x slowdown to fake lunar gravity, nor fast jitter of speed-up. Motion is consistent with real-time 1g/6 physics.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0305
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m rises from crouch to ~0.3-0.4m foot clearance and lands in ~5s total clip. Liftoff to touchdown is ~2.5-3s with a long floaty apex and slow fall, and kicked-up dust falls ballistically with no air drag. For lunar g=1.62 m/s2, hang time =2*v/g. A 2-2.5 m/s push gives ~2.5-3s airtime and ~1m rise of center of mass, matching what is seen. Earth-gravity timing would be ~0.6-0.8s for same jump. Motion is not the ~2.45x slow-down needed to mimic 1/6-g, arm swing shows normal-speed motion blur. Timing is consistent with real-time in 1/6-g.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0095
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The motion gives ~1.2-1.6 s of hang time for a ~0.3-0.4 m vertical rise of the boots off the ground for a 1.88 m suited astronaut. Free-fall h=0.5*g*t_up^2 gives g ~1.2-1.6 m/s2, i.e. lunar gravity, not terrestrial. Dust kicked at the feet at take-off falls ballistically and clears in ~0.3 s with no air suspension, consistent with vacuum. Arm swing, crouch and recovery take ~5.2 s total for 156 frames at 29.97 fps, normal human timescale. No ~2.5x slow-motion needed to explain floatiness; it is real lunar 1/6-g motion at real speed.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0096
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m rises from a crouch into a small hop. Takeoff to touchdown lasts ~1.2-1.3s for an apex rise of ~0.3-0.4m. Under lunar g ~1.62 m/s2, t = 2*sqrt(2h/g) ~1.2s, exactly as seen. Dust kicked at the feet falls ballistically straight down with no air suspension. Arm swing shows normal-speed motion blur. A 2-2.5x slowdown to fake lunar gravity from Earth would make hang time ~2.5-3s and make dust float, which is not seen.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0065
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "Astronaut ~1.88m in bulky suit makes a small crouch-hop. Feet leave ground and hang time is ~1 sec for only ~0.2-0.4 m rise. On the Moon g=1.62 m/s2, h = g*T^2/8 gives ~0.2m for T~1s, matching the video. On Earth the same hang time would require ~1.2m vertical jump, impossible from a crouch in a suit. Kicked-up regolith falls ballistically in vacuum arcs and settles quickly with no billowing, consistent with 1/6-g real-time. Motion looks floaty because it IS low-g, not because of slow-motion. Therefore playback is at real speed.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0071
+    }
+   ],
+   "majority": "real time",
+   "majorityCount": 5,
+   "right": false
+  },
+  {
+   "id": "cyt-6",
+   "file": "public/cyt/cyt-6.mp4",
+   "fps": 25,
+   "frames": 150,
+   "durationS": 6,
+   "cue": null,
+   "cueWhy": "none: the page gives no scale for this clip",
+   "prompt": "You are shown 150 frames, 25.00 per second of the clip as it plays. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+   "truth": "real time",
+   "truthFactor": 1,
+   "answers": [
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The silver sphere is a long pendulum bob swinging toward and away from the camera in its swing plane. It goes far to near to far in about 6 seconds, i.e. one full period ~6s. That corresponds to T=2pi sqrt(L/g) with L~9m, a normal museum/building Foucault pendulum length. Slow at the two turning points and fastest with slight motion blur in the middle, matching natural sinusoidal pendulum motion. No floating, jitter or unnaturally slow/fast cues of high-speed or time-lapse.",
+     "model": "muse-spark-1.3",
+     "usd": 0.031
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The object is a pendulum bob swinging toward and away from the camera along its wire. It goes from far extreme to near extreme and back in ~6 seconds, i.e. a ~6 s full period. That corresponds to a ~9 m long pendulum, physically plausible. Speed is maximal at the centre and goes smoothly to zero at both turning points, with natural translational motion blur increasing mid-swing. There is no high-speed phenomenon, strobing, or unnaturally floaty / jerky motion to indicate slow-motion or time-lapse.",
+     "model": "muse-spark-1.3",
+     "usd": 0.01
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "The metal bob swings toward then away from the camera along the floor line, far extreme to near extreme and back in ~6 s. That is one full oscillation, implying T~6 s, i.e. L~9 m, a plausible large / Foucault pendulum. Average speed ~1 m/s over ~1-2 m of tile distance, acceleration / deceleration into the turn-around and motion blur at mid-swing are consistent with normal 25 fps real-time imaging. No floaty slow-motion lingering or strobing / sped-up unnaturally fast gravity motion is seen.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0079
+    },
+    {
+     "verdict": "slowed",
+     "factor": 2,
+     "reasoning": "The ball makes one full swing out-and-back in ~6 sec (150 frames at 25fps). That is a ~6s period, implying ~9m pendulum length from T=2pi sqrt(L/g). The scene scale shown by floor tiles, marker pen and tape mark is only a few meters with a short support, where a real period of ~2-3s is expected. Motion is smooth and floaty with no fast bottom transit, consistent with playback at about half speed.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0089
+    },
+    {
+     "verdict": "real time",
+     "factor": 1,
+     "reasoning": "A metal bob swings toward then away from the camera along a line over ~6s. The speed is ~1 m/s, maximum at closest approach with natural motion blur and smooth sinusoidal slow-down at the turn-around ends. That matches a real-time long pendulum under gravity with a period of ~5-6s, no high-speed or frozen-motion cues that would require slow-motion, and no unnaturally fast float or jitter that would indicate speed-up.",
+     "model": "muse-spark-1.3",
+     "usd": 0.0076
+    }
+   ],
+   "majority": "real time",
+   "majorityCount": 4,
+   "right": true
+  }
+ ]
+}

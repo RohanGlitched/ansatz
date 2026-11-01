@@ -17,7 +17,15 @@ export const LANGUAGES: Record<string, string> = {
 
 const NAMES: Record<string, string> = { hi: "Hindi", ta: "Tamil", bn: "Bengali", mr: "Marathi", te: "Telugu", es: "Spanish" };
 
-export type Translation = { headline: string; finding: string; what_happens: string; summary: string };
+export type Translation = {
+  headline: string;
+  finding: string;
+  what_happens: string;
+  summary: string;
+  /** the scale sentence (the calibration note) and the given lines, translated by hand where a showcase report prints them */
+  scale?: string;
+  given?: string[];
+};
 
 // Devanagari, Bengali, Tamil and Telugu digits count as the same numbers as 0–9
 const DIGITS = ["०१२३४५६७८९", "০১২৩৪৫৬৭৮৯", "௦௧௨௩௪௫௬௭௮௯", "౦౧౨౩౪౫౬౭౮౯"];
@@ -83,7 +91,7 @@ export async function translate(e: Experiment, lang: string, key?: string): Prom
     ledger,
     `translate to ${NAMES[lang]}`,
   ).finally(counted);
-  for (const k of Object.keys(source) as (keyof Translation)[]) {
+  for (const k of Object.keys(source) as ("headline" | "finding" | "what_happens" | "summary")[]) {
     const want = numbers(source[k]), got = numbers(value[k] ?? "");
     if (want.some((n) => !got.includes(n))) {
       if (key) await putObject(key, JSON.stringify({ refused: true, at: new Date().toISOString() }), "application/json").catch(() => {});
