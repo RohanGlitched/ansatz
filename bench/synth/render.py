@@ -694,7 +694,7 @@ def build_pend(cid, L, th0, c, g, R, col, W, H, fps, dur, bgk, ref, lead, seed, 
                 ref_t, ev, exp, [], lead, 1, seed)
 
 
-def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0, mu=0.0, k2=0.0, fade=0.0):
+def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, ref, lead, seed, desc, noun, bgkw=None, ncoil=11, k3=0.0, mu=0.0, k2=0.0, fade=0.0, cq=0.0, F0=0.0, wd=0.0):
     rng = np.random.default_rng(seed)
     # ell = distance of block centre below the fixed anchor (down positive):  ell'' = g - (k/m)(ell - l0) - b ell'
     # a hardening spring adds - (k3/m)(ell - ell_eq)^3 about the equilibrium (Duffing)
@@ -704,11 +704,16 @@ def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, r
     # a lopsided spring adds - (k2/m)(ell - ell_eq)^2: stiffer stretched than squashed, so the swing sits off centre
     # a tiring spring loses stiffness as it works: k(t) = k (1 - fade t), so the period lengthens through the clip; time
     # rides along as a third state so RK4 sees it
+    # quadratic damping adds - cq y'|y'| (cq in 1/m); a periodic drive adds + F0 cos(wd t) (F0 in m/s², t from release, y
+    # down), with time riding along as a third state (sealed-law draws, scripts/sealed-law.ts)
     if fade:
         f3 = lambda y: [y[1], g - (k * (1 - fade * y[2]) / m) * (y[0] - l0) - b * y[1], 1.0]
         T, Y, _ = integrate(f3, [ell_eq + A, 0.0, 0.0], dur - lead)
+    elif F0:
+        fd = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - (k2 / m) * (y[0] - ell_eq) ** 2 - b * y[1] - cq * y[1] * abs(y[1]) - mu * math.tanh(y[1] / 0.002) + F0 * math.cos(wd * y[2]), 1.0]
+        T, Y, _ = integrate(fd, [ell_eq + A, 0.0, 0.0], dur - lead)
     else:
-        f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - (k2 / m) * (y[0] - ell_eq) ** 2 - b * y[1] - mu * math.tanh(y[1] / 0.002)]
+        f = lambda y: [y[1], g - (k / m) * (y[0] - l0) - (k3 / m) * (y[0] - ell_eq) ** 3 - (k2 / m) * (y[0] - ell_eq) ** 2 - b * y[1] - cq * y[1] * abs(y[1]) - mu * math.tanh(y[1] / 0.002)]
         T, Y, _ = integrate(f, [ell_eq + A, 0.0], dur - lead)
     traj = Traj(T, Y, lead)
     ymax_ell = max(Y[:, 0]) + bh_m / 2
@@ -762,6 +767,11 @@ def build_spring(cid, k, m, b, l0, A, g, bw_m, bh_m, col, W, H, fps, dur, bgk, r
     if k2:
         params["k2"] = P(k2, "N/m^2 (lopsided: y'' = -(k/m)(y - y_eq) - (k2/m)(y - y_eq)^2 - b y', y down)")
         params["k2_over_m"] = P(k2 / m, "1/(m s^2)")
+    if cq:
+        params["quadratic_damping_cq"] = P(cq, "1/m (y'' = ... - cq y'|y'|)")
+    if F0:
+        params["drive_F0"] = P(F0, "m/s^2 (y'' = ... + F0 cos(wd t), t from release, y down)")
+        params["drive_wd"] = P(wd, "rad/s")
     if fade:
         params["fade"] = P(fade, "1/s (tiring: k(t) = k (1 - fade t), t from release)")
     if k3:
