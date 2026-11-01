@@ -41,7 +41,7 @@ export default async function HowPage() {
         <h1>How it works</h1>
         <div className={styles.abstract}>
           <p>
-            An <em>ansatz</em> is a physicist&rsquo;s educated guess at the form of a law, made before the data decides. Ansatz automates the whole loop: look, measure, guess, test, and say honestly what was given and what was found. Under each step, what it produced on one real run: <Link href="/x/moon-jump">John Young&rsquo;s jump on the Moon</Link>.
+            An <em>ansatz</em> is a physicist&rsquo;s educated guess at the form of a law, made before the data decides. Ansatz automates the whole loop, one object at a time: look, measure, guess, test, and say honestly what was given and what was found. Under each step, what it produced on one real run: <Link href="/x/moon-jump">John Young&rsquo;s jump on the Moon</Link>.
           </p>
           <nav className={styles.toc} aria-label="The seven steps">
             <ol>

@@ -1,0 +1,357 @@
+/* "Can you tell?": six real clips on a plate, in their own colour, each with three choices; the answers turn up
+   under each clip and the tally under all six. Text on the plate is paper ink. */
+.wrap {
+  display: grid;
+  gap: 34px;
+}
+
+.wrap a {
+  color: var(--paper);
+}
+
+.wrap a:hover {
+  color: #fff;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px clamp(20px, 2.6vw, 40px);
+  align-items: start;
+}
+
+.item {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.film {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--prussian-deep);
+  outline: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  outline-offset: 5px;
+}
+
+.film video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.num {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  font-family: var(--cm);
+  font-size: 26px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 6px rgba(8, 26, 52, 0.8);
+  pointer-events: none;
+}
+
+/* three choices, set as one ruled control */
+.choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid color-mix(in srgb, var(--paper) 55%, transparent);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 4px 6px;
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--paper);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.opt + .opt {
+  border-left: 1.5px solid color-mix(in srgb, var(--paper) 35%, transparent);
+}
+
+.opt input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.opt:hover {
+  background: color-mix(in srgb, var(--paper) 14%, transparent);
+}
+
+.opt.on {
+  background: var(--paper);
+  color: var(--prussian-deep);
+}
+
+.opt:has(input:focus-visible) {
+  outline: 2px solid var(--measured);
+  outline-offset: -3px;
+}
+
+.choice:disabled .opt {
+  cursor: default;
+}
+
+.choice:disabled .opt:not(.on) {
+  opacity: 0.55;
+}
+
+.choice:disabled .opt:hover:not(.on) {
+  background: transparent;
+}
+
+.credit {
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--prussian-ink);
+  margin: 0;
+}
+
+/* the answers, under the clip they belong to */
+.card {
+  margin: 4px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--prussian-line);
+  display: grid;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: var(--cm);
+  font-size: 19px;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.row {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.rk {
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--prussian-ink);
+}
+
+.rv {
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--paper);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.rv small {
+  display: block;
+  margin-top: 2px;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: var(--prussian-ink);
+}
+
+.truth .rv {
+  color: #fff;
+}
+
+.mark {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  vertical-align: 2px;
+}
+
+.right {
+  color: var(--held);
+}
+
+.wrong {
+  color: var(--struck);
+}
+
+.none {
+  color: var(--prussian-ink);
+}
+
+/* the tally and the buttons; the scores hold their place before the answers, so nothing moves when they land */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 48px;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 24px;
+  border-top: 1px solid var(--prussian-line);
+}
+
+.tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px clamp(28px, 4vw, 56px);
+  outline: none;
+}
+
+.tally:focus-visible {
+  outline: 2px solid var(--measured);
+  outline-offset: 8px;
+}
+
+.score {
+  display: grid;
+  gap: 6px;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.sv {
+  font-family: var(--cm);
+  font-size: clamp(40px, 4.4vw, 56px);
+  line-height: 1;
+  color: #fff;
+}
+
+.of {
+  font-size: 0.45em;
+  color: var(--prussian-ink);
+}
+
+.sl {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.wrongScore .sv {
+  color: var(--struck);
+}
+
+.rightScore .sv {
+  color: var(--held);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+}
+
+.count {
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+.skip {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--ui);
+  font-size: 14px;
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.skip:hover {
+  color: #fff;
+}
+
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* on a phone each clip sits beside its three choices, stacked */
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "film choice"
+      "credit credit"
+      "card card";
+    column-gap: 14px;
+    row-gap: 8px;
+  }
+
+  .film {
+    grid-area: film;
+  }
+
+  .choice {
+    grid-area: choice;
+    grid-template-columns: 1fr;
+    align-self: stretch;
+  }
+
+  .opt + .opt {
+    border-left: 0;
+    border-top: 1.5px solid color-mix(in srgb, var(--paper) 35%, transparent);
+  }
+
+  .credit {
+    grid-area: credit;
+  }
+
+  .card {
+    grid-area: card;
+  }
+
+  .foot {
+    gap: 20px;
+  }
+
+  .sv {
+    font-size: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt {
+    transition: none;
+  }
+}

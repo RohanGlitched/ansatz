@@ -56,6 +56,7 @@ export async function GET() {
   const seriesRuns = series ? (await Promise.all(series.ids.map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null) : [];
   const moon = exps.find((e) => e.id === "moon-jump");
   const slowed = exps.find((e) => e.id === "moon-jump-slowed");
+  const fou5 = exps.find((e) => e.id === "foucault-pendulum-5x")?.extras?.truth?.rows.find((r) => r.param === "speedup");
   const st = moon?.extras?.speedTest;
   const rep = st?.repeats;
   const mt = moon?.extras?.memoryTest;
@@ -91,7 +92,7 @@ export async function GET() {
   const p = (s = "") => L.push(s);
   p("# Ansatz");
   p();
-  p(`> Film anything that moves; Ansatz finds the law that moves it. SAM 3.1 measures the object frame by frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model (Muse Spark watches the whole clip to name what moves). Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
+  p(`> Film anything that moves; Ansatz finds the law that moves it, one object at a time. SAM 3.1 measures that object frame by frame, Muse Spark proposes laws of motion as equations, code fits each law to the first 70% of the motion and ranks it on predicting the last 30%, which no law was fitted to; no number from it reaches any model (Muse Spark watches the whole clip to name what moves). Muse Spark referees, and Muse Wonder, an agent with a fitting tool, proposes one more law when the referee asks for one or the leading law misses its fitted frames by more than ${POOR_FIT}× the noise. Entry in the Meta Global AI Developer Hackathon (Indie track).`);
   p();
   p("Rule for agents: never POST to /api/run or /api/upload. They run paid models. Everything below is a GET of stored results, and the recorded replays on /new call no model.");
   p();
@@ -106,6 +107,7 @@ export async function GET() {
     const extra = pointRow ? ` A further ±${pointRow.value} m/s² depends on which point of the body is tracked (${pointRow.source.replace(/^Which point of the body is followed\s*/i, "").replace(/^\(|\)$/g, "")}), not included in the ±.` : "";
     p(`- Moon's gravity measured from 1972 Apollo 16 television: ${hl.moon.g.toFixed(2)} ± ${hl.moon.sigma.toFixed(2)} m/s² (statistical and ruler combined; true ${hl.moon.reference}).${extra} Page: ${SITE}/x/moon-jump#constants`);
   }
+  if (slowed?.clock && fou5) p(`- Gravity is a clock: one known length turns gravity into a clock, so a g wrong by a square says the footage is not playing at life speed. From gravity alone, the slowed Apollo copy reads ${slowed.clock.factor.toFixed(2)} ± ${(slowed.clock.sigma ?? NaN).toFixed(2)}× slower (true 1.5×) and the museum film its maker sped up 5× reads ${fou5.measured.toFixed(2)} ± ${(fou5.sigma ?? 0).toFixed(2)}× faster. A blind test of six real clips (you, then Muse Spark by eye, then Ansatz measured, then the truth; the gym ball Ansatz could not measure included) is at ${SITE}/#can-you-tell`);
   if (hl.jumpForJump) p(`- The headline slowdown: the same clip slowed 1.5× in secret, timed against the broadcast jump for jump: ${hl.jumpForJump.ratio.toFixed(3)} ± ${hl.jumpForJump.sigma.toFixed(3)}× slower (true 1.5×). Needs no reference value. Page: ${SITE}/x/moon-jump#same-jump`);
   if (synth) p(`- Rendered clips with known physics: ${phys.within} of ${phys.n} physical constants within 5% of the truth, median error ${phys.median.toFixed(2)}% (g, string length, drag, restitution, damping, frequency). Page: ${SITE}/proof#headline; every clip: ${SITE}/proof#benchmark`);
   if (synth) p(`- Of those, g measured against a ruler in view (the hardest case): ${ruler.within} of ${ruler.n} within 5%, median ${ruler.median.toFixed(1)}%. Page: ${SITE}/proof#headline`);

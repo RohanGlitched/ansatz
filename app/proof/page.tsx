@@ -14,6 +14,8 @@ import CountUp from "@/components/case/CountUp";
 import caseStyles from "@/components/case/case.module.css";
 import styles from "./proof.module.css";
 import { slowRenders } from "./slow";
+import ContactSheet, { type SheetClip } from "@/components/book/ContactSheet";
+import { printOf } from "../x/prints";
 
 // reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
 export const revalidate = 300;
@@ -248,7 +250,24 @@ export default async function ProofPage() {
       ]
     : [];
   const slowFlagged = slowAll ? slowAll.all.filter((r) => r.outcome === "flagged").length : 0;
-  const plates = { scoreboard: "I", footage: "II", sheet: "III", calibration: "IV", heldOut: "V" };
+  const plates = { scoreboard: "I", footage: "II", contact: "III", sheet: "IV", calibration: "V", heldOut: "VI" };
+  // every real clip Ansatz has been run on, stamped with its verdict: the showcases' figures read from their records,
+  // the strangers' from Table 1a (that night's runs), the two failures from "Where it fails"
+  const sj = moon?.extras?.memoryTest?.sameJump?.combined;
+  const contact: SheetClip[] = [
+    ...(moonG ? [{ id: "moon-jump", img: printOf("moon-jump"), title: "Apollo 16, as broadcast", verdict: "measured" as const, line: `The Moon’s gravity: ${moonG.measured.toFixed(2)} ± ${moonG.sigma.toFixed(2)} m/s², against ${moonG.reference}.`, href: "/x/moon-jump" }] : []),
+    ...(sj ? [{ id: "moon-jump-slowed", img: printOf("moon-jump-slowed"), title: "Apollo 16, slowed 1.5× in secret", verdict: "measured" as const, line: `Jump for jump against the broadcast: ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower. Muse Spark, by eye: real speed.`, href: "/x/moon-jump-slowed" }] : []),
+    ...(fouRow ? [{ id: "foucault-pendulum", img: printOf("foucault-pendulum"), title: "Foucault pendulum, real time", verdict: "number right, law wrong" as const, line: `g about ${fouRow.measured.toFixed(1)} m/s², against 9.81; even the winning law misses the unseen swing by far more than the noise, so it carries no error bar.`, href: "/x/foucault-pendulum" }] : []),
+    ...(fou5Row ? [{ id: "foucault-pendulum-5x", img: printOf("foucault-pendulum-5x"), title: "Foucault pendulum, sped up 5×", verdict: "measured" as const, line: `Plays ${fou5Row.measured.toFixed(2)} ± ${(fou5Row.sigma ?? 0).toFixed(2)}× faster than life; the maker’s label said 5×. Muse Spark, by eye: real time.`, href: "/x/foucault-pendulum-5x" }] : []),
+    ...(aachenG ? [{ id: "aachen-pendulum-50cm", img: printOf("aachen-pendulum-50cm"), title: "Pendulum on black, Aachen", verdict: "measured" as const, line: `g = ${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s², against 9.81. Clock check: real time.`, href: "/x/aachen-pendulum-50cm" }] : []),
+    { id: "pendulum-25cm", img: "/prints/real/pendulum-25cm-normal-gravity.webp", title: "Pendulum, 25 cm, in a test rig", verdict: "number right, law wrong", line: "g = 9.84 ± 0.17 m/s², 0.3% off; the law misses the unseen swing by 15% of the motion, so the publish gate refused it." },
+    { id: "pendulum-ruler", img: "/prints/real/pendulum-ruler-limjitning.webp", title: "Brass bob before a metre stick", verdict: "no published answer", line: "A 0.716 ± 0.072 m pendulum fits within the noise; its maker published no length or period to check it against." },
+    ...(slow ? [{ id: "sample-pendulum", img: printOf("sample-pendulum"), title: "A pendulum posted as slow motion", verdict: "no factor claimed" as const, line: "Only the uploader’s title says slow motion. The re-run declines to measure the string, because the clamp catches it, so it claims no factor.", href: "/x/sample-pendulum" }] : []),
+    { id: "metronome", img: "/prints/real/metronome-96bpm.webp", title: "Metronome at 96 beats a minute", verdict: "miss", line: "No law in the library is a metronome; the best missed by 25× the noise, so no fit was reported." },
+    { id: "gym-ball", img: "/prints/real/gym-ball-bounce-240fps.webp", title: "Gym ball, filmed at 240 fps", verdict: "miss", line: "SAM 3.1 held only part of a green ball in a green-lit corridor. Two tries, and both called a clip that plays 4.8× slower real time." },
+    { id: "pendelgesetz", img: "/prints/real/pendelgesetz.webp", title: "Pendulum before a chalkboard", verdict: "miss", line: "A dark bob on a dark board: SAM 3.1 could not hold it, and Ansatz reported no usable g.", anchor: "#fails" },
+    { id: "apollo15", img: "/prints/real/apollo15-hammer-feather.webp", title: "Apollo 15, the hammer and the feather", verdict: "miss", line: "The hammer is a rod 3 to 4 pixels wide against a white suit; SAM 3.1 followed the suit, and Ansatz reported a man standing still.", href: "/how#limits" },
+  ];
 
   return (
     <article>
@@ -490,6 +509,10 @@ export default async function ProofPage() {
           </tbody>
         </table>
       </div>
+
+      <Plate n={plates.contact} id="contact-sheet" title="Every real clip, stamped." caption="Every real clip Ansatz has been run on, the misses with the hits: archive footage, a museum's film, strangers' clips and two failures. Each frame is the run's own print or a still cut from the clip; open one for its run or its row.">
+        <ContactSheet clips={contact} />
+      </Plate>
 
       <Page>
 

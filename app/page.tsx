@@ -4,12 +4,15 @@ import Plate, { Note, Page, Section } from "@/components/book/Plate";
 import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import Footage from "@/components/book/Footage";
+import CanYouTell from "@/components/book/CanYouTell";
+import Fold from "@/components/book/Fold";
 import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawTex } from "./x/lawTex";
 import { printOf } from "./x/prints";
 import { runTime, runTimeText } from "./runtime";
 import { plateLaws } from "@/lib/plateLaws";
 import { costText, headline } from "@/lib/headline";
+import { canYouTell } from "./cyt";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
@@ -50,6 +53,7 @@ export default async function Home() {
   const catalogue = exps.filter((e) => e.id !== "moon-jump-slowed");
   const slowedCopy = exps.find((e) => e.id === "moon-jump-slowed");
   const rt = runTime(exps);
+  const cyt = await canYouTell().catch(() => null);
 
   return (
     <>
@@ -68,16 +72,24 @@ export default async function Home() {
             )}
           </div>
           {moon && slowedCopy && (
-            <figure className={styles.footage}>
-              <Footage
-                className={styles.clips}
-                clipClassName={styles.clip}
-                labelClassName={styles.clipLabel}
-                clips={[
-                  { src: moon.source.video, label: "A. The broadcast" },
-                  { src: slowedCopy.source.video, label: `B. Slowed ${st?.truth ?? 1.5}× in secret` },
-                ]}
-              />
+            <figure className={`${styles.footage} ${styles.footSheet}`}>
+              <div className={styles.clipsWrap}>
+                <Footage
+                  className={styles.clips}
+                  clipClassName={styles.clip}
+                  labelClassName={styles.clipLabel}
+                  clips={[
+                    { src: moon.source.video, label: "A. The broadcast" },
+                    { src: slowedCopy.source.video, label: `B. Slowed ${st?.truth ?? 1.5}× in secret` },
+                  ]}
+                />
+                {clipB && (
+                  <p className={styles.stamp}>
+                    <span className={styles.stampWho}>Muse Spark on B, by eye</span>
+                    &ldquo;Real speed&rdquo; {sparkWrongB} of {rp?.n ?? 5}
+                  </p>
+                )}
+              </div>
               <figcaption>
                 Apollo 16, 1972 (NASA), in its original colour. Ansatz timed each jump in B against the same jump in A. <a href="#moon">How</a>.
               </figcaption>
@@ -85,7 +97,7 @@ export default async function Home() {
           )}
           <div className={styles.abstract}>
             <p>
-              A video clip becomes a physics experiment. SAM 3.1 measures the object frame by frame. Muse Spark writes candidate laws of motion. Each law is fitted to the start of the motion only and has to predict the rest. Laws the future refutes are struck out; the one that predicts survives.
+              A video clip becomes a physics experiment, one object at a time. SAM 3.1 measures that object frame by frame. Muse Spark writes candidate laws of motion. Each law is fitted to the start of the motion only and has to predict the rest. Laws the future refutes are struck out; the one that predicts survives.
             </p>
             <p className={styles.who}>
               For students, teachers and anyone with a phone. <a href="#who">Who it is for</a>.
@@ -100,6 +112,11 @@ export default async function Home() {
             </div>
           </div>
         </div>
+        {hl.moonClock && fou5Row && (
+          <p className={styles.clockLine}>
+            <b>Gravity is a clock.</b> One known length turns gravity into a clock: if g comes out wrong by a square, the footage is not playing at life speed. From gravity alone, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed 1.5×, and {fou5Row.measured.toFixed(2)} ± {(fou5Row.sigma ?? 0).toFixed(2)}× faster on a museum film its maker sped up 5×.
+          </p>
+        )}
       </header>
 
       <Page>
@@ -125,6 +142,31 @@ export default async function Home() {
             sparkN={rp?.n ?? 5}
             g={moonG ? { v: moonG.measured, s: moonG.sigma, ref: moonG.reference } : undefined}
           />
+        </Plate>
+      )}
+
+      {cyt && (
+        <Plate id="can-you-tell" className={styles.cytPlate} caption="Six real clips, each cut to a few seconds without retiming a frame. Every answer under them is read from a stored run; nothing here calls a model.">
+          <div className={styles.cytHead}>
+            <h2 className={styles.cytH}>Can you tell?</h2>
+            <p>For each real clip, say whether it plays in real time, slowed or sped up. Then see what Muse Spark said by eye and what Ansatz measured.</p>
+          </div>
+          <CanYouTell data={cyt} />
+          <Fold className={`onPlateFold ${styles.cytFold}`} summary="Credits, cuts and where each answer comes from (this gives the answers away)">
+            <ol className={styles.cytSources}>
+              {cyt.clips.map((c, i) => (
+                <li key={c.id}>
+                  <b>
+                    {i + 1}. {c.title}.
+                  </b>{" "}
+                  {c.source.href ? <a href={c.source.href}>{c.source.credit}</a> : c.source.credit}, {c.source.licence}. On this page: {c.source.cut}. Answers from <code>{c.source.record}</code>.
+                </li>
+              ))}
+            </ol>
+            <p>
+              Muse Spark&rsquo;s answer is the one its run stored when it watched the clip (for the two Apollo clips, the same one-clip question asked five times, by majority). Ansatz&rsquo;s is the run&rsquo;s clock check: a flagged clock gives its factor; an unflagged one reads real time, with the factor its measured gravity implies. The tally counts a match with the truth; &ldquo;could not measure&rdquo; counts as a miss.
+            </p>
+          </Fold>
         </Plate>
       )}
 
