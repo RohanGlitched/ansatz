@@ -23,7 +23,7 @@ const BUDGET_MS = 3000;
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const order = ["moon-jump", "moon-jump-slowed", "beach-ball-drag", "hardening-spring", "dry-friction-spring", "hindi-pendulum", "sample-pendulum", "big-swing", "bouncing-ball", "spring"];
-const pages = ["/", "/judges", "/proof", "/how", "/new", "/x", "/class/new", "/class/demo23", "/class/jdgs26", "/series/pendulum-lengths", "/llms.txt", "/robots.txt", "/sitemap.xml", "/bench", "/bench/observer.json", "/icon.svg",
+const pages = ["/", "/judges", "/proof", "/lab", "/how", "/new", "/x", "/class/new", "/class/demo23", "/class/jdgs26", "/series/pendulum-lengths", "/llms.txt", "/robots.txt", "/sitemap.xml", "/bench", "/bench/observer.json", "/icon.svg",
   ...order.flatMap((id) => [`/x/${id}`, `/x/${id}/report`, `/x/${id}/data.csv`, `/x/${id}/hi`])];
 const broken = [/\bNaN\b/, /\bInfinity\b/, /±\s?0(\.0+)?%/, /±\s?0\.000(?!\d)/];
 
@@ -105,7 +105,7 @@ if (layout) {
   const { chromium } = await import(pathToFileURL(pw).href);
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
-  for (const p of ["/", "/judges", "/proof", "/x", "/x/moon-jump"]) {
+  for (const p of ["/", "/judges", "/proof", "/lab", "/x", "/x/moon-jump"]) {
     await page.goto(base + p, { waitUntil: "load", timeout: 120_000 });
     const { sw, cw, wide } = await page.evaluate(() => {
       const d = document.documentElement;
