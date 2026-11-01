@@ -449,7 +449,7 @@ export default function NewExperiment({
         return;
       }
       if (s?.state === "failed") throw new Error(s.message ?? "The experiment failed.");
-      if (s?.state === "gone") throw new Error("This experiment finished, but its record is no longer stored.");
+      if (s?.state === "gone") throw new Error(s.message ?? "This experiment's record is no longer stored.");
       for (const d of (s?.progress ?? []) as { step: string; state: string; detail?: string; at: number; data?: unknown }[]) {
         if (d.state === "done" && d.data) {
           if (d.step === "measure") setLive((l) => ({ ...l, measure: d.data as LiveData["measure"] }));

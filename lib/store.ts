@@ -128,6 +128,24 @@ export async function objectSize(key: string): Promise<number | null> {
   return Number(((await r.json()) as { size?: string }).size ?? NaN);
 }
 
+/** When an object was last written, in ms since the epoch, without downloading it (null if it isn't there). */
+export async function objectUpdated(key: string): Promise<number | null> {
+  const b = bucket();
+  if (!b) {
+    const { stat } = await import("node:fs/promises");
+    return stat(path.join(LOCAL, key)).then((s) => s.mtimeMs, () => null);
+  }
+  const r = await fetch(`https://storage.googleapis.com/storage/v1/b/${encodeURIComponent(b)}/o/${encodeURIComponent(key)}?fields=updated`, {
+    headers: { authorization: `Bearer ${await gcsToken()}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GCS stat ${key}: HTTP ${r.status}`);
+  const t = Date.parse(((await r.json()) as { updated?: string }).updated ?? "");
+  return Number.isFinite(t) ? t : null;
+}
+
 /** Starts a resumable upload the browser finishes itself (the session URL is the only capability it gets). */
 export async function startResumableUpload(key: string, contentType: string, origin: string, size?: number): Promise<string | null> {
   const b = bucket();

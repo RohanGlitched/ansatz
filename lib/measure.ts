@@ -441,18 +441,22 @@ export function landingIndex(t: number[], ypx: number[], minSpeed = 50): number 
 /**
  * The first frame of the motion after any rest at the start of the window: the mirror of landingIndex, and as law-neutral
  * (it reads only when the body starts to move, not a value any law is tuned to). A frame is at rest when its speed is under
- * a tenth of the window's typical moving speed (and under minSpeed px/s); the take-off is the first frame of two in a row
- * that move, less one, so the frame it leaves from is kept. 0 when the window starts in motion or never rests.
+ * a tenth of the window's typical moving speed (and under minSpeed px/s). Speeds are forward differences, frame i to
+ * i + 1, so a step reads as moving only once the body has left: the take-off is the first of two moving steps in a row,
+ * and the index returned is the frame at its end, the first frame strictly in flight. The last frame at rest is dropped
+ * with the rest: the body left it at some instant between two frames, so it is not on the flight's path. (A central
+ * difference already reads that last rest frame as moving, which kept one or two rest frames.) 0 when the window starts
+ * in motion or never rests.
  */
 export function takeoffIndex(t: number[], xpx: number[], ypx: number[], minSpeed = 50): number {
   const n = t.length;
   if (n < 6) return 0;
-  const v = t.map((_, i) => (i === 0 || i === n - 1 ? NaN : Math.hypot(xpx[i + 1] - xpx[i - 1], ypx[i + 1] - ypx[i - 1]) / (t[i + 1] - t[i - 1])));
+  const v = t.slice(0, -1).map((_, i) => Math.hypot(xpx[i + 1] - xpx[i], ypx[i + 1] - ypx[i]) / (t[i + 1] - t[i]));
   const moving = v.filter(Number.isFinite).sort((a, b) => a - b);
   const v90 = moving[Math.floor(moving.length * 0.9)] ?? 0;
   const rest = Math.min(minSpeed, 0.1 * v90);
-  if (!(v[1] < rest)) return 0;
-  for (let i = 2; i < n - 2; i++) if (v[i] >= rest && v[i + 1] >= rest) return i - 1;
+  if (!(v[0] < rest)) return 0;
+  for (let i = 1; i < v.length - 1; i++) if (v[i] >= rest && v[i + 1] >= rest) return i + 1;
   return 0;
 }
 

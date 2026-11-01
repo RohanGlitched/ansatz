@@ -11,12 +11,13 @@ import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import { clipData, getExperiment, plateData, showcaseIds, videoUrl, winnerOf } from "@/lib/experiments";
 import { fou5Of, fou5SameFilm } from "@/lib/fou5";
+import { clockFigure } from "@/lib/clockfig";
 import { paramLatex } from "@/lib/latex";
-import { atBound, clockCheckFor, type Experiment } from "@/lib/experiment";
+import { atBound, clockCheckFor, PIPELINE, type Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { prettyUnit, secondPower } from "@/lib/units";
 import { fmtDate, fmtPair, fmtProse } from "@/lib/format";
-import { dampingTie, noiseScore, tieBreakReason, tied } from "@/lib/tie";
+import { BIC_EVIDENCE, DAMPING_UNDECIDED_SUMMARY, dampingNested, dampingRates, dampingTie, noiseScore, tieBreakReason, tied } from "@/lib/tie";
 import { RENDERED } from "@/components/liveStripMath";
 import { lawHtml, lawTex } from "../lawTex";
 import { LANGUAGES, translation } from "@/lib/translate";
@@ -103,6 +104,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const pv = Object.fromEntries(win.law.params.map((p) => [p.name, { v: win.fit.theta[p.name], s: win.fit.sigma[p.name] }]));
   const prose = proseOf(e, pv);
   const damping = dampingTie(e);
+  // the two tied laws' own damping rates, printed side by side in place of the winner's mechanism sentence
+  const rates = dampingRates(e);
+  // a linear law tied with the same law plus a quadratic term: nested, so the extra term is simply not needed
+  const nested = damping ? null : dampingNested(e);
   // why the first of the two tied damping forms is listed first, by the ranking's own keys
   const dampingWhy = damping ? (() => {
     const [a, b] = e.candidates.filter((c) => c.fit.ok).sort((x, y) => x.rank - y.rank);
@@ -119,11 +124,16 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
     const above = e.candidates.filter((x) => x.rank < c.rank && x.fit.ok);
     if (!above.some((x) => x.fit.testRms > c.fit.testRms)) return null;
     if (c.law.params.some((p) => !p.fixed && p.name !== "cal" && atBound(c.law, p.name, c.fit.theta[p.name]))) return "A parameter is pressed against its limit, so it ranks after laws whose values settled freely.";
-    if (Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ) && c.fit.trainZ! > c.fit.testZ!) return `Its unseen miss is small, but it misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}× the noise.`;
     const tiedAbove = above.filter((x) => tied(x.fit, c.fit));
+    if (Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ) && c.fit.trainZ! > c.fit.testZ!) {
+      // "small" only when it is: within twice the winner's unseen miss, and within five times the noise
+      const winZ = Number.isFinite(win.fit.testZ) ? win.fit.testZ! : Infinity;
+      if (c.fit.testZ! <= Math.max(2 * winZ, 1.5) && c.fit.testZ! <= 5) return `Its unseen miss is small (${fmt(c.fit.testZ!, 2)}× the noise), but it misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}×.`;
+      if (!tiedAbove.length) return `It misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}× the noise, a little more than the unseen ones (${fmt(c.fit.testZ!, 2)}×).`;
+    }
     if (tiedAbove.some((x) => x.fit.k < c.fit.k)) return "Tied within the noise with a law above it; the law with fewer parameters ranks first.";
-    if (tiedAbove.some((x) => x.fit.k === c.fit.k && Math.round(x.fit.bic / 2) < Math.round(c.fit.bic / 2))) return "Tied within the noise with a law above it; the law with the lower BIC ranks first.";
-    return "Tied within the noise with a law above it, which has as many parameters and missed the unseen frames slightly less.";
+    if (tiedAbove.some((x) => x.fit.k === c.fit.k && c.fit.bic - x.fit.bic >= BIC_EVIDENCE)) return "Tied within the noise with a law above it; the law whose BIC is lower by 2 or more ranks first.";
+    return "Tied within the noise with a law above it, as simple as this one; their order says nothing.";
   };
   // the referee's words are shown only while the law it wrote about still leads
   const ref = e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique : null;
@@ -147,11 +157,19 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const sparkPlain = e.candidates.filter((c) => c.origin === "muse" && c.fit.ok).sort((a, b) => a.fit.testRms - b.fit.testRms)[0];
   const sparkRough = !!sparkPlain && Number.isFinite(sparkPlain.fit.testZ) && sparkPlain.fit.testZ! > 5;
   const rowRough = (param: string) => (param === "g_spark" ? sparkRough : rough);
-  const rowWhy = (r: { param: string; sigma: number }) =>
+  // a speed-up's ± in its parts (the 1% assumed on a stated length, and the fit's own statistical part), never called
+  // statistical as a whole; and the period with no law, where scripts/period-check.ts stored it
+  const pc = e.extras?.periodCheck;
+  const speedParts = (r: { sigma: number; sigmaFit?: number; sigmaAssumed?: number }) =>
+    r.sigmaAssumed != null && r.sigmaFit != null
+      ? `± ${r.sigmaAssumed.toFixed(3)} if the stated ${pc?.lengthM ?? ""}${pc ? " m" : "length"} is good to 1%; the fit alone ± ${r.sigmaFit.toFixed(4)}`
+      : `± ${(r.sigma ?? 0).toFixed(2)}, mostly the uncertainty of the stated length`;
+  const speedPeriod = pc ? `the swing’s period, ${pc.period.toFixed(4)} s, needs no law: ${pc.crossings} zero crossings give ${pc.speedup.toFixed(3)}×` : null;
+  const rowWhy = (r: { param: string; sigma: number; sigmaFit?: number; sigmaAssumed?: number }) =>
     r.param === "g_spark"
       ? `no error bar: Muse Spark’s plain law misses the unseen frames by ${fmt(sparkPlain!.fit.testZ!, 2)}× the noise`
       : r.param === "speedup"
-        ? `statistical ± ${(r.sigma ?? 0).toFixed(2)}; the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so no error bar`
+        ? `${speedParts(r)}${speedPeriod ? `; ${speedPeriod}` : ""}; the winning law’s shape misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so g itself has no error bar`
         : `no error bar: the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise`;
   // the sped-up Foucault film: the check that needs no reference value is the same film's real-time stretch
   const sameFilm = e.id === "foucault-pendulum-5x" ? fou5Of(e, await getExperiment("foucault-pendulum").catch(() => null)) : null;
@@ -174,23 +192,26 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
       // gravity came out too strong: the clip plays faster than life; the filmmaker's on-screen label, where there is one, is the truth
       const sp = e.extras?.truth?.rows.find((r) => r.param === "speedup");
       const gc = e.comparisons.find((c) => c.param === "g" || /gravity/i.test(c.label));
-      const v = sp ? sp.measured : 1 / clock.factor;
-      const s = sp ? sp.sigma : clock.sigma ? clock.sigma / (clock.factor * clock.factor) : undefined;
+      // the figure as /x and llms.txt print it (lib/clockfig.ts): the same rough-fit rule
+      const fig = clockFigure(e)!;
+      const v = fig.value;
+      const s = fig.sigma;
       const strong = gc ? `Found from gravity coming out ${Math.round(Math.abs(gc.measured) / gc.reference)}× too strong against Earth’s known value: gravity scales with the square of time, so the clip runs faster than life.` : "Found from gravity coming out too strong against the world’s known value, so the clip runs faster than life.";
       return {
         label: "How much faster than life the clip plays",
-        v: v.toFixed(2),
-        // the speed-up's ± is computed from gravity's σ: on a rough fit it is only statistical, so it is said, not printed as the ±
-        pm: s && !rough ? s.toFixed(2) : undefined,
+        v: fig.v,
+        // on a rough fit the speed-up's ± is said in its parts, not printed as the headline's ±
+        pm: fig.pm,
         unit: "×",
-        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so neither its gravity nor the speed-up carries an error bar${s ? ` (the speed-up’s statistical ± is ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilm(sameFilm) ? ` A check that needs no reference value: gravity scales as one over time squared, so against the same film’s real-time stretch the speed-up is √(g here ÷ g there) = ${fou5SameFilm(sameFilm)}.` : ""}`,
+        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar. The speed-up does not need one from the law: it is a frequency ratio, and a misfit in the swing’s shape leaves its period alone${sp ? ` (${speedParts(sp)}${speedPeriod ? `; ${speedPeriod}` : ""})` : s ? ` (± ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilm(sameFilm) ? ` A check that needs no reference value: gravity scales as one over time squared, so against the same film’s real-time stretch the speed-up is √(g here ÷ g there) = ${fou5SameFilm(sameFilm)}.` : ""}`,
       };
     }
     if (clock) {
+      const fig = clockFigure(e)!;
       return {
         label: "How much slower than life the clip plays",
-        v: rough ? `about ${clock.factor.toFixed(1)}` : clock.factor.toFixed(2),
-        pm: !rough && clock.sigma ? clock.sigma.toFixed(2) : undefined,
+        v: fig.v,
+        pm: fig.pm,
         unit: "×",
         against: rough
           ? `Unconfirmed: found from gravity coming out too weak against the world’s known value, and the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so something it leaves out matters.`
@@ -290,6 +311,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                 </p>
               )
             )}
+            {damping && <p className={styles.finding}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: the damping figure above is one of two equally good descriptions. <a href="#law">The law</a>.</p>}
             {rerun && <p className={styles.rerun}>{rerun.note}</p>}
             {/* the Moon's first screen: the known value beside the measured one, and the memory test in one line */}
             {sj && moonG && !lang && (
@@ -321,6 +343,13 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               <dt>The clip</dt>
               <dd className="num">
                 {e.video.frames} frames at {e.video.fps.toFixed(2)} fps, {e.video.width}×{e.video.height}
+              </dd>
+            </div>
+            <div>
+              <dt id="method-version">Method version</dt>
+              <dd className="num">
+                {e.pipeline ?? "before version stamps"}
+                {e.pipeline !== PIPELINE ? <>; today&rsquo;s runs use {PIPELINE} (<a href="/bench/pipelines.json">what changed</a>)</> : ""}
               </dd>
             </div>
             {langs.length > 0 && (
@@ -428,9 +457,23 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         <Note who={win.origin === "revision" ? "Muse Wonder 1.0" : win.origin === "muse" ? "Muse Spark 1.3" : "A textbook control"}>
           {win.origin === "revision" ? "Wrote this law with a fitting tool, on the fitted frames only." : win.origin === "muse" ? "Proposed this law after watching the clip." : "Entered by code to compete with the proposed laws."} Code compiled it and integrated it.
         </Note>
-        <p className={styles.para} lang={tr?.summary ? trLang : undefined}>
-          {tr?.summary ?? win.law.summary}
+        {/* the winner's mechanism sentence is a claim about which damping law holds: withheld when the clip did not decide it */}
+        <p className={styles.para} lang={tr?.summary && !damping ? trLang : undefined}>
+          {damping ? DAMPING_UNDECIDED_SUMMARY : tr?.summary ?? win.law.summary}
         </p>
+        {rates && rates.every((r) => r.params.length) && (
+          <p className={styles.para}>
+            Each law&rsquo;s own damping rate:{" "}
+            {rates.map((r, i) => (
+              <span key={r.title}>
+                {i ? "; " : ""}
+                {r.form} ({r.title.charAt(0).toLowerCase() + r.title.slice(1)}), {r.params.map((p) => `${p.name} = ${rough || !(p.sigma > 0) ? `about ${fmt(p.value, 2)}` : fmtPair(p.value, p.sigma)}${p.unit && p.unit !== "1" ? ` ${prettyUnit(p.unit)}` : ""}`).join(", ")}
+              </span>
+            ))}
+            .
+        </p>
+        )}
+        {nested && <p className={styles.para}>{nested.charAt(0).toUpperCase() + nested.slice(1)}.</p>}
         {damping && dampingWhy && <p className={styles.caution}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: {dampingWhy.startsWith("a tie") ? `it ranks first only because ${dampingWhy}.` : `${dampingWhy}.`}</p>}
         {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 10 && <p className={styles.caution}>Misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise: read this as a description, not a law.</p>}
 
@@ -1570,8 +1613,21 @@ function isRough(e: Experiment) {
  */
 function proseOf(e: Experiment, params: Record<string, { v: number; s: number }>) {
   const rough = isRough(e);
+  // a constant whose reported ± also carries an assumption beyond the fit (a stated length taken as good to 1%): the
+  // model's sentence quotes the fit's own ±, so it is restated with the reported ± first and the fit-only part labelled
+  const widened = rough
+    ? []
+    : e.comparisons.flatMap((c) => {
+        const p = params[c.param];
+        if (!p || !(p.s > 0) || !(c.sigma > 1.5 * p.s)) return [];
+        const fit = fmtPair(p.v, p.s);
+        return [{ fit, full: fmtPair(p.v, c.sigma), fitPm: fit.split(" ± ")[1] }];
+      });
+  const UNIT = String.raw`(\s*(?:m\/s²|m\/s\^2|m s⁻²|rad\/s|1\/s|m|s)(?![\w/^²]))?`;
+  const rest = (e.given ?? []).some((g) => /length/i.test(g)) ? "the rest is the 1% assumed on the stated length" : "the rest is the ruler’s uncertainty";
   return (t: string) => {
-    const out = fmtProse(t, params);
+    let out = fmtProse(t, params);
+    for (const w of widened) out = out.replace(new RegExp(`${w.fit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}${UNIT}`, "g"), (_all, unit?: string) => `${w.full}${unit ?? ""} (the fit alone gives ± ${w.fitPm}; ${rest})`);
     return rough ? out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmt(Number(x), 2)}`) : out;
   };
 }

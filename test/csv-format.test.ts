@@ -68,7 +68,7 @@ test("demo class: g from Ansatz's period and the tape length lands within 0.1% o
 });
 
 test("damping ties: linear and quadratic tie on the 40 cm run; the 70° swing has a clear winner", () => {
-  assert.match(dampingTie(show("pendulum-40cm")) ?? "", /linear and quadratic tie/);
+  assert.match(dampingTie(show("pendulum-40cm")) ?? "", /damping law is not decided by this clip \(linear and quadratic damping tie\)/);
   assert.equal(dampingTie(show("big-swing")), null);
   const moon = show("moon-jump");
   const [a, b] = moon.candidates;

@@ -323,5 +323,179 @@
    "majorityCount": 4,
    "right": true
   }
- ]
+ ],
+ "parity": {
+  "label": "Information parity: asked again with what Ansatz's runs were given",
+  "model": "muse-spark-1.3",
+  "effort": "low",
+  "date": "2026-11-01T23:18:47.624Z",
+  "n": 5,
+  "question": "Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+  "note": "The first set gave Muse Spark no length on clips 1, 4 and 6, while Ansatz's runs of the same footage were told one (8.97 m for both Foucault cuts, 75 cm for the gym ball) and, for the two Foucault cuts, measured the run's whole clip (22.5 s and 42 s) where the quiz showed a 6 s crop. This set asks those three clips again with that same length as the scale cue and the same footage the run measured, thinned to at most 300 frames as Ansatz's own observer sees it, 5 times each in separate calls at low reasoning effort (Ansatz's observer runs at medium); the verdict is the majority. Everything else (model, question, schema) is as in the first set.",
+  "budgetUsd": 0.4,
+  "usd": 0.2659,
+  "stopped": null,
+  "failures": [],
+  "clips": [
+   {
+    "id": "cyt-1",
+    "file": "public/showcase/foucault-pendulum-5x.mp4",
+    "sees": "the run's whole 22.5 s clip, as Ansatz measured it, not the page's 6 s crop",
+    "fps": 13.321,
+    "frames": 300,
+    "durationS": 22.52,
+    "cue": "For scale, this pendulum is 8.97 m long.",
+    "cueWhy": "the length Ansatz's run was told (data/showcase/foucault-pendulum-5x.json given[])",
+    "prompt": "You are shown 300 frames, 13.32 per second of the clip as it plays. For scale, this pendulum is 8.97 m long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "sped up",
+    "truthFactor": 5,
+    "answers": [
+     {
+      "verdict": "sped up",
+      "factor": 5,
+      "reasoning": "For a simple pendulum T = 2*pi*sqrt(L/g). With L=8.97m, T ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s real time. The 300 frames at 13.32 frames per second of clip time corresponds to ~22.5 s of clip time. In that time the bob makes ~18-19 full near-far-near oscillations, i.e. clip period ~1.2s. That is ~5x shorter than the physical 6s period, so motion is much too fast to be real time. It is sped up by ~6.0/1.2 ~5.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0566
+     },
+     {
+      "verdict": "sped up",
+      "factor": 8,
+      "reasoning": "For L=8.97m, T=2pi*sqrt(L/g)=2pi*sqrt(8.97/9.81)~6.0 s. The 300-frame clip at 13.32 fps lasts ~22.5 s, so real-time would show ~3-4 full to-and-fro swings. The clip shows ~25-30 full near-far-near cycles, i.e. observed period ~0.7-0.8 s near to near. Motion is sharp with no slow-motion blur and amplitude does not decay fast as in slowed high-speed. Observed frequency is ~8x too high, so playback is sped up by ~6.0/0.75 ~8.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0138
+     },
+     {
+      "verdict": "sped up",
+      "factor": 12,
+      "reasoning": "For L=8.97 m, T=2pi*sqrt(L/g) ~ 2pi*sqrt(8.97/9.81) ~ 6.0 s. The 300 frames cover 300/13.32 ~ 22.5 s of clip playback. The bob goes near-far-near about every ~6-7 frames, i.e. ~0.45-0.5 s per full oscillation in playback, versus ~6 s in real life. Clip oscillation is ~12x too fast, so it is sped up.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0154
+     },
+     {
+      "verdict": "sped up",
+      "factor": 10,
+      "reasoning": "For L=8.97 m, T=2*pi*sqrt(L/g) ~ 6.0 s. The clip as played is 300 frames at 13.32 fps = ~22.5 s. The bob goes near-far-near with a period of ~8 frames = ~0.6 s in clip time. 6.0 / 0.6 ~ 10, so the motion is ~10x faster than real gravity pendulum motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0165
+     },
+     {
+      "verdict": "sped up",
+      "factor": 10,
+      "reasoning": "An 8.97 m simple pendulum has period T = 2π sqrt(L/g) ≈ 2π sqrt(8.97/9.81) ≈ 6.0 s. In the clip the bob goes from nearest to farthest and back in ~8 frames. At 13.32 frames/s of playback that is ~8/13.32 ≈ 0.6 s per full oscillation. 6.0 / 0.6 ≈ 10, i.e. the motion is about ten times too fast to be real, so the clip is sped up.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0108
+     }
+    ],
+    "majority": "sped up",
+    "majorityCount": 5,
+    "right": true
+   },
+   {
+    "id": "cyt-6",
+    "file": "public/showcase/foucault-pendulum.mp4",
+    "sees": "the run's whole 42 s clip, as Ansatz measured it, not the page's 6 s crop",
+    "fps": 7.143,
+    "frames": 300,
+    "durationS": 42,
+    "cue": "For scale, this pendulum is 8.97 m long.",
+    "cueWhy": "the length Ansatz's run was told (data/showcase/foucault-pendulum.json given[])",
+    "prompt": "You are shown 300 frames, 7.14 per second of the clip as it plays. For scale, this pendulum is 8.97 m long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "real time",
+    "truthFactor": 1,
+    "answers": [
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Pendulum length 8.97 m gives theoretical small-angle period T = 2*pi*sqrt(L/g) = 2*pi*sqrt(8.97/9.81) ~ 6.0 s. The 300 frames shown at 7.14 frames per second of playback cover ~42.0 s of playback time. In that interval the bob makes ~7 full far-near-far oscillations, i.e. ~6 s per full period, with two yellow-cross crossings per period. This matches the theoretical 6 s period. A slowed or sped clip would give a much longer or shorter apparent period. Hand motion when placing the red marker also looks normal speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0558
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "For L=8.97m, T=2π*sqrt(L/g) ~2π*sqrt(8.97/9.81) ~6.0s. The 300 frames shown at 7.14 fps = ~42s of play. The bob makes ~7 full back-and-forth swings in that time, i.e. ~6s per swing, matching the physical period. The hand placing the red marker also moves at natural speed. No slowing or speeding is evident.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0101
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "For a simple pendulum T = 2*pi*sqrt(L/g). With L=8.97 m, T ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s. In the clip the bob goes from far extreme to near extreme in ~3 s and back to far extreme in ~6 s, i.e. a full far-near-far oscillation takes ~6 s of clip time. Over the ~42 s clip (300 frames at 7.14 fps) this gives ~7 cycles, consistent with a 6 s period. The motion matches the physical period, so no slowdown/speedup is evident.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0108
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "8.97 m simple pendulum has period T=2pi*sqrt(L/g)=2pi*sqrt(8.97/9.81)~6.0 s. In the clip the bob makes a full to-and-fro in ~5.5-6.5 s of clip time, e.g. far at start, forward past the yellow cross ~1.5s, nearest ~3s, back past cross ~4.2s, far again ~5.5s, and repeats. That matches the physical ~6 s period, and hand motion placing the red marker looks normal. So playback is at real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0097
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2,
+      "reasoning": "For L=8.97 m, T=2*pi*sqrt(L/g) ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s. The clip as played lasts ~300/7.14 ~42 s. In that time the pendulum makes only ~3-3.5 full to-and-fro swings along the line, i.e. observed period ~12-14 s, about twice the real 6 s period. The hand placing the red marker also moves in slow motion. Hence playback is about half-speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0141
+     }
+    ],
+    "majority": "real time",
+    "majorityCount": 4,
+    "right": true
+   },
+   {
+    "id": "cyt-4",
+    "file": "public/cyt/cyt-4.mp4",
+    "sees": "the run's whole 2.5 s clip, cropped square around the ball (the page's own file)",
+    "fps": 50,
+    "frames": 125,
+    "durationS": 2.5,
+    "cue": "For scale, the ball is about 75 cm across.",
+    "cueWhy": "the size Ansatz's run was told (data/strangers/gym-ball-bounce-240fps-b.json given[])",
+    "prompt": "You are shown 125 frames, 50.00 per second of the clip as it plays. For scale, the ball is about 75 cm across. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "slowed",
+    "truthFactor": 4.8,
+    "answers": [
+     {
+      "verdict": "slowed",
+      "factor": 4,
+      "reasoning": "The green ball is ~0.75m across. The ball released/thrown in the mirror view should fall under gravity. After release around 1.0s it remains essentially suspended mid-air for ~1.0+ sec of clip time with <10cm vertical drop. In real time a free 0.75m ball would fall ~1.2m in 0.5s and ~4.9m in 1.0s. The long hover at the top of the swing / in the air and the very slow drift of the man and the pendulum are characteristic of slow motion, requiring several-times slowdown to explain. Estimated ~4x slower than real life.",
+      "model": "muse-spark-1.3",
+      "usd": 0.016
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "The foreground 75cm ball is released/pushed and swings/falls toward the low camera and then rises again. The time from release to closest approach (~0.3-0.5s) and the subsequent rise, covering ~1-2m, gives velocities of ~2-4 m/s and an effective g ~9-10 m/s2. That matches normal free-fall/pendulum motion under gravity for a ceiling height of a few meters. No floaty slow-motion hang or unnaturally fast drop is seen, and the man's push motion looks normal.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0083
+     },
+     {
+      "verdict": "slowed",
+      "factor": 4,
+      "reasoning": "The green ball is ~0.75m across. After being pushed it swings toward and past the low camera and then hangs almost motionless in mid-air in the reflection/foreground for ~1 sec from ~1.4-2.4s. In real time a free / pendulum ball cannot hover with almost zero vertical motion for that long - apex dwell within ~10cm is ~0.2-0.3s. Motion is floaty throughout with no normal gravitational acceleration, indicating slow motion, about 1/4 real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0105
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2,
+      "reasoning": "The 0.75m exercise ball is in free fall after release. A drop of ~0.7-1.0m should take ~0.4-0.5s at 9.8m/s2 and hit the floor quickly. In the mirror the ball leaves the hands at ~0.8s and is still airborne falling very floatily through 2.5s, taking ~2x longer to fall its own diameter than gravity allows. The motion is floaty, not real-time ballistic, indicating half-speed slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0083
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2.5,
+      "reasoning": "The green 75cm ball is pushed/thrown and then in free flight/bounce. In ~0.6-1.0s of play time it stays almost level with <0.2m of gravitational drop and the man's arm extension takes ~0.7s. A real 0.2m drop takes ~0.2s and a real push takes ~0.2-0.3s. Hang time is 2-3x too long for g=9.8m/s, so playback is slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0091
+     }
+    ],
+    "majority": "slowed",
+    "majorityCount": 4,
+    "right": true
+   }
+  ]
+ }
 }

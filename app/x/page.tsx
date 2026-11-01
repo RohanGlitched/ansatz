@@ -8,6 +8,8 @@ import { lawTex } from "./lawTex";
 import { printOf } from "./prints";
 import type { Experiment } from "@/lib/experiment";
 import { fmtOff, summarise, type Summary } from "./summary";
+// the winning law's title, with the caveat when the damping law is not decided (a linear and a quadratic law tie)
+import { winnerTitle } from "@/lib/tie";
 import styles from "./index.module.css";
 import { BENCH_FILES } from "@/app/bench/files";
 import { STRANGERS } from "@/app/proof/strangers";
@@ -68,7 +70,7 @@ function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean
       <h3 className={styles.ctitle}>
         <Link href={`/x/${e.id}`}>{e.title}</Link>
       </h3>
-      <p className={styles.lawName}>{w.law.title}</p>
+      <p className={styles.lawName}>{winnerTitle(e)}</p>
       <div className={styles.ceq}>
         <Tex>{eqOf(e)}</Tex>
       </div>
@@ -201,7 +203,7 @@ export default async function ExperimentsIndex() {
                         <th scope="row">
                           <Link href={`/x/${e.id}`}>{e.title}</Link>
                         </th>
-                        <td>{w.law.title}</td>
+                        <td>{winnerTitle(e)}</td>
                         <td className={`r ${styles.measuredInk}`}>{s ? <Value s={s} /> : "—"}</td>
                         <td className="r">{fmtOff(s?.offPct) || "—"}</td>
                         <td className={styles.filesCell}>
@@ -306,7 +308,7 @@ export default async function ExperimentsIndex() {
                     <th scope="row">
                       <Link href={`/x/${e.id}`}>{e.title}</Link>
                     </th>
-                    <td>{r.w.law.title}</td>
+                    <td>{winnerTitle(e)}</td>
                     <td className={styles.qty}>{r.s?.what ?? "—"}</td>
                     <td className={`r ${styles.measuredInk}`}>{r.s ? <Value s={r.s} /> : "—"}</td>
                     <td className="r">{r.s?.known?.value ?? "—"}</td>
@@ -320,7 +322,7 @@ export default async function ExperimentsIndex() {
                   <th scope="row">
                     <Link href={`/x/${e.id}`}>{e.title}</Link>
                   </th>
-                  <td>{w.law.title}</td>
+                  <td>{winnerTitle(e)}</td>
                   <td className={styles.qty}>{s?.what ?? "—"}</td>
                   <td className={`r ${styles.measuredInk}`}>{s ? <Value s={s} /> : "—"}</td>
                   <td className="r">{s?.known?.value ?? "—"}</td>

@@ -268,7 +268,8 @@ const records = () => {
 };
 
 test("records: a run on the current pipeline (SAM timed) carries the referee's residual feature", () => {
-  const current = records().filter((e) => e.pipeline === PIPELINE && e.ledger.calls.some((c) => c.model.startsWith("sam") && c.ms > 0));
+  // the current tag, or the one before it (2026-11-02a changed no stored record; data/bench/pipelines.json)
+  const current = records().filter((e) => [PIPELINE, "2026-10-27c"].includes(e.pipeline ?? "") && e.ledger.calls.some((c) => c.model.startsWith("sam") && c.ms > 0));
   assert.ok(current.length >= 3, `only ${current.length} current records`);
   for (const e of current) if (e.critique) assert.ok(e.critique.residual_feature, `${e.id} has no residual_feature`);
 });

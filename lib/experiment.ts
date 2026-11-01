@@ -105,7 +105,7 @@ export type Experiment = {
     telecine?: { g: number; sigma: number; note: string; method: string; cadence?: { period: number; phase: number; repeats: number; frames: number }; jumps?: { jump: number; g: number; sigma: number; n: number }[]; subpixel?: { g: number; sigma: number; note: string } };
     /** a second ruler nobody tuned: the flag, at its documented size */
     flagRuler?: { note: string; source: string; sizeM: { width: number; height: number; rel: number }; px: { width: number; height: number; sigma: number; frames: number }; g: number; sigma: number; gHeightRuler: number; sam?: { usd: number; frames: number } };
-    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string; si?: TruthInMetres }[] }; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
+    toolTest?: { question: string; calledWith: string; toolResult: unknown; answer: string; usd: number }; truth?: { note: string; rows: { label: string; param: string; measured: number; sigma: number; truth: number; unit: string; si?: TruthInMetres; /** the fit's own statistical part of sigma */ sigmaFit?: number; /** the part from a value assumed, not measured (a stated length good to 1%) */ sigmaAssumed?: number }[] }; periodCheck?: PeriodCheckRecord; robustness?: { note: string; rows: { label: string; g: number; sigma: number }[] }; crossCheck?: string; errorBudget?: { note: string; rows: { source: string; value: number; included: boolean; signed?: string }[]; total: { value: number; label: string } }; eyeballNote?: string; ruler?: string; memoryTest?: { note: string; rows: { clip: string; eye?: number; g: number; sigma: number; sigmaStat?: number; clock: string; href?: string }[]; renders?: { note: string; eye: number[]; clocks: number[]; slows: number[] }; tool?: { answer: string; href: string }; sameJump?: { note: string; jumps: { jump: number; real: SameJumpFit; slowed: SameJumpFit; ratio: number; sigma: number }[]; combined: { ratio: number; sigma: number } }; controls?: { note: string; clips: { id: string; made: string; jumps: { jump: number; ratio: number; sigma: number; truth: number; hangRatio?: number }[] }[] } } };
   ledger: { calls: Call[]; usd: number; tokens: number; ms: number };
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
@@ -116,11 +116,32 @@ export type Experiment = {
   student?: string;
 };
 
+/** A speed-up read from the swing's period with no law (scripts/period-check.ts): the frequency ratio, its parts, and the same film's real-time stretch. */
+export type PeriodCheckRecord = {
+  channel: string;
+  period: number;
+  sigma: number;
+  crossings: number;
+  residualMs: number;
+  lengthM: number;
+  idealPeriod: number;
+  speedup: number;
+  speedupSigmaPeriod: number;
+  speedupSigmaAssumed: number;
+  fit: { speedup: number; sigmaFit: number; sigmaAssumed: number };
+  realTime?: { period: number; sigma: number; crossings: number; overIdealPct: number };
+  sameFilm?: { ratio: number; sigma: number };
+  note: string;
+};
+
 /** A truth row fitted in pixels (no ruler in view), restated in metres with a scale from outside the run (scripts/truth-in-metres.ts). */
 export type TruthInMetres = { measured: number; sigma: number; truth: number; unit: string; metresPerPixel: number; scale: string };
 
 /** Bumped when the method changes in a way that changes results; older visitor runs stop being listed. */
-export const PIPELINE = "2026-10-27c";
+// 2026-10-27c: every published showcase and the bench (data/bench/pipelines.json lists which record is which).
+// 2026-11-02a: rounds 12 to 14 (the flight-window seal, held pendulum lengths, the pivot gate, ties that never break
+// on a law's id, the clock check when g is held, the take-off frame).
+export const PIPELINE = "2026-11-02a";
 
 const TRAIN = 0.7;
 
@@ -322,7 +343,9 @@ export function rankCandidates(cands: Candidate[], noiseFloor = 0) {
       return Number.isFinite(sg) && sg <= Math.abs(v);
     });
   // among laws that predict equally well, the simpler one wins: fewer parameters, then clearly lower BIC
-  // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"). When
+  // (a strict key, so the order is transitive: BIC in steps of 2, the usual threshold for "positive evidence"; the steps
+  // sit on fixed boundaries, so two laws under 2 apart can still fall in different steps, and a page says the BIC
+  // decided only when the difference itself is 2 or more: lib/tie.ts tieBreakReason). When
   // they are equally simple, the smaller miss on the unseen frames leads, then the smaller miss on the fitted frames.
   // (each to a thousandth of a noise unit, so two laws that are the same equation, which fit identically up to rounding,
   // tie here). Then the one written in physical quantities (g, not a) leads. The id a model chose for a law never

@@ -1,7 +1,10 @@
-import type { Experiment } from "@/lib/experiment";
-import { winnerOf } from "@/lib/experiments";
-import { fmtPair } from "@/lib/format";
-import { prettyUnit } from "@/lib/units";
+import { isRoughFit, type Experiment } from "../../lib/experiment";
+import { clockFigure } from "../../lib/clockfig";
+import { fmtPair } from "../../lib/format";
+import { prettyUnit } from "../../lib/units";
+
+// the winner as lib/experiments has it (that module is server-only; this one is also read by tests)
+const winnerOf = (e: Experiment) => e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
 
 /**
  * One experiment's headline number for an index: the constant it measured (or, when its clock was flagged, how slow
@@ -33,7 +36,8 @@ const num = (v: number) => String(+v.toPrecision(4));
 
 export function summarise(e: Experiment): Summary | null {
   const w = winnerOf(e);
-  const rough = Number.isFinite(w.fit.testZ) && (w.fit.testZ ?? 0) > 5;
+  // the run page's rule (isRoughFit): a winning law that misses its unseen frames by more than five times the noise gets no ±
+  const rough = isRoughFit(w.fit);
   // two significant figures with no error bar, as the experiment page writes it ("about 9.7")
   const pair = (v: number, s: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${+v.toPrecision(2)}` : fmtPair(v, s));
   const sj = e.extras?.memoryTest?.sameJump?.combined;
@@ -41,15 +45,17 @@ export function summarise(e: Experiment): Summary | null {
 
   // a clip whose gravity says its clock is wrong: the speed of the clip is the result, not the wrong acceleration
   if (e.clock) {
-    const f = e.clock.factor, s = e.clock.sigma ?? NaN;
+    const f = e.clock.factor;
+    // the figure as the run page prints it (lib/clockfig.ts), with or without a ± by the same rough-fit rule
+    const fig = clockFigure(e);
     // gravity came out too strong: the clip plays faster than life (the filmmaker's own label is the truth, where there is one)
-    if (f < 1) {
+    if (f < 1 && fig) {
       const sp = e.extras?.truth?.rows.find((r) => r.param === "speedup");
-      const v = sp ? sp.measured : 1 / f, sv = sp ? sp.sigma ?? NaN : s / (f * f);
+      const v = fig.value;
       return {
         what: "how much faster than real time the clip plays, from its gravity",
         symbol: "speedup",
-        value: Number.isFinite(sv) && sv > 0 ? `${v.toFixed(2)} ± ${sv.toFixed(2)}` : `about ${v.toFixed(1)}`,
+        value: fig.text,
         unit: "×",
         known: sp ? { value: `${+sp.truth.toPrecision(3)}×`, source: "the filmmaker’s on-screen label" } : undefined,
         offPct: sp ? (v / sp.truth - 1) * 100 : undefined,
@@ -73,8 +79,8 @@ export function summarise(e: Experiment): Summary | null {
     return {
       what: "how much slower than real time the clip plays, from its gravity",
       symbol: "slowdown",
-      // two decimals, as every page quotes it (1.50 ± 0.05×)
-      value: Number.isFinite(s) ? `${f.toFixed(2)} ± ${s.toFixed(2)}` : `about ${f.toFixed(1)}`,
+      // two decimals with a ±, as every page quotes it (1.50 ± 0.05×), or "about 2.3" on a rough fit
+      value: fig ? fig.text : `about ${f.toFixed(1)}`,
       unit: "×",
       known: truth ? { value: `${truth}×`, source: "we slowed it ourselves" } : undefined,
       offPct: truth ? (f / Number(truth) - 1) * 100 : undefined,

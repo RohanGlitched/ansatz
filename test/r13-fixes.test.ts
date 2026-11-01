@@ -57,8 +57,19 @@ test("take-off: the first moving frame after a rest at the start, and 0 when the
   const y = t.map((s) => (s < t0 ? 400 : 400 - 300 * (s - t0) + 490 * (s - t0) ** 2) + 0.2 * Math.sin(s * 997));
   const x = t.map((s) => 200 + 150 * Math.max(0, s - t0) + 0.2 * Math.cos(s * 611));
   const up = takeoffIndex(t, x, y);
-  assert.ok(up >= 6 && up <= 8, `take-off at frame ${up} (the throw is at frame 7.2)`);
+  // the throw is at frame 7.2: frame 7 is the last at rest, frame 8 the first in flight
+  assert.equal(up, 8, `take-off at frame ${up} (the throw is at frame 7.2)`);
   assert.equal(takeoffIndex(t.slice(8), x.slice(8), y.slice(8)), 0);
+});
+
+test("take-off on a perfect free fall (no noise): the first frame after the release, at several release instants and frame rates", () => {
+  for (const [fps, t0] of [[24, 0.3], [30, 0.3], [24, 0.4], [60, 0.25], [24, 0.31]] as const) {
+    const t = Array.from({ length: Math.round(fps * 0.9) }, (_, i) => i / fps);
+    const y = t.map((s) => (s < t0 ? 400 : 400 - 250 * (s - t0) + 490 * (s - t0) ** 2));
+    const x = t.map((s) => 200 + 120 * Math.max(0, s - t0));
+    const first = t.findIndex((s) => s > t0);
+    assert.equal(takeoffIndex(t, x, y), first, `${fps} fps, released at ${t0} s`);
+  }
 });
 
 test("short toss: when no flight search range is long enough, the window starts at the take-off, not with the rest before it", () => {
@@ -69,5 +80,12 @@ test("short toss: when no flight search range is long enough, the window starts 
   const x = (s: number) => 200 + 150 * Math.min(Math.max(s - t0, 0), land - t0) + 0.2 * Math.cos(s * 611);
   const track: Track = { id: "1", noun: "ball", samples: times.map((s, f) => sample(f, x(s), y(s))) };
   const m = measure({ track, times, kind: "flight", metresPerPixel: { kind: "stated", value: 0.001, note: "test" }, frame: { width: 640, height: 480 } });
-  assert.ok(m.window.f0 >= 6, `window starts at frame ${m.window.f0}`);
+  // the throw is at frame 7.2: the window starts at frame 8, the first frame in flight
+  assert.equal(m.window.f0, 8, `window starts at frame ${m.window.f0}`);
+  // and every frame in it lies on the true parabola, to within the 0.2 px noise (a rest frame sits pixels off it)
+  for (const p of m.px) {
+    const s = times[p.f];
+    const yTrue = 400 - v0 * (s - t0) + (a / 2) * (s - t0) ** 2;
+    assert.ok(Math.abs(p.y - yTrue) < 0.5, `frame ${p.f} is ${Math.abs(p.y - yTrue).toFixed(1)} px off the flight`);
+  }
 });

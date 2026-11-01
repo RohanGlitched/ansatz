@@ -1,0 +1,171 @@
+{
+ "generatedAt": "2026-11-01T23:27:33.076Z",
+ "current": "2026-11-02a",
+ "note": "Which version of the method made each stored run. The tag is bumped when the method changes in a way that can change results (lib/experiment.ts PIPELINE). No published run was re-made for 2026-11-02a: every record below keeps the tag it was made with, and the pages show it. Records made on 1 to 2 November carry 2026-10-27c because the tag was not bumped then, although parts of the round-12 and round-13 changes were already in the code that made them (see madeWith).",
+ "versions": [
+  {
+   "tag": "2026-10-27c",
+   "from": "2026-10-27",
+   "changes": "The method as benchmarked: sealed held-out 30%, noise-normalised ranking with ties to the simpler law (BIC in fixed steps of 2), clock check, ruler and stated-length uncertainties."
+  },
+  {
+   "tag": "2026-11-02a",
+   "from": "2026-11-02",
+   "changes": "Rounds 12 to 14. Round 12 (commit 1811071, 2 Nov 01:00 IST): the flight-window seal never fits a held-out frame; pendulum lengths held when stated or measured; the pivot gate; square pixels. Round 13 (f6da584, 04:20 IST): ties never break on a law's id; the pivot gate skips the frame-diagonal rule for a far pivot straight above the swing; a short toss is fitted from its take-off; the clock check says when g was held. Round 14: the take-off is the first frame in flight (it kept one or two rest frames); the pages say a BIC decided a tie only when it is lower by 2 or more (the ranking itself is unchanged)."
+  }
+ ],
+ "runs": [
+  {
+   "id": "aachen-pendulum-50cm",
+   "file": "data/showcase/aachen-pendulum-50cm.json",
+   "createdAt": "2026-11-01T19:36:51.405Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "round-12 code (made 2 Nov 01:06 IST, after 1811071), tag 2026-10-27c"
+  },
+  {
+   "id": "beach-ball-drag",
+   "file": "data/showcase/beach-ball-drag.json",
+   "createdAt": "2026-10-27T08:42:50.960Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "big-swing",
+   "file": "data/showcase/big-swing.json",
+   "createdAt": "2026-10-27T08:02:13.631Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "bouncing-ball",
+   "file": "data/showcase/bouncing-ball.json",
+   "createdAt": "2026-10-27T08:02:21.064Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "dry-friction-spring",
+   "file": "data/showcase/dry-friction-spring.json",
+   "createdAt": "2026-10-27T08:16:49.005Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "foucault-pendulum-5x",
+   "file": "data/showcase/foucault-pendulum-5x.json",
+   "createdAt": "2026-11-01T22:28:36.295Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "round-12 code and part of round 13 (made 2 Nov 03:58 IST, before f6da584), tag 2026-10-27c"
+  },
+  {
+   "id": "foucault-pendulum",
+   "file": "data/showcase/foucault-pendulum.json",
+   "createdAt": "2026-10-29T04:11:44.020Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "hardening-spring",
+   "file": "data/showcase/hardening-spring.json",
+   "createdAt": "2026-10-27T00:00:52.759Z",
+   "pipeline": null,
+   "set": "showcase",
+   "madeWith": "before version stamps"
+  },
+  {
+   "id": "hindi-pendulum",
+   "file": "data/showcase/hindi-pendulum.json",
+   "createdAt": "2026-10-27T08:06:39.523Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "moon-jump-slowed",
+   "file": "data/showcase/moon-jump-slowed.json",
+   "createdAt": "2026-10-27T00:51:37.302Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "moon-jump",
+   "file": "data/showcase/moon-jump.json",
+   "createdAt": "2026-10-27T00:51:28.416Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "pendulum-100cm",
+   "file": "data/showcase/pendulum-100cm.json",
+   "createdAt": "2026-10-27T01:36:03.145Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "pendulum-40cm",
+   "file": "data/showcase/pendulum-40cm.json",
+   "createdAt": "2026-10-27T01:35:58.440Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "pendulum-60cm",
+   "file": "data/showcase/pendulum-60cm.json",
+   "createdAt": "2026-10-27T01:36:01.205Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "pendulum-80cm",
+   "file": "data/showcase/pendulum-80cm.json",
+   "createdAt": "2026-10-27T01:36:00.619Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "sample-pendulum",
+   "file": "data/showcase/sample-pendulum.json",
+   "createdAt": "2026-10-27T00:25:58.492Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "spring",
+   "file": "data/showcase/spring.json",
+   "createdAt": "2026-10-27T08:07:26.429Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "29tfasgn76",
+   "file": "data/strangers/gym-ball-bounce-240fps-b.json",
+   "createdAt": "2026-11-01T19:55:03.298Z",
+   "pipeline": "2026-10-27c",
+   "set": "strangers (not published)",
+   "madeWith": "round-12 code (made 2 Nov), tag 2026-10-27c"
+  },
+  {
+   "id": "bench (data/bench/synth.json)",
+   "file": "data/bench/synth.json",
+   "createdAt": "2026-11-01T22:22:52.873Z",
+   "pipeline": "2026-10-27c sealed re-score, restitution jackknife",
+   "set": "benchmark",
+   "madeWith": "2026-10-27c runs, re-scored sealed on 1 Nov"
+  }
+ ]
+}
