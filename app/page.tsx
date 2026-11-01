@@ -85,7 +85,7 @@ export default async function Home() {
           )}
           <div className={styles.abstract}>
             <p>
-              A phone clip becomes a physics experiment. SAM 3.1 measures the object frame by frame. Muse Spark writes candidate laws of motion. Each law is fitted to the start of the motion only and has to predict the rest. Laws the future refutes are struck out; the one that predicts survives.
+              A video clip becomes a physics experiment. SAM 3.1 measures the object frame by frame. Muse Spark writes candidate laws of motion. Each law is fitted to the start of the motion only and has to predict the rest. Laws the future refutes are struck out; the one that predicts survives.
             </p>
             <p className={styles.who}>
               For students, teachers and anyone with a phone. <a href="#who">Who it is for</a>.
@@ -169,7 +169,7 @@ export default async function Home() {
         <ol className={styles.steps}>
           <li>
             <h3>Watch and listen</h3>
-            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech. Muse Spark watches the whole clip at its own frame rate, up to 300 frames, and names what moves, when, and what is known; no number from the last 30% reaches it, and no law is fitted to it.</p>
+            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech. Muse Spark watches the whole clip at its own frame rate, up to 300 frames, only to say what to track and when. The call that writes the laws never sees the video: it gets that description and the measurements, and code fits every constant on the first 70% alone, so the last 30% stays a true test.</p>
             {spec && <blockquote className={styles.specimen}>&ldquo;{spec.observation.what_happens.split(". ")[0]}.&rdquo;</blockquote>}
           </li>
           <li>
@@ -207,6 +207,7 @@ export default async function Home() {
                     </li>
                   ))}
                 </ol>
+                <p>Four tries on this run, made with an earlier setting; production allows two.</p>
                 <p>
                   Submitted law missed the unseen motion by {(wonderLaw.fit.testRms * 1000).toFixed(1)} mm{k3 ? `; its stiffening k₃/m came out ${k3.measured.toFixed(0)} ± ${(k3.sigma ?? 0).toFixed(0)} against a true ${k3.truth}` : ""}.
                 </p>

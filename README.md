@@ -4,7 +4,14 @@
 
 **[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:58](https://youtu.be/M4h122br2qE)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[How it works](https://ansatz-lab.vercel.app/how)**
 
-Ansatz turns a phone clip into a physics experiment. **SAM 3.1** measures the moving object frame by frame, up to 450 frames a run (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the last 30%, which no law was fitted to, wins. Muse Spark watches the whole clip to name what moves; no number from the last 30% reaches it, and no law is fitted to it. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames (up to two fits in production) and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
+**What it measured**
+
+- Apollo 16 TV slowed 1.5× in secret: Muse Spark called it real speed 5 of 5 times; Ansatz measured **1.494 ± 0.015×**.
+- 28 rendered clips with known physics: **26 of 27 constants within 5%** (median 0.11%); Muse Spark by eye: 32%.
+- A stranger’s 50 cm pendulum (Aachen, CC BY-SA): **g = 9.82 ± 0.10 m/s²** vs 9.81. A museum film sped up 5×: read as **4.98 ± 0.02×**.
+- A hidden stiffening spring: Muse Wonder, an agent with a fitting tool, found the cubic law, **k₃/m = 4012 ± 17** vs 4000.
+
+Ansatz turns a video of one moving object (a falling, swinging, bouncing or spring-driven thing) into a physics experiment, built so a phone propped on books can stand in for a school’s light gates. **SAM 3.1** measures the moving object frame by frame, up to 450 frames a run (its masks stream onto the clip as they arrive). **Muse Spark** watches the clip, hears the narration through **Muse Voice Transcribe**, and writes candidate laws of motion as equations. Code fits each law to the first 70% of the motion and makes it predict the last 30%; the law that best predicts the last 30%, which no law was fitted to, wins. Muse Spark watches the whole clip only to say what to track and when. The call that writes the laws never sees the video: it gets that description and the measurements, and code fits every constant on the first 70% alone, so the last 30% stays a true test. When every law misses, **Muse Wonder** works as an agent with a fitting tool: it tries laws on the seen frames (up to two fits in production) and submits one, which must win the same way. The result is a stroboscopic print made from SAM’s own masks, the law in LaTeX, every constant with an uncertainty, a lab report, the data as CSV, and every model call with what it cost.
 
 Built for the Meta Global AI Developer Hackathon (Indie track), on the themes *Push the Frontier* (accelerate a scientific experiment) and *Build for Your World* (a phone and a pile of books instead of a physics lab). Everything here was built during the hackathon (Oct 26 to Nov 4, 2026).
 
@@ -23,10 +30,10 @@ We slowed the 1972 Apollo 16 jump by 1.5× with motion-interpolated frames at an
 | Clip | Muse Spark, one clip at a time | Ansatz, one clip at a time |
 |---|---|---|
 | Apollo 16, real speed | asked 5 times: “real speed, 1.6” 3 times, “slowed 2×, 0.4” twice | **1.72 ± 0.11 m/s²**: real speed (the Moon: 1.625) |
-| The same clip, slowed 1.5× in secret | asked 5 times: “real speed, 1.6” every time (the textbook value) | **0.72 ± 0.04 m/s²**: slowed; measured jump for jump against the broadcast (jump windows set by hand), **1.494 ± 0.015×** (truth: 1.5×) |
+| The same clip, slowed 1.5× in secret | asked 5 times: “real speed, 1.6” every time (the textbook value) | **0.72 ± 0.04 m/s²**: slowed (the whole-clip estimate, which reads as 1.50×); the headline is measured jump for jump against the broadcast (jump windows set by hand), **1.494 ± 0.015×** (truth: 1.5×) |
 | Three new renders, slowed 2×, 4×, 8× | g 9.8, 0.15, 9.8 | all three flagged by the clock check |
 
-Asked about each clip on its own five times, the model called the slowed copy real speed every time, answering with the textbook 1.6. Side by side it can count frames and say B is about 1.5× slower, which is impressive; given Ansatz's measurements as tools it works out the whole-run ratio of the two accelerations, 1.55 ± 0.04×, which needs no reference value. Ansatz needs no second clip.
+Asked about each clip on its own five times, the model called the slowed copy real speed every time, answering with the textbook 1.6. Side by side it can count frames and say B is about 1.5× slower, which is impressive; given Ansatz's measurements as tools it works out the whole-run ratio of the two accelerations, 1.55 ± 0.04× (the paired-ratio control: coarser than the headline, since it compares the two whole fits, not jump against jump), which needs no reference value. The headline is the jump-for-jump 1.494 ± 0.015×. Ansatz needs no second clip.
 
 ## What it measured
 
@@ -36,7 +43,7 @@ Asked about each clip on its own five times, the model called the slowed copy re
 | 17 camera scales in the same clips (metres per pixel, from a fall or a ruler) | 16 of 17 within 5%, median 0.18% | exact |
 | Clips rendered in slow motion (1.25×, 1.5×, 2×, 4×, 8×), not declared | **3 of 5 flagged** by the clock check, factor right on 2 of 5; missed 1.25×, could not check 1.5× (the 8× clip misread its 15 cm ruler as a metre stick) | exact |
 | The same constants read off the clips by Muse Spark alone | median error 32%; on the slowed clips it answered Earth’s 9.81 | exact |
-| A hidden stiffening spring (a render): Muse Wonder’s law on the published run, found with its fitting tool | k₃/m = **4012 ± 17** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
+| A hidden stiffening spring (a render): Muse Wonder’s law on the published run, found in four fits with its tool (that run used an earlier setting; production now allows two fits) | k₃/m = **4012 ± 17** m⁻²s⁻², ω₀ = 7.747 rad/s | 4000, 7.746 |
 | A spring slowed by dry friction (a render), re-run with today's pipeline: Muse Wonder’s law | friction **355 ± 23 px/s²**, or 0.430 ± 0.028 m/s² at the render's own scale (−4.5%); ω₀ = 10.0007 ± 0.0019 rad/s; it misses the unseen motion by 0.263 px, against 3.68 px for Muse Spark's best law (14×) | 372 px/s² (0.45 m/s²), 10 |
 | Real footage: a museum's Foucault pendulum (Békéscsaba, 8.97 m, published with the film by Zátonyi Sándor (ifj.), FizFilm, CC BY 4.0), told only its length | g about **9.7 m/s²**: Muse Spark's plain pendulum law gives 9.70 ± 0.15. Muse Wonder's law, with the camera's perspective, wins on the unseen frames (17.6 px against 24.5 px), but still misses them by 74× the noise, so it carries no error bar | 9.81 |
 | Real footage from a stranger: a 50 cm pendulum, grey bob on black (“Schwingung (Definition)”, Rhetos, Aachen, CC BY-SA 4.0), told only “the string is about fifty centimetres long” | g = **9.82 ± 0.10 m/s²** (0.16%, 0.2σ; the ± carries the stated length's uncertainty); clock check: real time. The film's own stopwatch, cropped out before the run, times a swing at about 1.42 s | 9.81; theory 1.418 s |
@@ -53,7 +60,7 @@ Full table, ablations and limits: [/proof](https://ansatz-lab.vercel.app/proof).
 
 ```mermaid
 flowchart LR
-  A[Phone clip] --> B[ffmpeg: H.264, every frame's own timestamp, WAV]
+  A[Video clip] --> B[ffmpeg: H.264, every frame's own timestamp, WAV]
   B --> C[Muse Voice Transcribe: narration]
   B --> D[Muse Spark 1.3: what moves, when, ruler, slow motion?]
   C --> D
@@ -84,7 +91,7 @@ npx tsx scripts/run.ts path/to/clip.mp4 --ruler "A4 sheet=0.297"   # one experim
 npx tsx scripts/bench.ts --suite synth && npx tsx scripts/score.ts  # the benchmark
 ```
 
-Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). A published run cost $0.13–0.43 of Meta API calls, a median of $0.21 (a class of 40 is about $8); runs are capped per visitor and per day.
+Production stores clips and experiments in Google Cloud Storage through Vercel’s OIDC token (no keys). A published run costs a median of $0.23 of Meta API calls ($0.13–0.43; a class of 40 is about $9); runs are capped per visitor and per day.
 
 ## Credits
 
