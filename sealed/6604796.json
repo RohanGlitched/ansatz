@@ -1,0 +1,85 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6604796,
+  "randomness": "96bb25e382a181be9374b8d5aa975b5127b7f756b4686c6507b96b799928b57c",
+  "signature": "b3aec3454751de9e3aaa6a05a0cda6ed363a803d6faea279d155bdba0fc1716249916988dfd4d54a6727975ad06846280b281c75612f36a6c8da61c92f288e8b0e6585fcdf1e28209c50a09b20f1fcbd820f8b6fa2a4f95955783733c90d1440",
+  "url": "https://api.drand.sh/public/6604796"
+ },
+ "law": {
+  "stiffness": "linear",
+  "damping": "quadratic",
+  "drive": true,
+  "equation": "x'' = -(k/m) x - cq x'|x'| + F0 cos(wd t)",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 28.96,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.09829,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "cq": {
+   "value": 0.7494,
+   "unit": "1/m",
+   "rule": "(4/3) cq A uniform in [0.08, 0.2] (drawn 0.098)"
+  },
+  "F0": {
+   "value": 2.181,
+   "unit": "m/s^2",
+   "rule": "F0 / |w0^2 - wd^2| = share of A uniform in [0.15, 0.35] (drawn 0.225)"
+  },
+  "wd": {
+   "value": 6.811,
+   "unit": "rad/s",
+   "rule": "wd / w0 uniform in [0.55, 0.8] or [1.25, 1.6], each half the time (drawn 0.566)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 12.033287165193059,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 28.96,
+   "m": 0.2,
+   "b": 0,
+   "l0": 0.3,
+   "A": 0.09829,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "orange",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7387,
+   "noun": "block",
+   "k3": 0,
+   "k2": 0,
+   "mu": 0,
+   "cq": 0.7494,
+   "F0": 2.181,
+   "wd": 6.811
+  }
+ }
+}

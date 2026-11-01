@@ -1,0 +1,75 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6604798,
+  "randomness": "26ea82060262b436561f1ea4574da845aa92005b714e1991b743c0fbbb5b4c31",
+  "signature": "a28810e0a53b175a464f25bc58ce5beb850840e0f6303bbc500e9afc10ab6c819c11a8d18f4541e89ec79702a8a152a502cf9445565b8640c4f4c2caebfadba0483ec5e073908492de20cb40f770ad7d0acad5c2066150c63625f24d2508f7e7",
+  "url": "https://api.drand.sh/public/6604798"
+ },
+ "law": {
+  "stiffness": "linear",
+  "damping": "viscous",
+  "drive": false,
+  "equation": "x'' = -(k/m) x - b x'",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 12.09,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.08574,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "b": {
+   "value": 0.4626,
+   "unit": "1/s",
+   "rule": "uniform in [0.2, 0.6]"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 7.774959806970065,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 12.09,
+   "m": 0.2,
+   "b": 0.4626,
+   "l0": 0.3,
+   "A": 0.08574,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "orange",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7638,
+   "noun": "block",
+   "k3": 0,
+   "k2": 0,
+   "mu": 0,
+   "cq": 0,
+   "F0": 0,
+   "wd": 0
+  }
+ }
+}
