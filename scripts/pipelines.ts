@@ -38,7 +38,7 @@ const all = [...order.filter((id) => ids.includes(id)), ...ids.filter((id) => !o
 
 const showcase: Run[] = [];
 for (const id of all) {
-  const e = JSON.parse(await readFile(path.join(DIR, `${id}.json`), "utf8")) as { createdAt: string; pipeline?: string };
+  const e = JSON.parse(await readFile(path.join(DIR, `${id}.json`), "utf8")) as { createdAt: string; pipeline?: string; code?: { commit: string; dirty: boolean; changed?: string[] } };
   const tag = e.pipeline ?? "before version stamps";
   const was = kept.get(id);
   showcase.push({
@@ -47,7 +47,8 @@ for (const id of all) {
     createdAt: e.createdAt,
     pipeline: tag,
     set: order.includes(id) ? "showcase" : /^pendulum-\d+cm$/.test(id) ? "showcase (the pendulum-lengths series)" : "stored, not yet in the book",
-    madeWith: was?.madeWith ?? MADE_SET2[id] ?? (tag === "2026-11-02a" && e.createdAt < AT_56B2E88 ? MADE_02A : tag),
+    // a record that stores its code (scripts/run.ts from edb5c02 on) says exactly which commit made it
+    madeWith: e.code ? `${tag} at ${e.code.commit.slice(0, 7)}${e.code.dirty ? ` with uncommitted changes to ${(e.code.changed ?? []).join(", ")}` : ", clean tree"} (recorded in the run's code field)` : was?.madeWith ?? MADE_SET2[id] ?? (tag === "2026-11-02a" && e.createdAt < AT_56B2E88 ? MADE_02A : tag),
   });
 }
 const others = old.runs.filter((r) => !r.file.startsWith("data/showcase/"));
