@@ -1,0 +1,31 @@
+{
+ "batch": "3",
+ "grammar": "ansatz-sealed-law/1",
+ "head": "edb5c024bb8110b256b02bdc698e13175808a844",
+ "tracked_changes_at_precommit": [],
+ "latest_seen": {
+  "round": 6605115,
+  "published": "2026-11-02T01:54:30.000Z",
+  "read_at": "2026-11-02T01:54:44.449Z"
+ },
+ "rounds": [
+  {
+   "round": 6605123,
+   "published": "2026-11-02T01:58:30.000Z",
+   "url": "https://api.drand.sh/public/6605123"
+  },
+  {
+   "round": 6605124,
+   "published": "2026-11-02T01:59:00.000Z",
+   "url": "https://api.drand.sh/public/6605124"
+  },
+  {
+   "round": 6605125,
+   "published": "2026-11-02T01:59:30.000Z",
+   "url": "https://api.drand.sh/public/6605125"
+  }
+ ],
+ "draw": "npx tsx scripts/sealed-law.ts draw --precommit sealed/precommit-3.json (drawLaw in this script at the commit above)",
+ "run": "npx tsx scripts/run.ts sealed/clips/sealed-<round>.mp4 --narration \"a block on a spring, filmed from the side\" --sealed (one run each; refuses a dirty tree)",
+ "scoring": "hit: the same term structure as the drawn law (stiffness, damping and drive terms), and each shared constant within its error bar or within 10%; pixel constants converted with the render's own scale; anything else is a miss"
+}
