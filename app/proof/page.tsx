@@ -787,7 +787,7 @@ export default async function ProofPage() {
             <p className={styles.para}>
               <b>When each set was sealed.</b> {sealed.timing}
             </p>
-            <Note who="Code, then the same pipeline as any run">Check it yourself: <code>npx tsx scripts/sealed-law.ts verify {sealed.draws[0].round}</code> re-derives a law from its drand round and compares it with the committed hash. ${sealed.usd.toFixed(2)} of runs for the {sealed.n}.</Note>
+            <Note who="Code, then the same pipeline as any run">Check it yourself: <code>npx tsx scripts/sealed-law.ts verify {sealed.draws[0].round}</code> re-derives a law from its drand round and compares it with the committed hash. ${sealed.usd.toFixed(2)} of runs for the {sealed.n}; ${sealed.spendAll.toFixed(2)} in all, with the translations and the replicate re-runs.</Note>
           </>
         )}
 

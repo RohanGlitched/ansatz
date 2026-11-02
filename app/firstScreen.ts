@@ -30,9 +30,9 @@ export type ResultTile = {
 
 export type FirstScreen = {
   tiles: ResultTile[];
-  /** the sealed test's computed headline (app/sealed.ts): what was found, the driven laws, what the spectrum tool changed,
-   * the replicate; `drives` is the short form for places with one clause of room */
-  sealed: { n: number; found: number; driven: number; drivenFound: number; drives: string; text: string; short: string } | null;
+  /** the sealed test's computed headline (app/sealed.ts): what was found, the driven laws, the drive and who wrote it, the
+   * budget, the replicate; `drives` is the short form for places with one clause of room */
+  sealed: { n: number; found: number; driven: number; drivenFound: number; drives: string; /** the drive over every driven draw, and who wrote each winning one */ driveText: string; text: string; short: string } | null;
 };
 
 export async function firstScreen(): Promise<FirstScreen> {
@@ -100,10 +100,10 @@ export async function firstScreen(): Promise<FirstScreen> {
     const driven = sealed.sets.reduce((t, s) => t + s.driven, 0);
     const drivenFound = sealed.sets.reduce((t, s) => t + s.drivenFound, 0);
     const drives = drivenFound === 0 ? `none of the ${driven} driven ones found in full` : drivenFound === driven ? `all ${driven} driven ones found` : `${drivenFound} of ${driven} driven ones found`;
-    // the first screen's own line, under 25 words: the counts, nothing qualified (the full headline is on /proof)
+    // the first screen's own line, under 25 words: the counts and who wrote the drives, nothing qualified (the full headline is on /proof)
     const allUndriven = drivenFound === 0;
-    const short = `${sealed.n} laws drawn by public randomness, hashes first: ${sealed.found} found${sealed.found ? (allUndriven ? ", all undriven" : `, ${drivenFound} of them driven`) : ""}; every miss published.`;
-    line = { n: sealed.n, found: sealed.found, driven, drivenFound, drives, text: sealed.headline.replace(/\.$/, ""), short };
+    const short = `${sealed.n} laws drawn by public randomness, hashes first: ${sealed.found} found${sealed.found ? (allUndriven ? ", all undriven" : `, ${drivenFound} of them driven`) : ""}; ${sealed.drive.short || "every miss published"}.`;
+    line = { n: sealed.n, found: sealed.found, driven, drivenFound, drives, driveText: sealed.drive.text, text: sealed.headline.replace(/\.$/, ""), short };
   }
   return { tiles, sealed: line };
 }

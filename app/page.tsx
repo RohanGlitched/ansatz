@@ -32,7 +32,7 @@ export const revalidate = 600;
 const HERO = "hardening-spring";
 
 /** Small counts in words, as the hook says them ("five times out of five"). */
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
 const inWords = (n: number) => WORDS[n] ?? String(n);
 
 /**

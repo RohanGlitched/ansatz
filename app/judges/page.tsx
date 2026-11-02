@@ -21,7 +21,7 @@ import { PRACTICALS } from "@/app/lab/practicals";
 import { sealedTest } from "@/app/sealed";
 import { voiceLite } from "@/app/voiceLite";
 import { strangersTally, strangersWord } from "@/app/proof/strangers";
-import { DEMO_VIDEO_ID, DEMO_VIDEO_LENGTH, demoVideoEmbed, demoVideoUrl } from "@/app/video";
+import { DEMO_VIDEO_LENGTH, VIDEO_CUT, demoVideoEmbed, demoVideoUrl } from "@/app/video";
 import { fou5Long, fou5Of, fou5SameFilmLawFree } from "@/lib/fou5";
 import { firstScreen } from "@/app/firstScreen";
 import BuiltBy from "@/components/book/BuiltBy";
@@ -111,6 +111,14 @@ export default async function JudgesPage() {
   const laterWonder = sealed ? sealed.draws.filter((d) => d.verdict === "hit" && d.author === "Muse Wonder" && d.round !== sRep?.round) : [];
   const wonderStand = `the dry-friction law stands; the drawn cubic spring (round ${sRep?.round ?? 6604797}) ${sRep ? `was found on its first run (older code) and in ${sRep.k} of ${sRep.n} re-runs on the identical clip at code ${sRep.code} (the other wrote a false drive; records published in data/replicate), and a review re-run on older code missed it` : "was found on its first run"}; and on the hardening spring a later re-run had Muse Spark propose the cubic law itself${laterWonder.length ? `; ${laterWonder.length} more drawn ${laterWonder.length === 1 ? "law" : "laws"} found by Muse Wonder (${laterWonder.map((d) => `round ${d.round}, set ${d.set}`).join("; ")}), on ${laterWonder.length === 1 ? "its" : "their"} first run` : ""}`;
   const wonderDrawn = sealed ? sealed.draws.filter((d) => d.verdict === "hit" && d.author === "Muse Wonder") : [];
+  // what the demo cut showed (app/video.ts) against what the page shows now, said only where they differ
+  const cutNow = [
+    { what: "sealed draws", cut: VIDEO_CUT.draws, now: sealed?.n },
+    { what: "strangers’ clips", cut: VIDEO_CUT.strangers, now: strangersTally().n },
+  ].filter((x): x is { what: string; cut: number; now: number } => x.now != null && x.now !== x.cut);
+  const cutNote = cutNow.length
+    ? `This cut was made at ${cutNow.map((x) => `${strangersWord(x.cut)} ${x.what}`).join(" and ")}; the page now shows ${cutNow.map((x) => strangersWord(x.now)).join(" and ")}.`
+    : "";
   const springsText = `Of ${springsN} springs whose law it was not shown (${BUILT.n} we built, ${sealed?.n ?? 0} drawn by drand), Ansatz found ${springsFound}, and Muse Wonder wrote ${springsWonder} of those laws${springsFound > springsWonder ? `; Muse Spark’s own law was the ${springsFound - springsWonder === 1 ? "other" : "others"}` : ""}`;
   // since code 0b852c8, code also proposes laws built from the models' terms; the sealed winners it wrote, counted from the records
   const codeWins = sealed ? sealed.draws.filter((d) => d.author === "code").length : 0;
@@ -353,7 +361,7 @@ export default async function JudgesPage() {
     ...(fouG ? [{ what: "Real footage: a museum’s Foucault pendulum, g from the swing and its published length (8.97 m)", value: `about ${fouG.measured.toFixed(1)} m/s² (9.807 there)${fouSpark ? `; Muse Spark’s plain law about ${fouSpark.measured.toFixed(2)}, with no error bar either (it misses by ${Math.round(sparkBest(fou!)?.fit.testZ ?? NaN)}× the noise)` : ""}; no error bar on the winning law, which misses the unseen frames by ${Math.round(winnerOf(fou!).fit.testZ ?? NaN)}× the noise`, href: "/x/foucault-pendulum" }] : []),
     ...(aachenG ? [{ what: "Real footage from a stranger: a 50 cm pendulum on black (Rhetos, Aachen, CC BY-SA 4.0), told only “about fifty centimetres”", value: `${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s² (9.807 there; ${Math.abs(aachenG.errorPct).toFixed(2)}% off; the ± assumes the stated length is good to 1%); clock check: real time`, href: "/x/aachen-pendulum-50cm" }] : []),
     ...(fou5 ? [{ what: "Real footage sped up 5× by its filmmaker (label cropped out): the clock check’s reading", value: `${fou5Long(fou5)} (truth 5×)${fou5SameFilmLawFree(fou5) ? `; against the same film’s real-time stretch, with no reference value, ${fou5SameFilmLawFree(fou5)}` : ""}; ${fou5Spark}`, href: "/x/foucault-pendulum-5x" }] : []),
-    ...(sealed ? [{ what: "Spring laws drawn by drand and sealed before the clips were rendered, told only “a block on a spring”", value: `${sealed.foundText.replace(/^Found/, "found")}${sealed.within ? `, ${sealed.within}` : ""}${(() => { const t = sealed.sets.filter((x) => x.stage === "tool"); const dh = t.reduce((a, x) => a + x.driveHit, 0), dn = t.reduce((a, x) => a + x.driven, 0); return dn ? `; after the spectrum tool, the winning law carried the drive at the right frequency in ${dh} of ${dn} driven draws` : ""; })()}; ${(() => { const m = sealed.draws.filter((d) => d.verdict === "miss").length; return m ? `the ${m === 1 ? "miss" : `${m} misses`} published` : "no misses"; })()}`, href: "/proof#sealed" }] : []),
+    ...(sealed ? [{ what: "Spring laws drawn by drand and sealed before the clips were rendered, told only “a block on a spring”", value: `${sealed.foundText.replace(/^Found/, "found")}${sealed.within ? `, ${sealed.within}` : ""}${sealed.drive.text ? `; ${sealed.drive.text}` : ""}; ${(() => { const m = sealed.draws.filter((d) => d.verdict === "miss").length; return m ? `the ${m === 1 ? "miss" : `${m} misses`} published` : "no misses"; })()}`, href: "/proof#sealed" }] : []),
     ...(sj ? [{ what: "The same clip slowed 1.5× in secret, timed jump for jump", value: `${sjText} slower (truth 1.5×)${mt ? `; whole-run ratio ${ratio.toFixed(2)}× (${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} against ${mt.rows[0].g.toFixed(2)} m/s²)` : ""}`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring#constants" }] : []),
     ...(refb ? [{ what: "Referee asked for a new law: when one was missing / when the leading law had the right physics", value: `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed} / ${refb.summary.reviseWhenRight} of ${refb.summary.right}`, href: "/proof#models" }] : []),
@@ -427,7 +435,7 @@ export default async function JudgesPage() {
               <b>
                 {fs.sealed.found} were found, {fs.sealed.drives}
               </b>
-              , every one published
+              {fs.sealed.driveText ? `; ${fs.sealed.driveText}` : ""}, every one published
             </>
           ) : null}
           .
@@ -539,13 +547,8 @@ export default async function JudgesPage() {
             </div>
             <figcaption>
               The demo, {DEMO_VIDEO_LENGTH}. <a href={demoVideoUrl}>Open it on YouTube</a>.
-              {/* the v3.2 cut predates sealed set 4 and the last five strangers' clips: say so until the id changes */}
-              {DEMO_VIDEO_ID === "WbvwFCI-M9A" && sealed && (
-                <>
-                  {" "}
-                  This cut was made at nine sealed draws and eleven strangers&rsquo; clips; the page now shows {strangersWord(sealed.n)} and {strangersWord(strangersTally().n)}; a re-cut is coming.
-                </>
-              )}
+              {/* the cut's own counts (app/video.ts) against the live ones: said whenever they differ, whatever the video id */}
+              {cutNote && <> {cutNote}</>}
             </figcaption>
           </figure>
         </div>

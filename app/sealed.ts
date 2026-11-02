@@ -63,7 +63,7 @@ const REPLICATE = {
   runs: [
     { found: true, note: "the drawn terms, every constant within 0.9σ" },
     { found: true, note: "the drawn terms (a viscous term at 0.3σ, absent), every constant within 0.8σ" },
-    { found: false, note: "a false drive: after the referee asked for “a gentle periodic push”, Muse Wonder wrote one at 8.52 ± 0.08 rad/s (6.5σ), inside the motion’s own band (8.72), and it won; code’s own drive is barred from that band, a model’s is not yet" },
+    { found: false, note: "a false drive: after the referee asked for “a gentle periodic push”, Muse Wonder wrote one at 8.52 ± 0.08 rad/s (6.5σ), inside the motion’s own band (8.72), and it won; at that code only code’s own drive was barred from that band (a model’s is too from 7561ea7, the set-5 code)" },
   ],
 };
 
@@ -144,7 +144,32 @@ export type SealedTest = {
   sets: SealedSet[];
   /** the commit and line of the drive warning, pinned (the line has since been rewritten) */
   warningUrl: string;
+  /** the drive across every driven draw: the winning law carried it at the drawn frequency (within 2σ) in `hit` of
+   * `driven`, `byAgent` of them written by Muse Wonder itself, the rest with code's help; `text` is the headline clause,
+   * `short` the first screen's */
+  drive: { hit: number; driven: number; byAgent: number; byCode: number; agentRound: number | null; text: string; short: string };
+  /** sealed runs that passed the scripted runs' 600 s budget, so code's moves on the leading law never ran ("" if none) */
+  budget: { rounds: number[]; text: string };
+  /** found laws by who wrote them */
+  foundBy: { wonder: number; spark: number; code: number };
+  /** undriven sealed first runs whose winner carries a drive, of the undriven */
+  falseDrives: { k: number; n: number };
+  /** the laws with none of a drive, dry friction or a lopsided spring, against laws with any ("" if one side is empty) */
+  split: string;
+  /** sets whose rounds were named before drand published them */
+  precommitted: number[];
+  /** every sealed set's spend, runs, translations and the replicate re-runs (from .probe/sealed/NOTES.md; `usd` is runs only) */
+  spendAll: number;
+  /** the README's results-in-brief bullet and the submission form's sealed sentence, printed by scripts/sealed-copy.ts */
+  readme: string;
+  form: string;
 };
+
+/** the scripted sealed runs' budget (scripts/run.ts sets RUN_BUDGET_MS to 600 000) */
+const SCRIPT_BUDGET_MS = 600_000;
+/** every sealed set's spend in all: runs, translations and the replicate re-runs (.probe/sealed/NOTES.md, "Spend, fifth set":
+ * $5.7204 for sets 1–4 and the replicates, $0.8883 for set 5); the records' ledgers hold the runs alone */
+const SPEND_ALL = 6.6087;
 
 /**
  * A review run on 2 November, outside this repository, with the same scripts and narration (its records are kept with
@@ -203,6 +228,21 @@ const absentTerms = (s: Sealed) => {
   return [...winner.matchAll(/([a-zA-Z]+) [^\s=,()]+ = ([−\-\d.]+ ± [\d.]+) \([\d.]+σ, absent\)/g)].map((m) => `${m[1]} term fitted at ${m[2]}`);
 };
 
+/** a run that passed the scripted budget: code's moves on the leading law (and on 6606498 Muse Wonder) were cut off */
+const overBudget = (e: Experiment) => (e.ledger.ms ?? 0) > SCRIPT_BUDGET_MS;
+/** "11.720 ± 0.038": two significant figures on the error bar */
+const pm2 = (v: number, s: number) => {
+  const d = Math.max(0, 1 - Math.floor(Math.log10(s)));
+  return `${v.toFixed(d)} ± ${s.toFixed(d)}`;
+};
+
+/** "6.1956 ± 0.0014 against 6.194": the drawn value to the measured value's decimals, trailing zeros dropped */
+const pmTruth = (r: Row) => {
+  const m = pm2(r.measured, r.sigma);
+  const d = (m.split(" ± ")[0].split(".")[1] ?? "").length;
+  return `${m} against ${+r.truth.toFixed(d)}`;
+};
+
 function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): string {
   const rows = rowsOf(e);
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
@@ -233,7 +273,8 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
     ? ` The drive itself was found: ${driveCredit(e)}${wdRow ? `, its frequency ${pm(wdRow.measured, wdRow.sigma)} against ${wdRow.truth.toFixed(2)} rad/s` : ""}; the miss is in the stiffness or the damping.`
     : s.drawn.drive && !driveProposed ? (b.warned ? `${disguiseText || " No model proposed a drive."}${disguiseText ? " No model wrote a drive term" : ""}${disguiseText ? ", and Muse Wonder’s prompt at the time warned it against one." : " Muse Wonder’s prompt at the time warned it against one."}` : masked(s) ? ` ${masked(s)}` : `${disguiseText} No model ${disguiseText ? "wrote a drive term" : "proposed a drive"}.`) : s.drawn.drive ? `${disguiseText} A drive was proposed, but that law did not win.` : "";
   const tied = next && next.fit.testRms < win.fit.testRms && (next.fit.k ?? 0) > (win.fit.k ?? 0) ? `; the two tie on the worse of their fitted and unseen misses, and a tie goes to the law with fewer constants, ${win.fit.k} against ${next.fit.k}` : "";
-  return `${head} Missed: Ansatz wrote “${win.law.title}”.${beat}${noDrive} The best law still misses the unseen frames by ${win.fit.testRms.toFixed(2)} px, ${Math.round(win.fit.testZ ?? NaN)}× the noise${next ? ` (the next-ranked law: ${next.fit.testRms.toFixed(2)} px${tied})` : ""}.`;
+  const over = overBudget(e) ? ` The run took ${Math.round((e.ledger.ms ?? 0) / 1000)} s against its ${SCRIPT_BUDGET_MS / 1000} s budget, so ${e.wonder ? "" : "Muse Wonder was never called and "}code’s moves on the leading law never ran.` : "";
+  return `${head} Missed: Ansatz wrote “${win.law.title}”.${beat}${noDrive}${over} The best law still misses the unseen frames by ${win.fit.testRms.toFixed(2)} px, ${Math.round(win.fit.testZ ?? NaN)}× the noise${next ? ` (the next-ranked law: ${next.fit.testRms.toFixed(2)} px${tied})` : ""}.`;
 }
 
 export async function sealedTest(): Promise<SealedTest | null> {
@@ -255,12 +296,12 @@ export async function sealedTest(): Promise<SealedTest | null> {
   const s0 = sealedOfE(es[0]);
   const found = draws.filter((d) => d.verdict === "hit").length;
   const usd = es.reduce((t, e) => t + e.ledger.usd, 0);
-  const W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"];
+  const W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
   const w = (k: number) => W[k] ?? String(k);
   const Wc = (k: number) => w(k).charAt(0).toUpperCase() + w(k).slice(1);
   const ORD = ["zeroth", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
   const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-  const roundsText = (rs: number[]) => (rs.length > 1 ? `${rs.slice(0, -1).join(", ")} and ${rs.at(-1)}` : String(rs[0]));
+  const roundsText = (rs: (number | string)[]) => (rs.length > 1 ? `${rs.slice(0, -1).join(", ")} and ${rs.at(-1)}` : String(rs[0]));
   const span = (rs: number[]) => `${rs[0]}–${rs.at(-1)}`;
   const hm = (d: Date) => d.toISOString().slice(11, 19);
   const winOf = (e: Experiment) => e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
@@ -332,23 +373,23 @@ export async function sealedTest(): Promise<SealedTest | null> {
           const failed = REPLICATE.runs.map((r, i) => ({ ...r, i: i + 1 })).filter((r) => !r.found);
           const tail = failed.length === 1 && /^a false drive/.test(failed[0].note) ? ` (the ${ORD[failed[0].i] ?? `re-run ${failed[0].i}`} wrote a false drive)` : failed.length ? ` (the others missed)` : "";
           const by = authorOf(repFirst) === "Muse Wonder" ? "the first law Muse Wonder found" : "the first law found";
-          const text = `at the current code, ${k} of ${n} re-runs of ${by} (round ${REPLICATE.round}) reproduced it${tail}; its original run (older code) hit, and a review re-run on older code missed`;
-          const detail = `Re-run ${w(n)} times on the identical clip at code ${REPLICATE.code}, after its reveal (so these are replicates, not sealed draws; their records and logs are published in ${REPLICATE_URL}): ${REPLICATE.runs.map((r, i) => `re-run ${i + 1}, ${r.found ? "found again" : "missed"}: ${r.note}`).join("; ")}. At the current code that is ${w(k)} of ${w(n)} re-runs; the original run, on older code, hit, and a separate review re-run on older code, outside this repository, missed (below).`;
+          const text = `at code ${REPLICATE.code} (set 4’s), ${k} of ${n} re-runs of ${by} (round ${REPLICATE.round}) reproduced it${tail}; its original run (older code) hit, and a review re-run on older code missed`;
+          const detail = `Re-run ${w(n)} times on the identical clip at code ${REPLICATE.code}, after its reveal (so these are replicates, not sealed draws; their records and logs are published in ${REPLICATE_URL}): ${REPLICATE.runs.map((r, i) => `re-run ${i + 1}, ${r.found ? "found again" : "missed"}: ${r.note}`).join("; ")}. At that code that is ${w(k)} of ${w(n)} re-runs; the original run, on older code, hit, and a separate review re-run on older code, outside this repository, missed (below).`;
           return { round: REPLICATE.round, code: REPLICATE.code, k, n, text, detail };
         })()
       : null;
 
-  // the headline, in three clauses: what was found, the driven laws, what the spectrum tool changed; then the replicate
+  // the headline: what was found and by whom, the driven laws, the drive (who wrote each winning one), false drives, the budget, the replicate
   const tool = stages.find((x) => x.k === "tool");
   const toolDriveE = tool ? tool.es.filter(driveHit) : [];
   const byCode = toolDriveE.filter((e) => winOf(e).combined === "drive").length;
+  const foundW = hitsE.filter((e) => authorOf(e) === "Muse Wonder").length, foundS = hitsE.filter((e) => authorOf(e) === "Muse Spark").length, foundC = hitsE.length - foundW - foundS;
+  const byWhom = hitsE.length ? `${foundC ? `${foundW + foundS} written by a model and ${foundC} by code` : "each written by a model"}, ${[foundW ? `${foundW} by Muse Wonder` : "", foundS ? `${foundS} by Muse Spark` : ""].filter(Boolean).join(" and ")}${foundC ? "" : ", none by a code move"}` : "";
   const foundClause =
     cAll.found === cAll.undrivenFound
-      ? `${found} found${found ? `, all without a drive (${cAll.undrivenFound} of the ${cAll.undriven} undriven laws, each on its first run)` : ` (none of the ${cAll.undriven} without a drive)`}`
+      ? `${found} found${found ? `, all without a drive (${cAll.undrivenFound} of the ${cAll.undriven} undriven laws, each on its first run${byWhom ? `, ${byWhom}` : ""})` : ` (none of the ${cAll.undriven} without a drive)`}`
       : `${found} found (${cAll.undrivenFound} of the ${cAll.undriven} without a drive, ${cAll.drivenFound} of the ${cAll.driven} with one)`;
   const drivenClause = cAll.drivenFound === 0 ? `none of the ${cAll.driven} driven laws found in full` : `${cAll.drivenFound} of the ${cAll.driven} driven laws found in full`;
-  const codeWords = byCode === toolDriveE.length ? (byCode === 1 ? "added by code" : byCode === 2 ? "both added by code" : "all added by code") : `${byCode} added by code`;
-  const allByCode = tool && tool.c.driveHit > 0 && byCode === toolDriveE.length;
   // Muse Wonder's spectrum-tool calls at the set-4 code: its sessions on the set-4 clips, plus the replicate re-runs at the same code
   const sameCode = !!(tool && replicate && REPLICATE.code === tool.sets[0].precommit?.code);
   const toolSessions = tool ? tool.es.filter((e) => e.wonder).length + (sameCode ? REPLICATE.runs.length : 0) : 0;
@@ -360,26 +401,36 @@ export async function sealedTest(): Promise<SealedTest | null> {
   };
   const plainE = es.filter((e) => !hard(e)), hardE = es.filter(hard);
   const splitClause = plainE.length && hardE.length ? `laws with no drive, no dry friction and no lopsided spring ${plainE.filter((e) => verdictOf(e) === "hit").length} of ${plainE.length} found, laws with any of those ${hardE.filter((e) => verdictOf(e) === "hit").length} of ${hardE.length}` : "";
-  const toolClause =
-    tool && tool.c.driven
-      ? allByCode
-        ? `after code began adding a drive at an unexplained residual peak (${setsWord(tool.sets)}; Muse Wonder’s new residual-spectrum tool was called in ${toolCalls} of its ${toolSessions} sessions), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}`
-        : `after Muse Wonder got a residual-spectrum tool (${setsWord(tool.sets)}), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit ? ` (${byCode ? codeWords : "written by the models"})${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}` : ""}`
-      : "";
-  // set 5: who wrote each winning drive, the agent or code's fallback
-  const agent = stages.find((x) => x.k === "agent");
-  const agentDriveE = agent ? agent.es.filter(driveHit) : [];
-  const byAgent = agentDriveE.filter((e) => driveAuthor(e) === "Muse Wonder").length;
-  const agentClause =
-    agent && agent.c.driven
-      ? `with Muse Wonder told to write the drive itself (${setsWord(agent.sets)}), the winning law carried the drive at the right frequency in ${agent.c.driveHit} of ${agent.c.driven} driven draws, ${byAgent} written by Muse Wonder and ${agentDriveE.length - byAgent} by code’s fallback${agent.c.driveHit > agent.c.drivenFound ? ", each missing on stiffness or damping" : ""}`
-      : "";
-  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, splitClause, toolClause, agentClause, replicate?.text].filter(Boolean).join("; ")}.`;
+  // the drive over every driven draw: carried at the drawn frequency by the winner, written by Muse Wonder itself or with code's help
+  const driveE = es.filter(driveHit);
+  const agentDriveE = driveE.filter((e) => driveAuthor(e) === "Muse Wonder");
+  const byAgent = agentDriveE.length, byCodeAll = driveE.length - byAgent;
+  const agentWord = (() => {
+    const e = agentDriveE[0];
+    const r = e && wdRow(e);
+    return e && r ? ` (round ${sealedOfE(e).round}, ${pmTruth(r)} rad/s, the first sealed drive the agent wrote rather than code)` : "";
+  })();
+  const times = (k: number) => (k === 1 ? "once" : k === 2 ? "twice" : `${w(k)} times`);
+  const driveText = cAll.driven
+    ? `the winning law carried the drive at the right frequency in ${cAll.driveHit} of ${cAll.driven} driven draws${driveE.length ? `, ${[byAgent ? `${times(byAgent)} written by Muse Wonder itself${byAgent === 1 ? agentWord : ""}` : "", byCodeAll ? `${times(byCodeAll)} with code’s help` : ""].filter(Boolean).join(" and ")}${cAll.driveHit > cAll.drivenFound ? `, ${driveE.length === 1 ? "missing" : "each missing"} on stiffness or damping` : ""}` : ""}`
+    : "";
+  const driveShort = cAll.driven ? `${cAll.driveHit} of ${cAll.driven} drives found${byAgent ? `, ${byAgent === 1 ? "one" : w(byAgent)} written by Muse Wonder itself` : ""}` : "";
+  // runs past the scripted 600 s budget: code's moves on the leading law never ran (and, with no Wonder session, Muse Wonder was never called)
+  const overE = es.filter(overBudget);
+  const budgetText = overE.length
+    ? `the ${SCRIPT_BUDGET_MS / 1000} s run budget cut off code’s moves on the leading law on ${overE.length === 1 ? "round" : "rounds"} ${roundsText(overE.map((e) => `${sealedOfE(e).round}${e.wonder ? "" : " (before Muse Wonder was called)"}`))}`
+    : "";
+  const falseClause = cAll.undriven ? `${cAll.falseDrive === 0 ? "no false drive" : `${cAll.falseDrive} false ${cAll.falseDrive === 1 ? "drive" : "drives"}`} on the ${cAll.undriven} undriven runs` : "";
+  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, driveText, falseClause, budgetText, replicate?.text].filter(Boolean).join("; ")}.`;
 
   // each stage in its own words: what changed, what was found, and where the drive went
   const driveWord = (e: Experiment) => {
     const r = wdRow(e);
     return r ? `${pm(r.measured, r.sigma)} against ${r.truth.toFixed(2)} rad/s` : "";
+  };
+  const driveWord2 = (e: Experiment) => {
+    const r = wdRow(e);
+    return r ? `${pmTruth(r)} rad/s` : "";
   };
   const stageText = (x: (typeof stages)[number]) => {
     const c = x.c;
@@ -409,17 +460,19 @@ export async function sealedTest(): Promise<SealedTest | null> {
     }
     if (proposed.length) drive.push(`on ${proposed.length === 1 ? "round" : "rounds"} ${roundsText(proposed.map((e) => sealedOfE(e).round))} a drive was proposed and lost`);
     if (none.length) drive.push(none.length === drivenMiss.length ? (none.length === 1 ? "no model wrote a drive on it" : "no model wrote a drive term on any of them") : `on ${roundsText(none.map((e) => sealedOfE(e).round))} no model wrote one`);
+    const over = x.es.filter(overBudget);
+    if (over.length) drive.push(`the run budget (${SCRIPT_BUDGET_MS / 1000} s) cut off code’s moves on the leading law on ${over.map((e) => `round ${sealedOfE(e).round} (${Math.round((e.ledger.ms ?? 0) / 1000)} s${e.wonder ? "" : "; Muse Wonder was never called"})`).join(" and ")}`);
     return `${cap(setsWord(x.sets))}, ${STAGE[x.k].name} (${what}): ${c.found} of ${c.n} found, ${[undr, dr].filter(Boolean).join(" and ")}${drive.length ? `; ${drive.join("; ")}` : ""}.`;
   };
   const falseDrive = cAll.undriven ? ` No sealed law without a drive gained a false one (${cAll.falseDrive} of ${cAll.undriven} first runs)${replicate && REPLICATE.runs.some((r) => /^a false drive/.test(r.note)) ? "; one replicate run did" : ""}.` : "";
-  const pattern = `${stages.map(stageText).join(" ")}${falseDrive}`;
+  const pattern = `${stages.map(stageText).join(" ")}${falseDrive}${splitClause ? ` By kind: ${splitClause}.` : ""}`;
   // the section's title: found without a drive, missed in full with one, and what the spectrum tool found
-  const title = `${cAll.found && cAll.found === cAll.undrivenFound ? "found without a drive" : `${cAll.found} found`}, ${cAll.drivenFound ? `${cAll.drivenFound} of ${cAll.driven} with one` : "missed in full with one"}${tool && tool.c.driveHit ? `; once code added a drive at an unexplained residual peak, the drive itself in ${tool.c.driveHit} of ${tool.c.driven}` : ""}`;
+  const title = `${cAll.found && cAll.found === cAll.undrivenFound ? "found without a drive" : `${cAll.found} found`}, ${cAll.drivenFound ? `${cAll.drivenFound} of ${cAll.driven} with one` : "missed in full with one"}${cAll.driveHit ? `; the drive itself at the right frequency in ${cAll.driveHit} of ${cAll.driven}${byAgent ? `, ${times(byAgent)} written by Muse Wonder` : ""}` : ""}`;
 
   // what the seal proves: the laws were not chosen, and the order of draw, run and reveal; not a frozen pipeline
   const postCode = post.map((e) => (e as Experiment & { code?: { commit: string; dirty: boolean } }).code).filter((c): c is { commit: string; dirty: boolean } => !!c);
   const postProves = post.length
-    ? ` The ${postSets.length === 1 ? "third set" : "later sets"} named ${postSets.length === 1 ? "its" : "their"} rounds before drand published them${postSets.some((b) => b.precommit) ? ` (${postSets.length === 1 ? "commit" : "commits"} ${postSets.flatMap((b) => (b.precommit ? [b.precommit.commit] : [])).join(" and ")})` : ""}${postCode.length === post.length ? `, and every run records its code: ${[...new Set(postCode.map((c) => c.commit.slice(0, 7)))].join(", ")}${postCode.some((c) => c.dirty) ? ", with uncommitted changes on at least one run" : " on a clean tree"}` : ""}.`
+    ? ` The ${postSets.length === 1 ? "third set" : "later sets"} named ${postSets.length === 1 ? "its" : "their"} rounds before drand published them${postSets.some((b) => b.precommit) ? ` (${postSets.length === 1 ? "commit" : "commits"} ${roundsText(postSets.flatMap((b) => (b.precommit ? [b.precommit.commit] : [])))})` : ""}${postCode.length === post.length ? `, and every run records its code: ${[...new Set(postCode.map((c) => c.commit.slice(0, 7)))].join(", ")}${postCode.some((c) => c.dirty) ? ", with uncommitted changes on at least one run" : " on a clean tree"}` : ""}.`
     : "";
   const proves = `Each law is a public function of its drand value, so the hash adds nothing beyond drand itself: anyone, us included, could compute the law once the round was out. Neither of the first two sets committed its round numbers before those rounds existed; the hashes were pushed 15 s and 11 s after the last round, which fixes each law before any clip was rendered but does not rule out a draw that was thrown away. And none of their runs can be tied to a clean committed tree: the first set ran with uncommitted edits to lib/experiment.ts, later committed as 56b2e88 (the closest match, not proven identical), and the last run of the second set probably with uncommitted lite-mode edits. So for those sets the seal proves that the laws were not picked by hand, and the order of draw, run and reveal. It does not prove that the code was frozen.${postProves}`;
 
@@ -494,8 +547,24 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const maskedR = tool.es.filter((e) => !driveHit(e) && masked(sealedOfE(e))).map((e) => sealedOfE(e).round);
     return ` ${cap(setsWord(tool.sets))}, the spectrum tool, gave Muse Wonder a tool that labels each peak in a law’s misses and let code add a drive at an unexplained one: the winning law carried the drive on ${w(tool.c.driveHit)} of the ${w(tool.c.driven)} driven clips${carried.length ? ` (${carried.length === 1 ? "round" : "rounds"} ${roundsText(carried)}${byCode === toolDriveE.length ? `, ${byCode === 1 ? "added" : "both added"} by code` : ""})` : ""}, so ${carried.length === 1 ? "that miss is" : "those misses are"} in the stiffness or the damping, not the drive${maskedR.length ? `; on round ${roundsText(maskedR)} the sideband label, added to stop false drives on undriven springs, hid the drive’s line` : ""}.${wonderCredit}`;
   })();
+  const agentStage = stages.find((x) => x.k === "agent");
+  const differs = (e: Experiment) => /Term sets differ: ([^.]+)\./.exec((sealedOfE(e) as Sealed & { terms?: string }).terms ?? "")?.[1]?.replace(/Coulomb/g, "dry friction") ?? "its stiffness or damping";
+  const agentNote = (() => {
+    if (!agentStage || !agentStage.c.driven) return "";
+    const parts = agentStage.es.filter((e) => sealedOfE(e).drawn.drive).map((e) => {
+      const rd = sealedOfE(e).round, secs = Math.round((e.ledger.ms ?? 0) / 1000);
+      const over = overBudget(e);
+      if (!driveHit(e)) return `on round ${rd} the winning law did not carry the drive${over ? ` (the run took ${secs} s of its ${SCRIPT_BUDGET_MS / 1000} s budget)` : ""}`;
+      if (driveAuthor(e) === "Muse Wonder") {
+        const read = spectrumCalls(e) > 0 ? "read the leading law’s residual spectrum, " : "";
+        return `on round ${rd} code called Muse Wonder in; it ${read}wrote the drive itself at the unexplained peak (${driveWord2(e)}) and its law won, but missed on the terms: ${differs(e)}${over ? `; code’s moves on the leading law, which could have offered the drawn damping, never ran, because the run took ${secs} s of its ${SCRIPT_BUDGET_MS / 1000} s budget` : ""}`;
+      }
+      return `on round ${rd} ${e.wonder ? "" : `${over ? `fitting the first pool and code’s fallback drive used up the budget (the run took ${secs} s, against ${SCRIPT_BUDGET_MS / 1000} s) before Muse Wonder could be called, and ` : "Muse Wonder was not called, and "}`}code’s fallback drive won (${driveWord2(e)}), but missed on the terms: ${differs(e)}`;
+    });
+    return ` ${cap(setsWord(agentStage.sets))}, with Muse Wonder told to write the drive: ${parts.join("; ")}.${overE.length ? ` The run budget, not the prompt, is now the binding limit: the next change is the budget or the fallback’s timing.` : ""}`;
+  })();
   const driveNote = driveMisses.length
-    ? `The misses in ${setsWord(warnSets)} include all ${w(driveMisses.length)} driven springs. Muse Wonder’s prompt at the time warned against exactly that term: “${DRIVE_WARNING}” (${WARNING_AT}). The line was written to stop overfitting; these clips show it can also hide a real drive. It is not the whole story: in the review run’s re-run of round 6604982 Muse Wonder did propose a drive, and the fit still missed its frequency, because a sinusoid’s frequency needs a starting guess, for example from the residuals’ spectrum, which the fit did not take then (it does from code edb5c02 on).${promptNote}${toolNote}`
+    ? `The misses in ${setsWord(warnSets)} include all ${w(driveMisses.length)} driven springs. Muse Wonder’s prompt at the time warned against exactly that term: “${DRIVE_WARNING}” (${WARNING_AT}). The line was written to stop overfitting; these clips show it can also hide a real drive. It is not the whole story: in the review run’s re-run of round 6604982 Muse Wonder did propose a drive, and the fit still missed its frequency, because a sinusoid’s frequency needs a starting guess, for example from the residuals’ spectrum, which the fit did not take then (it does from code edb5c02 on).${promptNote}${toolNote}${agentNote}`
     : null;
 
   const sets: SealedSet[] = used.map(({ b, es: xs }) => {
@@ -504,6 +573,22 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const c = count(xs);
     return { set: b.set, seal, reveal, sealUrl: commitUrl(seal), revealUrl: commitUrl(reveal), rounds: xs.map((e) => sealedOfE(e).round), n: c.n, found: c.found, driven: c.driven, drivenFound: c.drivenFound, driveHit: c.driveHit, warned: b.warned, stage: b.stage };
   });
+
+  const pre3 = used.filter((x) => x.b.precommit).map((x) => x.b.set);
+  const setRange = (xs: number[]) => (xs.length === 1 ? `Set ${xs[0]}` : xs.every((v, i) => !i || v === xs[i - 1] + 1) ? `Sets ${xs[0]}–${xs.at(-1)}` : `Sets ${roundsText(xs)}`);
+  const allUndriven = cAll.found === cAll.undrivenFound;
+  const readme = `Laws nobody chose: ${w(draws.length)} spring laws drawn by drand, hashes pushed before any clip: **${found} found${allUndriven && found ? ", all without a drive" : ""}** (${cAll.undrivenFound} of the ${cAll.undriven} undriven laws${byWhom ? `, ${byWhom}` : ""}); **${drivenClause.replace(" found in full", " in full")}**${driveText ? `; ${driveText.replace(/(once written by Muse Wonder itself)/, "**$1**")}` : ""}${falseClause ? `; ${falseClause}` : ""}${budgetText ? `; ${budgetText}` : ""}; every draw and miss on [/proof](https://ansatz-lab.vercel.app/proof#sealed). Details below.`;
+  // the form's field has a 5,000-character cap: the same counts, in fewer words
+  const agentShort = (() => {
+    const e = agentDriveE[0];
+    const r = e && wdRow(e);
+    return e && r ? ` (${pmTruth(r).replace(" against ", " vs ")} rad/s)` : "";
+  })();
+  const byWhomShort = hitsE.length ? `${foundC ? `${foundW + foundS} by a model, ${foundC} by code` : "all by a model"}: ${[foundW ? `${foundW} Muse Wonder` : "", foundS ? `${foundS} Muse Spark` : ""].filter(Boolean).join(", ")}` : "";
+  const driveForm = cAll.driven && driveE.length
+    ? `the winner carried the drive at the right frequency on ${cAll.driveHit} of ${cAll.driven}, ${[byAgent ? `${times(byAgent)} written by Muse Wonder itself${byAgent === 1 ? agentShort : ""}` : "", byCodeAll ? `${times(byCodeAll)} with code’s help` : ""].filter(Boolean).join(" and ")}`
+    : "";
+  const form = `Laws nobody chose: ${w(draws.length)} spring laws drawn by public randomness, hashes pushed before any clip. Found: ${cAll.undrivenFound} of the ${cAll.undriven} undriven laws${byWhomShort ? ` (${byWhomShort})` : ""}, ${cAll.drivenFound} of the ${cAll.driven} driven in full${driveForm ? `; ${driveForm}` : ""}.${falseClause ? ` ${cap(falseClause)}.` : ""}${pre3.length ? ` ${setRange(pre3)} named their rounds in advance.` : ""}${budgetText ? ` ${cap(budgetText)}.` : ""} Misses published.`;
 
   return {
     n: draws.length,
@@ -527,5 +612,14 @@ export async function sealedTest(): Promise<SealedTest | null> {
     wonderFound: hitsE.filter((e) => authorOf(e) === "Muse Wonder").length,
     sets,
     warningUrl: WARNING_URL,
+    drive: { hit: cAll.driveHit, driven: cAll.driven, byAgent, byCode: byCodeAll, agentRound: agentDriveE[0] ? sealedOfE(agentDriveE[0]).round : null, text: driveText, short: driveShort },
+    budget: { rounds: overE.map((e) => sealedOfE(e).round), text: budgetText },
+    foundBy: { wonder: foundW, spark: foundS, code: foundC },
+    falseDrives: { k: cAll.falseDrive, n: cAll.undriven },
+    split: splitClause,
+    precommitted: pre3,
+    spendAll: SPEND_ALL,
+    readme,
+    form,
   };
 }
