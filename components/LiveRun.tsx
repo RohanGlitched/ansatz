@@ -37,7 +37,7 @@ const LOSER_STYLES: RaceLaw["style"][] = [
 const styleOf = (rank: number): RaceLaw["style"] => (rank === 1 ? { stroke: "#ffffff", width: 3 } : LOSER_STYLES[(rank - 2) % LOSER_STYLES.length]);
 
 /** who wrote a law, as the experiment pages say it */
-const whoOf = (origin: string) => (origin === "muse" ? "Muse Spark proposed" : origin === "revision" ? "Muse Wonder proposed" : origin === "control" ? "textbook control" : origin);
+const whoOf = (origin: string) => (origin === "muse" ? "Muse Spark proposed" : origin === "revision" ? "Muse Wonder proposed" : origin === "control" ? "textbook control" : origin === "combined" ? "code combined the models’ terms" : origin);
 
 type BoardRow = NonNullable<LiveData["board"]>[number];
 /**

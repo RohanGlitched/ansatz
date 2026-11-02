@@ -29,8 +29,12 @@ const winnerOf = (e: Experiment) => e.candidates.find((c) => c.law.id === e.winn
 /** a law with a periodic term (a drive) in its equations */
 export const writesDrive = (c: Candidate) => /\b(cos|sin)\s*\(/.test(JSON.stringify((c.law as { derivatives?: unknown }).derivatives ?? ""));
 export const driveProposed = (e: Experiment) => e.candidates.some(writesDrive);
-/** who wrote the winning law */
-export const authorOf = (e: Experiment) => (winnerOf(e).origin === "revision" ? "Muse Wonder" : "Muse Spark");
+/** who wrote the winning law (code, when it combined terms the models wrote: a drive added at an unexplained residual
+ * frequency, or Muse Wonder's stiffness with Muse Spark's damping) */
+export const authorOf = (e: Experiment) => {
+  const o = winnerOf(e).origin;
+  return o === "revision" ? "Muse Wonder" : o === "combined" ? "code" : "Muse Spark";
+};
 /** whether code started the winning law's drive frequency at the strongest residual frequency (and that start stood) */
 export const driveSeeded = (e: Experiment) => {
   const log = (e as Experiment & { residualSpectrum?: { seeded?: { law: string; kept: boolean }[] } }).residualSpectrum?.seeded ?? [];
@@ -38,7 +42,9 @@ export const driveSeeded = (e: Experiment) => {
 };
 /** the credit for a drive that was found: who wrote it, and who started its frequency */
 export const driveCredit = (e: Experiment) =>
-  `${authorOf(e)} chose to add the drive; ${driveSeeded(e) ? "code started its frequency at the strongest residual frequency" : "its frequency started where the law wrote it"}`;
+  winnerOf(e).combined === "drive"
+    ? "code added the drive to the best law without one, its frequency started at the unexplained peak in that law’s misses, and the held-out frames kept it"
+    : `${authorOf(e)} chose to add the drive; ${driveSeeded(e) ? "code started its frequency at the strongest residual frequency" : "its frequency started where the law wrote it"}`;
 
 /** "103×": a miss in units of the noise, by the one rule every page uses */
 export const noiseTimes = fmtNoise;
@@ -59,6 +65,6 @@ export function sealedCaption(e: Experiment): string | null {
   const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];
   const worst = rows.length ? Math.max(...rows.map((r) => Math.abs(r.measured - r.truth) / r.sigma)) : NaN;
   const bound = worst <= 1 ? 1 : worst <= 2 ? 2 : Math.ceil(worst);
-  const by = w.origin === "revision" ? "Muse Wonder" : "Muse Spark’s own law";
+  const by = w.origin === "revision" ? "Muse Wonder" : w.origin === "combined" ? "a law code combined from the models’ terms" : "Muse Spark’s own law";
   return `${lead} Found by ${by}${Number.isFinite(worst) ? `, every constant within ${bound}σ of the drawn value` : ""}.${s.drawn.drive ? ` ${driveCredit(e).charAt(0).toUpperCase()}${driveCredit(e).slice(1)}.` : ""}`;
 }

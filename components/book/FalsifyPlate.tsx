@@ -265,6 +265,7 @@ function whoOf(origin: string) {
   if (origin === "muse") return "Muse Spark proposed";
   if (origin === "revision") return "Muse Wonder proposed";
   if (origin === "control") return "textbook control";
+  if (origin === "combined") return "code combined the models’ terms";
   return origin;
 }
 

@@ -350,16 +350,34 @@ export async function critique(obs: Observation, board: unknown, ledger: Ledger,
   return value;
 }
 
-/** The theorist's two tools, strict so the arguments always parse as a law. */
+/** The residual_spectrum tool's arguments: the law to read, by its id or title in the table, or the title of a fit_law try. */
+export const SPECTRUM_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["law"],
+  properties: { law: { type: "string", description: "the id or title of a law in the table, or the title of one of your fit_law tries" } },
+} as const;
+
+/** The theorist's tools, strict so the arguments always parse: fit a law, read a law's residual spectrum, submit a law. */
 export const WONDER_TOOLS = [
   { type: "function", name: "fit_law", description: "Fit a candidate law to the fitted frames and report how well it explains them.", strict: true, parameters: LAW_SCHEMA },
+  {
+    type: "function",
+    name: "residual_spectrum",
+    description:
+      "The spectrum of a law's misses on the fitted frames: the strongest sinusoids in them, each with its frequency, amplitude and a label: the motion's own frequency, a harmonic of it (2× or 3×, from a nonlinear spring), a drift (under two cycles in the frames), the noise, or unexplained (none of these: a periodic drive at that frequency is worth testing). Does not use up a fit_law try.",
+    strict: true,
+    parameters: SPECTRUM_SCHEMA,
+  },
   { type: "function", name: "submit_law", description: "Submit the one law to be tested on the held-out frames.", strict: true, parameters: LAW_SCHEMA },
 ];
+/** residual_spectrum calls a theorist may make on top of its turns */
+export const SPECTRUM_CALLS = 2;
 
 export type WonderAttempt = { title: string; ok: boolean; trainRms?: number; error?: string };
 
 /** One theorist turn as stored: Muse Wonder's reasoning summary and any text it wrote, and the one tool call code ran. */
-export type WonderTurn = { turn: number; reasoning: string; text?: string; tool?: "fit_law" | "submit_law"; law?: string; ignored?: number };
+export type WonderTurn = { turn: number; reasoning: string; text?: string; tool?: "fit_law" | "submit_law" | "residual_spectrum"; law?: string; ignored?: number };
 
 /** Muse Wonder's reasoning effort: medium unless WONDER_EFFORT says otherwise. */
 export const WONDER_EFFORT = () => process.env.WONDER_EFFORT || "medium";
@@ -394,6 +412,7 @@ export async function reviseAgentic(
   maxTurns = 6,
   deadline = Infinity,
   spectrum = "",
+  spectrumFor?: (law: string) => unknown,
 ): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean; turns: WonderTurn[] }> {
   const tries = Math.max(0, maxTurns - 1);
   const text = [
@@ -404,9 +423,10 @@ export async function reviseAgentic(
     // the two strongest frequencies in the misses (fitted frames only), so a periodic effect shows up as a number
     ...(spectrum ? [spectrum] : []),
     METHOD,
-    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, the two strongest frequencies in them, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; every added term is paid for on the held-out frames. A periodic drive is worth trying when the residual oscillates at a frequency other than the motion's own; a drive that is not there loses on the held-out frames. Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
+    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, the two strongest frequencies in them, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; every added term is paid for on the held-out frames. A periodic drive is worth trying when the residual oscillates at a frequency other than the motion's own; a drive that is not there loses on the held-out frames.${spectrumFor ? ` The residual_spectrum tool reads any law's misses (a law in the table, or one of your tries) as labelled peaks; up to ${SPECTRUM_CALLS} such calls don't use up a turn. A peak labelled unexplained is neither the motion's own frequency nor a harmonic of it: it is the signature of a periodic drive at that frequency, which is a second, forced frequency, not a change of the spring's own.` : ""} Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
   ].join("\n\n");
-  const tools = WONDER_TOOLS;
+  const tools = spectrumFor ? WONDER_TOOLS : WONDER_TOOLS.filter((t) => t.name !== "residual_spectrum");
+  let spectrumLeft = spectrumFor ? SPECTRUM_CALLS : 0;
   const attempts: WonderAttempt[] = [];
   const turns: WonderTurn[] = [];
   // the best law it tried, by its fit to the seen frames: submitted for it if the turns run out first
@@ -437,6 +457,33 @@ export async function reviseAgentic(
     const [c, ...extra] = calls;
     if (extra.length) record.ignored = extra.length;
     let wire: WireLaw | null = null;
+    // a spectrum read: answered, and the turn is given back while reads are left
+    if (c.name === "residual_spectrum") {
+      let name = "";
+      try {
+        name = String((JSON.parse(c.arguments) as { law?: unknown }).law ?? "");
+      } catch {
+        /* answered below */
+      }
+      record.tool = "residual_spectrum";
+      record.law = name;
+      let out: unknown;
+      try {
+        out = spectrumFor ? spectrumFor(name) : { error: "no spectrum tool in this run" };
+      } catch (e) {
+        out = { error: (e as Error).message };
+      }
+      outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify(out) });
+      if (spectrumLeft > 0) {
+        spectrumLeft--;
+        turn--;
+      }
+      for (const x of extra) outputs.push({ type: "function_call_output", call_id: x.call_id, output: JSON.stringify({ error: "not run: one tool call per turn; send it again on your next turn" }) });
+      const lastS = turn === maxTurns - 2 ? [{ type: "input_text", text: "Your next turn is the last: call submit_law with the one law to test." }] : [];
+      if (lastS.length) outputs.push({ role: "user", content: lastS });
+      input = outputs;
+      continue;
+    }
     try {
       wire = JSON.parse(c.arguments) as WireLaw;
     } catch {

@@ -472,8 +472,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             </Tex>
           ))}
         </div>
-        <Note who={win.origin === "revision" ? "Muse Wonder 1.0" : win.origin === "muse" ? "Muse Spark 1.3" : "A textbook control"}>
-          {win.origin === "revision" ? "Wrote this law with a fitting tool, on the fitted frames only." : win.origin === "muse" ? "Proposed this law after watching the clip." : "Entered by code to compete with the proposed laws."} Code compiled it and integrated it.
+        <Note who={win.origin === "revision" ? "Muse Wonder 1.0" : win.origin === "muse" ? "Muse Spark 1.3" : win.origin === "combined" ? "Code, from the models' terms" : "A textbook control"}>
+          {win.origin === "revision" ? "Wrote this law with a fitting tool, on the fitted frames only." : win.origin === "muse" ? "Proposed this law after watching the clip." : win.origin === "combined" ? (win.combined === "drive" ? "Code added a periodic drive to the best law without one, at an unexplained frequency in its misses." : "Code combined Muse Wonder’s stiffness with Muse Spark’s damping.") : "Entered by code to compete with the proposed laws."} Code compiled it and integrated it.
         </Note>
         {/* the winner's mechanism sentence is a claim about which damping law holds: withheld when the clip did not decide it */}
         <p className={styles.para} lang={tr?.summary && !damping ? trLang : undefined}>
@@ -714,7 +714,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                       {!c.fit.ok && c.fit.why && <span className={styles.reason}>{c.fit.why}</span>}
                     </td>
                     <td data-h="Proposed by" className={styles.origin}>
-                      {c.origin === "muse" ? "Muse Spark" : c.origin === "revision" ? `Muse Wonder${e.wonder?.trigger === "code" ? ", called in by the fit check" : e.wonder?.trigger === "referee" ? ", called in by the referee" : ""}` : "textbook control"}
+                      {c.origin === "muse" ? "Muse Spark" : c.origin === "revision" ? `Muse Wonder${e.wonder?.trigger === "code" ? ", called in by the fit check" : e.wonder?.trigger === "referee" ? ", called in by the referee" : ""}` : c.origin === "combined" ? (c.combined === "drive" ? "code: a drive added at an unexplained residual frequency" : "code: Muse Wonder’s stiffness, Muse Spark’s damping") : "textbook control"}
                     </td>
                     <td data-h={`Miss on the fitted ${fitPct}%`} className={`r num ${styles.miss}`}>
                       {c.fit.ok ? (

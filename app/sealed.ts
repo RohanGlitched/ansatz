@@ -144,7 +144,7 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
   const miss = `It misses the unseen frames by ${win.fit.testRms.toFixed(2)} px${next ? `, against ${next.fit.testRms.toFixed(2)} px for the next-ranked law` : ""}`;
   if (verdict === "hit") {
     const within1 = rows.every((r) => zOf(r) <= 1);
-    const who = win.origin === "revision" ? `Found: Muse Wonder wrote the law${e.wonder?.trigger === "referee" ? " after the referee read the residuals" : ""}` : "Found: Muse Spark’s own law";
+    const who = win.origin === "revision" ? `Found: Muse Wonder wrote the law${e.wonder?.trigger === "referee" ? " after the referee read the residuals" : ""}` : win.origin === "combined" ? (win.combined === "drive" ? "Found: code added the drive to the best law without one, at the unexplained frequency in its misses" : "Found: code combined Muse Wonder’s stiffness with Muse Spark’s damping") : "Found: Muse Spark’s own law";
     const tie = next && Math.abs(next.fit.testRms - win.fit.testRms) < 0.01 * win.fit.testRms ? ` (the next law is the same one with an extra term, which ties and ranks second)` : "";
     return `${head} ${who}, ${rows.map(rowText).join(", ")}${within1 ? ", every constant within 1σ" : ""}.${s.drawn.drive ? ` ${driveCredit(e).charAt(0).toUpperCase()}${driveCredit(e).slice(1)}.` : ""} ${miss}${tie}.`;
   }

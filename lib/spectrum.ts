@@ -19,8 +19,26 @@ export type SpectrumPeak = {
   /** n when the peak sits within 3% of n times the motion's own frequency (n = 2 or 3): a harmonic of the motion, which
    * a lopsided (2ω₀) or hardening (3ω₀) spring leaves in the misses of a linear law; not evidence of a drive */
   harmonic?: number;
+  /** what the peak is (classifyPeaks): the motion's own frequency, a harmonic of it, a drift (under two cycles in the
+   * fitted frames), the noise (under the look-elsewhere threshold), one of a pair of sidebands mirrored about the
+   * motion's frequency (the motion's own amplitude or frequency changing), or unexplained (none of these: worth a drive) */
+  label?: PeakLabel;
+  /** the fitted sinusoid a·cos ωt + b·sin ωt in each channel's own unit (t as in the series), for a drive's start */
+  coef?: Record<string, { a: number; b: number }>;
 };
-export type ResidualSpectrum = { law: string; peaks: SpectrumPeak[]; /** the motion's own frequency (rad/s): the strongest in the measured series */ motionOmega?: number };
+export type PeakLabel = "motion" | "harmonic" | "sideband" | "drift" | "noise" | "unexplained";
+export type ResidualSpectrum = {
+  law: string;
+  peaks: SpectrumPeak[];
+  /** the motion's own frequency (rad/s): the strongest in the measured series */
+  motionOmega?: number;
+  /** the amplitude (noise units) a peak of pure white noise exceeds once in 1000 spectra, anywhere in the band */
+  noiseThreshold?: number;
+  /** the fitted frames' span (s): a peak under two cycles in it is a drift */
+  spanS?: number;
+  /** the highest frequency searched (rad/s), 90% of the frame rate's limit: a drive's frequency is kept under it */
+  maxOmega?: number;
+};
 
 /** The peaks of a spectrum with each one at 2ω or 3ω of the motion (within 3%) marked as a harmonic. */
 export function labelHarmonics(s: ResidualSpectrum, motionOmega: number | undefined, tol = 0.03): ResidualSpectrum {
@@ -75,7 +93,9 @@ export function residualPeaks(series: Record<string, { t: number[]; r: number[] 
   const dts = chans.flatMap((c) => c.t.slice(1).map((v, i) => v - c.t[i])).filter((d) => d > 0).sort((a, b) => a - b);
   if (!(T > 0) || !dts.length) return [];
   const dt = dts[Math.floor(dts.length / 2)];
-  const wLo = (2 * Math.PI) / T, wHi = Math.PI / dt;
+  // up to 90% of the frame rate's limit: at the limit itself sin(ωt) vanishes on every frame, the fit is singular and
+  // the amplitude meaningless
+  const wLo = (2 * Math.PI) / T, wHi = (0.9 * Math.PI) / dt;
   // ten trial frequencies per resolution width (2π/T)
   const step = wLo / 10;
   const out: SpectrumPeak[] = [];
@@ -87,7 +107,7 @@ export function residualPeaks(series: Record<string, { t: number[]; r: number[] 
     }
     if (!Number.isFinite(bestW) || bestP <= 0) break;
     // refine inside ±one trial step by golden-section search
-    let lo = Math.max(wLo * 0.5, bestW - step), hi = bestW + step;
+    let lo = Math.max(wLo * 0.5, bestW - step), hi = Math.min(wHi, bestW + step);
     const g = (Math.sqrt(5) - 1) / 2;
     for (let it = 0; it < 40; it++) {
       const m1 = hi - g * (hi - lo), m2 = lo + g * (hi - lo);
@@ -95,28 +115,133 @@ export function residualPeaks(series: Record<string, { t: number[]; r: number[] 
     }
     const w = (lo + hi) / 2;
     const byChannel: Record<string, number> = {};
+    const coef: Record<string, { a: number; b: number }> = {};
     // take the fitted sinusoid out of every channel before the next peak is looked for
     chans = chans.map((c, j) => {
       const f = sinusoidAt(c.t, c.r, w);
       byChannel[names[j]] = f.amp;
+      coef[names[j]] = { a: f.a, b: f.bb };
       return { ...c, r: c.r.map((v, i) => v - f.a * Math.cos(w * c.t[i]) - f.bb * Math.sin(w * c.t[i])) };
     });
-    out.push({ omega: w, ampNoise: Math.sqrt(chans.reduce((s, c, j) => s + (byChannel[names[j]] / c.noise) ** 2, 0)), byChannel });
+    out.push({ omega: w, ampNoise: Math.sqrt(chans.reduce((s, c, j) => s + (byChannel[names[j]] / c.noise) ** 2, 0)), byChannel, coef });
   }
   return out;
 }
 
-/** One line per peak for the theorist: frequency, amplitude in noise units and in each channel's unit. */
+/** P(χ² with 2c degrees of freedom > x): e^(−x/2) Σ_{k<c} (x/2)^k / k! */
+function chi2EvenSurvival(x: number, c: number) {
+  let term = 1, tot = 1;
+  for (let k = 1; k < c; k++) { term *= x / 2 / k; tot += term; }
+  return Math.exp(-x / 2) * tot;
+}
+
+/**
+ * The amplitude, in noise units, that the strongest peak of pure white noise exceeds in one spectrum out of 1/p,
+ * searched over the whole band: n samples per channel, `channels` channels, about n/2 independent frequencies (the
+ * look-elsewhere factor). Each channel's least-squares a, b have variance 2/n in noise units, so ampNoise²·n/2 is χ² with
+ * 2·channels degrees of freedom at one frequency. Never under 2: tracking noise is not white (a mask's wander is slow),
+ * so a sinusoid smaller than twice the per-frame noise is not read as a signal.
+ */
+export function noiseThreshold(n: number, channels = 1, p = 1e-3): number {
+  if (!(n > 4)) return Infinity;
+  const M = Math.max(1, n / 2);
+  let lo = 0, hi = 400;
+  for (let it = 0; it < 80; it++) {
+    const mid = (lo + hi) / 2;
+    if (M * chi2EvenSurvival(mid, Math.max(1, channels)) > p) lo = mid; else hi = mid;
+  }
+  return Math.max(2, Math.sqrt((2 * hi) / n));
+}
+
+/**
+ * Labels every peak of a residual spectrum. In order: under the noise threshold → noise; under two cycles in the fitted
+ * span → drift (a slow trend, not resolvable as a periodic force); within 10% (or half a resolution width, π/T, if
+ * wider) of the motion's own frequency → motion (the law's own frequency, damping or amplitude is off); within 3% of
+ * 2ω or 3ω of the motion → harmonic (a lopsided or hardening spring's); otherwise → unexplained. Then two unexplained
+ * peaks mirrored about the motion's frequency (their mean within 3% of it) with amplitudes within a factor 2 of each
+ * other → sideband, both: a swing whose amplitude or frequency changes over the clip (a damping or stiffness law of the
+ * wrong form) leaves such a pair, while a drive leaves one line that dominates its mixing products. Only a peak still
+ * unexplained says a periodic drive at that frequency is worth testing.
+ */
+export function classifyPeaks(s: ResidualSpectrum, motionOmega: number | undefined, opts: { spanS: number; n: number; channels: number }): ResidualSpectrum {
+  const thr = noiseThreshold(opts.n, opts.channels);
+  const res = (2 * Math.PI) / opts.spanS;
+  const withH = labelHarmonics(s, motionOmega);
+  return {
+    ...withH,
+    noiseThreshold: thr,
+    spanS: opts.spanS,
+    peaks: withH.peaks.map((p) => {
+      let label: PeakLabel;
+      if (!(p.ampNoise > thr)) label = "noise";
+      else if (p.omega < 2 * res) label = "drift";
+      else if (motionOmega && Math.abs(p.omega - motionOmega) <= Math.max(0.1 * motionOmega, res / 2)) label = "motion";
+      else if (p.harmonic) label = "harmonic";
+      else label = "unexplained";
+      return { ...p, label };
+    }).map((p, i, all) => {
+      if (p.label !== "unexplained" || !motionOmega) return p;
+      const twin = all.find((q, j) => j !== i && q.label === "unexplained" && Math.abs((p.omega + q.omega) / 2 - motionOmega) <= 0.03 * motionOmega && Math.max(p.ampNoise, q.ampNoise) < 2 * Math.min(p.ampNoise, q.ampNoise));
+      return twin ? { ...p, label: "sideband" as const } : p;
+    }),
+  };
+}
+
+/** A law's misses as a labelled spectrum: the `count` strongest peaks, each classified (classifyPeaks). */
+export function residualSpectrum(law: string, series: Record<string, { t: number[]; r: number[] }>, noise: Record<string, number>, motionOmega: number | undefined, count = 3): ResidualSpectrum {
+  const peaks = residualPeaks(series, noise, count);
+  const used = Object.values(series).filter((x) => x.t.filter(Number.isFinite).length >= 8);
+  const all = used.flatMap((x) => x.t.filter(Number.isFinite));
+  const spanS = all.length ? Math.max(...all) - Math.min(...all) : 0;
+  const ns = used.map((x) => x.t.length).sort((a, b) => a - b);
+  const n = ns.length ? ns[Math.floor(ns.length / 2)] : 0;
+  const dts = used.flatMap((x) => x.t.slice(1).map((v, i) => v - x.t[i])).filter((d) => d > 0).sort((a, b) => a - b);
+  const maxOmega = dts.length ? (0.9 * Math.PI) / dts[Math.floor(dts.length / 2)] : undefined;
+  return { ...classifyPeaks({ law, peaks }, motionOmega, { spanS: spanS > 0 ? spanS : 1, n, channels: Math.max(1, used.length) }), ...(maxOmega ? { maxOmega } : {}) };
+}
+
+/** The strongest peak labelled unexplained, or null. */
+export const unexplainedPeak = (s: ResidualSpectrum | null) => s?.peaks.find((p) => p.label === "unexplained") ?? null;
+
+const LABEL_WORDS: Record<PeakLabel, (s: ResidualSpectrum) => string> = {
+  motion: () => ": the motion's own frequency (the law's own frequency, damping or amplitude is off), not a drive",
+  harmonic: () => "", // worded from the harmonic number
+  sideband: () => ": one of a pair mirrored about the motion's own frequency with like amplitudes, the motion's own amplitude or frequency changing over the clip (the form of the damping or the stiffness), not a drive",
+  drift: (s) => `: under two cycles in the fitted ${s.spanS ? s.spanS.toFixed(1) + " s" : "frames"}, a slow drift, not resolvable as a periodic force`,
+  noise: (s) => `: within the noise (pure noise reaches ${s.noiseThreshold ? s.noiseThreshold.toFixed(2) : "?"} × the noise somewhere in the band once in a thousand spectra)`,
+  unexplained: () => ": UNEXPLAINED, neither the motion's own frequency nor a harmonic of it; a periodic drive at this frequency is worth testing, and the held-out frames will reject one that is not there",
+};
+
+/** One line per peak for the theorist: frequency, amplitude in noise units and in each channel's unit, and its label. */
 export function spectrumSummary(s: ResidualSpectrum | null, units: Record<string, string> = {}): string {
   if (!s || !s.peaks.length) return "";
   const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toPrecision(3) : v.toPrecision(2));
   const peaks = s.peaks.map((p, i) => {
     const ch = Object.entries(p.byChannel).map(([c, a]) => `${fmt(a)}${units[c] ? ` ${units[c]}` : ""} in ${c}`).join(", ");
-    const h = p.harmonic ? `: ${p.harmonic}× the motion's own frequency, a harmonic of the motion (expected for a nonlinear spring), not evidence of a drive` : "";
-    return `${i ? "next" : "strongest"} at ω = ${p.omega.toFixed(2)} rad/s (period ${((2 * Math.PI) / p.omega).toFixed(3)} s), amplitude ${fmt(p.ampNoise)} × the noise (${ch})${h}`;
+    const h = p.harmonic && (!p.label || p.label === "harmonic") ? `: ${p.harmonic}× the motion's own frequency, a harmonic of the motion (expected for a nonlinear spring), not evidence of a drive` : "";
+    const l = p.label && p.label !== "harmonic" ? LABEL_WORDS[p.label](s) : "";
+    return `${i ? "next" : "strongest"} at ω = ${p.omega.toFixed(2)} rad/s (period ${((2 * Math.PI) / p.omega).toFixed(3)} s), amplitude ${fmt(p.ampNoise)} × the noise (${ch})${h}${l}`;
   });
   const own = s.motionOmega ? ` The motion's own frequency is ${s.motionOmega.toFixed(2)} rad/s.` : "";
   return `Residual spectrum of “${s.law}” on the fitted frames (its misses, fitted as sinusoids one at a time, strongest first): ${peaks.join("; ")}.${own}`;
+}
+
+/** The spectrum as the theorist's residual_spectrum tool returns it: every peak with its amplitude and label. */
+export function spectrumTool(s: ResidualSpectrum, units: Record<string, string> = {}) {
+  return {
+    law: s.law,
+    motion_omega_rad_s: s.motionOmega ?? null,
+    noise_threshold: s.noiseThreshold ?? null,
+    peaks: s.peaks.map((p) => ({
+      omega_rad_s: +p.omega.toFixed(4),
+      period_s: +((2 * Math.PI) / p.omega).toFixed(4),
+      amplitude_in_noise_units: +p.ampNoise.toPrecision(4),
+      amplitude: Object.fromEntries(Object.entries(p.byChannel).map(([c, a]) => [c, `${+a.toPrecision(4)}${units[c] ? ` ${units[c]}` : ""}`])),
+      label: p.label ?? (p.harmonic ? "harmonic" : "unlabelled"),
+      ...(p.harmonic ? { harmonic_of_motion: p.harmonic } : {}),
+    })),
+    summary: spectrumSummary(s, units),
+  };
 }
 
 /* ─────────────────────── a drive's frequency ─────────────────────── */
@@ -179,8 +304,9 @@ export function driveFrequencyParams(law: Law): { name: string; cycles: boolean 
  * the fit still decides where the frequency ends up.
  */
 export function seedDriveFrequency(law: Law, spectrum: ResidualSpectrum | null): Law | null {
-  // a harmonic of the motion is not a drive: the start comes from the strongest peak that is not one
-  const peak = spectrum?.peaks.find((p) => !p.harmonic);
+  // a harmonic of the motion is not a drive: the start comes from the strongest unexplained peak, or failing one the
+  // strongest that is neither a harmonic, the motion's own frequency, a drift nor noise-level
+  const peak = unexplainedPeak(spectrum) ?? spectrum?.peaks.find((p) => !p.harmonic && (!p.label || p.label === "unexplained"));
   if (!peak || !(peak.omega > 0)) return null;
   const drive = driveFrequencyParams(law);
   if (!drive.length) return null;

@@ -6,7 +6,7 @@ import type { Experiment } from "./experiment";
 export function plateLaws(e: Experiment) {
   return e.candidates.map((c) => ({
     id: c.law.id,
-    who: c.origin === "muse" ? "Muse Spark proposed" : c.origin === "revision" ? "Muse Wonder proposed" : c.origin === "control" ? "textbook control" : c.origin,
+    who: c.origin === "muse" ? "Muse Spark proposed" : c.origin === "revision" ? "Muse Wonder proposed" : c.origin === "control" ? "textbook control" : c.origin === "combined" ? "code combined the models’ terms" : c.origin,
     html: katex.renderToString(lawLatex(c.fitted ?? c.law).at(-1) ?? c.law.title, { throwOnError: false, strict: "ignore", output: "html" }),
   }));
 }

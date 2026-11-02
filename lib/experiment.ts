@@ -15,7 +15,8 @@ import { readVideoInfo, type VideoInfo } from "./video";
 import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
-import { driveFrequencyParams, labelHarmonics, residualPeaks, seedDriveFrequency, spectrumSummary, type ResidualSpectrum } from "./spectrum";
+import { driveFrequencyParams, residualPeaks, residualSpectrum, seedDriveFrequency, spectrumSummary, spectrumTool, unexplainedPeak, type ResidualSpectrum } from "./spectrum";
+import { combineStiffnessDamping, dampingSignature, hasTimeTerm, warmStart, withDrive } from "./combine";
 import { fmtPair } from "./format";
 import { median } from "./median";
 import { lawLatex } from "./latex";
@@ -33,9 +34,28 @@ export type Candidate = {
   /** the law actually fitted: `law` plus any measurement-only parameters (the scale correction) */
   fitted?: Law;
   fit: Fit;
-  origin: "muse" | "control" | "revision";
+  /** combined: a law code put together from terms the models wrote (lib/combine.ts); `combined` says how */
+  origin: "muse" | "control" | "revision" | "combined";
   ifItWins?: string;
   rank: number;
+  combined?: CodeAdded["how"];
+};
+
+/** A candidate code added from terms the models wrote, as the record keeps it. */
+export type CodeAdded = {
+  /** the law's id in the candidates */
+  law: string;
+  how: "drive" | "stiffness+damping";
+  /** the laws it was made from (a drive: the one law it was added to; a recombination: stiffness law, damping law) */
+  from: string[];
+  /** when: on the first pool, or after Muse Wonder's revision */
+  stage: "fit" | "after revision";
+  /** a drive: the unexplained residual peak it started from (rad/s, noise units), and which phase start fitted better */
+  peak?: { omega: number; ampNoise: number };
+  phaseStart?: "as estimated" | "half a cycle on";
+  ok: boolean;
+  /** its final rank (filled when the run ends) */
+  rank?: number;
 };
 
 export type Comparison = {
@@ -125,6 +145,9 @@ export type Experiment = {
   /** the misses' spectrum on the fitted frames of the best-fitting law without a drive (the theorist reads it), and the
    * drive laws whose frequency started from its strongest peak (kept: the seeded start fitted the fitted frames better) */
   residualSpectrum?: ResidualSpectrum & { seeded: { law: string; params: string[]; kept: boolean }[] };
+  /** the candidates code added from terms the models wrote (a drive at an unexplained residual peak; Muse Wonder's
+   * stiffness with Muse Spark's damping), each with what it was made from and its final rank */
+  codeAdded?: CodeAdded[];
   sample?: boolean;
   /** the class link it was run with, and the name or roll number the student gave */
   class?: string;
@@ -332,11 +355,12 @@ export function refereePlotSeries(cands: Candidate[], m: Pick<Measured, "series"
 }
 
 /** A candidate's misses on the fitted frames, per channel in the channel's own unit, as two sinusoid peaks. */
-export function spectrumOf(c: Pick<Candidate, "law" | "fit">, m: Pick<Measured, "series" | "noise">, frac = TRAIN): ResidualSpectrum {
+export function spectrumOf(c: Pick<Candidate, "law" | "fit">, m: Pick<Measured, "series" | "noise">, frac = TRAIN, count = 3): ResidualSpectrum {
   const per = fittedResiduals(c.fit, m, frac);
   const series = Object.fromEntries(Object.entries(per).map(([ch, p]) => [ch, { t: p.t, r: p.r.map((v) => v * noiseOf(m.noise, ch)) }]));
-  // peaks at 2ω or 3ω of the motion are labelled harmonics (a nonlinear spring's), never read as a drive
-  return labelHarmonics({ law: c.law.title, peaks: residualPeaks(series, m.noise, 2) }, motionOmega(m, frac));
+  // every peak labelled: the motion's own frequency, a harmonic of it (a nonlinear spring's), a drift, the noise, or
+  // unexplained (lib/spectrum.ts classifyPeaks); only an unexplained peak is read as a possible drive
+  return residualSpectrum(c.law.title, series, m.noise, motionOmega(m, frac), count);
 }
 
 /** The motion's own frequency: the strongest sinusoid in the measured channels over the fitted frames (no law involved). */
@@ -348,9 +372,75 @@ export function motionOmega(m: Pick<Measured, "series" | "noise">, frac = TRAIN)
 
 /** The spectrum a drive's frequency starts from: the best fit to the fitted frames among laws with no drive term (any law when all have one). */
 export function baseSpectrum(cands: Candidate[], m: Pick<Measured, "series" | "noise">, frac = TRAIN): ResidualSpectrum | null {
-  const ok = byFittedFit(cands.filter((c) => c.fit.ok), m.noise);
-  const pick = ok.find((c) => !driveFrequencyParams(c.law).length) ?? ok[0];
+  const pick = baseCandidate(cands, m);
   return pick ? spectrumOf(pick, m, frac) : null;
+}
+/** The best fit to the fitted frames among laws with no drive term (any law when all have one): the law code adds a drive to. */
+export function baseCandidate(cands: Candidate[], m: Pick<Measured, "series" | "noise">): Candidate | null {
+  const ok = byFittedFit(cands.filter((c) => c.fit.ok), m.noise);
+  return ok.find((c) => !driveFrequencyParams(c.law).length && !hasTimeTerm(c.law)) ?? ok[0] ?? null;
+}
+
+/**
+ * The candidate code adds when the best law without a drive leaves an unexplained peak in its misses: that law plus a
+ * periodic drive started at the peak (lib/combine.ts withDrive), every other constant started where its own fit left
+ * it, fitted from two phase starts (the estimated one and half a cycle on), the better fit to the fitted frames kept.
+ * A start whose drive frequency ends within the motion's own band (10%, or π/T if wider) or past the frame rate's limit
+ * fails: such a term reshapes the swing rather than drives it. Null when there is no unexplained peak or the law can't take a drive. `fitOne` fits a law exactly as the pool's
+ * other laws are fitted.
+ */
+export function driveCandidate(
+  base: Candidate,
+  spec: ResidualSpectrum | null,
+  unitFor: (channel: string) => string,
+  fitOne: (l: Law) => { law: Law; fitted?: Law; fit: Fit },
+): { cand: Candidate; peak: { omega: number; ampNoise: number }; phaseStart: "as estimated" | "half a cycle on" } | null {
+  const peak = unexplainedPeak(spec);
+  if (!peak || !spec?.motionOmega || hasTimeTerm(base.law)) return null;
+  const warm = warmStart(base.law, base.fit.theta);
+  const ch = Object.entries(peak.byChannel).sort((a, b) => b[1] - a[1]).find(([c]) => base.law.observe[c])?.[0] ?? "";
+  const unit = unitFor(ch);
+  // (a start whose fit fails stands only when both fail: the candidate is then recorded, not entered)
+  let best: { law: Law; fitted?: Law; fit: Fit; flip: boolean } | null = null;
+  for (const flip of [false, true]) {
+    const l = withDrive(warm, peak, spec.motionOmega, unit, flip, spec.maxOmega);
+    if (!l) return null;
+    const r = fitOne(l);
+    // a frequency widened past the frame rate's limit would alias: that start failed
+    if (r.fit.ok && spec.maxOmega && !(r.fit.theta.w_drive <= spec.maxOmega)) r.fit = { ...r.fit, ok: false, why: "the drive's frequency ran past the frame rate's limit" };
+    // a drive that slid onto the motion's own frequency is reshaping the swing (its damping or stiffness), not driving it
+    const near = Math.max(0.1 * spec.motionOmega, spec.spanS ? Math.PI / spec.spanS : 0);
+    if (r.fit.ok && Math.abs(r.fit.theta.w_drive - spec.motionOmega) <= near) r.fit = { ...r.fit, ok: false, why: "the drive's frequency slid onto the motion's own" };
+    if (!best || (r.fit.ok && (!best.fit.ok || r.fit.trainCost < best.fit.trainCost))) best = { ...r, flip };
+  }
+  if (!best) return null;
+  return {
+    cand: { law: best.law, fitted: best.fitted, fit: best.fit, origin: "combined", combined: "drive", rank: 0 },
+    peak: { omega: peak.omega, ampNoise: peak.ampNoise },
+    phaseStart: best.flip ? "half a cycle on" : "as estimated",
+  };
+}
+
+/**
+ * Muse Wonder's stiffness with each damping form Muse Spark wrote that Muse Wonder's law lacks (the best-fitting
+ * Muse Spark law of each form, by the fitted frames), at most `max` of them, each warm-started from its two parents' fits.
+ */
+export function recombinations(rev: Candidate, cands: Candidate[], m: Pick<Measured, "series" | "noise">, max = 2): { law: Law; from: string[] }[] {
+  const ch = Object.keys(rev.law.observe)[0];
+  const own = dampingSignature(rev.law, ch);
+  if (own === null || hasTimeTerm(rev.law)) return [];
+  const spark = byFittedFit(cands.filter((c) => c.origin === "muse" && c.fit.ok && !hasTimeTerm(c.law)), m.noise);
+  const seen = new Set<string>([own]);
+  const out: { law: Law; from: string[] }[] = [];
+  for (const c of spark) {
+    if (out.length >= max) break;
+    const sig = dampingSignature(c.law, ch);
+    if (!sig || seen.has(sig)) continue;
+    seen.add(sig);
+    const law = combineStiffnessDamping(warmStart(rev.law, rev.fit.theta), warmStart(c.law, c.fit.theta), ch);
+    if (law) out.push({ law, from: [rev.law.id, c.law.id] });
+  }
+  return out;
 }
 
 /** The fit with the better fitted-frames cost of the law as written and the law with its drive frequency seeded. */
@@ -1016,6 +1106,16 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const noiseFloor = noiseFloorOf(m.noise);
     let spectrum: ResidualSpectrum | null = null;
     const seededLog: { law: string; params: string[]; kept: boolean }[] = [];
+    // the candidates code adds from terms the models wrote (lib/combine.ts), fitted exactly as the pool's other laws
+    const codeAdded: CodeAdded[] = [];
+    let baseAtFit: string | null = null;
+    const unitFor = (ch: string) => (ch === "theta" ? "rad" : m.calibration.kind === "none" ? "px" : "m");
+    const fitPooled = (law: Law) => {
+      const l = { ...law, params: law.params.filter((p) => p.name !== "cal").map((p) => ({ ...p })) };
+      if (gUsed !== null) for (const p of l.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
+      holdPendulum(l, hold);
+      return fitWithRoom(l, m.series, (x) => (gUsed !== null ? withScaleCorrection(x) : x));
+    };
     const cands: Candidate[] = await step("fit", async () => {
       const list: Candidate[] = [];
       const seen = new Set<string>();
@@ -1044,6 +1144,24 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         const kept = r.fit.ok && (!c.fit.ok || r.fit.trainCost < c.fit.trainCost);
         seededLog.push({ law: c.law.id, params: driveFrequencyParams(c.law).map((d) => d.name), kept });
         if (kept) Object.assign(c, { law: r.law, fitted: r.fitted, fit: r.fit });
+      }
+      // an unexplained peak in the misses of the best law without a drive (not the motion's own frequency, not a
+      // harmonic of it, not a drift, above the noise): code adds that law plus a periodic drive started at the peak
+      // (it takes up to two minutes of fitting: only when the run has room for it and still for the referee and Muse
+      // Wonder; a scripted run's 600 s budget always has, a site run's 250 s budget does not)
+      const roomForDrive = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0) > 200_000;
+      if (!input.lite && roomForDrive) {
+        const base = baseCandidate(list, m);
+        baseAtFit = base?.law.id ?? null;
+        const dc = base ? driveCandidate(base, spectrum, unitFor, fitPooled) : null;
+        if (base && dc) {
+          let id = dc.cand.law.id;
+          while (seen.has(id)) id += "-2";
+          seen.add(id);
+          dc.cand.law = { ...dc.cand.law, id };
+          codeAdded.push({ law: id, how: "drive", from: [base.law.id], stage: "fit", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok });
+          if (dc.cand.fit.ok) list.push(dc.cand);
+        }
       }
       rankCandidates(list, noiseFloor);
       return list;
@@ -1099,6 +1217,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       const budgetLeft = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
       // two theorist turns take about a minute; more turns only when there's room
       if (idea && budgetLeft > 75_000) {
+        const attemptFits = new Map<string, { law: Law; fit: Fit }>();
         try {
           const tryLaw = async (law: Law) => {
             const l2 = { ...law, params: law.params.filter((p) => p.name !== "cal") };
@@ -1108,6 +1227,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
             // (an attempt's σ is only shown to Muse Wonder: no jackknife here; the law it submits is refitted with one)
             // a drive's frequency also starts at the strongest residual peak; the better fit to the fitted frames stands
             const { fit: f, seeded } = fitSeeded(wrapped, spectrum, (x) => ({ fit: fitLaw(x, m.series, { trainFrac: TRAIN, jackknife: false }) }));
+            if (f.ok) attemptFits.set(law.title, { law, fit: f });
             // the attempt's misses on the fitted frames as a picture, the same kind the referee reads (best effort)
             const per = f.ok ? Object.values(fittedResiduals(f, m, TRAIN)) : [];
             const plot = per.length ? await residualPlot([{ title: law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) }], 1).catch(() => undefined) : undefined;
@@ -1124,7 +1244,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           };
           // the theorist reads the same table as the referee: fitted frames only, no rank, sorted by the fit to them
           const maxTurns = Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2);
-          const { law: revised, attempts, auto, turns } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, maxTurns, t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000, spectrumSummary(spectrum, spectrumUnits));
+          // the residual_spectrum tool: any law in the table, or any of its own tries, as labelled peaks
+          const spectrumFor = (name: string) => {
+            const pick = cands.find((c) => c.law.id === name || c.law.title === name) ?? attemptFits.get(name);
+            if (!pick) return { error: `no law called “${name}” in the table or among your tries; the names are: ${[...cands.map((c) => c.law.id), ...attemptFits.keys()].join(", ")}` };
+            if (!pick.fit.ok) return { error: "that law's fit failed, so it has no misses to read" };
+            return spectrumTool(spectrumOf(pick, m, TRAIN, 4), spectrumUnits);
+          };
+          const { law: revised, attempts, auto, turns } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, maxTurns, t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000, spectrumSummary(spectrum, spectrumUnits), spectrumFor);
           wonder = { idea, trigger, ...(trigger === "code" ? { missZ: leadMiss } : {}), attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null, turns, budget: { turns: maxTurns, effort: WONDER_EFFORT() } };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
@@ -1140,6 +1267,50 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           rankCandidates(cands, noiseFloor);
         } catch {
           /* an unusable revision simply doesn't compete */
+        }
+        // code combines terms the models wrote: Muse Wonder's stiffness with each damping form Muse Spark wrote that it
+        // lacks, then a drive on the new best law without one when its misses leave an unexplained peak. The held-out
+        // frames judge them like every other law
+        const rev = cands.find((c) => c.origin === "revision");
+        const left0 = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
+        if (rev?.fit.ok && left0 > 60_000) {
+          try {
+            const ids = new Set(cands.map((c) => c.law.id));
+            const uniq = (l: Law) => {
+              let id = l.id;
+              while (ids.has(id)) id += "-2";
+              ids.add(id);
+              return { ...l, id };
+            };
+            const room = () => Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0) > 45_000;
+            for (const r of recombinations(rev, cands, m)) {
+              if (!room()) break;
+              const f = fitPooled(r.law);
+              const law = uniq(f.law);
+              codeAdded.push({ law: law.id, how: "stiffness+damping", from: r.from, stage: "after revision", ok: f.fit.ok });
+              if (f.fit.ok) {
+                const c: Candidate = { law, fitted: f.fitted, fit: f.fit, origin: "combined", combined: "stiffness+damping", rank: 0 };
+                inflate(c);
+                cands.push(c);
+              }
+            }
+            const base2 = baseCandidate(cands, m);
+            if (room() && base2 && base2.law.id !== baseAtFit && !codeAdded.some((x) => x.how === "drive" && x.from[0] === base2.law.id)) {
+              const dc = driveCandidate(base2, spectrumOf(base2, m), unitFor, fitPooled);
+              if (dc) {
+                const law = uniq(dc.cand.law);
+                codeAdded.push({ law: law.id, how: "drive", from: [base2.law.id], stage: "after revision", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok });
+                if (dc.cand.fit.ok) {
+                  const c: Candidate = { ...dc.cand, law };
+                  inflate(c);
+                  cands.push(c);
+                }
+              }
+            }
+            rankCandidates(cands, noiseFloor);
+          } catch {
+            /* a combination that can't be built simply doesn't compete */
+          }
         }
         // the revision won: the referee's words were about a law that no longer leads, so it writes up the new winner
         const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
@@ -1225,6 +1396,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       pipeline: PIPELINE,
       ...(code ? { code } : {}),
       ...(spectrumFinal ? { residualSpectrum: { ...spectrumFinal, seeded: seededLog } } : {}),
+      ...(codeAdded.length ? { codeAdded: codeAdded.map((x) => ({ ...x, rank: cands.find((c) => c.law.id === x.law)?.rank })) } : {}),
       sample: input.sample || undefined,
       title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
       source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },
