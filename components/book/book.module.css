@@ -313,3 +313,11 @@
     transition: none;
   }
 }
+
+/* ---- who built this: one factual line (components/book/BuiltBy.tsx, from app/site.ts) ---- */
+.builtBy {
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}

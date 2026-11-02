@@ -22,6 +22,8 @@ import { sealedTest } from "@/app/sealed";
 import { strangersTally } from "@/app/proof/strangers";
 import { DEMO_VIDEO_LENGTH, demoVideoEmbed, demoVideoUrl } from "@/app/video";
 import { fou5Long, fou5Of, fou5SameFilmLawFree } from "@/lib/fou5";
+import { firstScreen } from "@/app/firstScreen";
+import BuiltBy from "@/components/book/BuiltBy";
 import styles from "./judges.module.css";
 
 export const metadata: Metadata = {
@@ -355,11 +357,143 @@ export default async function JudgesPage() {
     { what: "Cost of a run, median of the published ones", value: `$${median(costs).toFixed(2)} (from $${costs[0]?.toFixed(2)} to $${costs.at(-1)?.toFixed(2)})`, href: "/x/hardening-spring#notebook" },
   ];
 
+  // the first screen: the four criteria, one sentence each with its strongest fact and where to check it (the figures
+  // are the ones quoted further down, read from the same records; the first-screen tiles and the sealed line from app/firstScreen.ts)
+  const fs = await firstScreen();
+  const tile = (k: string) => fs.tiles.find((t) => t.key === k);
+  const apollo = tile("apollo"), museum = tile("museum");
+  const sixty: { name: string; weight: number; text: React.ReactNode; links: { label: string; href: string }[] }[] = [
+    {
+      name: "Impact",
+      weight: 30,
+      text: (
+        <>
+          {aachenG ? (
+            <>
+              On teaching footage a stranger filmed in Aachen, told only &ldquo;about fifty centimetres&rdquo;, it measured{" "}
+              <b>
+                g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s²
+              </b>{" "}
+              ({Math.abs(aachenG.errorPct).toFixed(2)}% from Earth&rsquo;s {aachenG.reference.toFixed(3)}); and{" "}
+            </>
+          ) : null}
+          {aachenG ? "" : "It "}maps {W[lab.full] ?? lab.full} of the {W[lab.n] ?? lab.n} Class XI motion practicals in full{lab.part ? ` (${W[lab.part] ?? lab.part} more in part)` : ""} to runs with a worksheet in English and Hindi, ready for a teacher tomorrow (no teacher has used it yet).
+        </>
+      ),
+      links: [
+        ...(aachenG ? [{ label: "The Aachen run", href: "/x/aachen-pendulum-50cm" }] : []),
+        { label: "For teachers", href: "/lab" },
+      ],
+    },
+    {
+      name: "Meta tooling",
+      weight: 25,
+      text:
+        fricHandoff && fricWin && fricLead ? (
+          <>
+            Four Meta models, each with a job checked by code: on a spring slowed by dry friction, Muse Spark, refereeing, named the friction from the residual plot and Muse Wonder fitted it with its tool, missing the unseen motion <b>{Math.round(fricLead.fit.testRms / fricWin.fit.testRms)}× less</b> than Muse Spark&rsquo;s own law ({fricWin.fit.testRms.toFixed(3)} px against {fricLead.fit.testRms.toFixed(2)} px).
+          </>
+        ) : (
+          <>Four Meta models, each with a job checked by code: SAM 3.1 measures, Muse Spark observes, proposes and referees, Muse Wonder fits laws with a tool, Muse Voice Transcribe hears the stated length. {springsText}.</>
+        ),
+      links: [
+        { label: "The handoff, in its notebook", href: "/x/dry-friction-spring#notebook" },
+        { label: "Each model’s job", href: "#architecture" },
+      ],
+    },
+    {
+      name: "Technical depth",
+      weight: 20,
+      text: (
+        <>
+          Every law is fitted on the first 70% of the motion and ranked on the last 30%: on {s?.cases ?? phys.length} rendered clips with known physics, <b>
+            {physWithin} of {phys.length} constants land within 5%
+          </b> (median {physMedian.toFixed(2)}%{s ? `, against ${s.medianEyeballErrPct.toFixed(0)}% for Muse Spark by eye` : ""})
+          {fs.sealed ? (
+            <>
+              ; of {fs.sealed.n} spring laws drawn by public randomness and sealed before the run,{" "}
+              <b>
+                {fs.sealed.found} were found and {fs.sealed.drives}
+              </b>
+              , every one published
+            </>
+          ) : null}
+          .
+        </>
+      ),
+      links: [
+        { label: "The scoreboard", href: "/proof#headline" },
+        ...(fs.sealed ? [{ label: "Laws nobody chose", href: "/proof#sealed" }] : []),
+      ],
+    },
+    {
+      name: "Demo",
+      weight: 25,
+      text: (
+        <>
+          {apollo && rep ? (
+            <>
+              The home page opens on the test: shown the secretly slowed Apollo 16 copy, Muse Spark said &ldquo;real speed&rdquo; {realCalls} of {rep.n} times; Ansatz timed it{" "}
+              <b>
+                {apollo.value} ± {apollo.pm}× slower
+              </b>{" "}
+              (truth {apollo.truth}).{" "}
+            </>
+          ) : null}
+          {museum ? <>On a museum film sped up {museum.truth}, it read {museum.value}×. </> : null}
+          The blind test puts six real clips to you, and a recorded run replays a whole experiment; neither calls a model.
+        </>
+      ),
+      links: [
+        { label: "Play the blind test", href: "/#can-you-tell" },
+        { label: `Watch the demo (${DEMO_VIDEO_LENGTH})`, href: "#demo-video" },
+        { label: "Watch a recorded run", href: "/new?replay=hardening-spring" },
+      ],
+    },
+  ];
+
   return (
     <article>
+      <section className={styles.sixty} aria-labelledby="sixty">
+        <div className={styles.sixtyHead}>
+          <h1 id="sixty">For judges</h1>
+          <p className={styles.sixtyKicker}>Read this in 60 seconds</p>
+          <p className={styles.sixtyLine}>Film anything that moves. Ansatz finds the law that moves it, and tests the law on frames it was never fitted to. Against your four criteria, the strongest fact for each, and where to check it:</p>
+        </div>
+        <ol className={styles.sixtyList}>
+          {sixty.map((c) => (
+            <li key={c.name}>
+              <span className={styles.boardBar} aria-hidden="true">
+                <i style={{ width: `${(c.weight / 30) * 100}%` }} />
+              </span>
+              <h2 className={styles.sixtyName}>
+                {c.name}
+                <b>
+                  {c.weight}
+                  <span className="visually-hidden"> points</span>
+                </b>
+              </h2>
+              <p className={styles.sixtyText}>{c.text}</p>
+              <p className={styles.sixtyGo}>
+                {c.links.map((l, i) => (
+                  <span key={l.href}>
+                    {i ? " · " : ""}
+                    {l.href.startsWith("/") ? <Link href={l.href}>{l.label}</Link> : <a href={l.href}>{l.label}</a>}
+                  </span>
+                ))}
+              </p>
+            </li>
+          ))}
+        </ol>
+        <p className={styles.sixtyNext}>
+          Below: <a href="#tour">a three-minute tour</a>, then each criterion in depth, with every number linked to its run.
+        </p>
+        <BuiltBy className={styles.sixtyBuilt} />
+      </section>
+
       <header className={styles.title}>
         <div className={styles.titleText}>
-          <h1>For judges</h1>
+          <h2 className={styles.titleH}>The case in one page</h2>
           <p className={styles.abstract}>
             Ansatz turns a video of one moving object into a physics experiment: SAM 3.1 measures that object frame by frame, Muse Spark and Muse Wonder propose laws of motion, and each law is ranked on the last 30% of the motion, which no law was fitted to; on today&rsquo;s pipeline no number from it reaches any model. The law that predicts it best wins (within the noise, the simpler one). Here it is against your four criteria. Every number on this page is read from the stored runs, and every claim links to where you can check it.
           </p>

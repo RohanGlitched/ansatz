@@ -31,12 +31,235 @@
   grid-area: abs;
 }
 
-.title h1 {
-  font-size: clamp(31px, 3.9vw, 56px);
+/* ---- the first screen: one line, three results with their truths, then the blind test and the sealed laws ---- */
+.top {
+  padding-bottom: clamp(26px, 3vw, 44px);
+}
+
+.topLine {
+  font-size: clamp(26px, 2.75vw, 40px);
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+  max-width: 36em;
+}
+
+.topLine span {
+  color: var(--prussian);
+}
+
+.tiles {
+  list-style: none;
+  margin: clamp(18px, 2vw, 28px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 1.4vw, 20px);
+}
+
+.tiles > li {
+  display: flex;
+}
+
+/* each tile is one link: the number, what it is, the truth beside it, and where to check it */
+.tile {
+  flex: 1;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  align-content: start;
+  gap: 6px;
+  padding: 16px 20px 16px;
+  background: color-mix(in srgb, #fff 55%, var(--paper));
+  border: 1px solid var(--paper-line);
+  border-top: 3px solid var(--prussian);
+  border-radius: 0 0 var(--radius) var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tile:hover {
+  color: var(--ink);
+  border-top-color: var(--measured-ink);
+  background: #fff;
+}
+
+.tileK {
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.tileV {
+  font-family: var(--cm);
+  font-size: clamp(34px, 3.1vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--measured-ink);
+  white-space: nowrap;
+}
+
+.tilePm,
+.tileU {
+  font-size: 0.5em;
+  letter-spacing: 0;
+}
+
+.tileW {
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.tileSide {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-line);
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.tileT {
+  color: var(--held-ink);
+  font-size: 16px;
+}
+
+.tileT b {
+  font-weight: 700;
+}
+
+.tileX {
+  color: var(--ink-2);
+}
+
+.tileGo {
+  margin-top: 2px;
+  color: var(--prussian);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.tile:hover .tileGo {
+  color: var(--measured-ink);
+}
+
+.topAct {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  margin-top: clamp(16px, 1.8vw, 24px);
+}
+
+.sealLine {
+  flex: 1 1 28em;
+  font-size: 17px;
+  line-height: 1.45;
+  max-width: 62em;
+}
+
+.sealLine b {
+  font-weight: 700;
+}
+
+/* the who-built-this line, under the closing plate's buttons */
+.close p.builtBy {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+@media (max-width: 860px) {
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+
+  /* a tile becomes one row: the number on the left, the truth and the link beside it */
+  .tile {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      "k k"
+      "v s";
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 4px;
+    padding: 10px 14px 11px;
+  }
+
+  .tileK {
+    grid-area: k;
+    font-size: 12px;
+  }
+
+  .tileV {
+    grid-area: v;
+    font-size: 30px;
+  }
+
+  .tileW,
+  .tileX {
+    display: none;
+  }
+
+  .tileSide {
+    grid-area: s;
+    gap: 1px;
+    padding: 0 0 0 14px;
+    border-top: 0;
+    border-left: 1px solid var(--paper-line);
+  }
+
+  .tileT {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  .top {
+    padding-bottom: 22px;
+  }
+
+  .topLine {
+    font-size: 25px;
+    line-height: 1.16;
+  }
+
+  .tiles {
+    margin-top: 14px;
+    gap: 8px;
+  }
+
+  .tileV {
+    font-size: 27px;
+  }
+
+  .topAct {
+    margin-top: 12px;
+    gap: 10px;
+  }
+
+  .topAct :global(.btn) {
+    width: 100%;
+  }
+
+  .sealLine {
+    flex-basis: 100%;
+    font-size: 15px;
+    line-height: 1.4;
+  }
 }
 
 .hook {
-  margin-top: 16px;
+  margin-top: 0;
   font-size: clamp(18px, 1.5vw, 21px);
   line-height: 1.45;
   max-width: 36em;
@@ -400,7 +623,6 @@ blockquote.specimen {
   }
 
   .hook {
-    margin-top: 10px;
     font-size: 17px;
   }
 
@@ -486,11 +708,6 @@ blockquote.specimen {
   color: var(--paper);
 }
 
-/* on a phone the hero's buttons fall below the first screen; the blind test gets a link under the hook */
-.hookCta {
-  display: none;
-}
-
 /* the blind test's fairness notes fold away under the two-line instruction */
 .cytFair {
   margin-top: 10px;
@@ -510,14 +727,6 @@ blockquote.specimen {
 }
 
 @media (max-width: 600px) {
-  .hookCta {
-    display: inline-block;
-    margin-top: 10px;
-    font-family: var(--ui);
-    font-size: 15px;
-    font-weight: 600;
-  }
-
   .pairQ {
     font-size: 13px;
     margin-bottom: 6px;
@@ -526,4 +735,10 @@ blockquote.specimen {
   .cytHead p {
     font-size: 17px;
   }
+}
+
+/* the Apollo hook and its footage follow the first screen, under a rule */
+.top + .titleIn {
+  border-top: 1px solid var(--paper-line);
+  padding-top: clamp(22px, 2.6vw, 36px);
 }

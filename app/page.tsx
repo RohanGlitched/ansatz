@@ -19,6 +19,8 @@ import { fmtAbout, fmtNoise } from "@/lib/format";
 import { sealedCaption } from "./sealedWords";
 import { sealedTest } from "./sealed";
 import { datedPipeline } from "./pipelineWords";
+import { firstScreen } from "./firstScreen";
+import BuiltBy from "@/components/book/BuiltBy";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
@@ -88,25 +90,58 @@ export default async function Home() {
   const fou5Quiz = quizSaid("foucault-pendulum-5x");
   const singleA = single.find((s) => s.clip === "A"), singleB = single.find((s) => s.clip === "B");
   const sealed = await sealedTest().catch(() => null);
+  const fs = await firstScreen();
 
   return (
     <>
       <header className={styles.title}>
+        {/* the first screen: what it does in one line, three results with their truths, the blind test and the sealed laws */}
+        <div className={styles.top}>
+          <h1 className={styles.topLine}>
+            Film anything that moves. Ansatz finds the law that moves it, <span>and tests the law on frames it was never fitted to.</span>
+          </h1>
+          {fs.tiles.length > 0 && (
+            <ul className={styles.tiles} aria-label="Three results, each with the true value">
+              {fs.tiles.map((t) => (
+                <li key={t.key}>
+                  <Link href={t.href} className={styles.tile}>
+                    <span className={styles.tileK}>{t.kicker}</span>
+                    <span className={styles.tileV}>
+                      {t.value}
+                      {t.pm && <span className={styles.tilePm}> ± {t.pm}</span>}
+                      {t.unit && <span className={styles.tileU}>{t.unit === "×" ? "×" : ` ${t.unit}`}</span>}
+                    </span>
+                    <span className={styles.tileW}>{t.what}</span>
+                    <span className={styles.tileSide}>
+                      <span className={styles.tileT}>
+                        <b>Truth</b> {t.truth}
+                      </span>
+                      {t.extra && <span className={styles.tileX}>{t.extra}</span>}
+                      <span className={styles.tileGo}>{t.go} →</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className={styles.topAct}>
+            <a href="#can-you-tell" className="btn">
+              Try the blind test ↓
+            </a>
+            {fs.sealed && (
+              <p className={styles.sealLine}>
+                <b>Laws nobody chose.</b> {fs.sealed.text}. <Link href="/proof#sealed">Every draw</Link>
+              </p>
+            )}
+          </div>
+        </div>
         <div className={styles.titleIn}>
           <div className={styles.lead}>
-            <h1>
-              Film anything that moves.
-              <br />
-              Ansatz finds the law that moves it.
-            </h1>
             {hl.jumpForJump && clipB && (
               <p className={styles.hook}>
                 Shown the slowed Apollo 16 copy on its own, Muse Spark called it real speed {inWords(sparkWrongB)} times out of {inWords(rp?.n ?? 5)}.<a href="#five-of-five" className={styles.fnRef} aria-label="How the five are counted">*</a> Timing it jump for jump against the broadcast, Ansatz measured {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}× slower; the truth was {st?.truth ?? 1.5}×.
               </p>
             )}
-            <a href="#can-you-tell" className={styles.hookCta}>
-              Try the blind test ↓
-            </a>
           </div>
           {moon && slowedCopy && (
             <figure className={`${styles.footage} ${styles.footSheet}`}>
@@ -388,6 +423,7 @@ export default async function Home() {
               See the benchmark
             </Link>
           </div>
+          <BuiltBy className={styles.builtBy} />
         </div>
       </Plate>
     </>
