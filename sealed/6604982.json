@@ -1,0 +1,95 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6604982,
+  "randomness": "b16e0b94dab5454911637f6bada0068eae037babd53173be4ba1adaa3ca66791",
+  "signature": "b9e389e04bfad2fbe75b906e20c6799a9ab76b0912e858e7975ea6a76a1e10e65d13c7e347e2e616ed4e7ce9330ff64f07e24bd3c4c7b93abb7cba21f5e5c1e4facea0523884b9533643279f07865eac61d400bcaf398a9dde28bab9169b48f5",
+  "url": "https://api.drand.sh/public/6604982"
+ },
+ "law": {
+  "stiffness": "asymmetric",
+  "damping": "viscous",
+  "drive": true,
+  "equation": "x'' = -(k/m) x - (k2/m) x^2 - b x' + F0 cos(wd t)",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 19.03,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.1042,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "k2": {
+   "value": 51.7,
+   "unit": "N/m^2",
+   "rule": "k2 A / k uniform in [0.2, 0.45], stiffer stretched (drawn 0.283)"
+  },
+  "b": {
+   "value": 0.233,
+   "unit": "1/s",
+   "rule": "uniform in [0.2, 0.6]"
+  },
+  "F0": {
+   "value": 3.383,
+   "unit": "m/s^2",
+   "rule": "F0 / |w0^2 - wd^2| = share of A uniform in [0.15, 0.35] (drawn 0.238)"
+  },
+  "wd": {
+   "value": 15.22,
+   "unit": "rad/s",
+   "rule": "wd / w0 uniform in [0.55, 0.8] or [1.25, 1.6], each half the time (drawn 1.561)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 9.754486147409304,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  },
+  "k2_over_m": {
+   "value": 258.5,
+   "unit": "1/(m s^2)",
+   "note": "k2/m, sign: stiffer stretched (down)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 19.03,
+   "m": 0.2,
+   "b": 0.233,
+   "l0": 0.3,
+   "A": 0.1042,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "red",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7179,
+   "noun": "block",
+   "k3": 0,
+   "k2": 51.7,
+   "mu": 0,
+   "cq": 0,
+   "F0": 3.383,
+   "wd": 15.22
+  }
+ }
+}

@@ -1,0 +1,95 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6604981,
+  "randomness": "32171cac16f78f6d8da01ba559a131ae52abcf8cde7873b0c74dfbe1b7071815",
+  "signature": "b340f8b09089130ea4b1bb4d7a94d9c644da2699760d8d0617a97ab8e3aac8d97954b56995405b60bed2f899fd09e34b0badc67dca69c93e7902802d555f5e53d880f0026b28bb66bc5dae2cb85343006edab302b25bc5788936ca711bf1b5be",
+  "url": "https://api.drand.sh/public/6604981"
+ },
+ "law": {
+  "stiffness": "cubic",
+  "damping": "coulomb",
+  "drive": true,
+  "equation": "x'' = -(k/m) x - (k3/m) x^3 - mu sign(x') + F0 cos(wd t)",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 26.94,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.1295,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "k3": {
+   "value": 871.9,
+   "unit": "N/m^3",
+   "rule": "k3 A^2 / k uniform in [0.3, 0.9] (drawn 0.543)"
+  },
+  "mu": {
+   "value": 0.5666,
+   "unit": "m/s^2",
+   "rule": "the swing dies in N half cycles, N uniform in [10, 16] (drawn 15.39); mu = w0^2 A / (2N)"
+  },
+  "F0": {
+   "value": 5.057,
+   "unit": "m/s^2",
+   "rule": "F0 / |w0^2 - wd^2| = share of A uniform in [0.15, 0.35] (drawn 0.191)"
+  },
+  "wd": {
+   "value": 18.42,
+   "unit": "rad/s",
+   "rule": "wd / w0 uniform in [0.55, 0.8] or [1.25, 1.6], each half the time (drawn 1.587)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 11.606032913963324,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  },
+  "beta": {
+   "value": 4359.5,
+   "unit": "1/(m^2 s^2)",
+   "note": "k3/m"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 26.94,
+   "m": 0.2,
+   "b": 0,
+   "l0": 0.3,
+   "A": 0.1295,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "orange",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7005,
+   "noun": "block",
+   "k3": 871.9,
+   "k2": 0,
+   "mu": 0.5666,
+   "cq": 0,
+   "F0": 5.057,
+   "wd": 18.42
+  }
+ }
+}
