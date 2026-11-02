@@ -37,7 +37,7 @@ const SPEECH: Record<VoiceLanguage, Speech> = {
     release: /(छोड़|छोड|chh?od)/i,
     cm: /^(सेंटीमीटर|सेंटिमीटर|सेमी|cm|centimet(re|er)s?)$/i,
     m: /^(मीटर|m|met(re|er)s?)$/i,
-    numbers: { दस: 10, बीस: 20, तीस: 30, चालीस: 40, पचास: 50, साठ: 60, सत्तर: 70, अस्सी: 80, नब्बे: 90, सौ: 100 },
+    numbers: { एक: 1, दो: 2, तीन: 3, चार: 4, पाँच: 5, पांच: 5, छह: 6, छः: 6, सात: 7, आठ: 8, नौ: 9, दस: 10, बीस: 20, तीस: 30, चालीस: 40, पचास: 50, साठ: 60, सत्तर: 70, अस्सी: 80, नब्बे: 90, सौ: 100 },
   },
   Tamil: {
     keywords: ["நூல்", "நீளம்", "சென்டிமீட்டர்", "மீட்டர்", "விடுகிறேன்", "விடு", "ஊசல்", "centimeter"],
@@ -51,14 +51,14 @@ const SPEECH: Record<VoiceLanguage, Speech> = {
     release: /(ছাড|ছেড)/,
     cm: /^(সেন্টিমিটার|সেমি|cm|centimet(re|er)s?)$/i,
     m: /^(মিটার|m|met(re|er)s?)$/i,
-    numbers: { দশ: 10, বিশ: 20, কুড়ি: 20, ত্রিশ: 30, তিরিশ: 30, চল্লিশ: 40, পঞ্চাশ: 50, ষাট: 60, সত্তর: 70, আশি: 80, নব্বই: 90, একশো: 100 },
+    numbers: { এক: 1, দুই: 2, তিন: 3, চার: 4, পাঁচ: 5, ছয়: 6, সাত: 7, আট: 8, নয়: 9, দশ: 10, বিশ: 20, কুড়ি: 20, ত্রিশ: 30, তিরিশ: 30, চল্লিশ: 40, পঞ্চাশ: 50, ষাট: 60, সত্তর: 70, আশি: 80, নব্বই: 90, একশো: 100 },
   },
   Marathi: {
     keywords: ["दोरा", "दोऱ्याची", "लांबी", "सेंटीमीटर", "मीटर", "सोडतो", "सोडते", "सोड", "लंबक", "centimeter"],
     release: /(सोड)/,
     cm: /^(सेंटीमीटर|सेंटिमीटर|सेमी|cm|centimet(re|er)s?)$/i,
     m: /^(मीटर|m|met(re|er)s?)$/i,
-    numbers: { दहा: 10, वीस: 20, तीस: 30, चाळीस: 40, पन्नास: 50, साठ: 60, सत्तर: 70, ऐंशी: 80, नव्वद: 90, शंभर: 100 },
+    numbers: { एक: 1, दोन: 2, तीन: 3, चार: 4, पाच: 5, सहा: 6, सात: 7, आठ: 8, नऊ: 9, दहा: 10, वीस: 20, तीस: 30, चाळीस: 40, पन्नास: 50, साठ: 60, सत्तर: 70, ऐंशी: 80, नव्वद: 90, शंभर: 100 },
   },
   Telugu: {
     keywords: ["దారం", "పొడవు", "సెంటీమీటర్లు", "సెంటీమీటర్", "మీటర్", "వదులుతున్నాను", "వదిలేస్తున్నాను", "లోలకం", "centimeter"],
@@ -77,9 +77,15 @@ const SPEECH: Record<VoiceLanguage, Speech> = {
       once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, "dieciséis": 16, diecisiete: 17, dieciocho: 18, diecinueve: 19,
       veintiuno: 21, "veintidós": 22, "veintitrés": 23, veinticuatro: 24, veinticinco: 25, "veintiséis": 26, veintisiete: 27, veintiocho: 28, veintinueve: 29,
       veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100,
+      ciento: 100, doscientos: 200, trescientos: 300, cuatrocientos: 400, quinientos: 500, seiscientos: 600, setecientos: 700, ochocientos: 800, novecientos: 900,
     },
   },
 };
+
+// number words compared in NFC (ढ़, ড় and the like have two spellings in Unicode; input is normalised the same way)
+for (const sp of Object.values(SPEECH)) sp.numbers = Object.fromEntries(Object.entries(sp.numbers).map(([k, v]) => [k.normalize("NFC"), v]));
+const nfc = (stems: string[]) => stems.map((x) => x.normalize("NFC"));
+const nfcKeys = (o: Record<string, number>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k.normalize("NFC"), v]));
 
 const speechOf = (language?: string): Speech | null => (language && language in SPEECH ? SPEECH[language as VoiceLanguage] : null);
 
@@ -122,6 +128,23 @@ const setsFor = (language?: string): Speech[] => {
 /** Millimetre words in the seven languages (none contains another language's centimetre or metre word). */
 const MM = /^(mm|millimet(re|er)s?|मिलीमीटर|मिलिमीटर|मिमी|மில்லிமீட்டர்|মিলিমিটার|మిల్లీమీటర్లు|మిల్లీమీటర్|mil[ií]metros?)$/i;
 
+/** Feet and inches, in any language (a prime and a double prime too: 3'6"). "in" alone is read only where it ends a phrase. */
+const FT = /^(ft|feet|foot|'|′|’|फुट|फ़ुट|फीट|फूट|ফুট|pies)$/i;
+const INCH = /^(inch|inches|"|″|”|''|इंच|ইঞ্চি|pulgadas?)$/i;
+const FOOT = 0.3048, INCH_M = 0.0254;
+
+/** Fractions of a unit: "half a metre", "three quarters of a metre", "a metre and a half". */
+const FRAC: Record<string, number> = { half: 0.5, quarter: 0.25, quarters: 0.25, medio: 0.5, media: 0.5 };
+/** A hundred as a multiplier: "two hundred centimetres", "साढ़े चार सौ मिलीमीटर" (450). */
+const HUNDRED = /^(hundred|सौ)$/i;
+/**
+ * Hindi, Marathi and Bengali fraction words: डेढ़ / दीड / দেড় 1.5, ढाई / अडीच / আড়াই 2.5, आधा / अर्धा / আধা 0.5 on their own;
+ * सवा / सव्वा / সোয়া (+¼), साढ़े / साडे / সাড়ে (+½) and पौने / पावणे / পৌনে (−¼) before a number ("पौने दो मीटर" 1.75), or
+ * before the unit itself ("सवा मीटर" 1.25).
+ */
+const FIXED = nfcKeys({ "डेढ़": 1.5, "डेढ": 1.5, "ढाई": 2.5, "आधा": 0.5, "आधे": 0.5, "दीड": 1.5, "दिड": 1.5, "अडीच": 2.5, "अर्धा": 0.5, "দেড়": 1.5, "আড়াই": 2.5, "আধা": 0.5 });
+const PLUS = nfcKeys({ "सवा": 0.25, "साढ़े": 0.5, "साढे": 0.5, "पौने": -0.25, "पौन": -0.25, "सव्वा": 0.25, "साडे": 0.5, "पावणे": -0.25, "সোয়া": 0.25, "সাড়ে": 0.5, "পৌনে": -0.25 });
+
 /** A length's number word index (word) and the index just past its last word (end: the unit, or a trailing "twenty"). */
 type Hit = { metres: number; said: string; word: number; end: number };
 
@@ -132,8 +155,43 @@ const tidy = (w: string | undefined) => (w ?? "").replace(/[.)]+$/, "");
  * "sixty five", "sesenta y cinco" (a round ten and a digit). Null when there is none.
  */
 function numberAt(words: string[], i: number, sets: Speech[]): { v: number; end: number; word: boolean } | null {
+  const r = baseNumber(words, i, sets);
+  if (!r) return null;
+  const sum = (x: { v: number; end: number; word: boolean }) => {
+    // "two hundred and fifty", "ciento veinte", "doscientos cincuenta": a number under a hundred added on
+    const j = /^(and|y)$/i.test(words[x.end] ?? "") ? x.end + 1 : x.end;
+    const more = baseNumber(words, j, sets);
+    return more && more.word && more.v >= 1 && more.v < 100 && Number.isInteger(more.v) ? { v: x.v + more.v, end: more.end, word: true } : x;
+  };
+  if (r.v > 0 && r.v < 10 && HUNDRED.test(tidy(words[r.end]))) return sum({ v: +(r.v * 100).toPrecision(12), end: r.end + 1, word: true });
+  if (r.word && r.v >= 100 && r.v < 1000 && r.v % 100 === 0) return sum(r);
+  return r;
+}
+
+function baseNumber(words: string[], i: number, sets: Speech[]): { v: number; end: number; word: boolean } | null {
   const w = tidy(words[i]);
-  if (/^\d+(?:[.,]\d+)?$/.test(w)) return { v: Number(w.replace(",", ".")), end: i + 1, word: false };
+  const wl = w.toLowerCase();
+  // "and a half" / "and a quarter" after a number: "one and a half metres"
+  const andFrac = (r: { v: number; end: number; word: boolean }) => {
+    const f = FRAC[tidy(words[r.end + 2]).toLowerCase()];
+    return /^and$/i.test(words[r.end] ?? "") && /^an?$/i.test(words[r.end + 1] ?? "") && f !== undefined ? { ...r, v: r.v + f, end: r.end + 3 } : r;
+  };
+  // "of a" after a fraction: "half a metre", "a quarter of a metre"
+  const ofA = (j: number) => {
+    if (/^of$/i.test(words[j] ?? "")) j++;
+    if (/^(a|an|one|the)$/i.test(words[j] ?? "")) j++;
+    return j;
+  };
+  // a comma before exactly three digits is a thousands separator ("1,200 mm"), any other a decimal comma ("0,6 m")
+  if (/^[1-9]\d{0,2},\d{3}$/.test(w)) return andFrac({ v: Number(w.replace(",", "")), end: i + 1, word: false });
+  if (/^\d+(?:[.,]\d+)?$/.test(w)) return andFrac({ v: Number(w.replace(",", ".")), end: i + 1, word: false });
+  if (FRAC[wl] !== undefined && wl !== "quarters" && wl !== "media") return { v: FRAC[wl], end: ofA(i + 1), word: true };
+  if (FIXED[wl] !== undefined) return { v: FIXED[wl], end: i + 1, word: true };
+  if (PLUS[wl] !== undefined) {
+    // the hundred comes after: "साढ़े चार सौ" is 4.5 hundred
+    const n = baseNumber(words, i + 1, sets);
+    return n && n.v >= 1 ? { v: n.v + PLUS[wl], end: n.end, word: true } : { v: 1 + PLUS[wl], end: i + 1, word: true };
+  }
   const look = (t: string | undefined) => {
     const k = tidy(t).toLowerCase();
     for (const s of sets) if (Object.prototype.hasOwnProperty.call(s.numbers, k)) return s.numbers[k];
@@ -156,7 +214,10 @@ function numberAt(words: string[], i: number, sets: Speech[]): { v: number; end:
     const after = look(words[i + 2]);
     if (/^(y|and)$/i.test(words[i + 1] ?? "") && isDigit(after)) return { v: t + after, end: i + 3, word: true };
   }
-  return { v: t, end: i + 1, word: true };
+  // "three quarters of a metre"
+  const f = FRAC[tidy(words[i + 1]).toLowerCase()];
+  if (isDigit(t) && f !== undefined && w === words[i]) return { v: t * f, end: ofA(i + 2), word: true };
+  return andFrac({ v: t, end: i + 1, word: true });
 }
 
 /**
@@ -165,6 +226,23 @@ function numberAt(words: string[], i: number, sets: Speech[]): { v: number; end:
  */
 function lengthsIn(words: string[], sets: Speech[]): Hit[] {
   const hits: Hit[] = [];
+  const isCm = (u: string) => /^(cms|c\.m)$/i.test(u) || sets.some((s) => s.cm.test(u));
+  const isM = (u: string) => /^(mtrs?|mts)$/i.test(u) || sets.some((s) => s.m.test(u));
+  // "in" as inches only where it ends the phrase: "27 in", "27 in.", "27 in long", never "3 in the frame"
+  const isIn = (j: number) =>
+    /^in$/i.test(tidy(words[j])) && (j + 1 >= words.length || words[j] !== tidy(words[j]) || /^(long|tall|high|length|of|string|thread|rope|cord|,)/i.test(words[j + 1]));
+  const isUnit = (j: number) => {
+    const u = tidy(words[j]);
+    return !!u && (MM.test(u) || isCm(u) || isM(u) || FT.test(u) || INCH.test(u) || isIn(j));
+  };
+  // "a metre and a half", "a foot and a half", "un metro y medio" (returns the fraction and the words it took)
+  const andHalf = (end: number): [number, number] => {
+    const f = FRAC[tidy(words[end + 2]).toLowerCase()];
+    if (/^and$/i.test(words[end] ?? "") && /^an?$/i.test(words[end + 1] ?? "") && f !== undefined) return [f, 3];
+    const g = FRAC[tidy(words[end + 1]).toLowerCase()];
+    if (/^y$/i.test(words[end] ?? "") && /^medi[oa]$/i.test(tidy(words[end + 1])) && g !== undefined) return [g, 2];
+    return [0, 0];
+  };
   for (let i = 0; i < words.length - 1; i++) {
     const n = numberAt(words, i, sets);
     if (!n || n.end >= words.length) continue;
@@ -172,23 +250,50 @@ function lengthsIn(words: string[], sets: Speech[]): Hit[] {
     let metres: number;
     let end = n.end + 1;
     if (MM.test(unit)) metres = n.v / 1000;
-    else if (sets.some((s) => s.cm.test(unit))) metres = n.v / 100;
-    else if (sets.some((s) => s.m.test(unit))) {
+    else if (isCm(unit)) metres = n.v / 100;
+    else if (isM(unit)) {
       metres = n.v;
-      // "one metre twenty", "1 m 20 cm": the centimetres after the metres, unless the unit ended a sentence
-      const more = unit === words[n.end] ? numberAt(words, end, sets) : null;
+      const [half, took] = unit === words[n.end] ? andHalf(end) : [0, 0];
+      if (half) {
+        metres += half;
+        end += took;
+      }
+      // "one metre twenty", "1 m 20 cm", "एक मीटर बीस सेंटीमीटर": the centimetres after the metres, unless the unit ended a
+      // sentence; a trailing number word with no unit counts from ten up ("one metre twenty", never "एक मीटर दो")
+      const more = unit === words[n.end] && !half ? numberAt(words, end, sets) : null;
       if (more && more.v < 100) {
         const u2 = tidy(words[more.end]);
-        if (sets.some((s) => s.cm.test(u2))) {
+        if (isCm(u2)) {
           metres += more.v / 100;
           end = more.end + 1;
-        } else if (more.word && !MM.test(u2) && !sets.some((s) => s.m.test(u2))) {
+        } else if ((more.word ? more.v >= 10 : more.end >= words.length && Number.isInteger(more.v)) && !isUnit(more.end)) {
+          // a number word from ten up ("one metre twenty"), or digits that end the clause ("string 1 m 20")
           metres += more.v / 100;
           end = more.end;
         }
       }
-    } else continue;
-    hits.push({ metres: +metres.toPrecision(12), said: words.slice(i, end).join(" "), word: i, end });
+    } else if (FT.test(unit)) {
+      metres = n.v * FOOT;
+      const [half, took] = unit === words[n.end] ? andHalf(end) : [0, 0];
+      if (half) {
+        metres += half * FOOT;
+        end += took;
+      }
+      // "2 feet 3 inches", "3'6\"", and "3'6" with the inch mark left off
+      const more = unit === words[n.end] && !half ? numberAt(words, end, sets) : null;
+      if (more && more.v < 12) {
+        if (INCH.test(tidy(words[more.end])) || isIn(more.end)) {
+          metres += more.v * INCH_M;
+          end = more.end + 1;
+        } else if (/^['′’]$/.test(unit) && !more.word && !isUnit(more.end)) {
+          metres += more.v * INCH_M;
+          end = more.end;
+        }
+      }
+    } else if (INCH.test(unit) || isIn(n.end)) metres = n.v * INCH_M;
+    else continue;
+    const said = words.slice(i, end).join(" ").replace(/ (''|['′’"″”])(?= |$)/g, "$1").replace(/(['′’]) (?=\d)/g, "$1");
+    hits.push({ metres: +metres.toPrecision(12), said, word: i, end });
     i = end - 1;
   }
   return hits;
@@ -199,7 +304,7 @@ function lengthsIn(words: string[], sets: Speech[]): Hit[] {
  * comma ("0,6") kept, and any other comma kept as a word of its own so "1 m, 3 cm" is never read as one length.
  */
 const wordsOf = (text: string) =>
-  asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").replace(/(?<!\d),|,(?!\d)/g, " , ").split(/[\s;:!?।]+/).filter(Boolean);
+  asciiDigits(text.normalize("NFC")).replace(/(\d)(''|['′’"″”])(?!\p{L})/gu, "$1 $2 ").replace(/(\d)-(?=\p{L})/gu, "$1 ").replace(/(\d)(?=\p{L})/gu, "$1 ").replace(/(?<!\d),|,(?!\d)/g, " , ").split(/[\s;:!?।]+/).filter(Boolean);
 
 /**
  * A spoken length in metres, read by code from a transcript: a number (digits in any of the scripts, or a round number
@@ -224,6 +329,7 @@ const SCALE_STEMS = [
   "స్కేలు", "స్కేల్", "రూలర్", "కాగిత", "షీట్",
   "regla", "hoja", "papel", "tarjeta", "folio", "cinta",
 ];
+SCALE_STEMS.splice(0, SCALE_STEMS.length, ...nfc(SCALE_STEMS));
 const isScale = (w: string) => SCALE_STEMS.some((s) => bare(w).startsWith(s));
 
 /** Words that name the thing measured: the string (in the seven languages) or, for a drop, its height. Matched as stems. */
@@ -238,6 +344,13 @@ const STRING_STEMS = [
 ];
 const HEIGHT_STEMS = ["height", "high", "drop", "fell", "fall", "ऊँचाई", "ऊंचाई", "altura"];
 /**
+ * Where the pendulum hangs or how high something is (a stand, a ceiling, the floor, a person's height): the length of a
+ * drop, but beside a pendulum's string only context, never L.
+ */
+const PLACE_STEMS = ["height", "high", "tall", "stand", "ceiling", "floor", "ऊँचाई", "ऊंचाई", "ऊँचा", "ऊंचा", "छत", "altura", "alto", "techo", "suelo"];
+/** How far away something stood (the camera, the person): never a length of the experiment. */
+const AWAY_STEMS = ["away", "distance", "camera", "stood", "दूर", "दूरी", "कैमरा", "distancia", "cámara", "lejos"];
+/**
  * Words that say a length is a size across, the pendulum's bob, or how far it was pulled aside ("released 10 cm to the
  * side", "amplitude"): never the string. A ball is one when the text names a string.
  */
@@ -249,6 +362,17 @@ const SIZE_STEMS = [
   "releas", "pull", "side", "amplitude", "swing", "displace", "offset", "aside", "खींच", "आयाम", "amplitud", "desplaz", "apart",
 ];
 const BODY_STEMS = ["ball", "sphere", "गोला", "गेंद", "பந்து", "বল", "चेंडू", "బంతి", "bola", "pelota"];
+/** The bob's own words, among the size words: in a clause that names the point of suspension or the bob's centre, not a size. */
+const BOB_STEMS = ["bob", "गोलक", "குண்டு", "গোলক", "గుండు"];
+/**
+ * Words for the ends of L as the worksheet defines it, "point of suspension to centre of bob": the suspension, pivot or
+ * hook and the bob's centre. Each ties a length to the string, and in their clause the bob or ball names an end, not a size.
+ */
+const SPAN_STEMS = [
+  "suspension", "suspend", "pivot", "hook", "centre", "center",
+  "निलंबन", "केंद्र", "केन्द्र", "धुरी", "कील", "কেন্দ্র", "மைய", "కేంద్ర", "centro", "suspensión", "pivote", "gancho",
+];
+for (const stems of [STRING_STEMS, HEIGHT_STEMS, PLACE_STEMS, AWAY_STEMS, SIZE_STEMS, BODY_STEMS, BOB_STEMS, SPAN_STEMS]) stems.splice(0, stems.length, ...nfc(stems));
 
 const bare = (w: string) => w.toLowerCase().replace(/^[("“'‘]+|[.,()”"'’]+$/g, "");
 const hasStem = (w: string, stems: string[]) => {
@@ -268,16 +392,30 @@ const stemOf = (w: string, stems: string[]) => stems.some((s) => bare(w).startsW
  * tied to nothing, the larger when the text names a string (a bob is smaller than its string), else the first. A size
  * alone gives null. "L = 60cm", "string: 0.6 m", a decimal comma ("0,6 m"), millimetres ("L = 600 mm") and
  * compound number words ("sixty-five centimetres", "one metre twenty", "un metro veinte") read too. With no language, the seven languages' words all count.
+ * So do the worksheet's own definition ("point of suspension to centre of bob = 60 cm": a length after "=" or ":" is defined
+ * by the words before it, and beside the suspension or the bob's centre the bob is an end of L, not a size), fractions ("half a
+ * metre", "a metre and a half", डेढ़ / सवा / आधा / पौने दो मीटर, दीड / सव्वा / अर्धा, দেড় / সোয়া / আধা), "एक मीटर बीस सेंटीमीटर", and feet and
+ * inches ("2 feet 3 inches", "27 inches", "2 ft", 3'6"), hundreds ("two hundred centimetres", "साढ़े चार सौ मिलीमीटर"), "60-cm", "cms",
+ * "mtr", "c.m." and "1,200 mm". With the run's type: a height is the length of a drop or a bounce, and for a pendulum only
+ * where it hangs ("hung from a height of 2 m, the string is 60 cm" is 0.6 m); "2 m away" is never a length.
  */
-export function statedLength(text: string, language?: string): { metres: number; said: string } | null {
+export function statedLength(text: string, language?: string, type?: string): { metres: number; said: string } | null {
   const sets = setsFor(language);
-  const clean = text.replace(/[=:~≈]/g, " ");
-  const namesString = wordsOf(clean).some((w) => stemOf(w, STRING_STEMS) || bare(w) === "l");
+  // "=" and ":" kept as a word of their own, so "centre of bob = 60 cm" reads as a definition
+  const clean = text.replace(/[~≈]/g, " ").replace(/[=:]/g, " = ");
+  const namesString = wordsOf(clean).some((w) => stemOf(w, STRING_STEMS) || stemOf(w, SPAN_STEMS) || bare(w) === "l");
+  // a height is the length for a drop or a bounce; for a pendulum (or any text that names a string) it is only where it hangs
+  const heightIsLength = type === "drop" || type === "bounce" || (!type && !namesString);
   const clauses = clean.split(/(?<=[.;।])\s+|[\r\n]+|(?<!\d),\s*|,(?!\d)\s*/).map((t) => t.trim()).filter(Boolean);
   const tied: Hit[] = [];
   const loose: Hit[] = [];
   for (const clause of clauses) {
-    const words = wordsOf(clause);
+    // a length straight after "=" or ":" with words before it is defined by them ("string: 0.6 m", "L = 60 cm")
+    const words: string[] = [];
+    const defined = new Set<number>();
+    for (const w of wordsOf(clause)) if (w === "=") defined.add(words.length);
+    else words.push(w);
+    const span = words.some((w) => stemOf(w, SPAN_STEMS));
     for (const hit of lengthsIn(words, sets)) {
       if (!(hit.metres > 0)) continue;
       // the nearest naming word, before (up to four words) or after the unit (up to three): a scale word (three before,
@@ -287,9 +425,12 @@ export function statedLength(text: string, language?: string): { metres: number;
         const near = [words[hit.word - d], d <= 3 ? words[hit.end - 1 + d] : undefined].filter((w): w is string => !!w);
         const scale = [d <= 3 ? words[hit.word - d] : undefined, d <= 2 ? words[hit.end - 1 + d] : undefined];
         if (scale.some((w) => w && isScale(w))) kind = "scale";
-        else if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
-        else if (near.some((w) => stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS)))) kind = "size";
+        else if (near.some((w) => stemOf(w, AWAY_STEMS) || (!heightIsLength && stemOf(w, PLACE_STEMS)))) kind = "size";
+        else if (near.some((w) => hasStem(w, STRING_STEMS) || (heightIsLength && stemOf(w, HEIGHT_STEMS)) || stemOf(w, SPAN_STEMS))) kind = "string";
+        // in a clause naming the point of suspension or the bob's centre, the bob is an end of L, not a size
+        else if (near.some((w) => (span && (stemOf(w, BOB_STEMS) || stemOf(w, BODY_STEMS)) ? false : stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS))))) kind = "size";
       }
+      if (!kind && hit.word > 0 && defined.has(hit.word)) kind = "string";
       if (kind === "string") tied.push(hit);
       else if (!kind) loose.push(hit);
     }

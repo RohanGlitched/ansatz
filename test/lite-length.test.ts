@@ -138,7 +138,7 @@ test("no language chosen ('work it out'): a length in any of the seven languages
   assert.equal(m("दोऱ्याची लांबी साठ सेंटीमीटर"), 0.6, "Marathi");
   assert.equal(m("దారం పొడవు అరవై సెంటీమీటర్లు"), 0.6, "Telugu");
   assert.equal(m("la cuerda mide sesenta centímetros"), 0.6, "Spanish");
-  assert.equal(m("धागा एक मीटर का है"), undefined, "no number word for one: nothing invented");
+  assert.equal(m("धागा एक मीटर का है"), 1, "एक is one (it was missing before), so a metre said in Hindi reads");
   // what lite mode does with it: a heard Hindi length on a class link with no language picked
   assert.deepEqual(liteStatedFacts("pendulum", { heard: "धागा ६० सेंटीमीटर का है" }).map((f) => [f.value, f.unit]), [[60, "cm"]]);
   // a chosen language still reads as before
@@ -234,4 +234,132 @@ test("scale words in the seven languages are skipped like 'ruler' and 'A4'", () 
   assert.equal(m("அளவுகோல் 30 செமீ, நூல் 60 சென்டிமீட்டர்"), 0.6, "Tamil");
   assert.equal(m("స్కేలు 30 సెం.మీ, దారం 60 సెం.మీ"), 0.6, "Telugu");
   assert.equal(m("A4 शीट 29.7 सेमी"), undefined);
+});
+
+test("the worksheet's own definition of L reads: 'point of suspension to centre of bob = 60 cm', in English and Hindi", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("point of suspension to centre of bob = 60 cm"), 0.6, "'centre of bob' is an end of L, not a bob size");
+  assert.equal(m("point of suspension to centre of bob: 60 cm"), 0.6);
+  assert.equal(m("Measure L from the point of suspension to the centre of the bob = 60 cm"), 0.6);
+  assert.equal(m("निलंबन बिंदु से गोलक के केंद्र तक = 60 cm"), 0.6, "the Hindi worksheet line, with =");
+  assert.equal(m("निलंबन बिंदु से गोलक के केंद्र तक 60 cm"), 0.6, "and without");
+  assert.equal(m("निलंबन बिंदु से गोलक के केंद्र तक 60 सेमी", "Hindi"), 0.6);
+  assert.equal(m("centre of bob 60 cm"), 0.6);
+  assert.equal(m("the bob hangs 45 cm below the pivot"), 0.45);
+  assert.equal(m("from the pivot to the bob is 45 cm"), 0.45);
+  // a definition never turns a size into the string
+  assert.equal(m("bob diameter = 3 cm, string = 60 cm"), 0.6);
+  assert.equal(m("bob = 3 cm"), undefined);
+  assert.equal(m("the bob is 3 cm wide, string 60 cm"), 0.6);
+});
+
+test("fractions of a metre: half, quarter, three quarters, and a half", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("half a metre string"), 0.5, "never 1 m");
+  assert.equal(statedLength("half a metre string")?.said, "half a metre");
+  assert.equal(m("the string is half a meter long"), 0.5);
+  assert.equal(m("half metre"), 0.5);
+  assert.equal(m("a quarter of a metre"), 0.25);
+  assert.equal(m("three quarters of a metre"), 0.75);
+  assert.equal(m("a metre and a half"), 1.5);
+  assert.equal(m("one and a half metres"), 1.5);
+  assert.equal(spokenLength("the string is a metre and a half", "English")?.metres, 1.5);
+});
+
+test("Hindi, Marathi and Bengali compounds and fraction words", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("एक मीटर बीस सेंटीमीटर"), 1.2, "never 0.2");
+  assert.equal(m("धागा एक मीटर बीस सेंटीमीटर", "Hindi"), 1.2);
+  assert.equal(m("धागा एक मीटर बीस सेंटीमीटर का है"), 1.2);
+  assert.equal(m("डेढ़ मीटर"), 1.5);
+  assert.equal(m("\u0921\u0947\u0922\u093C \u092E\u0940\u091F\u0930"), 1.5, "the nukta as a separate mark");
+  assert.equal(m("\u0921\u0947\u095D \u092E\u0940\u091F\u0930"), 1.5, "and as one precomposed letter");
+  assert.equal(m("सवा मीटर"), 1.25);
+  assert.equal(m("आधा मीटर"), 0.5);
+  assert.equal(m("पौने दो मीटर"), 1.75);
+  assert.equal(m("ढाई मीटर"), 2.5);
+  assert.equal(m("साढ़े तीन मीटर"), 3.5);
+  assert.equal(m("धागा डेढ़ मीटर लंबा है", "Hindi"), 1.5);
+  assert.equal(m("दोरा दीड मीटर", "Marathi"), 1.5);
+  assert.equal(m("सव्वा मीटर", "Marathi"), 1.25);
+  assert.equal(m("अर्धा मीटर"), 0.5);
+  assert.equal(m("সুতো দেড় মিটার", "Bengali"), 1.5);
+  assert.equal(m("সোয়া মিটার"), 1.25);
+  assert.equal(m("আধা মিটার"), 0.5);
+  assert.equal(m("एक मीटर दो बार"), 1, "a single-digit number word after metres is not centimetres");
+  assert.equal(m("one metre twenty"), 1.2);
+});
+
+test("feet and inches read as metres", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("2 feet 3 inches"), 0.6858);
+  assert.equal(m("27 inches"), 0.6858);
+  assert.equal(m("the string is 27 in long"), 0.6858);
+  assert.equal(m("2 ft"), 0.6096);
+  assert.equal(m("two feet"), 0.6096);
+  assert.equal(m("3'6\""), 1.0668);
+  assert.equal(statedLength("3'6\"")?.said, "3'6\"");
+  assert.equal(m("3′6″"), 1.0668);
+  assert.equal(m("5’6”"), 1.6764, "phone keyboards' curly marks");
+  assert.equal(m("3'6"), 1.0668);
+  assert.equal(m("3 in the frame, string 60 cm"), 0.6, "'in' is a word, not inches, mid-phrase");
+  assert.equal(m("the string is \"60\" long"), undefined, "a quoted number is not inches");
+});
+
+// The r17 adversarial-technical judge's sentences (fix 4: "18 of my 37 new sentences still read wrong"; the file quotes
+// these). Each row: text, the run's type ("" = none given), the length in metres it must read (null = no length).
+const R17: [string, string, number | null][] = [
+  // read wrong before
+  ["half a metre string", "pendulum", 0.5],
+  ["a metre and a half of string", "pendulum", 1.5],
+  ["string 1 m 20", "pendulum", 1.2],
+  ["string is two hundred centimetres", "pendulum", 2],
+  ["धागा साढ़े चार सौ मिलीमीटर", "pendulum", 0.45],
+  ["hung from a height of 2 m, the string is 60 cm", "pendulum", 0.6],
+  ["hung from a height of 2 m, the string is 60 cm", "", 0.6],
+  ["My height is 1.7 m. The pendulum is 60 cm", "pendulum", 0.6],
+  ["it hangs from a 2 m high stand; string 60 cm", "pendulum", 0.6],
+  ["el péndulo cuelga a 2 m de altura y el hilo mide 60 cm", "pendulum", 0.6],
+  ["ऊँचाई 2 मीटर, धागा 60 सेमी", "pendulum", 0.6],
+  ["I stood 2 m away", "pendulum", null],
+  ["I stood 2 m away", "", null],
+  ["string 1,200 mm", "pendulum", 1.2],
+  // read nothing before
+  ["a 60-cm string", "pendulum", 0.6],
+  ["60 cms string", "pendulum", 0.6],
+  ["string 0.6 mtr", "pendulum", 0.6],
+  ["string 60 c.m.", "pendulum", 0.6],
+  ["डेढ़ मीटर का धागा", "pendulum", 1.5],
+  ["आधा मीटर धागा", "pendulum", 0.5],
+  ["medio metro de hilo", "pendulum", 0.5],
+  ["un metro y medio de hilo", "pendulum", 1.5],
+  ["the bob hangs 60 cm below the pivot", "pendulum", 0.6],
+  // a height stays the length of a drop or a bounce
+  ["dropped from a height of 2 m", "drop", 2],
+  ["hung from a height of 2 m", "drop", 2],
+  ["ऊँचाई 2 मीटर", "drop", 2],
+  ["se soltó desde 2 m de altura", "bounce", 2],
+  ["dropped from about one metre", "", 1],
+  // hundreds in the other languages, and the old forms unchanged
+  ["two hundred and fifty millimetres", "", 0.25],
+  ["la cuerda mide ciento veinte centímetros", "", 1.2],
+  ["doscientos centímetros de hilo", "", 2],
+  ["धागा सौ सेंटीमीटर", "", 1],
+  ["धागा डेढ़ सौ सेंटीमीटर", "", 1.5],
+  ["string 1 m 20 swings", "", 1],
+  ["0,6 metros", "", 0.6],
+  ["string 0,600 m", "", 0.6],
+];
+
+test("the r17 judge's sentences read as a person meant them (table)", () => {
+  for (const [text, type, want] of R17) {
+    const got = statedLength(text, undefined, type || undefined)?.metres ?? null;
+    assert.equal(got === null ? null : +got.toPrecision(10), want, `${JSON.stringify(text)} (${type || "no type"})`);
+  }
+});
+
+test("lite mode passes its type: a pendulum's height is not L, a drop's is", () => {
+  assert.deepEqual(liteStatedFacts("pendulum", { typed: "hung from a height of 2 m, the string is 60 cm" }).map((f) => [f.quantity, f.value, f.unit]), [["string length", 60, "cm"]]);
+  assert.deepEqual(liteStatedFacts("drop", { typed: "dropped from a height of 2 m" }).map((f) => [f.quantity, f.value, f.unit]), [["drop height", 2, "m"]]);
+  assert.deepEqual(liteStatedFacts("pendulum", { heard: "I stood 2 m away" }), []);
 });

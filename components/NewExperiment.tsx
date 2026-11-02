@@ -808,7 +808,7 @@ export default function NewExperiment({
                     {typedLength
                       ? <>Read as <b>{typedLength.metres < 1 ? `${+(typedLength.metres * 100).toPrecision(4)} cm` : `${+typedLength.metres.toPrecision(4)} m`}</b> (&ldquo;{typedLength.said}&rdquo;). It goes into the run as given, not measured{liteType === "pendulum" ? ", and g is measured from it" : ""}.</>
                       : narration.trim()
-                        ? "No length found yet: write a number, then cm or m (60 cm, 0.6 m)."
+                        ? "No length read yet: say what it is, then a number and a unit (“string 60 cm”, “dropped from 1 m”); a ruler’s or the bob’s size is left out."
                         : liteType === "pendulum"
                           ? "Measure the string from the point of suspension to the centre of the bob. Without it, g rests on the sheet in view, or is assumed."
                           : "A length you know (a number, then cm or m) goes into the run as given, not measured."}

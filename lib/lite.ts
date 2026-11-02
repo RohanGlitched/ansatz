@@ -39,7 +39,7 @@ export type Stated = Observation["stated_facts"][number];
 export function liteStatedFacts(type: LiteType, from: { typed?: string; heard?: string; language?: string }): Stated[] {
   for (const [text, how] of [[from.typed, "typed"], [from.heard, "said"]] as const) {
     if (!text?.trim()) continue;
-    const len = statedLength(text, from.language);
+    const len = statedLength(text, from.language, type);
     if (len && len.metres > 0.005 && len.metres < 30) {
       const cm = len.metres < 1;
       return [{ quantity: LENGTH_OF[type], value: +(cm ? len.metres * 100 : len.metres).toPrecision(6), unit: cm ? "cm" : "m", said: `${len.said} (${how})` }];
