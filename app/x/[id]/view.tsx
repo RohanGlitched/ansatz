@@ -10,7 +10,7 @@ import Plate, { Note, Page, Reading, Section } from "@/components/book/Plate";
 import FalsifyPlate from "@/components/book/FalsifyPlate";
 import MoonPlate from "@/components/book/MoonPlate";
 import { clipData, getExperiment, plateData, showcaseIds, videoUrl, winnerOf } from "@/lib/experiments";
-import { fou5Of, fou5SameFilm } from "@/lib/fou5";
+import { fou5Of, fou5SameFilm, fou5SameFilmLawFree } from "@/lib/fou5";
 import { clockFigure } from "@/lib/clockfig";
 import { paramLatex } from "@/lib/latex";
 import { atBound, clockCheckFor, PIPELINE, type Experiment } from "@/lib/experiment";
@@ -207,7 +207,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         // on a rough fit the speed-up's ± is said in its parts, not printed as the headline's ±
         pm: fig.pm,
         unit: "×",
-        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar. The speed-up does not need one from the law: it is a frequency ratio, and a misfit in the swing’s shape leaves its period alone${sp ? ` (${speedParts(sp)}${speedPeriod ? `; ${speedPeriod}` : ""})` : s ? ` (± ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilm(sameFilm) ? ` A check that needs no reference value: gravity scales as one over time squared, so against the same film’s real-time stretch the speed-up is √(g here ÷ g there) = ${fou5SameFilm(sameFilm)}.` : ""}`,
+        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar. The speed-up does not need one from the law: it is a frequency ratio, and a misfit in the swing’s shape leaves its period alone${sp ? ` (${speedParts(sp)}${speedPeriod ? `; ${speedPeriod}` : ""})` : s ? ` (± ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilmLawFree(sameFilm) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(sameFilm)}.` : ""}`,
       };
     }
     if (clock) {

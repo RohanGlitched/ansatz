@@ -2,7 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import type { Law, Series } from "../lib/physics/law";
-import { fitWithRoom, heldLengthFromRuler, inflateForRuler, referenceValues, rulerExponents, rulerShare, type Calibration, type Candidate, type Experiment, type RulerFit } from "../lib/experiment";
+import { fitWithRoom, heldLengthFromRuler, inflateForRuler, referenceValues, rulerExponents, rulerShare, type Candidate, type Experiment, type RulerFit } from "../lib/experiment";
+import type { Calibration } from "../lib/measure";
 import type { Observation } from "../lib/scientist";
 
 /* The ruler's share of the error goes only to constants that move with the ruler. A pendulum law that holds a stated

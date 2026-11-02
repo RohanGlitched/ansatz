@@ -199,7 +199,7 @@ export function fillPlaceholders(text: string, fit: Fit, law: Law) {
     const v = fit.theta[name], s = fit.sigma[name];
     const unit = p?.unit && p.unit !== "1" && p.unit !== "-" ? ` ${prettyUnit(p.unit)}` : "";
     if (!p?.fixed && fit.undetermined?.includes(name)) return NOT_DETERMINED;
-    if (!p?.fixed && rough) return `about ${+v.toPrecision(2)}${unit}`;
+    if (!p?.fixed && rough) return `about ${+v.toPrecision(Math.abs(v) >= 100 ? 3 : 2)}${unit}`;
     // a value held fixed was given, not measured, and says so
     if (p?.fixed) return `${fmtNum(v)}${unit} (given)`;
     return s && Number.isFinite(s) && Math.abs(v) < 1e5 ? `${fmtPair(v, s)}${unit}` : `${fmtNum(v)}${unit}`;
