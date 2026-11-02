@@ -1,0 +1,85 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6605123,
+  "randomness": "4485e1a14416b41af0ddc90ec6614b863ed5ee3b178d58bcf82b0a840c08aaae",
+  "signature": "b0db5423ae0cc8a114a7b93e4e2255e225adbfc7029c6425e64742ddc30f7613209af891df36b8c6fcfbd7e1a25a5cbc1603eed2912cda712d269f4d77b3648361685d98b9ee7b1a45e9da1c50571598f447156f4dfacbb9e238b1ddb7203231",
+  "url": "https://api.drand.sh/public/6605123"
+ },
+ "law": {
+  "stiffness": "asymmetric",
+  "damping": "coulomb",
+  "drive": false,
+  "equation": "x'' = -(k/m) x - (k2/m) x^2 - mu sign(x')",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 11.22,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.14,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "k2": {
+   "value": 28.31,
+   "unit": "N/m^2",
+   "rule": "k2 A / k uniform in [0.2, 0.45], stiffer stretched (drawn 0.353)"
+  },
+  "mu": {
+   "value": 0.3,
+   "unit": "m/s^2",
+   "rule": "the swing dies in N half cycles, N uniform in [10, 16] (drawn 13.09); mu = w0^2 A / (2N)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 7.489993324429602,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  },
+  "k2_over_m": {
+   "value": 141.54999999999998,
+   "unit": "1/(m s^2)",
+   "note": "k2/m, sign: stiffer stretched (down)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 11.22,
+   "m": 0.2,
+   "b": 0,
+   "l0": 0.3,
+   "A": 0.14,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "green",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7499,
+   "noun": "block",
+   "k3": 0,
+   "k2": 28.31,
+   "mu": 0.3,
+   "cq": 0,
+   "F0": 0,
+   "wd": 0
+  }
+ }
+}
