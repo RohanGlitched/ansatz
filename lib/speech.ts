@@ -129,8 +129,9 @@ function lengthsIn(words: string[], sets: Speech[]): Hit[] {
   return hits;
 }
 
-/** Words as the readers split them: native digits made ASCII, "60cm" / "60सेमी" parted, punctuation dropped. */
-const wordsOf = (text: string) => asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").split(/[\s,;:!?।]+/).filter(Boolean);
+/** Words as the readers split them: native digits made ASCII, "60cm" / "60सेमी" parted, punctuation dropped, a decimal comma ("0,6") kept. */
+const wordsOf = (text: string) =>
+  asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").split(/[\s;:!?।]+|(?<!\d),|,(?!\d)/).filter(Boolean);
 
 /**
  * A spoken length in metres, read by code from a transcript: a number (digits in any of the scripts, or a round number
@@ -156,11 +157,16 @@ const STRING_STEMS = [
   "cuerda", "hilo", "longitud", "largo", "péndulo", "pendulo",
 ];
 const HEIGHT_STEMS = ["height", "high", "drop", "fell", "fall", "ऊँचाई", "ऊंचाई", "altura"];
-/** Words that say a length is a size across, or the pendulum's bob (always a size); a ball is one when the text names a string. */
+/**
+ * Words that say a length is a size across, the pendulum's bob, or how far it was pulled aside ("released 10 cm to the
+ * side", "amplitude"): never the string. A ball is one when the text names a string.
+ */
 const SIZE_STEMS = [
   "wide", "width", "diameter", "radius", "across", "thick", "size",
   "व्यास", "चौड़", "चौड", "त्रिज्या", "விட்டம்", "ব্যাস", "रुंद", "వ్యాసం", "ancho", "diámetro", "diametro", "radio",
   "bob", "गोलक", "குண்டு", "গোলক", "గుండు",
+  // how far it was pulled aside: the swing's offset, not its length
+  "releas", "pull", "side", "amplitude", "swing", "displace", "offset", "aside", "खींच", "आयाम", "amplitud", "desplaz", "apart",
 ];
 const BODY_STEMS = ["ball", "sphere", "गोला", "गेंद", "பந்து", "বল", "चेंडू", "బంతి", "bola", "pelota"];
 
@@ -173,31 +179,34 @@ const stemOf = (w: string, stems: string[]) => stems.some((s) => bare(w).startsW
 
 /**
  * The length a person stated (typed or said) for the experiment, read by code. Every number-then-unit in the text is a
- * candidate, the scale in view left out (a length with "A4", "sheet", "card" or "ruler" in the three words before it).
+ * candidate, the scale in view left out (a length with "A4", "sheet", "card" or "ruler" in the three words before it or the
+ * two after its unit, "30 cm ruler", unless a string word sits nearer: "a 30 cm ruler beside the 60 cm string").
  * Each is tied to the nearest naming word in its clause (four words before it, three after its unit): a string or
- * height word makes it the length measured, a size word ("3 cm wide", "diameter", the bob) or, when the text names a
+ * height word makes it the length measured, a size or offset word ("3 cm wide", "diameter", the bob, "released 10 cm to
+ * the side") or, when the text names a
  * string, a ball makes it a size, never the string. The first length tied to the string wins; failing that, of the lengths
  * tied to nothing, the larger when the text names a string (a bob is smaller than its string), else the first. A size
- * alone gives null. "L = 60cm" and "string: 0.6 m" read too. With no language, the seven languages' words all count.
+ * alone gives null. "L = 60cm", "string: 0.6 m" and a decimal comma ("0,6 m") read too. With no language, the seven languages' words all count.
  */
 export function statedLength(text: string, language?: string): { metres: number; said: string } | null {
   const sets = setsFor(language);
   const clean = text.replace(/[=:~≈]/g, " ");
   const namesString = wordsOf(clean).some((w) => stemOf(w, STRING_STEMS) || bare(w) === "l");
-  const clauses = clean.split(/(?<=[.;।])\s+|[\r\n]+|,\s*/).map((t) => t.trim()).filter(Boolean);
+  const clauses = clean.split(/(?<=[.;।])\s+|[\r\n]+|(?<!\d),\s*|,(?!\d)\s*/).map((t) => t.trim()).filter(Boolean);
   const tied: Hit[] = [];
   const loose: Hit[] = [];
   for (const clause of clauses) {
     const words = wordsOf(clause);
     for (const hit of lengthsIn(words, sets)) {
       if (!(hit.metres > 0)) continue;
-      const before = words.slice(Math.max(0, hit.word - 3), hit.word);
-      if (before.some((w) => SCALE_WORDS.test(bare(w)))) continue;
-      // the nearest naming word, before (up to four words) or after the unit (up to three); a tie goes to the string
-      let kind: "string" | "size" | null = null;
+      // the nearest naming word, before (up to four words) or after the unit (up to three): a scale word (three before,
+      // two after) drops the length, then a string word ties it, then a size or offset word marks it a size
+      let kind: "scale" | "string" | "size" | null = null;
       for (let d = 1; d <= 4 && !kind; d++) {
         const near = [words[hit.word - d], d <= 3 ? words[hit.word + 1 + d] : undefined].filter((w): w is string => !!w);
-        if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
+        const scale = [d <= 3 ? words[hit.word - d] : undefined, d <= 2 ? words[hit.word + 1 + d] : undefined];
+        if (scale.some((w) => w && SCALE_WORDS.test(bare(w)))) kind = "scale";
+        else if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
         else if (near.some((w) => stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS)))) kind = "size";
       }
       if (kind === "string") tied.push(hit);

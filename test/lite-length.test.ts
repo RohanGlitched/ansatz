@@ -176,3 +176,22 @@ test("the Hindi worksheet's own sentences read as the worksheet promises", () =>
   for (const said of ["धागे की लंबाई साठ सेंटीमीटर है", "धागा ६० सेंटीमीटर का है", "लंबाई 60 सेंटीमीटर", "the string is sixty centimetres"])
     assert.equal(statedLength(said)?.metres, 0.6, said);
 });
+
+test("a decimal comma, a release offset and a ruler named after its length are not taken as the string", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("0,6 m"), 0.6, "decimal comma");
+  assert.equal(m("la cuerda mide 0,6 m", "Spanish"), 0.6);
+  assert.equal(m("string 0,75 m"), 0.75);
+  assert.equal(m("3 cm, 60 cm"), 0.03, "a list still splits on the comma (no string named: the first)");
+  assert.equal(m("bob 3 cm, 60 cm"), 0.6);
+  assert.equal(m("released 10 cm to the side; the string is 60 cm"), 0.6, "release offset");
+  assert.equal(m("pulled 5 cm aside, string 60 cm"), 0.6);
+  assert.equal(m("amplitude 8 cm, length 0.9 m"), 0.9);
+  assert.equal(m("the string is 60 cm, released 10 cm to the side"), 0.6);
+  assert.equal(m("30 cm ruler in view, 60 cm string"), 0.6, "scale word after the number");
+  assert.equal(m("a 30 cm ruler beside the 60 cm string"), 0.6);
+  assert.equal(m("30 cm ruler in view"), undefined);
+  assert.equal(m("bob is 5 cm wide, string 60 cm"), 0.6);
+  assert.equal(m("steel ball 2 cm diameter on a 60 cm string"), 0.6);
+  assert.deepEqual(liteStatedFacts("pendulum", { heard: "released 10 cm to the side; the string is 60 cm" }).map((f) => f.value), [60]);
+});
