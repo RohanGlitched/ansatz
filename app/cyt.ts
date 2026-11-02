@@ -4,7 +4,7 @@ import { isRoughFit, type Experiment } from "@/lib/experiment";
 // bundled with the page, so a revalidation on the server never depends on the file being traced
 import gymRun from "@/data/strangers/gym-ball-bounce-240fps-b.json";
 import sparkQuiz from "@/data/cyt/spark-quiz.json";
-import { answersText, baselineOf, factorTally, majorityOf, speedRange, sparkSaidText, speedOf, speedText, VERDICTS, type FactorTally, type Speed, type Verdict } from "@/lib/cytScore";
+import { answersText, baselineOf, factorRight, factorTally, majorityOf, setScore, sparkSpeed, speedRange, sparkSaidText, speedOf, speedText, VERDICTS, type FactorTally, type Speed, type Verdict } from "@/lib/cytScore";
 
 /**
  * "Can you tell?": six real clips, each with what Muse Spark answered to the quiz's own question, what Ansatz measured
@@ -58,19 +58,29 @@ export type CytAnswers = {
   /** a second, labelled set: the clips where Ansatz's run was told a length the first ask was not, asked again with
    * that length and the run's footage; its verdict tally, its factor row and the sentence that discloses it */
   parity?: { spark: number; factor: FactorTally; asked: number; line: string };
+  /** a third, labelled set: all six clips asked again at medium effort (Ansatz's observer's), with the lengths and
+   * footage Ansatz's runs had; its verdict tally, its factor row, its failures and the sentence that reports it */
+  parityMedium?: { spark: number; factor: FactorTally; calls: number; failed: number; usd: number; line: string };
+  /** every set, in the order it was asked, each scored by the same rule (lib/cytScore setScore) */
+  sets: { key: "first" | "parity" | "parityMedium"; label: string; effort: string; spark: number; factor: FactorTally }[];
   /** how Muse Spark was asked: model, date, cue per clip, cost */
   method: string;
 };
 export type Cyt = { pub: CytPublic; answers: CytAnswers };
 
-type QuizAnswer = { verdict: Verdict; factor: number; reasoning: string; model: string };
+type QuizAnswer = { verdict: Verdict; factor: number; reasoning: string; model: string; outputTokens?: number };
 type QuizClip = { id: string; cue: string | null; cueWhy: string; answers: QuizAnswer[]; majority: Verdict | null; majorityCount: number };
 type Quiz = { model: string; effort: string; date: string; n: number; question: string; usd: number; clips: QuizClip[] };
 const quiz = sparkQuiz as unknown as Quiz;
 // the second set, when there is one: those clips asked again with the length Ansatz's run was told and the run's footage
 type Parity = { usd: number; n: number; effort: string; clips: (QuizClip & { file: string; durationS: number })[] };
 const parity = (sparkQuiz as unknown as { parity?: Parity }).parity;
+// the third set, when there is one: all six clips at medium effort, with the parity set's lengths and footage
+type ParityMedium = { usd: number; n: number; effort: string; date: string; maxOutputTokens: number; calls: number; stopped: string | null; failures: { id: string; repeat: number; error: string; outputTokens?: number }[]; clips: (QuizClip & { file: string; durationS: number; failed?: number })[] };
+const parityMedium = (sparkQuiz as unknown as { parityMedium?: ParityMedium }).parityMedium;
+const asSpeeds = (as: QuizAnswer[]): Speed[] => as.map((a) => ({ verdict: a.verdict, factor: a.verdict === "real time" ? 1 : a.factor }));
 
+const pick = (s: { spark: number; factor: FactorTally }) => ({ spark: s.spark, factor: s.factor });
 const fmt = (v: number, d = 2) => v.toFixed(d);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const verdictOf = (factor: number): Verdict => (factor > 1 ? "slowed" : factor < 1 ? "sped up" : "real time");
@@ -331,6 +341,52 @@ export async function canYouTell(): Promise<Cyt | null> {
     const line = `Ansatz’s runs were told more than the first ask gave Muse Spark: ${list(asked.map((r) => `clip ${at(r.pub.id)} (${r.told})`))}${longer.length ? `, and on ${list(longer.map((r) => `clip ${at(r.pub.id)}`))} it measured the run’s whole clip (${list(longer.map((r) => `${+pc(r.pub.id).durationS.toFixed(1)} s`))}) where this page shows a crop` : ""}. Muse Spark first saw only this page’s files, with no length, and scored ${firstN} of ${rows.length}. Asked again with the same lengths and the same footage, ${inWords(parity.n)} times each at ${parity.effort} effort ($${parity.usd.toFixed(2)}), it answered ${list(asked.map((r) => said(r.pub.id)))}: with equal information its score is ${spark} of ${rows.length}${tie}.${number}`;
     return { spark, factor: f, asked: asked.length, line };
   })();
+  // the third set: every clip at medium effort, with the lengths and footage Ansatz's runs had
+  const mediumOf = (id: string): Speed[] => asSpeeds(parityMedium?.clips.find((c) => c.id === id)?.answers ?? []);
+  const mediumSet = (() => {
+    if (!parityMedium?.clips.length) return undefined;
+    const pm = parityMedium;
+    const s = setScore(rows.map((r) => ({ truth: r.ans.truth.speed, spark: mediumOf(r.pub.id), ansatz: r.ans.ansatz.speed })));
+    const said = (id: string) => {
+      const as = mediumOf(id);
+      const m = majorityOf(as.map((a) => a.verdict));
+      const fs = as.filter((a) => a.verdict === m.verdict && a.verdict !== "real time").map((a) => a.factor);
+      const failed = pm.clips.find((c) => c.id === id)?.failed ?? 0;
+      if (!as.length) return `clip ${at(id)} no answer${failed ? ` (${inWords(failed)} failed)` : ""}`;
+      return `clip ${at(id)} ${m.verdict ?? "split"} ${m.count} of ${as.length}${fs.length ? ` (${speedRange(fs)})` : ""}${failed ? `, ${inWords(failed)} cut off or failed` : ""}`;
+    };
+    const cut = pm.failures.filter((f) => /^cut off/.test(f.error)).length;
+    const other = pm.failures.length - cut;
+    const failedText = pm.failures.length
+      ? ` ${cap(inWords(pm.failures.length))} of its ${pm.calls} calls gave no answer (${[cut ? `${inWords(cut)} cut off at the ${pm.maxOutputTokens.toLocaleString("en-GB")}-token cap` : "", other ? `${inWords(other)} failed otherwise` : ""].filter(Boolean).join(", ")}); ${pm.failures.length === 1 ? "it counts" : "they count"} as no answer.`
+      : ` None of its ${pm.calls} calls was cut off${(() => {
+          const most = Math.max(0, ...pm.clips.flatMap((c) => c.answers.map((a) => a.outputTokens ?? 0)));
+          return most > 6000 ? `; the longest answer used ${most.toLocaleString("en-GB")} output tokens, past the old 6,000 cap` : "";
+        })()}.`;
+    // a clip the factor row counts as right goes by the median of the answers behind the majority: say what they were
+    const byMedian = rows.filter((r) => r.ans.truth.speed.verdict !== "real time" && factorRight(r.ans.truth.speed, sparkSpeed(mediumOf(r.pub.id))));
+    const medianText = byMedian.length
+      ? `${list(byMedian.map((r) => {
+          const sp = sparkSpeed(mediumOf(r.pub.id))!;
+          const fs = mediumOf(r.pub.id).filter((a) => a.verdict === sp.verdict).map((a) => +a.factor.toPrecision(3)).sort((a, b) => a - b);
+          return `on clip ${at(r.pub.id)} the median of its ${inWords(fs.length)} factors (${list(fs.map((f) => `${f}×`))}) is ${+sp.factor.toPrecision(3)}×`;
+        }))}, and `
+      : "";
+    const stop = pm.stopped ? ` The run stopped at the spend cap after ${pm.calls} of ${pm.n * rows.length} calls.` : "";
+    const told = rows.filter((r) => r.told && pm.clips.find((c) => c.id === r.pub.id)?.cue && !cueOf(r.pub.id));
+    const tie = s.spark === s.ansatz ? `, a tie with Ansatz’s ${s.ansatz} of ${rows.length}` : `, against Ansatz’s ${s.ansatz} of ${rows.length}`;
+    const line = `Ansatz’s own observer runs at medium reasoning effort; both asks above were at low. So Muse Spark was asked a third time, at medium effort, on all six clips: with the lengths and footage Ansatz’s runs had on ${list(told.map((r) => `clip ${at(r.pub.id)} (${r.told})`))}, and this page’s own files and cues on the rest, ${inWords(pm.n)} times each with room for ${pm.maxOutputTokens.toLocaleString("en-GB")} output tokens ($${pm.usd.toFixed(2)}). It answered ${list(rows.map((r) => said(r.pub.id)))}.${failedText}${stop} At medium effort its score is ${s.spark} of ${rows.length}${tie}; on the factor row it is ${s.factor.spark} of ${s.factor.n}, against Ansatz’s ${s.factor.ansatz} of ${s.factor.n}: ${medianText}${s.factor.sparkAnswersRight === 0 ? "none" : s.factor.sparkAnswersRight} of its ${s.factor.sparkAnswers} single answers on those clips ${s.factor.sparkAnswersRight === 1 ? "was" : "were"} within ${Math.round(s.factor.tol * 100)}%.`;
+    return { spark: s.spark, factor: s.factor, calls: pm.calls, failed: pm.failures.length, usd: pm.usd, line };
+  })();
+  // every set through the same scorer: the first ask; the ask with the lengths (parity answers where it has them, the
+  // first ask's elsewhere); and the medium ask
+  const parityOf = (id: string): Speed[] => asSpeeds(parity?.clips.find((c) => c.id === id)?.answers ?? quiz.clips.find((c) => c.id === id)?.answers ?? []);
+  const scoreWith = (answersOf: (id: string) => Speed[]) => setScore(rows.map((r) => ({ truth: r.ans.truth.speed, spark: answersOf(r.pub.id), ansatz: r.ans.ansatz.speed })));
+  const sets: CytAnswers["sets"] = [
+    { key: "first", label: "first ask (low effort, this page’s clips)", effort: quiz.effort, ...pick(scoreWith(quizSpeeds)) },
+    ...(parity?.clips.length ? [{ key: "parity" as const, label: `with the lengths (${parity.effort} effort)`, effort: parity.effort, ...pick(scoreWith(parityOf)) }] : []),
+    ...(parityMedium?.clips.length ? [{ key: "parityMedium" as const, label: `with the lengths at ${parityMedium.effort} effort`, effort: parityMedium.effort, ...pick(scoreWith(mediumOf)) }] : []),
+  ];
   // clauses joined by semicolons, since a split vote carries commas of its own
   const semi = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join("; ")}; and ${xs.at(-1)}`);
   const factorLine = `On the ${inWords(retimed.length)} clips that don’t play at real speed, Muse Spark’s answers were ${semi(retimed.map((r, i) => `${sparkSaidText(quizSpeeds(r.pub.id))} where ${i ? "it" : "the truth"} was ${speedText(r.ans.truth.speed)}`))}. Ansatz read ${list(read)}${missed.length ? `, and could not measure ${list(missed)}` : ""}. Watching can say whether; only measuring says by how much.`;
@@ -349,7 +405,9 @@ export async function canYouTell(): Promise<Cyt | null> {
       factor,
       factorLine,
       ...(parityLine ? { parity: parityLine } : {}),
-      method: `Muse Spark (${quiz.model}) was shown each clip on this page, the same file, at its own frame rate, with the question above, ${inWords(quiz.n)} times in separate calls, at ${quiz.effort} reasoning effort, on ${date}, for $${quiz.usd.toFixed(2)} in all (that includes an earlier attempt at medium effort, stopped on its second call when an answer ran past 6,000 output tokens). Its answer had to be “real time”, “slowed” or “sped up”, with a factor; its verdict here is the majority. Besides a line giving the frame rate, the only extra words were the scale cue this page shows under a clip: ${list(cues)}; the other clips got none.${toldText} Ansatz’s answer is the run’s clock check: a flagged clock gives its factor; an unflagged one reads real time, with the factor its measured gravity implies, and no error bar when the run’s law misses its unseen frames by more than five times the noise. The tally counts a match with the truth; “could not measure” and a split vote count as misses. The factor row counts a factor within ${Math.round(factor.tol * 100)}% of the truth on the clips that don’t play at real speed, taking Muse Spark’s majority verdict and the median factor of the answers that gave it; a split vote gives no factor.`,
+      ...(mediumSet ? { parityMedium: mediumSet } : {}),
+      sets,
+      method: `Muse Spark (${quiz.model}) was shown each clip on this page, the same file, at its own frame rate, with the question above, ${inWords(quiz.n)} times in separate calls, at ${quiz.effort} reasoning effort, on ${date}, for $${quiz.usd.toFixed(2)} in all (that includes an earlier attempt at medium effort, stopped on its second call when an answer ran past 6,000 output tokens). Its answer had to be “real time”, “slowed” or “sped up”, with a factor; its verdict here is the majority. Besides a line giving the frame rate, the only extra words were the scale cue this page shows under a clip: ${list(cues)}; the other clips got none.${toldText}${parityMedium ? ` Ansatz’s own observer runs at medium reasoning effort, so all six clips were asked again at medium, ${inWords(parityMedium.n)} times each, on ${new Date(parityMedium.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" })}, with the lengths and footage Ansatz’s runs had, a ${parityMedium.maxOutputTokens.toLocaleString("en-GB")}-token output cap, one call per answer with no retry, and a cut-off answer counted as no answer: ${parityMedium.calls} calls, ${parityMedium.failures.length} without an answer, $${parityMedium.usd.toFixed(2)}${parityMedium.stopped ? `; ${parityMedium.stopped}` : ""}. That set is stored as “parityMedium” beside the first two in ${"data/cyt/spark-quiz.json"}, which are unchanged.` : ""} Ansatz’s answer is the run’s clock check: a flagged clock gives its factor; an unflagged one reads real time, with the factor its measured gravity implies, and no error bar when the run’s law misses its unseen frames by more than five times the noise. The tally counts a match with the truth; “could not measure” and a split vote count as misses. The factor row counts a factor within ${Math.round(factor.tol * 100)}% of the truth on the clips that don’t play at real speed, taking Muse Spark’s majority verdict and the median factor of the answers that gave it; a split vote gives no factor.`,
     },
   };
 }

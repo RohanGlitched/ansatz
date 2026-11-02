@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { answersText, baselineOf, factorRight, factorTally, majorityOf, sparkSaidText, sparkSpeed, speedOf, speedText, type Speed, type Verdict } from "../lib/cytScore";
+import { answersText, baselineOf, factorRight, factorTally, majorityOf, setScore, sparkSaidText, sparkSpeed, speedOf, speedText, type Speed, type Verdict } from "../lib/cytScore";
 
 type Quiz = { n: number; question: string; usd: number; budgetUsd: number; clips: { id: string; truth: Verdict; cue: string | null; answers: { verdict: Verdict; factor: number }[]; majority: Verdict | null; majorityCount: number; right: boolean }[] };
 const quiz = JSON.parse(readFileSync("data/cyt/spark-quiz.json", "utf8")) as Quiz;
@@ -67,6 +67,77 @@ test("can you tell: on the stored answers, the factor row is Muse Spark 0 of 3 a
   assert.equal(sparkSaidText(spark("cyt-5")), "real time");
   assert.equal(answersText(spark("cyt-4")), "4 slowed 2× or 4×, 1 real time");
   assert.equal(speedText(truth["cyt-4"]), "4.8× slower");
+});
+
+type SetClip = { id: string; file: string; cue: string | null; truth: Verdict; answers: { verdict: Verdict; factor: number; outputTokens?: number }[]; majority: Verdict | null; majorityCount: number; right: boolean; failed?: number };
+type QuizSet = { label: string; effort: string; n: number; question: string; usd: number; budgetUsd: number; maxOutputTokens?: number; calls?: number; stopped: string | null; failures: { id: string; repeat: number; error: string }[]; clips: SetClip[] };
+const raw = JSON.parse(readFileSync("data/cyt/spark-quiz.json", "utf8")) as { effort: string; parity: QuizSet; parityMedium: QuizSet };
+// truth per clip, and Ansatz's readings from the runs' clock checks (cyt-4: could not measure)
+const TRUTH: Record<string, Speed> = { "cyt-1": speedOf(1 / 5), "cyt-2": speedOf(1), "cyt-3": speedOf(1), "cyt-4": speedOf(240 / 50), "cyt-5": speedOf(1.5), "cyt-6": speedOf(1) };
+const ANSATZ: Record<string, Speed | null> = (() => {
+  const fou5 = JSON.parse(readFileSync("data/showcase/foucault-pendulum-5x.json", "utf8")) as { clock: { factor: number } };
+  const slowed = JSON.parse(readFileSync("data/showcase/moon-jump-slowed.json", "utf8")) as { clock: { factor: number } };
+  return { "cyt-1": speedOf(fou5.clock.factor), "cyt-2": speedOf(1), "cyt-3": speedOf(1), "cyt-4": null, "cyt-5": speedOf(slowed.clock.factor), "cyt-6": speedOf(1) };
+})();
+const speeds = (as: { verdict: Verdict; factor: number }[]): Speed[] => as.map((a) => ({ verdict: a.verdict, factor: a.verdict === "real time" ? 1 : a.factor }));
+const scoreOf = (answersOf: (id: string) => Speed[]) => setScore(Object.keys(TRUTH).map((id) => ({ truth: TRUTH[id], spark: answersOf(id), ansatz: ANSATZ[id] })));
+
+test("can you tell: the medium-effort set is a third, labelled set beside the first two, which stay as they were", () => {
+  const m = raw.parityMedium;
+  assert.ok(m, "parityMedium is stored");
+  // the first two sets were asked at low effort and are not touched
+  assert.equal(raw.effort, "low");
+  assert.equal(raw.parity.effort, "low");
+  assert.deepEqual(raw.parity.clips.map((c) => c.id), ["cyt-1", "cyt-6", "cyt-4"]);
+  // the third: medium, every clip, five times, inside a $3.00 cap, with room for a long answer
+  assert.equal(m.effort, "medium");
+  assert.equal(m.n, 5);
+  assert.equal(m.question, quiz.question);
+  assert.ok(m.budgetUsd <= 3 && m.usd <= m.budgetUsd, `spent ${m.usd} of ${m.budgetUsd}`);
+  assert.ok((m.maxOutputTokens ?? 0) >= 16000, `cap ${m.maxOutputTokens}`);
+  assert.deepEqual(m.clips.map((c) => c.id), ["cyt-1", "cyt-2", "cyt-3", "cyt-4", "cyt-5", "cyt-6"]);
+  // the cues: the lengths Ansatz's runs were told on both Foucault cuts and the gym ball, the page's own on the rest
+  const cue = (id: string) => m.clips.find((c) => c.id === id)!.cue;
+  assert.equal(cue("cyt-1"), "For scale, this pendulum is 8.97 m long.");
+  assert.equal(cue("cyt-6"), "For scale, this pendulum is 8.97 m long.");
+  assert.equal(cue("cyt-4"), "For scale, the ball is about 75 cm across.");
+  for (const id of ["cyt-2", "cyt-3", "cyt-5"]) assert.equal(cue(id), quiz.clips.find((c) => c.id === id)!.cue, id);
+  for (const id of ["cyt-1", "cyt-6", "cyt-4"]) assert.equal(m.clips.find((c) => c.id === id)!.file, raw.parity.clips.find((c) => c.id === id)!.file, id);
+  // every call is either an answer or a listed failure, and a failure is never retried into an answer
+  let calls = 0;
+  for (const c of m.clips) {
+    const failed = m.failures.filter((f) => f.id === c.id).length;
+    assert.equal(c.failed ?? 0, failed, c.id);
+    calls += c.answers.length + failed;
+    if (!m.stopped) assert.equal(c.answers.length + failed, m.n, c.id);
+    const mj = majorityOf(c.answers.map((a) => a.verdict));
+    assert.equal(c.majority, mj.verdict, c.id);
+    assert.equal(c.majorityCount, mj.count, c.id);
+    assert.equal(c.right, c.majority === c.truth, c.id);
+    // an answer that came back was not cut off: it stayed under the cap
+    for (const a of c.answers) assert.ok((a.outputTokens ?? 0) < m.maxOutputTokens!, `${c.id} ${a.outputTokens}`);
+  }
+  assert.equal(m.calls, calls);
+  for (const f of m.failures) assert.ok(f.error.length > 0, `${f.id} ${f.repeat}`);
+});
+
+test("can you tell: every set goes through one scorer, and the page's three tallies are what it gives", () => {
+  const first = scoreOf((id) => speeds(quiz.clips.find((c) => c.id === id)!.answers));
+  const withLengths = scoreOf((id) => speeds((raw.parity.clips.find((c) => c.id === id) ?? quiz.clips.find((c) => c.id === id)!).answers));
+  const medium = scoreOf((id) => speeds(raw.parityMedium.clips.find((c) => c.id === id)!.answers));
+  assert.deepEqual({ spark: first.spark, ansatz: first.ansatz, factor: first.factor.spark, n: first.factor.n }, { spark: 4, ansatz: 5, factor: 0, n: 3 });
+  assert.deepEqual({ spark: withLengths.spark, factor: withLengths.factor.spark }, { spark: 5, factor: 0 });
+  // the medium set's verdict tally is the count of its stored right flags
+  assert.equal(medium.spark, raw.parityMedium.clips.filter((c) => c.right).length);
+  assert.equal(medium.ansatz, 5);
+  // at medium effort (2 November 2026): 5 of 6 by verdict, a tie with Ansatz; 1 of 3 on the factor row, against Ansatz's
+  // 2 of 3, and that one is clip 1 by the median of 3x, 3x, 5x, 11.4x and 12x; 1 of 15 single answers within 10%
+  assert.deepEqual({ spark: medium.spark, factor: medium.factor.spark, of: medium.factor.sparkAnswers, right: medium.factor.sparkAnswersRight }, { spark: 5, factor: 1, of: 15, right: 1 });
+  assert.equal(medium.factor.ansatz, 2);
+  const m1 = sparkSpeed(speeds(raw.parityMedium.clips.find((c) => c.id === "cyt-1")!.answers));
+  assert.deepEqual(m1, { verdict: "sped up", factor: 5 });
+  // the one clip it gets wrong by verdict is the slowed Apollo copy, as in the first ask
+  assert.deepEqual(raw.parityMedium.clips.filter((c) => !c.right).map((c) => c.id), ["cyt-5"]);
 });
 
 test("the Aachen page's lede quotes the record's own g, error bar and percentage", () => {

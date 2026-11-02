@@ -497,5 +497,403 @@
     "right": true
    }
   ]
+ },
+ "parityMedium": {
+  "label": "Information parity at medium effort: all six clips asked again at the reasoning effort Ansatz's observer runs at",
+  "model": "muse-spark-1.3",
+  "effort": "medium",
+  "maxOutputTokens": 32000,
+  "date": "2026-11-02T02:15:00.225Z",
+  "n": 5,
+  "question": "Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+  "note": "The first two sets asked Muse Spark at low reasoning effort, while Ansatz's own observer runs at medium. This set asks all six clips again at medium effort, 5 times each in separate calls, with a 32,000-token output cap (an earlier medium attempt was stopped when one answer ran past 6,000) and the same closed answer schema. Each clip gets what Ansatz's run of it had: the parity set's length and footage on both Foucault cuts (8.97 m; the run's whole 22.5 s and 42 s clips, thinned to at most 300 frames as Ansatz's observer sees them) and on the gym ball (75 cm; the page's own file), and the page's own file and cue on the other three (the astronaut's 1.88 m on both Apollo clips, the string's 50 cm on Aachen). Each repeat was asked once, with no retry; an answer that failed, or was cut off by the output cap, counts as a failure and is listed under failures, and the verdict is the majority of the answers that came back. Everything else (model, question, schema) is as in the first set.",
+  "budgetUsd": 3,
+  "usd": 0.6745,
+  "calls": 30,
+  "stopped": null,
+  "failures": [],
+  "clips": [
+   {
+    "id": "cyt-1",
+    "file": "public/showcase/foucault-pendulum-5x.mp4",
+    "sees": "the run's whole 22.5 s clip, as Ansatz measured it, not the page's 6 s crop",
+    "fps": 13.321,
+    "frames": 300,
+    "durationS": 22.52,
+    "cue": "For scale, this pendulum is 8.97 m long.",
+    "cueWhy": "the length Ansatz's run was told (data/showcase/foucault-pendulum-5x.json given[])",
+    "prompt": "You are shown 300 frames, 13.32 per second of the clip as it plays. For scale, this pendulum is 8.97 m long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "sped up",
+    "truthFactor": 5,
+    "answers": [
+     {
+      "verdict": "sped up",
+      "factor": 3,
+      "reasoning": "For L=8.97m, T=2*pi*sqrt(L/g) ~= 2*pi*sqrt(8.97/9.81) ~= 6.0s. The 300 frames at 13.32 frames per play-second last ~22.5s. In that time the bob makes ~11 full near-far-near cycles, i.e. observed period ~2.0s. 6.0/2.0 ~3, so motion is ~3x faster than real gravity would allow.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0624,
+      "outputTokens": 3350,
+      "reasoningTokens": 3214
+     },
+     {
+      "verdict": "sped up",
+      "factor": 3,
+      "reasoning": "For L=8.97 m, T=2pi*sqrt(L/g)=~6.0 s. The 300 frames at 13.32 fps is ~22.5 s of clip time. The bob makes ~11 full near-far-near cycles in that time, i.e. observed period ~2.0 s, not ~6.0 s. T_real/T_obs ~6.0/2.0 ~3, so motion is ~3x too fast.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0227,
+      "outputTokens": 3943,
+      "reasoningTokens": 3815
+     },
+     {
+      "verdict": "sped up",
+      "factor": 11.4,
+      "reasoning": "For L=8.97m, T=2*pi*sqrt(L/g) ~= 2*pi*sqrt(8.97/9.81) ~= 6.0 s real period. In the clip a full near-far-near swing takes ~7 frames. At 13.32 fps that is ~7/13.32 ~= 0.53 s observed period. Observed is ~11-12x shorter than real, so motion is sped up by T_real/T_obs ~= 6.0/0.53 ~= 11-12.",
+      "model": "muse-spark-1.3",
+      "usd": 0.034,
+      "outputTokens": 6608,
+      "reasoningTokens": 6464
+     },
+     {
+      "verdict": "sped up",
+      "factor": 12,
+      "reasoning": "For a simple pendulum T = 2*pi*sqrt(L/g). With L=8.97 m, T ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s. Full back-and-forth near-red-marker to far-blue-marker to near should take ~6 s in real life, half swing ~3 s. In the clip 300 frames at 13.32 fps = ~22.5 s of play time. The bob goes near->far->near in ~6-7 frames, i.e. ~0.45-0.53 s of play time, and repeats ~40-50 times in the clip. Observed period ~0.5 s vs real ~6.0 s. Therefore play is much faster than real, by ~6.0/0.5 ~ 11-13x.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0287,
+      "outputTokens": 5353,
+      "reasoningTokens": 5150
+     },
+     {
+      "verdict": "sped up",
+      "factor": 5,
+      "reasoning": "For L=8.97 m, T=2*pi*sqrt(L/g) ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s full back-and-forth. Near extreme = large bob over red marker, far extreme = small bob over blue marker. In clip playback time the near-to-far-to-near cycle repeats in ~1.2 s, about 16 frames at 13.32 frames per second of clip time. 6.0 / 1.2 ~ 5. Motion is much too fast for a 9-m pendulum, so clip is sped up.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0226,
+      "outputTokens": 3932,
+      "reasoningTokens": 3776
+     }
+    ],
+    "majority": "sped up",
+    "majorityCount": 5,
+    "right": true,
+    "failed": 0
+   },
+   {
+    "id": "cyt-2",
+    "file": "public/cyt/cyt-2.mp4",
+    "fps": 29.97,
+    "frames": 156,
+    "durationS": 5.205,
+    "cue": "For scale, the astronaut is about 1.88 m tall.",
+    "cueWhy": "the astronaut's height, which the page states",
+    "prompt": "You are shown 156 frames, 29.97 per second of the clip as it plays. For scale, the astronaut is about 1.88 m tall. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "real time",
+    "truthFactor": 1,
+    "answers": [
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Astronaut ~1.88m tall makes small knee-bend hops of ~0.3-0.4m. Time aloft ~1-1.5s matches ballistic time 2*v0/g with lunar g~1.62 m/s2. Arm swings and body rise/fall are at normal suited-human speed. Kicked-up soil falls straight back ballistically with no air suspension, at same lunar-g rate as the body. A slowed Earth-simulation would show unnaturally floaty dust and would require ~2-2.5x faster real movements; a sped-up video would show too-short hang time. Motion is consistent with real-time lunar gravity.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0316,
+      "outputTokens": 1423,
+      "reasoningTokens": 1257
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "The astronaut does a small crouch-jump. Feet leave the ground by ~0.3-0.4 m relative to his 1.88 m height and he is aloft ~1.2-1.5 s, about 35-45 frames at 29.97 fps, before touchdown. For lunar g=1.62 m/s2 expected flight time t=2*sqrt(2h/g) = ~1.2-1.4 s for that height, which matches. On Earth the same hop would be only ~0.5-0.6 s. Kicked dust falls ballistically and settles immediately with no air-suspension. No 2-2.5x slow-down needed to mimic low-g is present. Motion is consistent with real-time in 1/6-g.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0155,
+      "outputTokens": 2921,
+      "reasoningTokens": 2725
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Using the 1.88m astronaut as scale, the jump rises ~0.3-0.4m off the ground with feet leaving ground to touchdown taking ~1.1-1.3s in the 5.2s / 156-frame clip. Ballistic g = 8h/t^2 gives ~1.6-2.0 m/s2, lunar gravity, not 9.8. An Earth jump of that duration would require ~1.5-2m height, impossible from a crouch in a suit, and arm/leg extension speeds are normal human speed. Dust kicked at take-off falls ballistically in vacuum synchrony with the body. No slow-down or speed-up is needed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0103,
+      "outputTokens": 1679,
+      "reasoningTokens": 1502
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "156 frames at 29.97 fps = ~5.2 s total. The jump liftoff to touchdown is ~40-45 frames = ~1.3-1.5 s airborne. Jump apex relative to 1.88 m suited astronaut is ~0.3-0.45 m. For ballistic flight h = 0.5*g*(T/2)^2, so g = 8h/T^2 ~ 8*0.4/1.4^2 ~1.6 m/s2, lunar gravity. Kicked dust falls ballistically in fractions of a second from decimeter height with no air suspension, same g as astronaut. A 2-2.5x slowed Earth fake would require the same 1.4 s seen = ~0.6 s real Earth time to reach 0.4 m, i.e. ~0.7 m Earth jump in a bulky suit/PLSS, impossible, and arm/torso motions are normal speed, not slow-motion. Motion matches real-time lunar ballistics.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0125,
+      "outputTokens": 2203,
+      "reasoningTokens": 1960
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Clip is ~156 frames / 29.97 fps = ~5.2s. Astronaut ~1.88m tall jumps ~0.35-0.45m high and stays airborne ~1.4-1.5s. For lunar g=1.62 m/s2, expected hang time t=2*sqrt(2h/g) ~ 1.3-1.5s, matching observed at 1x. Dust kicked at take-off follows fast ballistic vacuum arc back to ground with no air loiter. Arm swing and crouch-stand speeds are normal human rates. A 2-2.5x slow-down to fake lunar g on Earth would make hang too long and dust fall too slowly.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0097,
+      "outputTokens": 1548,
+      "reasoningTokens": 1370
+     }
+    ],
+    "majority": "real time",
+    "majorityCount": 5,
+    "right": true,
+    "failed": 0
+   },
+   {
+    "id": "cyt-3",
+    "file": "public/cyt/cyt-3.mp4",
+    "fps": 25,
+    "frames": 125,
+    "durationS": 5,
+    "cue": "For scale, the string is about 50 cm long.",
+    "cueWhy": "the string's length, which the page states",
+    "prompt": "You are shown 125 frames, 25.00 per second of the clip as it plays. For scale, the string is about 50 cm long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "real time",
+    "truthFactor": 1,
+    "answers": [
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "The pendulum swings left-right about 3.5 times in ~5s of playback, ~1.4-1.5s per full period. For a simple pendulum L~0.5m, T=2π√(L/g)≈1.42s, which matches the observed motion. No slow-motion or fast-motion discrepancy.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0253,
+      "outputTokens": 1122,
+      "reasoningTokens": 1018
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "50 cm pendulum has T=2*pi*sqrt(L/g)=2*pi*sqrt(0.5/9.8)~1.42 s, half-swing ~0.71 s. In the 5 s clip right extremes occur ~0.48s, 2.0s, 3.4s, 4.8s and left extremes ~1.2s, 2.64s, 4.08s, intervals ~0.7-0.75 s side-to-side and ~1.44 s full period. Blur is maximal at center and sharp at ends, as expected for real pendulum velocity. Observed period matches theoretical real-life period.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0087,
+      "outputTokens": 1443,
+      "reasoningTokens": 1277
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "The ball on ~50 cm string is a simple pendulum. Expected period T = 2*pi*sqrt(L/g) = 2*pi*sqrt(0.5/9.8) ~1.4 s. In the ~5 s clip (125 frames at 25 fps) the ball reaches the right extreme at ~0.5s, ~1.95s, ~3.4s, ~4.8s and the left extreme at ~1.2s, ~2.6s, ~4.0s, i.e. ~3.5 full oscillations with period ~1.4-1.45 s. Speed profile is also pendulum-like: fastest at center, momentarily stationary at extremes. This matches real gravity, not slowed or sped up.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0088,
+      "outputTokens": 1466,
+      "reasoningTokens": 1279
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "A ~50 cm simple pendulum has period T=2*pi*sqrt(L/g)=2*pi*sqrt(0.5/9.8)~1.42 s. In the 5 s clip (~125 frames at 25 fps) the ball goes right-to-right in ~1.44-1.48 s e.g. rightmost ~0.48s, ~1.96s, ~3.40s, ~4.84s, and leftmost ~1.25s, ~2.6s, ~4.1s. Observed full period ~1.4-1.5 s matches the theoretical 1.42 s, so playback is at real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0083,
+      "outputTokens": 1354,
+      "reasoningTokens": 1186
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "A ~0.5 m simple pendulum has period T=2pi*sqrt(L/g) ~2pi*sqrt(0.5/9.8) ~1.4 s, half-swing left to right ~0.7 s. In the 125-frame 25fps =5 s clip there are ~3-3.5 full back-and-forth cycles, left-extreme to left-extreme ~1.4-1.6 s, left-extreme to right-extreme ~0.7-0.8 s. This matches the theoretical period, with fast blurred centre and sharp turnarounds. No slow-motion or speed-up is needed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0155,
+      "outputTokens": 3045,
+      "reasoningTokens": 2882
+     }
+    ],
+    "majority": "real time",
+    "majorityCount": 5,
+    "right": true,
+    "failed": 0
+   },
+   {
+    "id": "cyt-4",
+    "file": "public/cyt/cyt-4.mp4",
+    "sees": "the run's whole 2.5 s clip, cropped square around the ball (the page's own file)",
+    "fps": 50,
+    "frames": 125,
+    "durationS": 2.5,
+    "cue": "For scale, the ball is about 75 cm across.",
+    "cueWhy": "the size Ansatz's run was told (data/strangers/gym-ball-bounce-240fps-b.json given[])",
+    "prompt": "You are shown 125 frames, 50.00 per second of the clip as it plays. For scale, the ball is about 75 cm across. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "slowed",
+    "truthFactor": 4.8,
+    "answers": [
+     {
+      "verdict": "slowed",
+      "factor": 8,
+      "reasoning": "The small green ball in the mirror hangs in mid-air at ~1-1.5m height for ~1+ sec of playback with almost no vertical drop, while the large foreground ball also stays near the top of frame. A free 75cm ball in real gravity would fall ~0.5m in 0.3s and ~5m in 1s and could not hover. The near-zero displacement over >1s of playback implies playback time is stretched by roughly an order of magnitude, consistent with ~8x slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0355,
+      "outputTokens": 3524,
+      "reasoningTokens": 3385
+     },
+     {
+      "verdict": "slowed",
+      "factor": 4,
+      "reasoning": "A 75cm gym ball in free fall/bounce under gravity cannot hover. The thrower's arm extension and the ball's flight to the floor and back up take ~1 sec+ in the clip with a long ~0.7-0.8s period near apogee where the foreground ball and its mirror image are almost motionless. In real time a ball at apogee would visibly fall ~0.5-1m in that time. Motion looks floaty with no motion blur, characteristic of high-fps slow motion played at 50 fps. Real throw (~0.2s) stretched to ~0.6-0.8s implies ~3-5x slower, ~4x typical.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0231,
+      "outputTokens": 4843,
+      "reasoningTokens": 4669
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2,
+      "reasoning": "A free 75cm exercise ball under 9.8 m/s2 should fall its own diameter in ~0.39s and show clear gravitational acceleration. In the clip the ball released by the man floats toward the mirror/camera and hangs near its trajectory peak for ~0.8-1.0s of playback with very little drop, and the push motion is floaty. That is ~2x too long for real gravity, indicating half-speed slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0211,
+      "outputTokens": 4380,
+      "reasoningTokens": 4258
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "The green 75cm ball is released from the man's hands at the mirror and swings on a long suspension toward the low camera. It travels ~2-3m and reaches closest approach ~0.9-1.0s after release. For a 2-3m pendulum T=2pi*sqrt(L/g) ~2.8-3.5s, quarter-swing ~0.7-0.9s, matching the observed transit time. Velocity, acceleration and dwell look natural under gravity with no floaty slow-motion hang or unnaturally fast throw. Human posture is also natural. Therefore real-time speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0137,
+      "outputTokens": 2617,
+      "reasoningTokens": 2461
+     },
+     {
+      "verdict": "slowed",
+      "factor": 4,
+      "reasoning": "A free 75cm exercise ball falling ~1-1.5m to the floor should drop in ~0.45-0.55s with sharp gravitational acceleration and a quick bounce. In the 125-frame / 50fps (~2.5s) playback the ball leaves the hands, slowly descends toward the low camera, grows large and floats/bounces over seconds with very low acceleration, far too floaty for real gravity. The motion takes ~3-5x longer than real free-fall, consistent with ~4x slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0143,
+      "outputTokens": 2781,
+      "reasoningTokens": 2640
+     }
+    ],
+    "majority": "slowed",
+    "majorityCount": 4,
+    "right": true,
+    "failed": 0
+   },
+   {
+    "id": "cyt-5",
+    "file": "public/cyt/cyt-5.mp4",
+    "fps": 29.97,
+    "frames": 156,
+    "durationS": 5.205,
+    "cue": "For scale, the astronaut is about 1.88 m tall.",
+    "cueWhy": "the astronaut's height, which the page states",
+    "prompt": "You are shown 156 frames, 29.97 per second of the clip as it plays. For scale, the astronaut is about 1.88 m tall. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "slowed",
+    "truthFactor": 1.5,
+    "answers": [
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Astronaut ~1.88m performs a small crouch-jump. In ~5.2s clip (156 frames @29.97fps) the feet are off the ground for ~1.2-1.5s for a rise of ~0.3-0.4m. Hang time t = 2*sqrt(2h/g). For lunar g~1.62 m/s2 this gives t~1.2-1.4s, matching the video. For Earth g~9.8 the same jump would be ~0.5-0.6s. Motion looks floaty because gravity is low, not because playback is slow. Kicked dust falls ballistically with no air-suspension. sped up ~2-2.5x would look like an Earth jump. Therefore playback is at real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0318,
+      "outputTokens": 1487,
+      "reasoningTokens": 1287
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "156 frames at 29.97 fps = ~5.2 s. The astronaut bends, pushes off, is fully airborne with both feet ~0.3-0.5 m off the regolith (scaled from 1.88 m suit height) for ~60-80 frames ~2.0-2.5 s, then lands. Free-fall time for that height on the Moon g=1.62 m/s2 is t=2*sqrt(2h/g) ~1.2-1.6 s plus rise/set, matching observed. On Earth g=9.81 the same lift would last only ~0.5-0.7 s. To get ~2+ s on Earth would need ~3-5x slowdown and a ~2 m vertical jump in a bulky suit, impossible, and arm swing, knee extension and kicked-up dust fall would then look visibly slow-motion. Dust drops ballistically with no lofting, as in vacuum. Motion speed is normal suited human motion, not slowed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0102,
+      "outputTokens": 1664,
+      "reasoningTokens": 1424
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2,
+      "reasoning": "Feet leave ground ~1.2-1.5s in and stay clear for ~2.2-2.5s while center of mass rises only ~0.3-0.4m for a 1.88m suited astronaut. Free-fall h~0.5*g*t^2 gives g_apparent ~ 2*h/(t/2)^2 ~0.3-0.5 m/s2, 3-5x below lunar 1.62 m/s2 and ~20x below Earth 9.8. That is time-dilated by sqrt(g_moon/g_apparent) ~1.8-2.3. Dust kicked at take-off also falls ballistically far too slowly. Motion is floaty even for the Moon: half-speed slow motion.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0128,
+      "outputTokens": 2274,
+      "reasoningTokens": 2080
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Astronaut ~1.88m tall pushes off and feet are off ground ~1.2-1.4s for a rise of only ~0.3-0.4m. t~sqrt(2h/g). That implies g~1.5-1.6 m/s2, lunar gravity, at observed 29.97fps ~5.2s total. Dust kicked at take-off falls back ballistically in <0.5s with no air suspension, as in vacuum. Arm swing speed is normal human speed. A 2-2.5x slowed Earth film to fake 1/6-g would make limb speeds lethargic and dust float; a sped-up film would shorten hang time. Motion matches real-time in 1/6-g vacuum.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0114,
+      "outputTokens": 1939,
+      "reasoningTokens": 1750
+     },
+     {
+      "verdict": "slowed",
+      "factor": 2,
+      "reasoning": "Astronaut ~1.88m tall rises ~0.3-0.5m off the ground and stays airborne for ~2.5-3s of the 5.2s clip. In lunar gravity 1.62 m/s2 fall time from h is sqrt(2h/g) ~0.6-0.8s down, ~1.2-1.6s total up+down. Observed hang is ~2x that long, and crouch-to-takeoff leg extension and arm swing are also ~2x too slow for a suited jump. Motion matches ~1/2 speed playback.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0135,
+      "outputTokens": 2438,
+      "reasoningTokens": 2281
+     }
+    ],
+    "majority": "real time",
+    "majorityCount": 3,
+    "right": false,
+    "failed": 0
+   },
+   {
+    "id": "cyt-6",
+    "file": "public/showcase/foucault-pendulum.mp4",
+    "sees": "the run's whole 42 s clip, as Ansatz measured it, not the page's 6 s crop",
+    "fps": 7.143,
+    "frames": 300,
+    "durationS": 42,
+    "cue": "For scale, this pendulum is 8.97 m long.",
+    "cueWhy": "the length Ansatz's run was told (data/showcase/foucault-pendulum.json given[])",
+    "prompt": "You are shown 300 frames, 7.14 per second of the clip as it plays. For scale, this pendulum is 8.97 m long. Does this clip play at real speed, slowed down, or sped up? Judge from how things move, not from captions. If not real speed, estimate the factor.",
+    "truth": "real time",
+    "truthFactor": 1,
+    "answers": [
+     {
+      "verdict": "sped up",
+      "factor": 1.7,
+      "reasoning": "8.97 m simple pendulum has T=2pi*sqrt(L/g)~6.0 s, so far-to-near extreme ~3.0 s. In the clip the ball goes far(small) to near(large) in ~13-14 sampled frames. At 7.14 frames per clip-second that is ~1.8-2.0 s, and far-to-far ~25-27 frames ~3.5-3.8 s vs 6.0 s real. Motion is therefore faster than real, by ~6.0/3.5 ~1.6-1.8x.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0734,
+      "outputTokens": 5935,
+      "reasoningTokens": 5776
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "Counted about 7 full far-to-far oscillations in the 300 frames shown. At 7.14 frames per second of clip time total clip time is ~300/7.14 ~42 s, so ~42/7 ~6.0 s per cycle in clip time. Theoretical small-angle period for L=8.97 m is T=2*pi*sqrt(L/g) ~2*pi*sqrt(8.97/9.81) ~6.0 s. Clip period matches physical period, motion blur and the hand placing the red marker look natural, so no slow-down or speed-up.",
+      "model": "muse-spark-1.3",
+      "usd": 0.025,
+      "outputTokens": 4491,
+      "reasoningTokens": 4339
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "For L=8.97m, T=2*pi*sqrt(L/g) ~2*pi*sqrt(8.97/9.81) ~6.0 s. Clip duration = 300 frames / 7.14 fps ~42 s. The bob makes ~7 full far-near-far oscillations in that time, i.e. ~14 one-way passes, for an observed period ~42/7 ~6 s. That matches the theoretical period. The hand placing the red marker also moves at natural human speed, not fast-forward or slow-motion speed. So playback is real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.027,
+      "outputTokens": 4955,
+      "reasoningTokens": 4806
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "For L=8.97 m, T=2*pi*sqrt(L/g) ~= 2*pi*sqrt(8.97/9.81) ~= 6.0 s. The 300 frames shown at 7.14 frames per second of playback = ~42 s of playback. The bob goes far->near->far with far-to-far and near-to-near repeating about 7 times in the clip, i.e. ~42/7 ~= 6 s period in playback time. This matches the physical period, and the hand placing the red marker moves at normal speed. So playback is at real speed.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0136,
+      "outputTokens": 1806,
+      "reasoningTokens": 1651
+     },
+     {
+      "verdict": "real time",
+      "factor": 1,
+      "reasoning": "For a simple pendulum T = 2*pi*sqrt(L/g). With L=8.97 m, T ~ 2*pi*sqrt(8.97/9.81) ~ 6.0 s, half-swing far-to-near ~3.0 s, quarter-period ~1.5 s.\nThe clip as played is 300 frames at 7.14 frames per second of play = ~42 s of play. The bob is seen to go far->near->far repeatedly. One full far-near-far cycle spans ~40-45 sampled frames, i.e. ~6 s of play time. Travel from the blue-pen position to the yellow-cross position, about a quarter cycle, takes ~10 frames ~1.4 s of play. Motion blur and the speed of the hand placing the red marker are also normal human speed. Observed period matches the theoretical 6 s period, so no slow-down or speed-up is applied.",
+      "model": "muse-spark-1.3",
+      "usd": 0.0318,
+      "outputTokens": 6090,
+      "reasoningTokens": 5866
+     }
+    ],
+    "majority": "real time",
+    "majorityCount": 4,
+    "right": true,
+    "failed": 0
+   }
+  ]
  }
 }

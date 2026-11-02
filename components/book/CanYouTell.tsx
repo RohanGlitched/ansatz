@@ -208,12 +208,14 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
                 {score(open ? ans.spark : null)}
                 <span className={styles.of}>/{N}</span>
               </span>
-              <span className={styles.sl}>Muse Spark, same question</span>
-              {open && ans.parity && (
-                <span className={styles.slSub}>
-                  {ans.parity.spark}/{N} with the same lengths{ans.parity.spark === ans.ansatz ? ", a tie" : ""}
-                </span>
-              )}
+              <span className={styles.sl}>Muse Spark, {open && ans.sets.length > 1 ? ans.sets[0].label : "same question"}</span>
+              {open &&
+                ans.sets.slice(1).map((s) => (
+                  <span key={s.key} className={styles.slSub}>
+                    {s.spark}/{N} {s.label}
+                    {s.spark === ans.ansatz ? ", a tie" : ""}
+                  </span>
+                ))}
             </div>
             <div className={`${styles.score} ${open ? (ans.ansatz * 2 > N ? styles.rightScore : styles.wrongScore) : ""}`} aria-hidden="true">
               <span className={styles.sv}>
@@ -238,12 +240,12 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
                     {ans.factor.spark}
                     <span className={styles.of}>/{ans.factor.n}</span>
                   </span>
-                  <span className={styles.sl}>Muse Spark, same question</span>
-                  {ans.parity && (
-                    <span className={styles.slSub}>
-                      {ans.parity.factor.spark}/{ans.parity.factor.n} with the same lengths
+                  <span className={styles.sl}>Muse Spark, {ans.sets.length > 1 ? ans.sets[0].label : "same question"}</span>
+                  {ans.sets.slice(1).map((s) => (
+                    <span key={s.key} className={styles.slSub}>
+                      {s.factor.spark}/{s.factor.n} {s.label}
                     </span>
-                  )}
+                  ))}
                 </div>
                 <div className={`${styles.score} ${ans.factor.ansatz * 2 > ans.factor.n ? styles.rightScore : styles.wrongScore}`}>
                   <span className={styles.sv}>
@@ -262,7 +264,7 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
           <p role="status" aria-live="polite" className={open ? styles.baseline : "visually-hidden"}>
             {open && (
               <>
-                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question, ${ans.spark} of ${N}${ans.parity ? `, and ${ans.parity.spark} of ${N} with the same lengths Ansatz was given` : ""}. Ansatz, measured, ${ans.ansatz} of ${N}. Right factor, within ${Math.round(ans.factor.tol * 100)}%, by majority answer, on the ${ans.factor.n} retimed clips: Muse Spark ${ans.factor.spark} of ${ans.factor.n}, Ansatz ${ans.factor.ansatz} of ${ans.factor.n}. `}</span>
+                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question: ${ans.sets.map((s) => `${s.spark} of ${N} ${s.label}`).join("; ")}. Ansatz, measured, ${ans.ansatz} of ${N}. Right factor, within ${Math.round(ans.factor.tol * 100)}%, by majority answer, on the ${ans.factor.n} retimed clips: Muse Spark ${ans.sets.map((s) => `${s.factor.spark} of ${s.factor.n} ${s.label}`).join("; ")}; Ansatz ${ans.factor.ansatz} of ${ans.factor.n}. `}</span>
                 {ans.baseline}
               </>
             )}
@@ -293,6 +295,7 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
 
       {open && <p className={styles.factorLine}>{ans.factorLine}</p>}
       {open && ans.parity && <p className={styles.parityLine}>{ans.parity.line}</p>}
+      {open && ans.parityMedium && <p className={`${styles.parityLine} ${styles.mediumLine}`}>{ans.parityMedium.line}</p>}
 
       {open && (
         <Fold className={`onPlateFold ${styles.sources}`} summary="Credits, cuts and where each answer comes from">

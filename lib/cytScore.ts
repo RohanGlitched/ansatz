@@ -82,6 +82,19 @@ export function factorTally(clips: FactorClip[], tol = FACTOR_TOL): FactorTally 
   };
 }
 
+/** One set of Muse Spark's answers, scored the way the first is: the clips its majority verdict got right, and the
+ * factor row. Every set (the first ask, the ask with the lengths, the ask with the lengths at medium effort) goes
+ * through this, so the page's tallies and the tests read from one rule. */
+export type SetScore = { spark: number; ansatz: number; n: number; factor: FactorTally };
+export function setScore(clips: FactorClip[], tol = FACTOR_TOL): SetScore {
+  return {
+    spark: clips.filter((c) => majorityOf(c.spark.map((a) => a.verdict)).verdict === c.truth.verdict).length,
+    ansatz: clips.filter((c) => c.ansatz?.verdict === c.truth.verdict).length,
+    n: clips.length,
+    factor: factorTally(clips, tol),
+  };
+}
+
 const x2 = (f: number) => `${+f.toPrecision(2)}×`;
 /** Distinct factors, smallest first: "2× or 4×", or a range when there are more than two: "5× to 12×". */
 const factorsText = (fs: number[]) => {

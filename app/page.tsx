@@ -197,7 +197,7 @@ export default async function Home() {
             <details className={styles.cytFair}>
               <summary>How this test is fair</summary>
               <p>
-                Muse Spark was shown the same six files, each on its own, at low reasoning effort: &ldquo;{cyt.pub.question}&rdquo; Two pairs of clips come from the same film; you see them together, so you have an edge.{cyt.answers.parity ? ` Ansatz’s runs of ${inWords(cyt.answers.parity.asked)} of the clips were told a length this page does not give; Muse Spark was asked again with those lengths, and both of its scores are shown with the answers.` : ""}
+                Muse Spark was shown the same six files, each on its own{cyt.answers.parityMedium ? "" : ", at low reasoning effort"}: &ldquo;{cyt.pub.question}&rdquo; Two pairs of clips come from the same film; you see them together, so you have an edge.{cyt.answers.parity ? ` Ansatz’s runs of ${inWords(cyt.answers.parity.asked)} of the clips were told a length this page does not give; Muse Spark was asked again with those lengths${cyt.answers.parityMedium ? "." : ", and both of its scores are shown with the answers."}` : ""}{cyt.answers.parityMedium ? ` Those two asks were at low reasoning effort, and Ansatz’s own observer runs at medium, so the baseline was re-asked at medium effort, on all six clips with the same lengths and footage Ansatz’s runs had. All ${inWords(cyt.answers.sets.length)} of its scores are shown with the answers.` : ""}
               </p>
             </details>
           </div>

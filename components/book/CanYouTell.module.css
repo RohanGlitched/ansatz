@@ -596,3 +596,8 @@
     font-size: 20px;
   }
 }
+
+/* the third set, asked at medium effort: follows the second at the same size, with its own small gap */
+.parityLine + .mediumLine {
+  margin-top: -14px;
+}
