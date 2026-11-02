@@ -1,0 +1,85 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6605630,
+  "randomness": "fc932ff51df23baaf6abd6965e4eeddcad86e9f0d19c81dee67562f53e7a0bab",
+  "signature": "b86c41442bc4041ab81159e8079aff2e23de6986b21107e4eb8b1e63e983ec51ab96d2dd49a55030b196583087a7e20b0ccb097dd3a411153c9c17cfabd66c5228f97ecd8904a65d1580315f4b3b4cd848881b54ed86715ff1bc3f08864de391",
+  "url": "https://api.drand.sh/public/6605630"
+ },
+ "law": {
+  "stiffness": "linear",
+  "damping": "coulomb",
+  "drive": true,
+  "equation": "x'' = -(k/m) x - mu sign(x') + F0 cos(wd t)",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 20.46,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.1258,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "mu": {
+   "value": 0.6239,
+   "unit": "m/s^2",
+   "rule": "the swing dies in N half cycles, N uniform in [10, 16] (drawn 10.31); mu = w0^2 A / (2N)"
+  },
+  "F0": {
+   "value": 3.721,
+   "unit": "m/s^2",
+   "rule": "F0 / |w0^2 - wd^2| = share of A uniform in [0.15, 0.35] (drawn 0.330)"
+  },
+  "wd": {
+   "value": 13.85,
+   "unit": "rad/s",
+   "rule": "wd / w0 uniform in [0.55, 0.8] or [1.25, 1.6], each half the time (drawn 1.369)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 10.114346246792227,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 20.46,
+   "m": 0.2,
+   "b": 0,
+   "l0": 0.3,
+   "A": 0.1258,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "red",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7339,
+   "noun": "block",
+   "k3": 0,
+   "k2": 0,
+   "mu": 0.6239,
+   "cq": 0,
+   "F0": 3.721,
+   "wd": 13.85
+  }
+ }
+}

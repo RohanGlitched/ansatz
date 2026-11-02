@@ -1,0 +1,95 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6605631,
+  "randomness": "f5f15570a76603e85bc1c9e7459aea402855b53281cf3f5f52d35292e621f85e",
+  "signature": "8b002288bfd215c5c13fdf654dd6de6c203be6198ee01adb60df13e17b197996b26b2056a481a478e79bc0f724de37af0665926a13ff0365f2b274ca3974b05335dc3201576e8db809d92d19a34ec9e69eeb0b49ee8ab973ee4a5a336c18c4ca",
+  "url": "https://api.drand.sh/public/6605631"
+ },
+ "law": {
+  "stiffness": "asymmetric",
+  "damping": "coulomb",
+  "drive": true,
+  "equation": "x'' = -(k/m) x - (k2/m) x^2 - mu sign(x') + F0 cos(wd t)",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 22.07,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.1127,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "k2": {
+   "value": 62.53,
+   "unit": "N/m^2",
+   "rule": "k2 A / k uniform in [0.2, 0.45], stiffer stretched (drawn 0.319)"
+  },
+  "mu": {
+   "value": 0.5492,
+   "unit": "m/s^2",
+   "rule": "the swing dies in N half cycles, N uniform in [10, 16] (drawn 11.32); mu = w0^2 A / (2N)"
+  },
+  "F0": {
+   "value": 4.377,
+   "unit": "m/s^2",
+   "rule": "F0 / |w0^2 - wd^2| = share of A uniform in [0.15, 0.35] (drawn 0.250)"
+  },
+  "wd": {
+   "value": 16.3,
+   "unit": "rad/s",
+   "rule": "wd / w0 uniform in [0.55, 0.8] or [1.25, 1.6], each half the time (drawn 1.551)"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 10.504760825454333,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  },
+  "k2_over_m": {
+   "value": 312.65,
+   "unit": "1/(m s^2)",
+   "note": "k2/m, sign: stiffer stretched (down)"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 22.07,
+   "m": 0.2,
+   "b": 0,
+   "l0": 0.3,
+   "A": 0.1127,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "orange",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7912,
+   "noun": "block",
+   "k3": 0,
+   "k2": 62.53,
+   "mu": 0.5492,
+   "cq": 0,
+   "F0": 4.377,
+   "wd": 16.3
+  }
+ }
+}
