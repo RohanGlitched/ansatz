@@ -1,9 +1,15 @@
 // A sealed-law test: the law of a rendered spring is drawn by public randomness (drand), its SHA-256 committed and
 // pushed before the clip is rendered or run, and the law itself revealed only after Ansatz has written its answer.
 //
-//   npx tsx scripts/sealed-law.ts draw [--n 3]   reads https://api.drand.sh/public/latest, waits for the next n rounds
-//                                                after it (so no round is picked by hand), draws one law from each and
-//                                                writes sealed/<round>.json and sealed/<round>.sha256
+//   npx tsx scripts/sealed-law.ts precommit --batch <name> [--ahead 8] [--n 3]
+//                                                reads the latest drand round R and writes sealed/precommit-<name>.json
+//                                                naming the FUTURE rounds R+ahead .. R+ahead+n-1, the grammar, the
+//                                                scoring rule and HEAD; commit and push it before those rounds exist
+//   npx tsx scripts/sealed-law.ts draw --precommit sealed/precommit-<name>.json
+//                                                waits for exactly the rounds named there and draws one law from each
+//   npx tsx scripts/sealed-law.ts draw [--n 3]   (sets 1 and 2) reads https://api.drand.sh/public/latest, waits for the
+//                                                next n rounds after it, draws one law from each
+//                                                draw writes sealed/<round>.json and sealed/<round>.sha256
 //   npx tsx scripts/sealed-law.ts render <round> renders sealed/clips/sealed-<round>.mp4 with bench/synth/render.py
 //                                                (no caption, no numbers in the frame)
 //   npx tsx scripts/sealed-law.ts verify <round> checks the json against its committed hash and re-derives the law
@@ -17,6 +23,12 @@ import { spawnSync } from "node:child_process";
 
 export const GRAMMAR = "ansatz-sealed-law/1";
 const DRAND = "https://api.drand.sh";
+/** drand's default (quicknet-free, 30 s) chain: round r is published at GENESIS + (r - 1) * 30 s */
+const GENESIS = 1595431050;
+export const roundTime = (r: number) => new Date((GENESIS + (r - 1) * 30) * 1000).toISOString();
+/** the scoring rule, fixed before any draw (the same rule as sets 1 and 2) */
+export const SCORING =
+  "hit: the same term structure as the drawn law (stiffness, damping and drive terms), and each shared constant within its error bar or within 10%; pixel constants converted with the render's own scale; anything else is a miss";
 const M = 0.2; // kg; only ratios to it shape the motion
 
 type Beacon = { round: number; randomness: string; signature: string; previous_signature?: string };
@@ -102,16 +114,47 @@ const sha = (buf: Buffer | string) => createHash("sha256").update(buf).digest("h
 const [cmd, arg] = process.argv.slice(2);
 const opt = (k: string) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : undefined; };
 
-if (cmd === "draw") {
-  const n = Number(opt("--n") ?? 3);
+if (cmd === "precommit") {
+  const batch = opt("--batch");
+  if (!batch) throw new Error("--batch <name> is required");
+  const ahead = Number(opt("--ahead") ?? 8), n = Number(opt("--n") ?? 3);
   const latest = await getJson<Beacon>(`${DRAND}/public/latest`);
   if (!latest) throw new Error("drand unreachable");
-  console.log(`latest drand round ${latest.round} (randomness ${latest.randomness}); using the next ${n}`);
+  const git = (...a: string[]) => spawnSync("git", a, { encoding: "utf8" }).stdout.trimEnd();
+  const rounds = Array.from({ length: n }, (_, j) => latest.round + ahead + j);
+  const pre = {
+    batch,
+    grammar: GRAMMAR,
+    head: git("rev-parse", "HEAD"),
+    tracked_changes_at_precommit: git("status", "--porcelain", "--untracked-files=no").split("\n").filter(Boolean),
+    latest_seen: { round: latest.round, published: roundTime(latest.round), read_at: new Date().toISOString() },
+    rounds: rounds.map((r) => ({ round: r, published: roundTime(r), url: `${DRAND}/public/${r}` })),
+    draw: "npx tsx scripts/sealed-law.ts draw --precommit sealed/precommit-" + batch + ".json (drawLaw in this script at the commit above)",
+    run: 'npx tsx scripts/run.ts sealed/clips/sealed-<round>.mp4 --narration "a block on a spring, filmed from the side" --sealed (one run each; refuses a dirty tree)',
+    scoring: SCORING,
+  };
   mkdirSync("sealed", { recursive: true });
-  for (let j = 1; j <= n; j++) {
-    const round = latest.round + j;
+  writeFileSync(`sealed/precommit-${batch}.json`, JSON.stringify(pre, null, 1) + "\n");
+  console.log(`latest round ${latest.round}; pre-committed rounds ${rounds.join(", ")} (first due ${roundTime(rounds[0])}); HEAD ${pre.head}`);
+} else if (cmd === "draw") {
+  const n = Number(opt("--n") ?? 3);
+  const preFile = opt("--precommit");
+  let rounds: number[];
+  if (preFile) {
+    const pre = JSON.parse(readFileSync(preFile, "utf8")) as { grammar: string; rounds: { round: number }[] };
+    if (pre.grammar !== GRAMMAR) throw new Error(`pre-commitment names grammar ${pre.grammar}, this script is ${GRAMMAR}`);
+    rounds = pre.rounds.map((r) => r.round);
+    console.log(`drawing the pre-committed rounds ${rounds.join(", ")}`);
+  } else {
+    const latest = await getJson<Beacon>(`${DRAND}/public/latest`);
+    if (!latest) throw new Error("drand unreachable");
+    console.log(`latest drand round ${latest.round} (randomness ${latest.randomness}); using the next ${n}`);
+    rounds = Array.from({ length: n }, (_, j) => latest.round + 1 + j);
+  }
+  mkdirSync("sealed", { recursive: true });
+  for (const round of rounds) {
     let b: Beacon | null = null;
-    for (let tries = 0; tries < 60 && !b; tries++) {
+    for (let tries = 0; tries < 400 && !b; tries++) {
       b = await getJson<Beacon>(`${DRAND}/public/${round}`);
       if (!b) await new Promise((r) => setTimeout(r, 3000));
     }
@@ -147,6 +190,6 @@ print(render.render_case(cid))
   console.log(`hash ${got === want ? "matches" : "DIFFERS"} (${got}); re-derived from drand round ${arg}: ${again === json.toString("utf8") ? "identical" : "DIFFERS"}`);
   process.exit(got === want && again === json.toString("utf8") ? 0 : 1);
 } else {
-  console.log("usage: npx tsx scripts/sealed-law.ts draw [--n 3] | render <round> | verify <round>");
+  console.log("usage: npx tsx scripts/sealed-law.ts precommit --batch <name> [--ahead 8] [--n 3] | draw [--precommit <file> | --n 3] | render <round> | verify <round>");
   if (existsSync("sealed")) process.exit(1);
 }

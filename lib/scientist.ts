@@ -393,6 +393,7 @@ export async function reviseAgentic(
   model = MODELS.revise,
   maxTurns = 6,
   deadline = Infinity,
+  spectrum = "",
 ): Promise<{ law: Law | null; attempts: WonderAttempt[]; auto?: boolean; turns: WonderTurn[] }> {
   const tries = Math.max(0, maxTurns - 1);
   const text = [
@@ -400,8 +401,10 @@ export async function reviseAgentic(
     `Why you were called in: ${idea}`,
     `Experiment: ${obs.phenomenon}. ${obs.what_happens} Setting: ${obs.body}.`,
     `Table of fits (fitted frames only, smallest miss first):\n${JSON.stringify(board, null, 1)}`,
+    // the two strongest frequencies in the misses (fitted frames only), so a periodic effect shows up as a number
+    ...(spectrum ? [spectrum] : []),
     METHOD,
-    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; a law that only lowers the residuals by adding knobs (a driving force, extra harmonics) will lose on the held-out frames. Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
+    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, the two strongest frequencies in them, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; every added term is paid for on the held-out frames. A periodic drive is worth trying when the residual oscillates at a frequency other than the motion's own; a drive that is not there loses on the held-out frames. Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
   ].join("\n\n");
   const tools = WONDER_TOOLS;
   const attempts: WonderAttempt[] = [];

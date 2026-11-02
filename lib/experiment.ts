@@ -15,6 +15,7 @@ import { readVideoInfo, type VideoInfo } from "./video";
 import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
+import { driveFrequencyParams, residualPeaks, seedDriveFrequency, spectrumSummary, type ResidualSpectrum } from "./spectrum";
 import { fmtPair } from "./format";
 import { median } from "./median";
 import { lawLatex } from "./latex";
@@ -119,6 +120,11 @@ export type Experiment = {
   models: typeof MODELS;
   /** which version of the method produced this record, and whether the clip was one of the site's own samples */
   pipeline?: string;
+  /** the code that ran it: the git commit, and whether tracked files differed from it (the paths, when they did) */
+  code?: { commit: string; dirty: boolean; changed?: string[] };
+  /** the misses' spectrum on the fitted frames of the best-fitting law without a drive (the theorist reads it), and the
+   * drive laws whose frequency started from its strongest peak (kept: the seeded start fitted the fitted frames better) */
+  residualSpectrum?: ResidualSpectrum & { seeded: { law: string; params: string[]; kept: boolean }[] };
   sample?: boolean;
   /** the class link it was run with, and the name or roll number the student gave */
   class?: string;
@@ -323,6 +329,29 @@ export function refereePlotSeries(cands: Candidate[], m: Pick<Measured, "series"
     const per = Object.values(fittedResiduals(c.fit, m, frac));
     return { title: c.law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) };
   });
+}
+
+/** A candidate's misses on the fitted frames, per channel in the channel's own unit, as two sinusoid peaks. */
+export function spectrumOf(c: Pick<Candidate, "law" | "fit">, m: Pick<Measured, "series" | "noise">, frac = TRAIN): ResidualSpectrum {
+  const per = fittedResiduals(c.fit, m, frac);
+  const series = Object.fromEntries(Object.entries(per).map(([ch, p]) => [ch, { t: p.t, r: p.r.map((v) => v * noiseOf(m.noise, ch)) }]));
+  return { law: c.law.title, peaks: residualPeaks(series, m.noise, 2) };
+}
+
+/** The spectrum a drive's frequency starts from: the best fit to the fitted frames among laws with no drive term (any law when all have one). */
+export function baseSpectrum(cands: Candidate[], m: Pick<Measured, "series" | "noise">, frac = TRAIN): ResidualSpectrum | null {
+  const ok = byFittedFit(cands.filter((c) => c.fit.ok), m.noise);
+  const pick = ok.find((c) => !driveFrequencyParams(c.law).length) ?? ok[0];
+  return pick ? spectrumOf(pick, m, frac) : null;
+}
+
+/** The fit with the better fitted-frames cost of the law as written and the law with its drive frequency seeded. */
+export function fitSeeded<T extends { fit: Fit }>(law: Law, spectrum: ResidualSpectrum | null, fitOne: (l: Law) => T): T & { seeded: boolean } {
+  const plain = fitOne(law);
+  const s = seedDriveFrequency(law, spectrum);
+  if (!s) return { ...plain, seeded: false };
+  const seeded = fitOne(s);
+  return seeded.fit.ok && (!plain.fit.ok || seeded.fit.trainCost < plain.fit.trainCost) ? { ...seeded, seeded: true } : { ...plain, seeded: false };
 }
 
 /**
@@ -611,12 +640,16 @@ export type RunInput = {
   lite?: { type: LiteType; listen?: boolean };
   /** the caller's ledger, so what a run spent can be counted even when it throws */
   ledger?: Ledger;
+  /** the code running it (scripts/run.ts reads git); live runs take VERCEL_GIT_COMMIT_SHA */
+  code?: Experiment["code"];
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
   onPrepared?: (video: Uint8Array) => Promise<string | void>;
 };
 
 export async function runExperiment(input: RunInput, emit: (p: Progress) => void = () => {}): Promise<Experiment> {
   const t0 = Date.now();
+  // the code that ran this record: what the caller read from git, or the deployed commit (a deploy is a clean tree)
+  const code: Experiment["code"] = input.code ?? (process.env.VERCEL_GIT_COMMIT_SHA ? { commit: process.env.VERCEL_GIT_COMMIT_SHA, dirty: false } : undefined);
   const ledger = input.ledger ?? new Ledger();
   const step = async <T>(s: Step, fn: () => Promise<T>, detail?: (r: T) => string, data?: (r: T) => unknown): Promise<T> => {
     emit({ step: s, state: "start", at: Date.now() - t0 });
@@ -914,6 +947,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 7. fit every candidate on the first 70%, predict the rest
     const channels = Object.keys(m.series.ch);
     const noiseFloor = noiseFloorOf(m.noise);
+    let spectrum: ResidualSpectrum | null = null;
+    const seededLog: { law: string; params: string[]; kept: boolean }[] = [];
     const cands: Candidate[] = await step("fit", async () => {
       const list: Candidate[] = [];
       const seen = new Set<string>();
@@ -931,6 +966,18 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       };
       for (const l of hyp.laws) add(l, input.lite ? "control" : "muse", hyp.ifItWins[l.id]);
       if (!input.lite) for (const l of controls(channels, { g: gUsed ?? gBody, gFixed: gUsed !== null })) add(l, "control");
+      // a law with a periodic drive also starts its frequency at the strongest peak in the misses of the best law
+      // without one (fitted frames only), and keeps whichever start fits the fitted frames better
+      spectrum = baseSpectrum(list, m);
+      for (const c of list) {
+        const s = seedDriveFrequency(c.law, spectrum);
+        if (!s) continue;
+        const wrap = (x: Law) => (gUsed !== null ? withScaleCorrection(x) : x);
+        const r = fitWithRoom(s, m.series, wrap);
+        const kept = r.fit.ok && (!c.fit.ok || r.fit.trainCost < c.fit.trainCost);
+        seededLog.push({ law: c.law.id, params: driveFrequencyParams(c.law).map((d) => d.name), kept });
+        if (kept) Object.assign(c, { law: r.law, fitted: r.fitted, fit: r.fit });
+      }
       rankCandidates(list, noiseFloor);
       return list;
     }, (r) => `${r.length} laws fitted; the best predicts the unseen ${Math.round((1 - TRAIN) * 100)}% to within ${fmtErr(r[0].fit.testRms, m.calibration, !m.series.ch.x && !!m.series.ch.theta)}`, (r) => ({
@@ -949,6 +996,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // 8. referee (and one revision), with the eyeball baseline in parallel
     // the table the referee and the theorist read holds the fitted frames only: no rank, no held-out error
     const tableOf = () => ({ units: dig.units, given, ...refereeBoard(cands, m, TRAIN) });
+    const spectrumUnits = Object.fromEntries(channels.map((ch) => [ch, ch === "theta" ? "rad" : m.calibration.kind === "none" ? "px" : "m"]));
     const winnerFirst = cands[0];
     const eyePromise: Promise<(Eyeball & { seen?: { fps: number; frames: number } }) | null> = input.skipEyeball || input.lite
       ? Promise.resolve(null)
@@ -991,7 +1039,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
             holdPendulum(l2, hold);
             const wrapped = gUsed !== null ? withScaleCorrection(l2) : l2;
             // (an attempt's σ is only shown to Muse Wonder: no jackknife here; the law it submits is refitted with one)
-            const f = fitLaw(wrapped, m.series, { trainFrac: TRAIN, jackknife: false });
+            // a drive's frequency also starts at the strongest residual peak; the better fit to the fitted frames stands
+            const { fit: f, seeded } = fitSeeded(wrapped, spectrum, (x) => ({ fit: fitLaw(x, m.series, { trainFrac: TRAIN, jackknife: false }) }));
             // the attempt's misses on the fitted frames as a picture, the same kind the referee reads (best effort)
             const per = f.ok ? Object.values(fittedResiduals(f, m, TRAIN)) : [];
             const plot = per.length ? await residualPlot([{ title: law.title, t: per.flatMap((p) => p.t), r: per.flatMap((p) => p.r) }], 1).catch(() => undefined) : undefined;
@@ -1001,12 +1050,14 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               train_rms: f.trainRms,
               fitted: Object.fromEntries(Object.keys(f.theta).filter((k) => !k.endsWith("@0") && k !== "cal").map((k) => [k, `${fmtNum(f.theta[k])} ± ${fmtNum(f.sigma[k], 2)}${atBound(l2, k, f.theta[k]) ? " (stuck at its bound)" : ""}`])),
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
+              ...(f.ok ? { residual_spectrum: spectrumSummary(spectrumOf({ law, fit: f }, m), spectrumUnits) } : {}),
+              ...(seeded ? { note: "the drive frequency was started at the strongest residual frequency (of the best law in the table without a drive); that start fitted the fitted frames better than your guess" } : {}),
               ...(plot ? { [WONDER_PLOT]: plot } : {}),
             };
           };
           // the theorist reads the same table as the referee: fitted frames only, no rank, sorted by the fit to them
           const maxTurns = Math.min(Number(process.env.WONDER_MAX_TURNS ?? 3), budgetLeft > 170_000 ? 3 : 2);
-          const { law: revised, attempts, auto, turns } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, maxTurns, t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000);
+          const { law: revised, attempts, auto, turns } = await reviseAgentic(obs, tableOf(), idea, tryLaw, ledger, undefined, maxTurns, t0 + Number(process.env.RUN_BUDGET_MS ?? 250_000) - 45_000, spectrumSummary(spectrum, spectrumUnits));
           wonder = { idea, trigger, ...(trigger === "code" ? { missZ: leadMiss } : {}), attempts, submitted: revised ? `${revised.title}${auto ? " (its best attempt, entered for it when its turns ran out)" : ""}` : null, turns, budget: { turns: maxTurns, effort: WONDER_EFFORT() } };
           if (!revised) throw new Error("no law submitted");
           const law = revised;
@@ -1014,8 +1065,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           if (gUsed !== null) for (const p of law.params) if (p.name === "g") { p.guess = gUsed; p.fixed = true; }
           holdPendulum(law, hold);
           const inner = { ...law, id: `${law.id}-rev`, params: law.params.filter((p) => p.name !== "cal") };
-          const rev = gUsed !== null ? withScaleCorrection(inner) : inner;
-          cands.push({ law: inner, fitted: rev, fit: fitLaw(rev, m.series, { trainFrac: TRAIN }), origin: "revision", rank: 0 });
+          // the submitted law's drive frequency, if it has one, starts where its attempt's did: both starts, the better fit stands
+          const sub = fitSeeded(inner, spectrum, (x) => { const fx = gUsed !== null ? withScaleCorrection(x) : x; return { law: x, fitted: fx, fit: fitLaw(fx, m.series, { trainFrac: TRAIN }) }; });
+          if (driveFrequencyParams(inner).length) seededLog.push({ law: inner.id, params: driveFrequencyParams(inner).map((d) => d.name), kept: sub.seeded });
+          cands.push({ law: sub.law, fitted: sub.fitted, fit: sub.fit, origin: "revision", rank: 0 });
           inflate(cands[cands.length - 1]);
           rankCandidates(cands, noiseFloor);
         } catch {
@@ -1096,11 +1149,15 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
 
     // strobe frames: ~16 evenly spaced masks across the window
     const strobe = pickStrobe(track.samples, m.window.f0, m.window.f1, vi.times);
+    // (set inside the fit step's closure, so read back through its declared type)
+    const spectrumFinal = spectrum as ResidualSpectrum | null;
 
     return {
       id: input.id ?? newId(),
       createdAt: new Date().toISOString(),
       pipeline: PIPELINE,
+      ...(code ? { code } : {}),
+      ...(spectrumFinal ? { residualSpectrum: { ...spectrumFinal, seeded: seededLog } } : {}),
       sample: input.sample || undefined,
       title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
       source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },

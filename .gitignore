@@ -18,3 +18,4 @@ bench/runs/synth-v*/
 # sealed-law test: the drawn laws and their clips stay out of git until the reveal (git add -f sealed/<round>.json)
 sealed/*.json
 sealed/clips/
+!sealed/precommit-*.json
