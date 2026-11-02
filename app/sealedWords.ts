@@ -49,11 +49,18 @@ export const driveSeeded = (e: Experiment) => {
   const log = (e as Experiment & { residualSpectrum?: { seeded?: { law: string; kept: boolean }[] } }).residualSpectrum?.seeded ?? [];
   return log.some((x) => x.law === winnerOf(e).law.id && x.kept);
 };
+/** who wrote the winning law's drive: the record's own word (from set 5 on), else code for a drive code added, else the law's author */
+export const driveAuthor = (e: Experiment): string => {
+  const by = (sealedOf(e) as (SealedRecord & { driveBy?: string | null }) | undefined)?.driveBy;
+  return by ?? (winnerOf(e).combined === "drive" ? "code" : authorOf(e));
+};
 /** the credit for a drive that was found: who wrote it, and who started its frequency */
 export const driveCredit = (e: Experiment) =>
   winnerOf(e).combined === "drive"
-    ? "code added the drive to the best law without one, its frequency started at the unexplained peak in that law’s misses, and the held-out frames kept it"
-    : `${authorOf(e)} chose to add the drive; ${driveSeeded(e) ? "code started its frequency at the strongest residual frequency" : "its frequency started where the law wrote it"}`;
+    ? `code added the drive to the best law without one, its frequency started at the unexplained peak in that law’s misses, and the held-out frames kept it${(sealedOf(e) as (SealedRecord & { driveBy?: string | null }) | undefined)?.driveBy === "code" && !e.wonder ? " (Muse Wonder was never called on this run)" : ""}`
+    : driveAuthor(e) === "Muse Wonder" && (e.wonder?.turns ?? []).some((t) => (t as { tool?: string }).tool === "residual_spectrum")
+      ? `Muse Wonder read the residual spectrum and wrote the drive itself, at the unexplained peak; ${driveSeeded(e) ? "code started its frequency at the strongest residual frequency" : "the starting value was its own"}`
+      : `${driveAuthor(e)} chose to add the drive; ${driveSeeded(e) ? "code started its frequency at the strongest residual frequency" : "its frequency started where the law wrote it"}`;
 
 /** "103×": a miss in units of the noise, by the one rule every page uses */
 export const noiseTimes = fmtNoise;
@@ -68,7 +75,7 @@ export function sealedCaption(e: Experiment): string | null {
   const w = winnerOf(e);
   const lead = `A law drawn by public randomness, sealed before the run: ${drawnText(s.drawn)}.`;
   if (s.verdict === "miss") {
-    const why = s.drawn.drive ? (writesDrive(w) ? "the winning law carries the drive, but its stiffness or damping is not the drawn one" : driveProposed(e) ? "a drive was proposed but did not win" : drivePeak(s)?.label === "sideband" ? "the drive’s residual line was labelled a sideband of the motion, so no drive was added" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
+    const why = s.drawn.drive ? (writesDrive(w) ? `the winning law carries the drive (${driveAuthor(e) === "code" ? "added by code" : `written by ${driveAuthor(e)}`}), but its stiffness or damping is not the drawn one` : driveProposed(e) ? "a drive was proposed but did not win" : drivePeak(s)?.label === "sideband" ? "the drive’s residual line was labelled a sideband of the motion, so no drive was added" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
     return `${lead} Missed: ${why}; the best law misses by ${noiseTimes(w.fit.testZ)}× the noise.`;
   }
   const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];

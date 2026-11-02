@@ -1,7 +1,7 @@
 import "server-only";
 import { getExperiment } from "@/lib/experiments";
 import type { Experiment } from "@/lib/experiment";
-import { authorOf, driveCredit, drawnText, drivePeak, sealedOf as sealedOfRecord, writesDrive, type Peak, type SealedRecord as Sealed } from "./sealedWords";
+import { authorOf, driveAuthor, driveCredit, drawnText, drivePeak, sealedOf as sealedOfRecord, writesDrive, type Peak, type SealedRecord as Sealed } from "./sealedWords";
 
 export { drawnText } from "./sealedWords";
 
@@ -34,16 +34,18 @@ export type Batch = {
   warned: boolean;
   /** what the code that ran the set gave the models: the drive warning (sets 1–2), the prompt fix (set 3: the warning
    * made conditional, the two strongest residual frequencies shown), or the spectrum tool (set 4: Muse Wonder's
-   * residual_spectrum tool, and code adding a drive at an unexplained residual peak). Sets are counted per stage, never
-   * lumped as "after the fix". */
+   * residual_spectrum tool, and code adding a drive at an unexplained residual peak), or the agent writing the drive
+   * (set 5: Muse Wonder told to read the leading law's spectrum and write the drive itself, every drive checked against
+   * the motion's band, code's drive held back as a fallback). Sets are counted per stage, never lumped as "after the fix". */
   stage: Stage;
 };
-export type Stage = "warning" | "prompt" | "tool";
+export type Stage = "warning" | "prompt" | "tool" | "agent";
 /** each stage's name, as the pages print it, and what changed in it */
 const STAGE: Record<Stage, { name: string; change: string }> = {
   warning: { name: "while Muse Wonder’s prompt warned off a drive", change: "Muse Wonder’s prompt warned it off “a driving force”" },
   prompt: { name: "after the prompt fix", change: "the warning made conditional, and Muse Wonder shown the two strongest frequencies in the misses" },
   tool: { name: "after the spectrum tool", change: "Muse Wonder given a residual-spectrum tool that labels each peak in a law’s misses, and code adding a drive at an unexplained peak" },
+  agent: { name: "with the agent told to write the drive", change: "Muse Wonder told to read the leading law’s residual spectrum and write the drive itself at an unexplained peak, every drive (a model’s too) barred from the motion’s own band, code’s drive held back from the table as a fallback entered after Muse Wonder, and code moves adding a lopsided stiffness or dry friction to the leading law" },
 };
 
 /**
@@ -75,6 +77,10 @@ export const BATCHES: Batch[] = [
   // code that gives Muse Wonder a residual_spectrum tool and lets code add a drive at an unexplained residual peak and
   // recombine Muse Wonder's stiffness with Muse Spark's damping (0b852c8, pushed 06:06:56)
   { set: 4, rounds: [6605629, 6605630, 6605631], seal: "d846c66", reveal: "b1902a4", sealPushed: "2026-11-02T06:12:51Z", revealPushed: "2026-11-02T07:14:45Z", rendered: "2026-11-02T06:15:11Z", precommit: { commit: "3bc0190", at: "2026-11-02T06:07:45Z", code: "0b852c8" }, warned: false, stage: "tool" },
+  // agent writes the drive: named before they existed (sealed/precommit-5.json, pushed 13:22:45 UTC; the first round
+  // published 13:26:00), on the code that tells Muse Wonder to write the drive itself at an unexplained peak, bars every
+  // drive from the motion's band and holds code's drive back as a fallback (7561ea7, frozen at 6514586, pushed 13:22:12)
+  { set: 5, rounds: [6606498, 6606499, 6606500], seal: "3d5237d", reveal: "cd70ce2", sealPushed: "2026-11-02T13:27:20Z", revealPushed: "2026-11-02T13:53:36Z", rendered: "2026-11-02T13:31:05Z", precommit: { commit: "078bdc5", at: "2026-11-02T13:22:45Z", code: "6514586" }, warned: false, stage: "agent" },
 ];
 /** every sealed round whose run page opens on the sealed result (a round without a record is simply never matched) */
 export const SEALED_ROUNDS = BATCHES.flatMap((b) => b.rounds);
@@ -164,6 +170,8 @@ const pm = (v: number, s: number) => {
 };
 const rowsOf = (e: Experiment) => (e.extras?.truth?.rows ?? []) as Row[];
 const zOf = (r: Row) => Math.abs(r.measured - r.truth) / r.sigma;
+/** the drive-frequency row, whatever the winning law called its parameter (code: w_drive; a model: w_d, omega_d, ...) */
+const isDriveRow = (r: Row) => r.param === "w_drive" || /^drive frequency/.test(r.label);
 
 /** a constant against its drawn value, in metres where the record converts it, the drawn value to the same decimals */
 const rowText = (r: Row) => {
@@ -213,7 +221,7 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
   const driveProposed = e.candidates.some(writesDrive);
   const ws = win.fit.theta.omega_s, w0 = rows.find((r) => r.param === "omega")?.truth, wd = s.constants.wd?.value;
   const beat = ws && w0 && wd ? ` Its hidden second oscillator runs at ${ws.toFixed(2)} rad/s, the sum of the swing’s and the drive’s frequencies (${(w0 + wd).toFixed(2)}) to ${(Math.abs(ws / (w0 + wd) - 1) * 100).toFixed(1)}%: it fitted the beat, not the drive.` : "";
-  const wdRow = rows.find((r) => r.param === "w_drive");
+  const wdRow = rows.find(isDriveRow);
   const driveWon = s.drawn.drive && writesDrive(win);
   // a drive found in disguise: the winner has no drive term, but an undamped oscillation of its own at the drive's frequency
   const th = win.fit.theta, sg = win.fit.sigma;
@@ -256,7 +264,7 @@ export async function sealedTest(): Promise<SealedTest | null> {
   const span = (rs: number[]) => `${rs[0]}–${rs.at(-1)}`;
   const hm = (d: Date) => d.toISOString().slice(11, 19);
   const winOf = (e: Experiment) => e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
-  const wdRow = (e: Experiment) => rowsOf(e).find((r) => r.param === "w_drive");
+  const wdRow = (e: Experiment) => rowsOf(e).find(isDriveRow);
   const spectrumCalls = (e: Experiment) => (e.wonder?.turns ?? []).filter((t) => (t as { tool?: string }).tool === "residual_spectrum").length;
   /** a driven draw whose winning law carries the drive at the drawn frequency (within 2σ), whatever its other terms */
   const driveHit = (e: Experiment) => {
@@ -284,12 +292,12 @@ export async function sealedTest(): Promise<SealedTest | null> {
     };
   };
   const cAll = count(es);
-  const ORDER: Stage[] = ["warning", "prompt", "tool"];
+  const ORDER: Stage[] = ["warning", "prompt", "tool", "agent"];
   const setsWord = (bs: Batch[]) => (bs.length === 1 ? `set ${bs[0].set}` : `sets ${bs[0].set}–${bs.at(-1)!.set}`);
   const stages = ORDER.map((k) => ({ k, sets: used.filter((x) => x.b.stage === k).map((x) => x.b), es: es.filter((e) => batchOf(e).stage === k) }))
     .filter((x) => x.es.length)
     .map((x) => ({ ...x, c: count(x.es) }));
-  const SHORT: Record<Stage, string> = { warning: "drive warning", prompt: "prompt fix", tool: "spectrum tool" };
+  const SHORT: Record<Stage, string> = { warning: "drive warning", prompt: "prompt fix", tool: "spectrum tool", agent: "agent writes the drive" };
   const perStage = stages.map((x) => `${x.c.found} of ${x.c.n} in ${setsWord(x.sets)} (${SHORT[x.k]})`).join(", ");
   const foundText = stages.length > 1 ? `Found ${found} of ${draws.length}: ${perStage}` : `Found ${found} of ${draws.length}`;
 
@@ -358,7 +366,15 @@ export async function sealedTest(): Promise<SealedTest | null> {
         ? `after code began adding a drive at an unexplained residual peak (${setsWord(tool.sets)}; Muse Wonder’s new residual-spectrum tool was called in ${toolCalls} of its ${toolSessions} sessions), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}`
         : `after Muse Wonder got a residual-spectrum tool (${setsWord(tool.sets)}), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit ? ` (${byCode ? codeWords : "written by the models"})${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}` : ""}`
       : "";
-  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, splitClause, toolClause, replicate?.text].filter(Boolean).join("; ")}.`;
+  // set 5: who wrote each winning drive, the agent or code's fallback
+  const agent = stages.find((x) => x.k === "agent");
+  const agentDriveE = agent ? agent.es.filter(driveHit) : [];
+  const byAgent = agentDriveE.filter((e) => driveAuthor(e) === "Muse Wonder").length;
+  const agentClause =
+    agent && agent.c.driven
+      ? `with Muse Wonder told to write the drive itself (${setsWord(agent.sets)}), the winning law carried the drive at the right frequency in ${agent.c.driveHit} of ${agent.c.driven} driven draws, ${byAgent} written by Muse Wonder and ${agentDriveE.length - byAgent} by code’s fallback${agent.c.driveHit > agent.c.drivenFound ? ", each missing on stiffness or damping" : ""}`
+      : "";
+  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, splitClause, toolClause, agentClause, replicate?.text].filter(Boolean).join("; ")}.`;
 
   // each stage in its own words: what changed, what was found, and where the drive went
   const driveWord = (e: Experiment) => {
@@ -380,7 +396,12 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const drive: string[] = [];
     if (carried.length) {
       const code = carried.every((e) => winOf(e).combined === "drive");
-      drive.push(`on ${carried.length === 1 ? "round" : "rounds"} ${roundsText(carried.map((e) => sealedOfE(e).round))} the winning law carried the drive${code ? ", added by code at the unexplained residual frequency" : ""} (${carried.map(driveWord).join("; ")}), and missed on its stiffness or damping`);
+      const mixed = !code && carried.some((e) => driveAuthor(e) !== driveAuthor(carried[0]));
+      drive.push(
+        mixed
+          ? `the winning law carried the drive and missed on its stiffness or damping on ${carried.map((e) => `round ${sealedOfE(e).round} (${driveAuthor(e) === "code" ? "code’s fallback drive" : `written by ${driveAuthor(e)}`}, ${driveWord(e)})`).join(" and ")}`
+          : `on ${carried.length === 1 ? "round" : "rounds"} ${roundsText(carried.map((e) => sealedOfE(e).round))} the winning law carried the drive${code ? ", added by code at the unexplained residual frequency" : `, written by ${driveAuthor(carried[0])}`} (${carried.map(driveWord).join("; ")}), and missed on its stiffness or damping`,
+      );
     }
     for (const e of maskedE) {
       const p = drivePeak(sealedOfE(e))!;

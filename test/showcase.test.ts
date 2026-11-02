@@ -19,7 +19,12 @@ test("published records agree with the current ranking and their own referee", (
   for (const id of all) {
     const e = load(id);
     assert.equal(e.candidates[0].law.id, e.winner, `${id}: winner is not first`);
-    if (e.critique?.winnerId) assert.equal(e.critique.winnerId, e.winner, `${id}: the referee wrote about another law`);
+    // a law entered after the referee (Muse Wonder's revision, or code's fallback drive) may lead with no budget left for
+    // a second referee (no postRevision): the record then keeps the first referee's words about the law it saw, and the
+    // pages show them only while that law leads, so the finding and headline are not the referee's
+    const win = e.candidates[0];
+    const enteredLate = !e.critique?.postRevision && (win.origin === "revision" || (e.codeAdded ?? []).some((x) => x.law === e.winner && x.enteredAfter === "the referee")) && e.headline !== e.critique?.headline;
+    if (e.critique?.winnerId && !enteredLate) assert.equal(e.critique.winnerId, e.winner, `${id}: the referee wrote about another law`);
     for (const c of e.candidates.filter((c) => c.fit.ok)) assert.ok(Number.isFinite(c.fit.testZ) && Number.isFinite(c.fit.trainZ), `${id}/${c.law.id}: no noise-unit scores`);
     const order = e.candidates.map((c) => c.law.id).join(",");
     const again = [...e.candidates];
