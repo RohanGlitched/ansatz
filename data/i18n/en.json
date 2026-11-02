@@ -26,6 +26,7 @@
   "difference": "Difference",
   "conclusion": "Conclusion",
   "conc_law": "The motion is described by the law “{law}”, which predicted the part of the motion it was not fitted to better than every alternative tested.",
+  "conc_law_tie": "The motion is described by the law “{law}”: it predicted the part of the motion it was not fitted to as well as the best alternative tested, within the measurement’s noise, and it is the simplest such law.",
   "conc_agree": "The measured {q} agrees with the accepted value ({label}) within {pct}%, inside its uncertainty.",
   "conc_differ": "The measured {q} differs from the accepted value ({label}) by {pct}%, more than its uncertainty allows.",
   "conc_clock": "This points to the clip’s clock rather than the physics: the clip most likely plays about {f}× slower than real life.",

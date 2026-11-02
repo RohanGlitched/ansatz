@@ -22,7 +22,8 @@ export default function Rail() {
   // the dock is for going back: it shows while scrolling up, and hides over the footer
   const [goingUp, setGoingUp] = useState(false);
   const [atFoot, setAtFoot] = useState(false);
-  // on a phone the dock sits where the thumb drags a plate's handle: it stays away while a handle is near the bottom
+  // on a phone the dock sits where the thumb drags a plate's handle or taps an answer: it stays away while a handle,
+  // the blind test or any fieldset is near the bottom
   const [nearHandle, setNearHandle] = useState(false);
 
   useEffect(() => {
@@ -34,10 +35,16 @@ export default function Rail() {
       last = y;
       if (window.innerWidth < 760) {
         const h = window.innerHeight;
-        const near = [...document.querySelectorAll<HTMLElement>("input[type=range]")].some((el) => {
+        const handle = [...document.querySelectorAll<HTMLElement>("input[type=range]")].some((el) => {
           const r = el.getBoundingClientRect();
           return r.height > 0 && r.bottom > h - 170 && r.top < h;
         });
+        // and over the blind test, or any set of choices, where the dock would sit on an answer button
+        const choices = [...document.querySelectorAll<HTMLElement>("#can-you-tell, fieldset")].some((el) => {
+          const r = el.getBoundingClientRect();
+          return r.height > 0 && r.bottom > h - 170 && r.top < h;
+        });
+        const near = handle || choices;
         setNearHandle(near);
       } else setNearHandle(false);
     };

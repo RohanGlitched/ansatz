@@ -270,6 +270,60 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const sparkWrongB = st?.repeats?.clips.find((c) => c.clip === "B")?.answers.filter((x) => x.real_speed).length;
   const plateCaption = `SAM 3.1’s masks cut the ${e.tracking.noun} out of ${e.strobe.length} frames and lay them on one frame of the clip. The law was fitted to the filled dots only. The rings are the ${unseenFrames} frames it was not fitted to (${fmtS(unseenSeconds)} of motion), and its line had to find them.`;
 
+  // what the clip is, who filmed it, its frames: beside the abstract on a laptop, after the plate on a phone
+  const colophon = (extra: string) => (
+    <dl className={`${styles.colophon} ${extra}`}>
+      <div>
+        <dt>What it is</dt>
+        <dd>{phenomenon}</dd>
+      </div>
+      <div>
+        <dt>{e.source.kind === "showcase" ? (rendered ? "Rendered, not filmed" : "Filmed") : "Filmed by a visitor"}</dt>
+        <dd>
+          {e.source.kind === "showcase" && credit ? (
+            <>
+              {e.source.page ? <a href={e.source.page}>{credit}</a> : credit}
+              {e.source.license ? `. Licence: ${e.source.license}` : ""}. Trimmed and re-encoded for measurement.
+            </>
+          ) : (
+            <>Uploaded and run on {fmtDate(e.createdAt)}.</>
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt>The clip</dt>
+        <dd className="num">
+          {e.video.frames} frames at {e.video.fps.toFixed(2)} fps, {e.video.width}×{e.video.height}
+        </dd>
+      </div>
+      <div>
+        {/* one id per page: the colophon is drawn twice (beside the abstract, and after the plate on a phone) */}
+        {extra ? <dt id="method-version">Method version</dt> : <dt>Method version</dt>}
+        <dd className="num">
+          {e.pipeline ?? "before version stamps"}
+          {e.pipeline !== PIPELINE ? <>; today&rsquo;s runs use {PIPELINE} (<a href="/bench/pipelines.json">what changed</a>)</> : ""}
+        </dd>
+      </div>
+      {langs.length > 0 && (
+        <div>
+          <dt id={extra ? "read-in" : "read-in-below"}>Read in</dt>
+          <dd>
+            <nav className={styles.langs} aria-labelledby={extra ? "read-in" : "read-in-below"}>
+              <a href={`/x/${e.id}`} hrefLang="en" aria-current={!lang ? "page" : undefined}>
+                English
+              </a>
+              {langs.map((code) => (
+                <a key={code} href={`/x/${e.id}/${code}`} lang={code} hrefLang={code} rel={e.source.kind === "showcase" ? undefined : "nofollow"} aria-current={lang === code ? "page" : undefined}>
+                  {LANGUAGES[code]}
+                </a>
+              ))}
+            </nav>
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+
   return (
     <article className={styles.article}>
       {/* ---- the title block ---- */}
@@ -289,7 +343,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               // real footage with published figures: the figures first, in plain words; the referee's sentence folds away
               <>
                 <ul className={styles.findingList}>
-                  {realTruth.map((r) => (
+                  {realTruth.filter((r) => r.param !== "g_spark").map((r) => (
                     <li key={r.param}>
                       {r.label.charAt(0).toUpperCase() + r.label.slice(1)}:{" "}
                       <b>
@@ -321,55 +375,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               </p>
             )}
           </div>
-          <dl className={styles.colophon}>
-            <div>
-              <dt>What it is</dt>
-              <dd>{phenomenon}</dd>
-            </div>
-            <div>
-              <dt>{e.source.kind === "showcase" ? (rendered ? "Rendered, not filmed" : "Filmed") : "Filmed by a visitor"}</dt>
-              <dd>
-                {e.source.kind === "showcase" && credit ? (
-                  <>
-                    {e.source.page ? <a href={e.source.page}>{credit}</a> : credit}
-                    {e.source.license ? `. Licence: ${e.source.license}` : ""}. Trimmed and re-encoded for measurement.
-                  </>
-                ) : (
-                  <>Uploaded and run on {fmtDate(e.createdAt)}.</>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>The clip</dt>
-              <dd className="num">
-                {e.video.frames} frames at {e.video.fps.toFixed(2)} fps, {e.video.width}×{e.video.height}
-              </dd>
-            </div>
-            <div>
-              <dt id="method-version">Method version</dt>
-              <dd className="num">
-                {e.pipeline ?? "before version stamps"}
-                {e.pipeline !== PIPELINE ? <>; today&rsquo;s runs use {PIPELINE} (<a href="/bench/pipelines.json">what changed</a>)</> : ""}
-              </dd>
-            </div>
-            {langs.length > 0 && (
-              <div>
-                <dt id="read-in">Read in</dt>
-                <dd>
-                  <nav className={styles.langs} aria-labelledby="read-in">
-                    <a href={`/x/${e.id}`} hrefLang="en" aria-current={!lang ? "page" : undefined}>
-                      English
-                    </a>
-                    {langs.map((code) => (
-                      <a key={code} href={`/x/${e.id}/${code}`} lang={code} hrefLang={code} rel={e.source.kind === "showcase" ? undefined : "nofollow"} aria-current={lang === code ? "page" : undefined}>
-                        {LANGUAGES[code]}
-                      </a>
-                    ))}
-                  </nav>
-                </dd>
-              </div>
-            )}
-          </dl>
+          {colophon(styles.colophonTop)}
         </div>
       </header>
 
@@ -392,6 +398,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           <ExperimentVisual plate={plate} clip={clipData(e)} start="clip" />
         </Plate>
       )}
+
+      <div className={styles.colophonBelow}>{colophon("")}</div>
 
       {/* ---- the finding ---- */}
       <Page>
@@ -471,7 +479,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               </span>
             ))}
             .
-        </p>
+          </p>
         )}
         {nested && <p className={styles.para}>{nested.charAt(0).toUpperCase() + nested.slice(1)}.</p>}
         {damping && dampingWhy && <p className={styles.caution}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: {dampingWhy.startsWith("a tie") ? `it ranks first only because ${dampingWhy}.` : `${dampingWhy}.`}</p>}
@@ -556,6 +564,19 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           </table>
         </div>
         <Note who="Code">Every value and its ± come from the winning law&rsquo;s fit to the first {fitPct}% of the motion; the ± is one standard error.</Note>
+        {(() => {
+          // real footage whose record also keeps Muse Spark's plain law's own gravity: printed here, never in the lede
+          const r = realTruth?.find((x) => x.param === "g_spark");
+          if (!r || !sparkPlain) return null;
+          const isRunnerUp = runnerUp?.law.id === sparkPlain.law.id;
+          return (
+            <p className={styles.para}>
+              {isRunnerUp ? "The runner-up law’s own g" : "Muse Spark’s plain law’s own g"} ({isRunnerUp ? "Muse Spark’s plain law, " : ""}
+              {sparkPlain.law.title.charAt(0).toLowerCase() + sparkPlain.law.title.slice(1)}): {rowRough(r.param) ? `about ${fmt(r.measured, 3)}` : fmtPair(r.measured, r.sigma)} {r.unit}, {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% from {fmtRef(r.truth)}
+              {rowRough(r.param) && zOf(sparkPlain) ? `; no error bar: it misses the unseen frames by ${zOf(sparkPlain)}× the noise` : ""}. The gravity reported for this run is the winning law&rsquo;s, above.
+            </p>
+          );
+        })()}
 
         {(e.given.length > 0 || fixedParams.length > 0) && (
           <>
@@ -730,7 +751,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               {e.wonder.trigger === "referee"
                 ? "Called in by the referee."
                 : e.wonder.trigger === "code"
-                  ? `Called in by code: the winner missed the fitted frames${e.wonder.missZ !== undefined ? ` by ${fmt(e.wonder.missZ, 1)}× the noise` : ""}.`
+                  ? `Called in by code: the winner missed the fitted frames${e.wonder.missZ !== undefined ? ` by ${fmt(e.wonder.missZ, 2)}× the noise` : ""}.`
                   : "Called in when every law missed."}{" "}
               It works as an agent with one tool, a fit on the seen frames.
             </Note>
@@ -1385,6 +1406,16 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                 </tbody>
               </table>
             </div>
+            {(() => {
+              // a by-eye gravity that is the textbook value to the digits quoted is a recollection, not a reading
+              const gp = freeParams.find((p) => e.comparisons.some((c) => c.param === p.name && (c.param === "g" || /accelerates at g|gravity/i.test(c.label))));
+              const eye = gp && e.eyeball!.estimates.find((x) => x.quantity.toLowerCase() === gp.name.toLowerCase());
+              const cmp = gp && e.comparisons.find((c) => c.param === gp.name);
+              if (!eye || !cmp || clock) return null;
+              const dp = (String(eye.value).split(".")[1] ?? "").length;
+              if (Math.abs(eye.value - Number(cmp.reference.toFixed(dp))) > 1e-9) return null;
+              return <p className={`${styles.para} ${styles.small}`}>By eye {modelName(e.eyeball!.model)} quoted the textbook {eye.value}; it gave no uncertainty and measured nothing.</p>;
+            })()}
             <p className={`${styles.para} ${styles.small}`}>Its account of the law: “{e.eyeball.law_in_words}”</p>
             <Note who={`${modelName(e.eyeball.model)}, by eye`}>The same model that proposes the laws, asked to guess the numbers without measuring.</Note>
             {e.extras?.eyeballNote && <p className={styles.para}>{e.extras.eyeballNote}</p>}

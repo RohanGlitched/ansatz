@@ -90,6 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <h3>The lab</h3>
                 <Link href="/new">Run an experiment</Link>
                 <Link href="/#can-you-tell">Can you tell? The blind test</Link>
+                <Link href="/lab">For teachers: Class XI practicals</Link>
                 <Link href="/x">Every experiment, with its numbers</Link>
                 <Link href="/series/pendulum-lengths">One pendulum, four lengths</Link>
                 <Link href="/class/demo23">A class page</Link>

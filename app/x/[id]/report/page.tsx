@@ -184,7 +184,10 @@ export default async function ReportPage({ params, searchParams }: Params) {
 
 /** One paragraph a student can stand behind: the law, how well its constants agree with accepted values, and any clock doubt. */
 function conclusion(e: NonNullable<Awaited<ReturnType<typeof getExperiment>>>, law: string, t: ReturnType<typeof tr>, rough: boolean, english: boolean) {
-  const parts = [t("conc_law", { law })];
+  // a law that won a tie (within the noise, the simpler law wins) did not predict better than every alternative: say what it did
+  const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
+  const tieWon = e.candidates.some((c) => c.fit.ok && c.law.id !== win.law.id && c.fit.testRms < win.fit.testRms);
+  const parts = [t(tieWon ? "conc_law_tie" : "conc_law", { law })];
   // a rough fit has no error bar to agree within, so no agreement is claimed
   for (const c of rough ? [] : e.comparisons.filter((x) => x.reference !== 0).slice(0, 2)) {
     const n = c.withinSigma;

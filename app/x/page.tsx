@@ -12,7 +12,7 @@ import { fmtOff, summarise, type Summary } from "./summary";
 import { winnerTitle } from "@/lib/tie";
 import styles from "./index.module.css";
 import { BENCH_FILES } from "@/app/bench/files";
-import { STRANGERS } from "@/app/proof/strangers";
+import { STRANGERS, strangersWord } from "@/app/proof/strangers";
 
 // Muse Wonder is called in by code when the leading law misses its fitted frames by more than this many times the
 // noise (lib/experiment.ts reads the same setting)
@@ -243,7 +243,7 @@ export default async function ExperimentsIndex() {
           ) : (
             <>
               <p>
-                Until visitors&rsquo; runs are listed here: five clips strangers filmed and shared under free licences, run on 2 November with only what their makers stated. Misses included. Full table: <Link href="/proof#strangers">Proof, footage from strangers</Link>.
+                Until visitors&rsquo; runs are listed here: {strangersWord(STRANGERS.length)} clips strangers filmed and shared under free licences, run on 2 November with only what their makers stated. Misses included. Full table: <Link href="/proof#strangers">Proof, footage from strangers</Link>.
               </p>
               <ol className={styles.visitors}>
                 {STRANGERS.map((r) => (

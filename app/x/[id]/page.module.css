@@ -62,6 +62,23 @@
   border-left: 2px solid var(--paper-line);
 }
 
+/* the colophon sits beside the abstract; on a phone the plate comes first and the colophon follows it */
+.colophonBelow {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .colophonTop {
+    display: none;
+  }
+
+  .colophonBelow {
+    display: block;
+    width: calc(100% - 32px);
+    margin: 18px auto 0;
+  }
+}
+
 .colophon {
   margin: 0;
   border-top: 2px solid var(--ink);

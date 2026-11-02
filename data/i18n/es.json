@@ -10,6 +10,7 @@
  "conc_clock": "Esto apunta al reloj del vídeo más que a la física: lo más probable es que el vídeo se reproduzca unas {f}× veces más lento que la realidad.",
  "conc_differ": "El {q} medido difiere del valor aceptado ({label}) en un {pct} %, más de lo que permite su incertidumbre.",
  "conc_law": "El movimiento se describe mediante la ley «{law}», que predijo la parte del movimiento a la que no se había ajustado mejor que cualquier otra alternativa ensayada.",
+ "conc_law_tie": "El movimiento se describe mediante la ley «{law}»: predijo la parte del movimiento a la que no se había ajustado tan bien como la mejor alternativa ensayada, dentro del ruido de la medida, y es la más sencilla de esas leyes.",
  "conclusion": "Conclusión",
  "date": "Fecha",
  "difference": "Diferencia",

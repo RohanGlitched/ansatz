@@ -8,10 +8,11 @@ import CanYouTell from "@/components/book/CanYouTell";
 import { getExperiment, recentExperiments, showcaseIds, winnerOf } from "@/lib/experiments";
 import { lawTex } from "./x/lawTex";
 import { printOf } from "./x/prints";
-import { runTime, runTimeText } from "./runtime";
+import { offlineText, runTime, runTimeText } from "./runtime";
 import { plateLaws } from "@/lib/plateLaws";
 import { costText, headline } from "@/lib/headline";
-import { canYouTell } from "./cyt";
+import { canYouTell, quizSaid } from "./cyt";
+import { strangersTally, strangersWord } from "./proof/strangers";
 import { fou5Long, fou5Of, fou5SameFilm, fou5Short } from "@/lib/fou5";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
@@ -57,6 +58,8 @@ export default async function Home() {
   const slowedCopy = exps.find((e) => e.id === "moon-jump-slowed");
   const rt = runTime(exps);
   const cyt = await canYouTell().catch(() => null);
+  const fou5Quiz = quizSaid("foucault-pendulum-5x");
+  const singleA = single.find((s) => s.clip === "A"), singleB = single.find((s) => s.clip === "B");
 
   return (
     <>
@@ -82,22 +85,22 @@ export default async function Home() {
                   clipClassName={styles.clip}
                   labelClassName={styles.clipLabel}
                   clips={[
-                    { src: moon.source.video, label: "A. The broadcast" },
-                    { src: slowedCopy.source.video, label: `B. Slowed ${st?.truth ?? 1.5}× in secret` },
+                    { src: moon.source.video, label: "A." },
+                    { src: slowedCopy.source.video, label: "B. One of these is slowed. Which?" },
                   ]}
                 />
                 {clipB && (
                   <p className={styles.stamp}>
-                    <span className={styles.stampWho}>Muse Spark on B, by eye</span>
+                    <span className={styles.stampWho}>Muse Spark on the slowed copy, by eye</span>
                     &ldquo;Real speed&rdquo; {sparkWrongB} of {rp?.n ?? 5}
                   </p>
                 )}
               </div>
               <figcaption>
-                Apollo 16, 1972 (NASA), in its original colour. Ansatz timed each jump in B against the same jump in A. <a href="#moon">How</a>.
+                Apollo 16, 1972 (NASA), in its original colour. One is the broadcast; the other we slowed {st?.truth ?? 1.5}× and told no one. Ansatz timed each jump in one against the same jump in the other. <a href="#moon">Which is which, and how</a>.
                 {single.length > 0 && (
                   <span id="five-of-five" className={styles.fn}>
-                    {" "}* The {inWords(rp?.n ?? 5)} of {inWords(rp?.n ?? 5)} counts the {inWords(rp?.n ?? 5)} repeats of the same question. A first single ask, before them, said B was slowed {single.find((s) => s.clip === "B")?.factor ?? 2}×, and said the same of the real broadcast.
+                    {" "}* The {inWords(rp?.n ?? 5)} of {inWords(rp?.n ?? 5)} counts the {inWords(rp?.n ?? 5)} repeats of the same question. Asked once before those {inWords(rp?.n ?? 5)}, in a separate call, it called {singleA && singleB && singleA.factor === singleB.factor ? `both clips slowed ${singleB.factor}×` : `the slowed copy slowed ${singleB?.factor ?? 2}× and the broadcast slowed ${singleA?.factor ?? 2}×`}: by eye it could not tell them apart either way.
                   </span>
                 )}
               </figcaption>
@@ -125,7 +128,7 @@ export default async function Home() {
         </div>
         {hl.moonClock && fou5Row && (
           <p className={styles.clockLine}>
-            <b>Gravity is a clock.</b> One known length turns gravity into a clock: if g comes out wrong by a square, the footage is not playing at life speed. With no original to compare, from gravity alone against the Moon&rsquo;s known gravity, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed 1.5×. On a museum film its maker sped up 5×, it read {fou5x ? fou5Short(fou5x) : `${fou5Row.measured.toFixed(2)}×`} faster{fou5x?.rough ? ` (statistical ± ${fou5x.stat.toFixed(2)}; that law misses the unseen frames by ${fou5x.testZ.toFixed(1)}× the noise)` : ""}{fou5x && fou5SameFilm(fou5x) ? `, and ${fou5x.sameFilm!.toFixed(2)}× against the same film’s real-time stretch, with no reference value at all` : ""}.
+            <b>Gravity is a clock.</b> One known length turns gravity into a clock: if g comes out wrong by a square, the footage is not playing at life speed. On a museum film its maker sped up {+fou5Row.truth.toPrecision(3)}×, Ansatz read <Link href="/x/foucault-pendulum-5x">{fou5x ? fou5Short(fou5x) : `${fou5Row.measured.toFixed(2)}×`} faster</Link>.
           </p>
         )}
       </header>
@@ -159,25 +162,28 @@ export default async function Home() {
       {cyt && (
         <Plate id="can-you-tell" className={styles.cytPlate} caption="Six real clips, each cut to a few seconds without retiming a frame. Every answer is read from stored runs, and loads only when you ask for it; nothing here calls a model.">
           <div className={styles.cytHead}>
+            <p className={styles.cytBridge}>This is one thing a law can tell. The rest of the page is how Ansatz finds the law.</p>
             <h2 className={styles.cytH}>Can you tell?</h2>
             <p>
-              For each real clip, say whether it plays in real time, slowed or sped up. Muse Spark was shown the same six files with the same question, {inWords(cyt.pub.n)} times each: &ldquo;{cyt.pub.question}&rdquo; Then see what it answered and what Ansatz measured.
+              For each real clip, say whether it plays in real time, slowed or sped up. Muse Spark was shown the same six files with the same question, {inWords(cyt.pub.n)} times each, at low reasoning effort: &ldquo;{cyt.pub.question}&rdquo; Then see what it answered and what Ansatz measured.
             </p>
+            <p>Two pairs of clips here come from the same film; Muse Spark saw each clip alone, you see them together, so you have an edge.{cyt.answers.parity ? ` Ansatz’s runs of ${inWords(cyt.answers.parity.asked)} of the clips were told a length this page does not give; Muse Spark was asked again with those lengths, and both of its scores are shown with the answers.` : ""}</p>
           </div>
           <CanYouTell data={cyt.pub} />
         </Plate>
       )}
 
       <Page>
-        {fou5Row && (
+        {hl.moonClock && fou5Row && (
           <p className={styles.after}>
-            The same test on footage nobody made for us: a museum&rsquo;s Foucault pendulum, filmed by Zátonyi Sándor (ifj.) of FizFilm (CC BY 4.0), with a stretch he sped up 5× and labelled on screen. We cropped the label out. Muse Spark, describing the clip at the start of that run, called the swing real time; measured, it plays {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
+            Gravity as a clock, worked twice, with no original to compare. From gravity alone against the Moon&rsquo;s known gravity, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed {st?.truth ?? 1.5}×. On footage nobody made for us, a museum&rsquo;s Foucault pendulum filmed by Zátonyi Sándor (ifj.) of FizFilm (CC BY 4.0), with a stretch he sped up {+fou5Row.truth.toPrecision(3)}× and labelled on screen (we cropped the label out), it read {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}
+            {fou5x && fou5SameFilm(fou5x) ? `, and ${fou5x.sameFilm!.toFixed(2)}× against the same film’s real-time stretch, with no reference value at all` : ""}. During that run Muse Spark described the swing as playing at real time{fou5Quiz ? `; ${fou5Quiz.said}` : ""}. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
           </p>
         )}
         {fou5Row && <Note who="code">Gravity came out 25 times too strong: 5 times too fast, since gravity scales with the square of time.</Note>}
         {aachenG && (
           <p className={styles.para}>
-            Then five clips strangers filmed and published. A 50 cm pendulum on black, filmed in Aachen: told only &ldquo;the string is about fifty centimetres long&rdquo;, Ansatz measured g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s² against 9.81 (<Link href="/x/aachen-pendulum-50cm">open the run</Link>). The other four, misses included, are in <Link href="/proof#strangers">one table</Link>.
+            Then {strangersWord(strangersTally().n)} clips strangers filmed and published. A 50 cm pendulum on black, filmed in Aachen: told only &ldquo;the string is about fifty centimetres long&rdquo;, Ansatz measured g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s² against 9.81 (<Link href="/x/aachen-pendulum-50cm">open the run</Link>). All {strangersWord(strangersTally().n)}, misses included, are in <Link href="/proof#strangers">one table</Link>: {strangersTally().text.replace(/^\S+ clips strangers filmed: /, "")}.
           </p>
         )}
         <Section n={2} title="How a law wins" id="method">
@@ -232,7 +238,7 @@ export default async function Home() {
           </li>
           <li>
             <h3>Predict the part no law was fitted to</h3>
-            <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%, which no law was fitted to. The law that misses the unseen frames least wins, and every measured number comes from its fit.</p>
+            <p>Code integrates every law, fits it to the first 70% of the motion, and makes it predict the last 30%, which no law was fitted to. The law that misses the unseen frames least wins; within the noise, the simpler law wins. Every measured number comes from the winner&rsquo;s fit.</p>
             {sparkBest && <p className={styles.specimen}>Muse Spark&rsquo;s best law missed the unseen motion by {(sparkBest.fit.testRms * 1000).toFixed(1)} mm.</p>}
           </li>
           <li>
@@ -289,7 +295,7 @@ export default async function Home() {
             <b>A student with a phone.</b> The pendulum, free-fall and projectile practicals need a stopwatch you can&rsquo;t start fast enough. Film the swing, say the string&rsquo;s length in your own language, and get g, the law, the error against the textbook and a lab report to hand in. Film four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.
           </p>
           <p className={styles.para}>
-            <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>).
+            <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>).{" "}For tomorrow&rsquo;s class: <Link href="/lab">the Class XI motion practicals mapped to runs, with a worksheet in English and Hindi and a 40-minute lesson</Link>.
           </p>
           <p className={styles.para}>
             <b>Anyone who needs a number from a video.</b> A coach timing a jump, a maker measuring drag, a researcher who used to click through footage frame by frame. Every constant comes with its error bar, and what was given is kept apart from what was measured.
@@ -298,7 +304,7 @@ export default async function Home() {
             <b>Anyone asking whether a clip runs at real time.</b> Gravity is a clock. With something of known size in view, a fall or a swing says how fast the footage really runs.
           </p>
         </Section>
-        <Note who="Cost, measured">A run costs {costText(hl)} and takes {runTimeText(rt)}. The two Foucault films ran past the site&rsquo;s 5-minute limit, so they were not run through the site.</Note>
+        <Note who="Cost, measured">A run costs {costText(hl)} and takes {runTimeText(rt)}. {offlineText(exps)}</Note>
 
         <Section n={4} title="Why predict, and not only fit" id="why">
           <p>Any law with enough knobs can fit a curve it has already seen. A law earns trust by predicting what it hasn&rsquo;t, so every candidate sees only the start of the motion and is graded on the rest.</p>

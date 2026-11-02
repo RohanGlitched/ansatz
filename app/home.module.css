@@ -99,15 +99,16 @@
   color: var(--paper);
 }
 
-/* Muse Spark's tally, set as a red rubber stamp across B's lower corner */
+/* Muse Spark's tally, set as a red rubber stamp across the seam of the two clips, so it does not say which is the slowed one */
 .clipsWrap {
   position: relative;
 }
 
 .stamp {
   position: absolute;
-  right: 12px;
+  left: 50%;
   bottom: 12px;
+  white-space: nowrap;
   margin: 0;
   padding: 5px 12px 6px;
   border: 2px solid var(--struck);
@@ -119,7 +120,7 @@
   font-size: 21px;
   line-height: 1.15;
   text-align: center;
-  transform: rotate(-5deg);
+  transform: translateX(-50%) rotate(-5deg);
   pointer-events: none;
 }
 
@@ -163,6 +164,19 @@
   font-size: 19px;
   line-height: 1.5;
   color: var(--prussian-ink);
+}
+
+.cytHead p + p {
+  margin-top: 8px;
+}
+
+/* the bridge into the quiz: the speed test is one thing a law tells, and the page goes on to how the law is found */
+.cytHead .cytBridge {
+  margin: 0 0 18px;
+  font-family: var(--ui);
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  color: var(--paper);
 }
 
 .who {
@@ -416,7 +430,6 @@ blockquote.specimen {
   }
 
   .stamp {
-    right: 5px;
     bottom: 6px;
     padding: 3px 8px 4px;
     font-size: 15px;

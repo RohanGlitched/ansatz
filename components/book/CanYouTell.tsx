@@ -18,8 +18,9 @@ function Mark({ ok }: { ok: boolean | null }) {
 /**
  * The blind test: six real clips loop, muted, and the reader says how each plays. Then each clip turns over to show
  * the reader's guess, what Muse Spark answered to the same question, what Ansatz measured and the truth, and the
- * three are tallied. The page holds only the clips, credits and scale cues; the answers come from /api/cyt (stored
- * runs; no model is called) only when the reader asks for them, so nothing on the page beforehand gives a clip away.
+ * three are tallied, by verdict and by factor. The page holds only the clips and scale cues; the answers, with each
+ * clip's credit, come from /api/cyt (stored runs; no model is called) only when the reader asks for them, so nothing on
+ * the page beforehand gives a clip away or pairs two clips cut from one film.
  */
 export default function CanYouTell({ data }: { data: CytPublic }) {
   const { clips } = data;
@@ -128,10 +129,17 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
                   </label>
                 ))}
               </fieldset>
-              <p className={styles.credit}>
-                {c.cue && <span className={styles.cue}>Scale: {c.cue.replace(/^For scale, /, "").replace(/^./, (m) => m.toLowerCase())}</span>}
-                <a href={c.credit.href}>{c.credit.who}</a>, {c.credit.licence}
-              </p>
+              {/* before the answers only the scale cue shows: a maker's credit would pair the two clips cut from one film */}
+              {(c.cue || a) && (
+                <p className={styles.credit}>
+                  {c.cue && <span className={styles.cue}>Scale: {c.cue.replace(/^For scale, /, "").replace(/^./, (m) => m.toLowerCase())}</span>}
+                  {a && (
+                    <>
+                      <a href={a.credit.href}>{a.credit.who}</a>, {a.credit.licence}
+                    </>
+                  )}
+                </p>
+              )}
               {a && (
                 <dl className={styles.card}>
                   <dt className={styles.cardTitle}>{a.title}</dt>
@@ -174,6 +182,7 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
           );
         })}
       </ol>
+      {!open && <p className={styles.creditNote}>Credits for all six clips appear with the answers.</p>}
 
       <div className={styles.foot}>
         <div className={styles.tallyCol}>
@@ -185,12 +194,18 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
               </span>
               <span className={styles.sl}>You</span>
             </div>
-            <div className={`${styles.score} ${open ? (ans.spark * 2 > N ? styles.rightScore : styles.wrongScore) : ""}`} aria-hidden="true">
+            {/* Muse Spark's tally stays in plain ink: the colour goes to the measured row and to misses */}
+            <div className={styles.score} aria-hidden="true">
               <span className={styles.sv}>
                 {score(open ? ans.spark : null)}
                 <span className={styles.of}>/{N}</span>
               </span>
               <span className={styles.sl}>Muse Spark, same question</span>
+              {open && ans.parity && (
+                <span className={styles.slSub}>
+                  {ans.parity.spark}/{N} with the same lengths{ans.parity.spark === ans.ansatz ? ", a tie" : ""}
+                </span>
+              )}
             </div>
             <div className={`${styles.score} ${open ? (ans.ansatz * 2 > N ? styles.rightScore : styles.wrongScore) : ""}`} aria-hidden="true">
               <span className={styles.sv}>
@@ -200,11 +215,27 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
               <span className={styles.sl}>Ansatz, measured</span>
             </div>
           </div>
+          {open && (
+            <p className={styles.factorRow} aria-hidden="true">
+              <span className={styles.factorHead}>Right factor (within {Math.round(ans.factor.tol * 100)}%) on the {ans.factor.n} retimed clips:</span>{" "}
+              <span>You can&rsquo;t say</span> <span className={styles.dot}>&middot;</span> <span>
+                Muse Spark <b>{ans.factor.spark}/{ans.factor.n}</b>
+                {ans.parity ? ` (${ans.parity.factor.spark}/${ans.parity.factor.n} with the same lengths)` : ""}
+              </span>{" "}
+              <span className={styles.dot}>&middot;</span>{" "}
+              <span>
+                Ansatz <b className={ans.factor.ansatz * 2 > ans.factor.n ? styles.held : undefined}>{ans.factor.ansatz}/{ans.factor.n}</b>
+              </span>
+              <small>
+                {ans.factor.sparkAnswersRight === 0 ? "None" : `${ans.factor.sparkAnswersRight}`} of Muse Spark&rsquo;s {ans.factor.sparkAnswers} answers on those clips {ans.factor.sparkAnswersRight === 1 ? "was" : "were"} within {Math.round(ans.factor.tol * 100)}%.
+              </small>
+            </p>
+          )}
           {/* read out when the answers land: the visible scores above are hidden from screen readers in favour of this */}
           <p role="status" aria-live="polite" className={open ? styles.baseline : "visually-hidden"}>
             {open && (
               <>
-                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question, ${ans.spark} of ${N}. Ansatz, measured, ${ans.ansatz} of ${N}. `}</span>
+                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question, ${ans.spark} of ${N}${ans.parity ? `, and ${ans.parity.spark} of ${N} with the same lengths Ansatz was given` : ""}. Ansatz, measured, ${ans.ansatz} of ${N}. Right factor, within ${Math.round(ans.factor.tol * 100)}%, on the ${ans.factor.n} retimed clips: Muse Spark ${ans.factor.spark} of ${ans.factor.n}, Ansatz ${ans.factor.ansatz} of ${ans.factor.n}. `}</span>
                 {ans.baseline}
               </>
             )}
@@ -232,6 +263,9 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
           )}
         </div>
       </div>
+
+      {open && <p className={styles.factorLine}>{ans.factorLine}</p>}
+      {open && ans.parity && <p className={styles.parityLine}>{ans.parity.line}</p>}
 
       {open && (
         <Fold className={`onPlateFold ${styles.sources}`} summary="Credits, cuts and where each answer comes from">

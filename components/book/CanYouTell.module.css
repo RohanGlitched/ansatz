@@ -311,6 +311,7 @@
 .score {
   display: grid;
   gap: 6px;
+  align-content: start;
   font-variant-numeric: lining-nums tabular-nums;
 }
 
@@ -332,12 +333,80 @@
   color: var(--prussian-ink);
 }
 
+.slSub {
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--paper);
+}
+
 .wrongScore .sv {
   color: var(--struck);
 }
 
 .rightScore .sv {
   color: var(--held);
+}
+
+/* the second row: the right factor on the retimed clips, under the verdict tally */
+.factorRow {
+  margin: 0;
+  font-family: var(--ui);
+  font-size: 15.5px;
+  line-height: 1.5;
+  color: var(--paper);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.factorRow b {
+  font-family: var(--cm);
+  font-size: 22px;
+  font-weight: 400;
+  color: #fff;
+}
+
+.factorRow b.held {
+  color: var(--held);
+}
+
+.factorHead {
+  color: var(--prussian-ink);
+}
+
+.dot {
+  color: var(--prussian-ink);
+  padding: 0 2px;
+}
+
+.factorRow small {
+  display: block;
+  font-size: 14px;
+  color: var(--prussian-ink);
+}
+
+/* after the reveal: what only measuring gives, in one computed sentence */
+.factorLine {
+  margin: 0;
+  max-width: 46em;
+  font-size: 18px;
+  line-height: 1.5;
+  color: #fff;
+}
+
+/* the second set, asked with the same lengths Ansatz was told */
+.parityLine {
+  margin: -18px 0 0;
+  max-width: 52em;
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--prussian-ink);
+}
+
+.creditNote {
+  margin: -14px 0 0;
+  font-family: var(--ui);
+  font-size: 13px;
+  color: var(--prussian-ink);
 }
 
 .actions {
@@ -445,8 +514,24 @@
     gap: 20px;
   }
 
+  /* the three scores stay side by side on a phone */
+  .tally {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
   .sv {
-    font-size: 40px;
+    font-size: 34px;
+  }
+
+  .sl {
+    font-size: 12.5px;
+    line-height: 1.3;
+  }
+
+  .factorLine {
+    font-size: 16.5px;
   }
 }
 
