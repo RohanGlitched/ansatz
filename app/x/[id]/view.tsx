@@ -16,7 +16,7 @@ import { paramLatex } from "@/lib/latex";
 import { atBound, clockCheckFor, PIPELINE, type Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { prettyUnit, secondPower } from "@/lib/units";
-import { fmtDate, fmtPair, fmtProse } from "@/lib/format";
+import { fmtAbout, fmtDate, fmtNoise, fmtPair, fmtProse } from "@/lib/format";
 import { BIC_EVIDENCE, DAMPING_UNDECIDED_SUMMARY, dampingNested, dampingRates, dampingTie, noiseScore, tieBreakReason, tied } from "@/lib/tie";
 import { RENDERED } from "@/components/liveStripMath";
 import { lawHtml, lawTex } from "../lawTex";
@@ -130,8 +130,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
     if (Number.isFinite(c.fit.trainZ) && Number.isFinite(c.fit.testZ) && c.fit.trainZ! > c.fit.testZ!) {
       // "small" only when it is: within twice the winner's unseen miss, and within five times the noise
       const winZ = Number.isFinite(win.fit.testZ) ? win.fit.testZ! : Infinity;
-      if (c.fit.testZ! <= Math.max(2 * winZ, 1.5) && c.fit.testZ! <= 5) return `Its unseen miss is small (${fmt(c.fit.testZ!, 2)}× the noise), but it misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}×.`;
-      if (!tiedAbove.length) return `It misses the frames it was fitted to by ${fmt(c.fit.trainZ!, 2)}× the noise, a little more than the unseen ones (${fmt(c.fit.testZ!, 2)}×).`;
+      if (c.fit.testZ! <= Math.max(2 * winZ, 1.5) && c.fit.testZ! <= 5) return `Its unseen miss is small (${fmtNoise(c.fit.testZ)}× the noise), but it misses the frames it was fitted to by ${fmtNoise(c.fit.trainZ)}×.`;
+      if (!tiedAbove.length) return `It misses the frames it was fitted to by ${fmtNoise(c.fit.trainZ)}× the noise, a little more than the unseen ones (${fmtNoise(c.fit.testZ)}×).`;
     }
     if (tiedAbove.some((x) => x.fit.k < c.fit.k)) return "Tied within the noise with a law above it; the law with fewer parameters ranks first.";
     if (tiedAbove.some((x) => x.fit.k === c.fit.k && c.fit.bic - x.fit.bic >= BIC_EVIDENCE)) return "Tied within the noise with a law above it; the law whose BIC is lower by 2 or more ranks first.";
@@ -149,8 +149,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const fitPct = Math.round(e.trainFrac * 100);
   const futurePct = 100 - fitPct;
   const runnerUp = e.candidates.find((c) => c.law.id !== win.law.id && c.fit.ok);
-  // a miss in noise units, to one decimal below 10 ("1.0×"), whole above
-  const zFmt = (z: number) => (z < 10 ? z.toFixed(1) : String(Math.round(z)));
+  // a miss in noise units, the one rule (lib/format.ts fmtNoise): one decimal below 10 ("1.0×"), whole above
+  const zFmt = fmtNoise;
   const zOf = (c: (typeof e.candidates)[number]) => (Number.isFinite(c.fit.testZ) ? zFmt(c.fit.testZ!) : null);
   const freeParams = win.law.params.filter((p) => !p.fixed && p.name !== "cal");
   const fixedParams = win.law.params.filter((p) => p.fixed);
@@ -171,10 +171,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const speedPeriod = pc ? `the swing’s period, ${pc.period.toFixed(4)} s, needs no law: ${pc.crossings} zero crossings give ${pc.speedup.toFixed(3)}×` : null;
   const rowWhy = (r: { param: string; sigma: number; sigmaFit?: number; sigmaAssumed?: number }) =>
     r.param === "g_spark"
-      ? `no error bar: Muse Spark’s plain law misses the unseen frames by ${fmt(sparkPlain!.fit.testZ!, 2)}× the noise`
+      ? `no error bar: Muse Spark’s plain law misses the unseen frames by ${fmtNoise(sparkPlain!.fit.testZ)}× the noise`
       : r.param === "speedup"
-        ? `${speedParts(r)}${speedPeriod ? `; ${speedPeriod}` : ""}; the winning law’s shape misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so g itself has no error bar`
-        : `no error bar: the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise`;
+        ? `${speedParts(r)}${speedPeriod ? `; ${speedPeriod}` : ""}; the winning law’s shape misses the unseen frames by ${fmtNoise(win.fit.testZ)}× the noise, so g itself has no error bar`
+        : `no error bar: the winning law misses the unseen frames by ${fmtNoise(win.fit.testZ)}× the noise`;
   // the sped-up Foucault film: the check that needs no reference value is the same film's real-time stretch
   const sameFilm = e.id === "foucault-pendulum-5x" ? fou5Of(e, await getExperiment("foucault-pendulum").catch(() => null)) : null;
   // a systematic listed outside the quoted ± (the Moon's choice of tracked point) is named next to the headline value
@@ -207,7 +207,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         // on a rough fit the speed-up's ± is said in its parts, not printed as the headline's ±
         pm: fig.pm,
         unit: "×",
-        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so its gravity carries no error bar. The speed-up does not need one from the law: it is a frequency ratio, and a misfit in the swing’s shape leaves its period alone${sp ? ` (${speedParts(sp)}${speedPeriod ? `; ${speedPeriod}` : ""})` : s ? ` (± ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilmLawFree(sameFilm) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(sameFilm)}.` : ""}`,
+        against: `${strong}${sp ? ` The filmmaker labelled this stretch ${+sp.truth.toPrecision(3)}× on screen (we cropped the label out before the run): off by ${fmt(Math.abs((v - sp.truth) / sp.truth) * 100, 2)}%.` : ""}${rough ? ` The winning law misses the unseen frames by ${fmtNoise(win.fit.testZ)}× the noise, so its gravity carries no error bar. The speed-up does not need one from the law: it is a frequency ratio, and a misfit in the swing’s shape leaves its period alone${sp ? ` (${speedParts(sp)}${speedPeriod ? `; ${speedPeriod}` : ""})` : s ? ` (± ${s.toFixed(2)})` : ""}.` : ""}${sameFilm && fou5SameFilmLawFree(sameFilm) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(sameFilm)}.` : ""}`,
       };
     }
     if (clock) {
@@ -218,7 +218,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         pm: fig.pm,
         unit: "×",
         against: rough
-          ? `Unconfirmed: found from gravity coming out too weak against the world’s known value, and the winning law misses the unseen frames by ${fmt(win.fit.testZ!, 2)}× the noise, so something it leaves out matters.`
+          ? `Unconfirmed: found from gravity coming out too weak against the world’s known value, and the winning law misses the unseen frames by ${fmtNoise(win.fit.testZ)}× the noise, so something it leaves out matters.`
           : "Found from gravity coming out too weak against the world’s known value, so it assumes the world.",
       };
     }
@@ -232,7 +232,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
     const name = rend ? (truthLabel(cmp.param) ?? p.meaning ?? cmp.param) : cmp.label;
     return {
       label: name.charAt(0).toUpperCase() + name.slice(1),
-      v: rough ? `about ${fmt(v, 2)}` : pv0,
+      v: rough ? `about ${fmtAbout(v, cmp.reference)}` : pv0,
       pm: rough ? undefined : ps0,
       unit,
       against: `${rend ? "Rendered with" : "Known value"} ${+cmp.reference.toPrecision(4)}${unit ? ` ${unit}` : ""}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${!rough && Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.${point ? ` The ± is statistical and ruler; which point of the body is followed adds a further ± ${point.value.toFixed(2)} (see the error budget below).` : ""}`,
@@ -357,7 +357,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <li key={r.param}>
                       {r.label.charAt(0).toUpperCase() + r.label.slice(1)}:{" "}
                       <b>
-                        {rowRough(r.param) ? (r.param === "speedup" ? `${r.measured.toFixed(2)}` : `about ${fmt(r.measured, 3)}`) : fmtPair(r.measured, r.sigma)} {r.unit}
+                        {rowRough(r.param) ? (r.param === "speedup" ? `${r.measured.toFixed(2)}` : `about ${fmtAbout(r.measured, r.truth)}`) : fmtPair(r.measured, r.sigma)} {r.unit}
                       </b>
                       , against a known {fmtRef(r.truth)} {r.unit} ({fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% off).
                     </li>
@@ -485,7 +485,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             {rates.map((r, i) => (
               <span key={r.title}>
                 {i ? "; " : ""}
-                {r.form} ({r.title.charAt(0).toLowerCase() + r.title.slice(1)}), {r.params.map((p) => `${p.name} = ${rough || !(p.sigma > 0) ? `about ${fmt(p.value, 2)}` : fmtPair(p.value, p.sigma)}${p.unit && p.unit !== "1" ? ` ${prettyUnit(p.unit)}` : ""}`).join(", ")}
+                {r.form} ({r.title.charAt(0).toLowerCase() + r.title.slice(1)}), {r.params.map((p) => `${p.name} = ${rough || !(p.sigma > 0) ? `about ${fmtAbout(p.value)}` : fmtPair(p.value, p.sigma)}${p.unit && p.unit !== "1" ? ` ${prettyUnit(p.unit)}` : ""}`).join(", ")}
               </span>
             ))}
             .
@@ -493,7 +493,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         )}
         {nested && <p className={styles.para}>{nested.charAt(0).toUpperCase() + nested.slice(1)}.</p>}
         {damping && dampingWhy && <p className={styles.caution}>{damping.charAt(0).toUpperCase() + damping.slice(1)}: {dampingWhy.startsWith("a tie") ? `it ranks first only because ${dampingWhy}.` : `${dampingWhy}.`}</p>}
-        {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 10 && <p className={styles.caution}>Misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise: read this as a description, not a law.</p>}
+        {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 10 && <p className={styles.caution}>Misses the unseen frames by {fmtNoise(win.fit.testZ)}× the noise: read this as a description, not a law.</p>}
 
         <h3 className={styles.h3} id="constants">
           Measured
@@ -524,8 +524,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <td data-h="Measured" className={`r ${styles.value}`}>
                       {rough ? (
                         <>
-                          about {fmt(v, 2)} <span className={styles.unitS}>{unit}</span>
-                          <span className={styles.nd}>no error bar: the law misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the noise</span>
+                          about {fmtAbout(v, e.extras?.truth?.rows.find((r) => r.param === p.name)?.truth)} <span className={styles.unitS}>{unit}</span>
+                          <span className={styles.nd}>no error bar: the law misses the unseen frames by {fmtNoise(win.fit.testZ)}× the noise</span>
                         </>
                       ) : Number.isFinite(s) && s > 0 ? (
                         <>
@@ -582,7 +582,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           return (
             <p className={styles.para}>
               {isRunnerUp ? "The runner-up law’s own g" : "Muse Spark’s plain law’s own g"} ({isRunnerUp ? "Muse Spark’s plain law, " : ""}
-              {sparkPlain.law.title.charAt(0).toLowerCase() + sparkPlain.law.title.slice(1)}): {rowRough(r.param) ? `about ${fmt(r.measured, 3)}` : fmtPair(r.measured, r.sigma)} {r.unit}, {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% from {fmtRef(r.truth)}
+              {sparkPlain.law.title.charAt(0).toLowerCase() + sparkPlain.law.title.slice(1)}): {rowRough(r.param) ? `about ${fmtAbout(r.measured, r.truth)}` : fmtPair(r.measured, r.sigma)} {r.unit}, {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% from {fmtRef(r.truth)}
               {rowRough(r.param) && zOf(sparkPlain) ? `; no error bar: it misses the unseen frames by ${zOf(sparkPlain)}× the noise` : ""}. The gravity reported for this run is the winning law&rsquo;s, above.
             </p>
           );
@@ -676,7 +676,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         </Note>
         {Number.isFinite(win.fit.testZ) && win.fit.testZ! > 5 && (
           <p className={styles.caution}>
-            Even the winner misses the unseen frames by {fmt(win.fit.testZ!, 2)}× the measurement noise, so something none of these laws include matters there
+            Even the winner misses the unseen frames by {fmtNoise(win.fit.testZ)}× the measurement noise, so something none of these laws include matters there
             {e.observation.caveats[0] ? ` (the observer noted: ${e.observation.caveats[0]})` : ""}.{win.fit.testZ! > 10 ? "" : " Read its constants as the best available description, not a closed case."}
           </p>
         )}
@@ -720,7 +720,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                       {c.fit.ok ? (
                         <>
                           {fmtLen(c.fit.trainRms, lengthUnit, channels)}
-                          {Number.isFinite(c.fit.trainZ) && <span className={styles.z}>{fmt(c.fit.trainZ!, 2)}× noise</span>}
+                          {Number.isFinite(c.fit.trainZ) && <span className={styles.z}>{fmtNoise(c.fit.trainZ)}× noise</span>}
                         </>
                       ) : (
                         "failed"
@@ -730,7 +730,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                       {c.fit.ok ? (
                         <>
                           {fmtLen(c.fit.testRms, lengthUnit, channels)}
-                          {Number.isFinite(c.fit.testZ) && <span className={styles.z}>{fmt(c.fit.testZ!, 2)}× noise</span>}
+                          {Number.isFinite(c.fit.testZ) && <span className={styles.z}>{fmtNoise(c.fit.testZ)}× noise</span>}
                         </>
                       ) : (
                         "failed"
@@ -761,7 +761,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
               {e.wonder.trigger === "referee"
                 ? "Called in by the referee."
                 : e.wonder.trigger === "code"
-                  ? `Called in by code: the winner missed the fitted frames${e.wonder.missZ !== undefined ? ` by ${fmt(e.wonder.missZ, 2)}× the noise` : ""}.`
+                  ? `Called in by code: the winner missed the fitted frames${e.wonder.missZ !== undefined ? ` by ${fmtNoise(e.wonder.missZ)}× the noise` : ""}.`
                   : "Called in when every law missed."}{" "}
               It works as an agent with one tool, a fit on the seen frames.
             </Note>
@@ -852,7 +852,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         {/* on a rough run the winning law's values carry no error bar, the speed-up computed from its gravity included; Muse Spark's plain law follows the same rule by its own miss */}
                         {rowRough(r.param) ? (
                           <>
-                            {r.param === "speedup" ? r.measured.toFixed(2) : `about ${fmt(r.measured, 2)}`} <span className={styles.unitS}>{r.unit}</span>
+                            {r.param === "speedup" ? r.measured.toFixed(2) : `about ${fmtAbout(r.measured, r.truth)}`} <span className={styles.unitS}>{r.unit}</span>
                             <span className={styles.nd}>{rowWhy(r)}</span>
                           </>
                         ) : (
@@ -1396,7 +1396,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         </td>
                         <td data-h="Measured (Ansatz)" className={`r ${styles.value}`}>
                           {rough ? (
-                            `about ${fmt(mv, 2)}`
+                            `about ${fmtAbout(mv)}`
                           ) : (
                             <>
                               {fmtPair(mv, ms).split(" ± ")[0]}
@@ -1677,7 +1677,7 @@ function proseOf(e: Experiment, params: Record<string, { v: number; s: number }>
   return (t: string) => {
     let out = fmtProse(t, params);
     for (const w of widened) out = out.replace(new RegExp(`${w.fit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}${UNIT}`, "g"), (_all, unit?: string) => `${w.full}${unit ?? ""} (the fit alone gives ± ${w.fitPm}; ${rest})`);
-    return rough ? out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmt(Number(x), 2)}`) : out;
+    return rough ? out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmtAbout(Number(x))}`) : out;
   };
 }
 

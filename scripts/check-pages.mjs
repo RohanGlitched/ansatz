@@ -24,8 +24,11 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const order = ["moon-jump", "moon-jump-slowed", "beach-ball-drag", "hardening-spring", "dry-friction-spring", "hindi-pendulum", "sample-pendulum", "big-swing", "bouncing-ball", "spring"];
 const pages = ["/", "/judges", "/proof", "/lab", "/how", "/new", "/x", "/class/new", "/class/demo23", "/class/jdgs26", "/series/pendulum-lengths", "/llms.txt", "/robots.txt", "/sitemap.xml", "/bench", "/bench/observer.json", "/icon.svg",
-  ...order.flatMap((id) => [`/x/${id}`, `/x/${id}/report`, `/x/${id}/data.csv`, `/x/${id}/hi`])];
-const broken = [/\bNaN\b/, /\bInfinity\b/, /±\s?0(\.0+)?%/, /±\s?0\.000(?!\d)/];
+  ...order.flatMap((id) => [`/x/${id}`, `/x/${id}/report`, `/x/${id}/data.csv`, `/x/${id}/hi`]),
+  // the sealed laws: each page cites its own set's seal and reveal commits
+  ...[6604796, 6604797, 6604798, 6604980, 6604981, 6604982].map((r) => `/x/sealed-law-${r}`)];
+// a raw template token left in the copy ("WONDER_COUNT") is broken too
+const broken = [/\bNaN\b/, /\bInfinity\b/, /±\s?0(\.0+)?%/, /±\s?0\.000(?!\d)/, /\b[A-Z]{3,}_[A-Z]{3,}(?:_[A-Z]+)*\b/];
 
 /** Wording that overreaches: each rule returns what it caught in the reader's text. */
 const wording = [
@@ -49,6 +52,10 @@ const wording = [
   (t) => [...t.matchAll(/at (?:its|the clip[’']s) own frame rate/gi)].filter((m) => !/300 frames/.test(t.slice(Math.max(0, m.index - 90), m.index + 90))).map((m) => clip(t, m.index)),
   // Muse Wonder gets at most two fits in production, so it does not iterate until it submits
   (t) => [...t.matchAll(/iterates until it submits/gi)].map((m) => clip(t, m.index)),
+  // round 16: a sealed hit did not reproduce on a re-run, so "found" without a drive is a first-run claim; lite mode calls
+  // Muse Voice Transcribe, so it is not "without a language model"
+  (t) => [...t.matchAll(/every law without a drive was found(?! on (?:its|the) first run)/gi)].map((m) => clip(t, m.index)),
+  (t) => [...t.matchAll(/lite mode (?:with no|without a) language model/gi)].map((m) => clip(t, m.index)),
   // withdrawn or overprecise: the online pendulum's slowdown as a measurement (a re-run claims no factor) and the Foucault g's ± 0.02
   (t) => [...t.matchAll(/4\.30 ± 0\.05×|9\.68\d*\s*±\s*0\.0[12]\d*/g)].map((m) => clip(t, m.index)),
 ];

@@ -20,6 +20,26 @@ export function fmtSig(v: number | undefined, sig = 3): string {
 }
 
 /**
+ * A value with no error bar ("about 9.7"): two significant figures, three from 100 up (as lib/experiment.ts fills a
+ * rough value), and, where a known value sits beside it, as many more (up to four) as it takes for the rounding to move
+ * the value no further than it is from the known one, so "about 11.5" never reads as 4% off a known 11.50.
+ */
+export function fmtAbout(v: number, known?: number): string {
+  if (!Number.isFinite(v)) return "—";
+  let sig = Math.abs(v) >= 100 ? 3 : 2;
+  if (known !== undefined && Number.isFinite(known)) {
+    while (sig < 4 && Math.abs(+v.toPrecision(sig) - v) > Math.abs(v - known)) sig++;
+  }
+  return String(+v.toPrecision(sig));
+}
+
+/** A miss in units of the noise, one rule on every page: whole from 10 up ("103", as /proof prints it), one decimal below ("4.3"). */
+export function fmtNoise(z: number | undefined): string {
+  if (z === undefined || !Number.isFinite(z)) return "—";
+  return z >= 10 ? String(Math.round(z)) : z.toFixed(1);
+}
+
+/**
  * One fitted constant as a sentence fragment, keeping three cases apart: a constant that was given (held fixed, not
  * measured), one the frames did not pin down (no finite error bar), and a measurement with its error bar.
  */

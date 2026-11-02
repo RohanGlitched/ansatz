@@ -19,8 +19,10 @@ import ContactSheet, { type SheetClip } from "@/components/book/ContactSheet";
 import { printOf } from "../x/prints";
 import { STRANGERS, STRANGERS_RUNS, STRANGERS_RUNS_USD, STRANGERS_WITH_TRANSLATIONS_USD, strangersTally, strangersWord } from "./strangers";
 import { fou5Long, fou5Of, fou5Parts, fou5SameFilm, fou5SameFilmLawFree } from "@/lib/fou5";
-import { quizSaid } from "@/app/cyt";
+import { canYouTell, quizSaid } from "@/app/cyt";
 import { sealedTest } from "@/app/sealed";
+import { fmtAbout } from "@/lib/format";
+import { pipelineName } from "@/app/pipelineWords";
 
 // reads only the runs and benchmark files that ship with the site: cached, rebuilt at most every 5 minutes
 export const revalidate = 300;
@@ -170,6 +172,10 @@ export default async function ProofPage() {
   const aachen60 = await getExperiment("aachen-pendulum-60cm").catch(() => null);
   const st2 = strangersTally();
   const fou5Quiz = quizSaid("foucault-pendulum-5x");
+  // the blind test's baseline re-asked at medium effort (Ansatz's observer's), all six clips with the runs' lengths
+  const cytM = (await canYouTell().catch(() => null))?.answers.parityMedium;
+  const medFou5 = cytM ? "; asked again at medium effort and told the 8.97 m length, it answered sped up five times, with factors 3×, 3×, 5×, 11.4× and 12×" : "";
+  const medGym = cytM ? "; at medium effort and told the ball is 75 cm across, it answered slowed four times (2×, 4×, 4× and 8×) and real time once" : "";
   // the worst constant in the end-to-end coverage, and how its error bars were last scored
   const worstCheck = (() => {
     const w = (s as { coverage?: { worst: number } } | undefined)?.coverage?.worst;
@@ -228,13 +234,13 @@ export default async function ProofPage() {
     ...(moonG ? [{ id: "moon-jump", img: printOf("moon-jump"), title: "Apollo 16, as broadcast", verdict: "measured" as const, line: `The Moon’s gravity: ${moonG.measured.toFixed(2)} ± ${moonG.sigma.toFixed(2)} m/s², against ${moonG.reference}.`, href: "/x/moon-jump" }] : []),
     ...(sj ? [{ id: "moon-jump-slowed", img: printOf("moon-jump-slowed"), title: "Apollo 16, slowed 1.5× in secret", verdict: "measured" as const, line: `Jump for jump against the broadcast: ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower. Muse Spark, by eye: real speed.`, href: "/x/moon-jump-slowed" }] : []),
     ...(fouRow ? [{ id: "foucault-pendulum", img: printOf("foucault-pendulum"), title: "Foucault pendulum, real time", verdict: "about right, no error bar" as const, line: `g about ${fouRow.measured.toFixed(1)}, no error bar: the law missed the unseen frames by ${Math.round(winnerOf(fou!).fit.testZ ?? NaN)}× the noise. Earth’s is 9.807 m/s².`, href: "/x/foucault-pendulum" }] : []),
-    ...(fou5Row ? [{ id: "foucault-pendulum-5x", img: printOf("foucault-pendulum-5x"), title: "Foucault pendulum, sped up 5×", verdict: "measured" as const, line: `Plays ${fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}; the maker’s label said 5×. Muse Spark, describing it in the run: real time${fou5Quiz ? `; ${fou5Quiz.said}` : ""}.`, href: "/x/foucault-pendulum-5x" }] : []),
+    ...(fou5Row ? [{ id: "foucault-pendulum-5x", img: printOf("foucault-pendulum-5x"), title: "Foucault pendulum, sped up 5×", verdict: "measured" as const, line: `Plays ${fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}; the maker’s label said 5×. Muse Spark, describing it in the run: real time${fou5Quiz ? `; ${fou5Quiz.said}${medFou5}` : ""}.`, href: "/x/foucault-pendulum-5x" }] : []),
     ...(aachenG ? [{ id: "aachen-pendulum-50cm", img: printOf("aachen-pendulum-50cm"), title: "Pendulum on black, Aachen", verdict: "measured" as const, line: `g = ${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s², against 9.807. Clock check: real time.`, href: "/x/aachen-pendulum-50cm" }] : []),
-    { id: "pendulum-25cm", img: "/prints/real/pendulum-25cm-normal-gravity.webp", title: "Pendulum, 25 cm, in a test rig", verdict: "number right, law wrong", line: "g = 9.84 ± 0.17 m/s², 0.3% off; the law misses the unseen swing by 15% of the motion, so the publish gate refused it." },
+    { id: "pendulum-25cm", img: "/prints/real/pendulum-25cm-normal-gravity.webp", title: "Pendulum, 25 cm, in a test rig", verdict: "number right, law wrong", line: "g about 9.84 m/s², 0.3% off, no error bar: the law misses the unseen swing by 102× the noise (15% of the motion), so the publish gate refused it." },
     { id: "pendulum-ruler", img: "/prints/real/pendulum-ruler-limjitning.webp", title: "Brass bob before a metre rule", verdict: "no published answer", line: "A 0.716 ± 0.002 m pendulum fits within the noise (the ± is Earth’s g, assumed to ±0.26%; the rule’s scale does not enter); its maker published no length or period to check it against." },
     ...(slow ? [{ id: "sample-pendulum", img: printOf("sample-pendulum"), title: "A pendulum posted as slow motion", verdict: "no factor claimed" as const, line: "Only the uploader’s title says slow motion. The re-run declines to measure the string, because the clamp catches it, so it claims no factor.", href: "/x/sample-pendulum" }] : []),
     { id: "metronome", img: "/prints/real/metronome-96bpm.webp", title: "Metronome at 96 beats a minute", verdict: "miss", line: "No law in the library is a metronome; the best missed by 25× the noise, so no fit was reported." },
-    { id: "gym-ball", img: "/prints/real/gym-ball-bounce-240fps.webp", title: "Gym ball, filmed at 240 fps", verdict: "miss", line: `SAM 3.1 held only part of a green ball in a green-lit corridor, in a clip that plays 4.8× slower than life. In both runs Muse Spark, describing the clip to say what to track, took it as real time${gymQuiz ? `; ${gymQuiz.said}` : ""}. Ansatz measured no gravity, so it could not check the clock.` },
+    { id: "gym-ball", img: "/prints/real/gym-ball-bounce-240fps.webp", title: "Gym ball, filmed at 240 fps", verdict: "miss", line: `SAM 3.1 held only part of a green ball in a green-lit corridor, in a clip that plays 4.8× slower than life. In both runs Muse Spark, describing the clip to say what to track, took it as real time${gymQuiz ? `; ${gymQuiz.said}${medGym}` : ""}. Ansatz measured no gravity, so it could not check the clock.` },
     { id: "pendelgesetz", img: "/prints/real/pendelgesetz.webp", title: "Pendulum before a chalkboard", verdict: "miss", line: "A dark bob on a dark board: SAM 3.1 could not hold it, and Ansatz reported no usable g.", anchor: "#fails" },
     ...(aachen60 ? (() => {
       const g = aachen60.comparisons.find((c) => c.param === "g");
@@ -243,16 +249,16 @@ export default async function ProofPage() {
       return g
         ? [
             isRoughFit(w.fit)
-              ? { id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "about right, no error bar" as const, line: `g about ${+g.measured.toPrecision(2)} m/s², no error bar: the law misses the unseen swing by ${Math.round(w.fit.testZ ?? NaN)}× the noise. Earth’s is 9.807. Clock check: real time, roughly, which is right.`, href: "/x/aachen-pendulum-60cm" }
+              ? { id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "about right, no error bar" as const, line: `g about ${fmtAbout(g.measured)} m/s², no error bar: the law misses the unseen swing by ${Math.round(w.fit.testZ ?? NaN)}× the noise. Earth’s is 9.807. Clock check: real time, roughly, which is right.`, href: "/x/aachen-pendulum-60cm" }
               : { id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "measured" as const, line: `g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², against 9.807. Clock check: real time.`, href: "/x/aachen-pendulum-60cm" },
           ]
         : [];
     })() : []),
-    { id: "pendulum-25cm-04g", img: "/prints/real/pendulum-25cm-04g.webp", title: "Pendulum, 25 cm, at 0.4 g", verdict: "number right, law wrong", line: "With the stated 25 cm, g = 4.58 ± 0.15 m/s² against the caption’s 1.5 s period (4.39); the winning law kept Earth’s g and a 0.54 m length instead.", anchor: "#strangers" },
+    { id: "pendulum-25cm-04g", img: "/prints/real/pendulum-25cm-04g.webp", title: "Pendulum, 25 cm, at 0.4 g", verdict: "miss", line: "Laws holding the stated 25 cm gave g about 4.6 m/s² (the caption’s 1.5 s period means 4.39), but they lost; the winning law kept Earth’s g and a 0.54 m length, so it checks nothing.", anchor: "#strangers" },
     { id: "pendulum-5m-wangerooge", img: "/prints/real/pendulum-5m-wangerooge.webp", title: "Pendulum, 5 m, from a promenade wall", verdict: "miss", line: "Tracking: the swing was read at 3.04 s against the true 4.46 s, and a control with no force won.", anchor: "#strangers" },
     { id: "toss-60cm-10x", img: "/prints/real/toss-60cm-10x.webp", title: "Ball tossed up, 10× slow motion", verdict: "miss", line: "Tracking: slow motion made by repeating frames left 20 usable points.", anchor: "#strangers" },
     { id: "fall-board-5x", img: "/prints/real/fall-board-5x-b.webp", title: "Ball dropped, 5× slow motion", verdict: "miss", line: "Two tries; the second read g in clip time with a 61% error bar, too wide to check the clock.", anchor: "#strangers" },
-    { id: "pendulum-50cm-chalkboard", img: "/prints/real/pendulum-50cm-chalkboard.webp", title: "Pendulum before a chalkboard, run again", verdict: "miss", line: "Tracking: g = 6.81 m/s², 30.6% low, with the swing read at 1.72 s against the true 1.42 s.", anchor: "#strangers" },
+    { id: "pendulum-50cm-chalkboard", img: "/prints/real/pendulum-50cm-chalkboard.webp", title: "Pendulum before a chalkboard, run again", verdict: "miss", line: "Tracking: g about 6.8 m/s², 30.6% low, with the swing read at 1.72 s against the true 1.42 s.", anchor: "#strangers" },
     { id: "apollo15", img: "/prints/real/apollo15-hammer-feather.webp", title: "Apollo 15, the hammer and the feather", verdict: "miss", line: "The hammer is a rod 3 to 4 pixels wide against a white suit; SAM 3.1 followed the suit, and Ansatz reported a man standing still.", href: "/how#limits" },
   ];
 
@@ -365,7 +371,7 @@ export default async function ProofPage() {
         {phone.length > 0 && <Note who="code, against a tape">The truth for each phone clip was measured with a tape before the run and stored with it.</Note>}
 
         <Section n={2} title="Real footage" id="real-footage">
-          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion. Then, on 2 November, <a href="#strangers">{strangersWord(st2.n)} clips strangers filmed</a>, misses included.</p>
+          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion. Then, on 2 November, <a href="#strangers">{strangersWord(st2.n)} clips strangers filmed</a>, misses included.{cytM ? ` The blind test’s baseline was re-asked at medium reasoning effort, the level Ansatz’s own observer runs at, on all six clips with the lengths and footage Ansatz’s runs had: Muse Spark scores ${cytM.spark} of 6 by verdict, a tie with Ansatz, and ${cytM.factor.spark} of ${cytM.factor.n} on the factor row against Ansatz’s 2 of 3 (${cytM.calls} calls, none cut off, $${cytM.usd.toFixed(2)}; stored as parityMedium in data/cyt/spark-quiz.json beside the two low-effort sets, which are unchanged).` : ""}</p>
         </Section>
       </Page>
 
@@ -414,7 +420,7 @@ export default async function ProofPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/sample-pendulum.webp" alt="A pendulum posted online, frames laid over one another" className={styles.print} loading="lazy" />
                 <span className={styles.fig}>Fig. {aachen && aachenG ? "e" : "d"}. A pendulum posted online</span>
-                <Reading value="no factor" label="how much slower than life the clip plays: a re-run with today's stricter pipeline claims none" />
+                <Reading value="no factor" label={`how much slower than life the clip plays: a re-run with ${pipelineName(slow.pipeline, true)} claims none`} />
               </Link>
             )}
           </div>
@@ -440,7 +446,7 @@ export default async function ProofPage() {
         )}
         {fou5 && fou5Row && (
           <p className={styles.para}>
-            <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. During the run Muse Spark, watching it, took it as real time (&ldquo;{fou5.observation.slow_motion?.evidence ?? "no sign of slow motion"}&rdquo;){fou5Quiz ? `; ${fou5Quiz.said}` : ""}. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. The label says 5×.{fou5x && fou5SameFilmLawFree(fou5x) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(fou5x)}${fou5SameFilm(fou5x) ? " (gravity scales as one over time squared, so the ratio of the two gravities is the square of the speed-up)" : ""}.` : ""}
+            <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. During the run Muse Spark, watching it, took it as real time (&ldquo;{fou5.observation.slow_motion?.evidence ?? "no sign of slow motion"}&rdquo;){fou5Quiz ? `; ${fou5Quiz.said}${medFou5}` : ""}. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. The label says 5×.{fou5x && fou5SameFilmLawFree(fou5x) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(fou5x)}${fou5SameFilm(fou5x) ? " (gravity scales as one over time squared, so the ratio of the two gravities is the square of the speed-up)" : ""}.` : ""}
             {(() => {
               // why 4.97 and not 5: the real-time stretch, timed by its zero crossings, swings a little slow for its stated length
               const rt = fou5?.extras?.periodCheck?.realTime;
@@ -454,7 +460,7 @@ export default async function ProofPage() {
         {fou5 && <Note who="code">Gravity scales with the square of time: 25 times too strong is 5 times too fast. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.</Note>}
         {slow?.clock && (
           <p className={styles.para}>
-            <b>A clip that may hide its slow motion.</b> A pendulum posted online. With the tennis ball as the ruler, the first run found a gravity of {slowG?.measured.toFixed(2)} m/s², about a twentieth of Earth&rsquo;s: either a weaker world or a clip that plays slower than life. Nothing in the frames says so; only its uploader&rsquo;s title says &ldquo;slow motion&rdquo;. A re-run with today&rsquo;s stricter pipeline declines to measure the string&rsquo;s length, because the swing isn&rsquo;t one circle (the clamp catches the string), so it claims no factor at all.
+            <b>A clip that may hide its slow motion.</b> A pendulum posted online. With the tennis ball as the ruler, the first run found a gravity of {slowG?.measured.toFixed(2)} m/s², about a twentieth of Earth&rsquo;s: either a weaker world or a clip that plays slower than life. Nothing in the frames says so; only its uploader&rsquo;s title says &ldquo;slow motion&rdquo;. A re-run with {pipelineName(slow?.pipeline, true)} declines to measure the string&rsquo;s length, because the swing isn&rsquo;t one circle (the clamp catches the string), so it claims no factor at all.
           </p>
         )}
         {slow?.clock && <Note who="code">Gravity scales with the square of time, so a g that is too weak names the slowdown that would fix it. <Link href="/x/sample-pendulum">Open the run</Link>.</Note>}
@@ -701,14 +707,14 @@ export default async function ProofPage() {
         {sealed && (
           <>
             <p className={styles.para} id="sealed">
-              <b>Laws nobody chose: found without a drive, missed with one.</b> {sealed.pattern}
+              <b>Laws nobody chose: {sealed.title}.</b> {sealed.pattern}
             </p>
             <p className={styles.para}>
               We let public randomness choose the law. Each of {sealed.n} drand rounds drew one spring law from a fixed list (linear, cubic or lopsided stiffness; viscous, quadratic or dry damping; a periodic drive half the time), with constants from stated ranges. Each law&rsquo;s SHA-256 was pushed to GitHub before its clip was rendered, Ansatz was told only &ldquo;{sealed.narration}&rdquo;, and the laws were revealed after the runs ({sealed.sets.map((x, i) => (
                 <span key={x.seal}>
-                  {i ? "; " : ""}rounds {x.rounds[0]}–{x.rounds.at(-1)}: seal <a href={`https://github.com/RohanGlitched/ansatz/commit/${x.seal}`}>{x.seal}</a>, reveal <a href={`https://github.com/RohanGlitched/ansatz/commit/${x.reveal}`}>{x.reveal}</a>
+                  {i ? "; " : ""}set {x.set}, rounds {x.rounds[0]}–{x.rounds.at(-1)}: seal <a href={x.sealUrl}>{x.seal}</a>, reveal <a href={x.revealUrl}>{x.reveal}</a>, found {x.found} of {x.n}
                 </span>
-              ))}). Found {sealed.found} of {sealed.n}.
+              ))}). {sealed.foundText}.
             </p>
             <ul className={styles.para}>
               {sealed.draws.map((d) => (
@@ -719,15 +725,8 @@ export default async function ProofPage() {
             </ul>
             {sealed.wonderStory && <p className={styles.para}>{sealed.wonderStory}</p>}
             <p className={styles.para}>
-              <b>An independent check.</b> On 2 November a reviewer outside this repository drew two more laws with the same grammar and re-ran one of ours on the identical clip, with the same scripts and narration (its records are kept with the hackathon&rsquo;s review notes, not here):
+              <b>A review run, not counted.</b> {sealed.review}
             </p>
-            <ul className={styles.para}>
-              {sealed.independent.map((x) => (
-                <li key={`${x.round}-${x.line.slice(0, 12)}`}>
-                  {x.line} <a href={`https://api.drand.sh/public/${x.round}`}>The drand round</a>.
-                </li>
-              ))}
-            </ul>
             <p className={styles.para}>
               <b>What counts as found.</b> {sealed.rule}
             </p>
@@ -782,7 +781,7 @@ export default async function ProofPage() {
         {clockc && <Note who="code, from Muse Spark's ruler">The clock check is arithmetic on the fitted gravity; the ruler&rsquo;s size is the one thing it takes from Muse Spark.</Note>}
         {lite && (
           <p className={styles.para}>
-            <b>A lite mode with no language model</b>, measured offline on the same stored runs: the student names the experiment and types or says the length, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
+            <b>A lite mode with no Muse Spark or Muse Wonder</b>, measured offline with typed lengths (so with no Muse Voice Transcribe either) on the same stored runs: the student names the experiment and types or says the length, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
           </p>
         )}
         {lite && <Note who="SAM 3.1, then code">No Muse Spark or Muse Wonder in this mode; Muse Voice Transcribe only listens for a spoken length. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
@@ -902,11 +901,11 @@ export default async function ProofPage() {
           The same thing stopped the most famous experiment filmed on the Moon, the hammer and feather on Apollo 15: the hammer is a few pixels wide against a white suit. <Link href="/how#limits">How it works</Link> tells that story.
         </p>
         <p className={styles.para}>
-          <b>Two misses on strangers&rsquo; footage</b> (<a href="#strangers">Table 1a</a>). A metronome at 96 beats a minute: no law in the library is a metronome, and the best one missed by 25× the noise, so no fit was reported. Its period, timed offline from the tracked arm to a fraction of a frame, is about 1.24 s against the dial&rsquo;s 1.25 s. A gym ball filmed at 240 fps and stored at 50, so it plays 4.8× slower than life: it is green, in a green-lit corridor, and SAM 3.1 held only part of it, so every scale was wrong. Two tries, two misses. In both runs Muse Spark, describing the clip to say what to track, took it as real time{gymQuiz ? `; ${gymQuiz.said}` : ""}. Ansatz measured no gravity, so it could not check the clock. The clock check is only as good as the ruler, and here the ruler was the ball.
+          <b>Two misses on strangers&rsquo; footage</b> (<a href="#strangers">Table 1a</a>). A metronome at 96 beats a minute: no law in the library is a metronome, and the best one missed by 25× the noise, so no fit was reported. Its period, timed offline from the tracked arm to a fraction of a frame, is about 1.24 s against the dial&rsquo;s 1.25 s. A gym ball filmed at 240 fps and stored at 50, so it plays 4.8× slower than life: it is green, in a green-lit corridor, and SAM 3.1 held only part of it, so every scale was wrong. Two tries, two misses. In both runs Muse Spark, describing the clip to say what to track, took it as real time{gymQuiz ? `; ${gymQuiz.said}${medGym}` : ""}. Ansatz measured no gravity, so it could not check the clock. The clock check is only as good as the ruler, and here the ruler was the ball.
         </p>
         <Note who="SAM 3.1, then code">A mask that holds part of the object gives a wrong size, and a wrong size gives a wrong scale and a wrong clock.</Note>
         <p className={styles.para}>
-          <b>Two laws nobody proposed.</b> On 29 October we rendered two springs whose laws are not in any textbook list and ran them with no hints, on today&rsquo;s pipeline. A lopsided spring, stiffer stretched than squashed: every law Muse Spark wrote missed, and Muse Wonder&rsquo;s law halved the miss on the unseen frames (4.1 px against 8.9 px), but it did so with a drifting rest position, not the lopsided term that was really there. A spring that tires as it works, its stiffness falling through the clip: no proposed law described it, and a textbook control ranked first. Neither is published as a win; both runs are in <code>bench/runs/synth</code>.
+          <b>Two laws nobody proposed.</b> On 29 October we rendered two springs whose laws are not in any textbook list and ran them with no hints, on {pipelineName("2026-10-27c")}. A lopsided spring, stiffer stretched than squashed: every law Muse Spark wrote missed, and Muse Wonder&rsquo;s law halved the miss on the unseen frames (4.1 px against 8.9 px), but it did so with a drifting rest position, not the lopsided term that was really there. A spring that tires as it works, its stiffness falling through the clip: no proposed law described it, and a textbook control ranked first. Neither is published as a win; both runs are in <code>bench/runs/synth</code>.
         </p>
         <Note who="Muse Wonder, then code">A better prediction is not the same as the right law. The held-out test ranks predictions; naming the physics still needs the right form.</Note>
 

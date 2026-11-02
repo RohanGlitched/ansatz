@@ -42,8 +42,8 @@ export default async function SealedLede({ e }: { e: Experiment }) {
       {wonder && <p className={styles.finding}>{sealed.wonderStory}</p>}
       {draw.verdict === "miss" && sealed.driveNote && <p className={styles.finding}>{sealed.driveNote}</p>}
       <p className={styles.finding}>
-        Drawn by <a href={draw.url}>drand round {draw.round}</a>; its hash was pushed to GitHub before the clip was rendered (<a href={sealed.sealUrl}>commit {sealed.sealCommit}</a>) and the law revealed after the run (<a href={sealed.revealUrl}>commit {sealed.revealCommit}</a>). {rows.some((r) => r.si) ? "Lengths are in pixels in the run, which found no ruler; the metre values use the render’s own scale. " : ""}
-        <a href="/proof#sealed">All three draws, the rule for “found”, and what the seal does not prove</a>.
+        Drawn by <a href={draw.url}>drand round {draw.round}</a>; its hash was pushed to GitHub before the clip was rendered (<a href={draw.sealUrl}>commit {draw.seal}</a>, set {draw.set}) and the law revealed after the run (<a href={draw.revealUrl}>commit {draw.reveal}</a>). {rows.some((r) => r.si) ? "Lengths are in pixels in the run, which found no ruler; the metre values use the render’s own scale. " : ""}
+        <a href="/proof#sealed">All {sealed.n} draws, the rule for “found”, and what the seal does not prove</a>.
       </p>
       <details className={styles.more}>
         <summary>The referee&rsquo;s own summary of this run, written before the law was revealed</summary>

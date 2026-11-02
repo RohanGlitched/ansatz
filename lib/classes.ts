@@ -11,7 +11,7 @@ export type ClassRecord = { code: string; name: string; createdAt: string; expir
 /** The demo class ships with the app: what a teacher's page looks like, filled with the showcase experiments. */
 const DEMO: ClassRecord = {
   code: "demo23",
-  name: "Demo: Class 11 Physics",
+  name: "Demo: Class 11 Physics (rendered clips, not real students)",
   createdAt: "2026-10-27T00:00:00Z",
   expiresAt: "2026-12-31T00:00:00Z",
   quota: 0,
@@ -19,7 +19,7 @@ const DEMO: ClassRecord = {
   demo: true,
   // every row measures g on Earth, so the grading columns are filled for each
   runs: ["pendulum-40cm", "pendulum-60cm", "pendulum-80cm", "pendulum-100cm", "hindi-pendulum", "big-swing"],
-  students: { "pendulum-40cm": "Student A", "pendulum-60cm": "Student B", "pendulum-80cm": "Student C", "pendulum-100cm": "Student D", "hindi-pendulum": "Student E", "big-swing": "Student F" },
+  students: { "pendulum-40cm": "Student A (a render)", "pendulum-60cm": "Student B (a render)", "pendulum-80cm": "Student C (a render)", "pendulum-100cm": "Student D (a render)", "hindi-pendulum": "Student E (a render, synthetic voice)", "big-swing": "Student F (a render)" },
   // string lengths as each student would read them with a metre scale (here the renders' true lengths), stated as
   // givens: g then comes from Ansatz's measured period and this length, and the A4 sheet's length is the fallback
   tape: { "pendulum-40cm": 0.4, "pendulum-60cm": 0.6, "pendulum-80cm": 0.8, "pendulum-100cm": 1.0 },

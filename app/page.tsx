@@ -15,6 +15,10 @@ import { canYouTell, quizSaid } from "./cyt";
 import { strangersTally, strangersWord } from "./proof/strangers";
 import { fou5Long, fou5Of, fou5SameFilmLawFree, fou5Short } from "@/lib/fou5";
 import { isRoughFit } from "@/lib/experiment";
+import { fmtAbout, fmtNoise } from "@/lib/format";
+import { sealedCaption } from "./sealedWords";
+import { sealedTest } from "./sealed";
+import { datedPipeline } from "./pipelineWords";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
@@ -36,25 +40,23 @@ const inWords = (n: number) => WORDS[n] ?? String(n);
 function cardCaption(e: Experiment): string {
   const w = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const g = e.comparisons.find((c) => c.param === "g");
-  const sealed = (e.extras as { sealed?: { verdict: string; drawn: { stiffness: string; damping: string; drive: boolean } } } | undefined)?.sealed;
   if (e.id === "aachen-pendulum-50cm" && g)
     return `A stranger’s teaching-workshop film, told only “about 50 cm”: g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², ${Math.abs(g.errorPct).toFixed(2)}% from Earth’s.`;
   if (e.id === "aachen-pendulum-60cm" && g)
     return isRoughFit(w.fit)
-      ? `The same workshop’s 60 cm pendulum: g about ${+g.measured.toPrecision(2)} m/s², no error bar (the law misses the unseen swing by ${Math.round(w.fit.testZ ?? NaN)}× the noise); the clock check reads real time, which is right.`
+      ? `The same workshop’s 60 cm pendulum: g about ${fmtAbout(g.measured)} m/s², no error bar (the law misses the unseen swing by ${fmtNoise(w.fit.testZ)}× the noise); the clock check reads real time, which is right.`
       : `The same workshop’s 60 cm pendulum: g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²; the clock check reads real time.`;
-  if (sealed) {
-    const drawn = `${sealed.drawn.stiffness === "cubic" ? "a stiffening spring" : "a linear spring"} with ${sealed.drawn.damping === "quadratic" ? "quadratic" : "viscous"} damping${sealed.drawn.drive ? " and a drive" : ""}`;
-    if (sealed.verdict === "miss") return `A law drawn by public randomness, sealed before the run: ${drawn}. Missed: no model proposed the drive; the best law misses by ${Math.round(w.fit.testZ ?? NaN)}× the noise.`;
-    const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];
-    const worst = Math.max(...rows.map((r) => Math.abs(r.measured - r.truth) / r.sigma));
-    return `A law drawn by public randomness, sealed before the run: ${drawn}. Found by ${w.origin === "revision" ? "Muse Wonder" : "Muse Spark’s own law"}, every constant within ${worst <= 1 ? 1 : 2}σ of the drawn value.`;
-  }
+  // a sealed law: the drawn law in the words /proof uses (app/sealedWords.ts), found or missed, from the record
+  const sealed = sealedCaption(e);
+  if (sealed) return sealed;
   return e.headline ?? e.finding;
 }
 
 /** The first sentence of a later re-run's note, where the published run has one. */
-const rerunOf = (e: Experiment) => (e as Experiment & { rerun?: { note: string } }).rerun?.note.split(/(?<=\.)\s/)[0];
+const rerunOf = (e: Experiment) => {
+  const r = (e as Experiment & { rerun?: { note: string; pipeline?: string } }).rerun;
+  return r ? datedPipeline(r.note, r.pipeline).split(/(?<=\.)\s/)[0] : undefined;
+};
 
 export default async function Home() {
   const ids = await showcaseIds();
@@ -85,6 +87,7 @@ export default async function Home() {
   const cyt = await canYouTell().catch(() => null);
   const fou5Quiz = quizSaid("foucault-pendulum-5x");
   const singleA = single.find((s) => s.clip === "A"), singleB = single.find((s) => s.clip === "B");
+  const sealed = await sealedTest().catch(() => null);
 
   return (
     <>
@@ -294,6 +297,11 @@ export default async function Home() {
           </li>
         </ol>
         <Note who="Who did what">SAM 3.1 measured. Muse Spark watched, proposed and refereed. Muse Wonder proposed when every law missed. Code fitted, predicted and ranked; no model picks the winner.</Note>
+        {sealed && (
+          <p className={styles.para}>
+            <b>Laws nobody chose.</b> Public randomness (drand) drew {inWords(sealed.n)} spring laws for the gallery below, each hash pushed to GitHub before its clip was rendered, and Ansatz was told only &ldquo;{sealed.narration}&rdquo;. {sealed.foundText}: {sealed.title}. Every draw, the rule for &ldquo;found&rdquo; and what the seal does not prove: <Link href="/proof#sealed">Proof, laws nobody chose</Link>.
+          </p>
+        )}
       </Page>
 
       <Plate n="III" title="Every experiment in this book." caption="Each print is a clip's frames laid over one another, as Marey photographed motion. Open one for its laws, its numbers and every model call it made.">
@@ -327,7 +335,7 @@ export default async function Home() {
             <b>A student with a phone.</b> The pendulum practical (and, in part, the projectile and spring ones) needs a stopwatch you can&rsquo;t start fast enough. Film the swing, say the string&rsquo;s length in your own language, and get g, the law, the error against the textbook and a lab report to hand in. Film four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.
           </p>
           <p className={styles.para}>
-            <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>).{" "}For tomorrow&rsquo;s class: <Link href="/lab">the Class XI motion practicals mapped to runs, with a worksheet in English and Hindi and a 40-minute lesson</Link>.
+            <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>, filled with our rendered clips, not real students).{" "}For tomorrow&rsquo;s class: <Link href="/lab">the Class XI motion practicals mapped to runs, with a worksheet in English and Hindi and a 40-minute lesson</Link>.
           </p>
           <p className={styles.para}>
             <b>Anyone who needs a number from a video.</b> A coach timing a jump, a maker measuring drag, a researcher who used to click through footage frame by frame. Every constant comes with its error bar, and what was given is kept apart from what was measured.

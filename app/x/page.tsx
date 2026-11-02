@@ -13,6 +13,8 @@ import { winnerTitle } from "@/lib/tie";
 import styles from "./index.module.css";
 import { BENCH_FILES } from "@/app/bench/files";
 import { STRANGERS, strangersWord } from "@/app/proof/strangers";
+import { sealedCaption } from "@/app/sealedWords";
+import { datedPipeline } from "@/app/pipelineWords";
 
 // Muse Wonder is called in by code when the leading law misses its fitted frames by more than this many times the
 // noise (lib/experiment.ts reads the same setting)
@@ -52,7 +54,7 @@ const isClose = (s: Summary) => s.offPct !== undefined && (Math.abs(s.offPct) <=
 function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean }) {
   const s = summarise(e);
   const w = winnerOf(e);
-  const rerun = (e as Experiment & { rerun?: { note: string } }).rerun;
+  const rerun = (e as Experiment & { rerun?: { note: string; pipeline?: string } }).rerun;
   return (
     <li className={styles.spec}>
       <Link href={`/x/${e.id}`} className={styles.printLink} tabIndex={-1} aria-hidden="true">
@@ -74,9 +76,9 @@ function Specimen({ e, fig, copy }: { e: Experiment; fig: string; copy?: boolean
       <div className={styles.ceq}>
         <Tex>{eqOf(e)}</Tex>
       </div>
-      <p className={styles.cfind}>{e.headline ?? e.finding}</p>
+      <p className={styles.cfind}>{sealedCaption(e) ?? e.headline ?? e.finding}</p>
       {/* the card shows the published run; a later re-run that changed the story says so right under its headline */}
-      {rerun && <p className={styles.also}>{rerun.note}</p>}
+      {rerun && <p className={styles.also}>{datedPipeline(rerun.note, rerun.pipeline)}</p>}
       {s && (
         <dl className={styles.result}>
           <div>

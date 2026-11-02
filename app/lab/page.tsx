@@ -626,7 +626,7 @@ export default async function LabPage() {
 
       <Plate n="III" id="take-it" title="Take it to class.">
         <div className={styles.close}>
-          <p>Print the worksheet, make a class link, and put Plate II on the projector. If the network fails, the four stored pendulum runs and their reports carry the whole lesson.</p>
+          <p>Print the worksheet, make a class link, and put Plate II on the projector. If the network fails, the four stored pendulum runs and their reports carry the whole lesson. <Link href="/class/demo23">The demo class page</Link> shows what a teacher gets back; its Students A to F are our rendered clips, not real students, and no class has used Ansatz yet.</p>
           <div className={styles.closeCta}>
             <Link className="btn" href="/class/new">
               Make a class link

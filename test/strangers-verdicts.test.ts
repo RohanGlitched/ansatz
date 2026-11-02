@@ -22,8 +22,27 @@ test("a stranger's row with a run page follows that page's rough-fit rule: a rou
   }
 });
 
-test("the strangers' tally is counted from the table: 1 measured, 3 number right but law wrong, 1 with nothing to check, 6 misses", () => {
+test("the strangers' tally is counted from the table: 1 measured, 2 number right but law wrong, 1 with nothing to check, 7 misses", () => {
   const t = strangersTally();
-  assert.deepEqual([t.n, t.measured, t.lawWrong, t.nothing, t.miss], [11, 1, 3, 1, 6]);
-  assert.match(t.text, /^eleven clips strangers filmed: one measured, three where the number landed/);
+  assert.deepEqual([t.n, t.measured, t.lawWrong, t.nothing, t.miss], [11, 1, 2, 1, 7]);
+  assert.match(t.text, /^eleven clips strangers filmed: one measured, two where the number landed/);
+});
+
+test("every stranger's figure follows the run page's rough-fit rule: no ± where the winning law misses by more than 5× the noise", () => {
+  const dir = ".probe/real-2026-11-02";
+  let read = 0;
+  for (const r of STRANGERS.filter((x) => x.record)) {
+    let e: Experiment;
+    try {
+      e = JSON.parse(readFileSync(`${dir}/${r.record}.json`, "utf8")) as Experiment;
+    } catch {
+      continue; // the records are kept with the review notes; a checkout without them skips the row
+    }
+    read++;
+    if (isRoughFit(winner(e).fit)) {
+      assert.doesNotMatch(r.measured, /±/, `${r.clip}: the winner misses by ${winner(e).fit.testZ?.toFixed(0)}× the noise, so no ±`);
+      assert.notEqual(r.verdict, "measured", `${r.clip}: a rough winner is never measured`);
+    }
+  }
+  if (read) assert.ok(read >= 8, `read ${read} stranger records`);
 });

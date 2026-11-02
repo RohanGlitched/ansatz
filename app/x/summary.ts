@@ -1,6 +1,7 @@
 import { isRoughFit, type Experiment } from "../../lib/experiment";
 import { clockFigure } from "../../lib/clockfig";
-import { fmtPair } from "../../lib/format";
+import { fmtAbout, fmtPair } from "../../lib/format";
+import { pipelineName } from "../pipelineWords";
 import { prettyUnit } from "../../lib/units";
 
 // the winner as lib/experiments has it (that module is server-only; this one is also read by tests)
@@ -38,8 +39,8 @@ export function summarise(e: Experiment): Summary | null {
   const w = winnerOf(e);
   // the run page's rule (isRoughFit): a winning law that misses its unseen frames by more than five times the noise gets no ±
   const rough = isRoughFit(w.fit);
-  // two significant figures with no error bar, as the experiment page writes it ("about 9.7")
-  const pair = (v: number, s: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${+v.toPrecision(2)}` : fmtPair(v, s));
+  // no error bar, by the one rule the experiment page uses (lib/format.ts fmtAbout: "about 9.7", "about 242")
+  const pair = (v: number, s: number, known?: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${fmtAbout(v, known)}` : fmtPair(v, s));
   const sj = e.extras?.memoryTest?.sameJump?.combined;
   const also = sj ? `the copy we slowed 1.5× in secret, timed against this clip jump for jump: ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower` : undefined;
 
@@ -72,7 +73,7 @@ export function summarise(e: Experiment): Summary | null {
         symbol: "slowdown",
         value: "no factor claimed",
         unit: "",
-        note: "A re-run with today’s stricter pipeline does not measure the string’s length, so no slowdown is claimed.",
+        note: `A re-run with ${pipelineName(e.pipeline, true)} does not measure the string’s length, so no slowdown is claimed.`,
       };
     }
     const truth = /slowed (\d+(?:\.\d+)?)×/.exec(e.title)?.[1];
@@ -93,7 +94,7 @@ export function summarise(e: Experiment): Summary | null {
     return {
       what: c.label.replace(/\s*\(.*\)$/, ""),
       symbol: c.param,
-      value: pair(c.measured, c.sigma),
+      value: pair(c.measured, c.sigma, c.reference),
       unit: prettyUnit(p?.unit ?? (c.param === "g" ? "m/s^2" : "")),
       known: { value: num(c.reference), source: c.label },
       offPct: c.errorPct,
@@ -103,7 +104,7 @@ export function summarise(e: Experiment): Summary | null {
   }
   const t = e.extras?.truth?.rows[0];
   if (t) {
-    return { what: t.label, symbol: t.param, value: pair(t.measured, t.sigma), unit: prettyUnit(t.unit), known: { value: num(t.truth), source: "the render’s settings" }, offPct: (t.measured / t.truth - 1) * 100 };
+    return { what: t.label, symbol: t.param, value: pair(t.measured, t.sigma, t.truth), unit: prettyUnit(t.unit), known: { value: num(t.truth), source: "the render’s settings" }, offPct: (t.measured / t.truth - 1) * 100 };
   }
   const p = w.law.params.find((q) => !q.fixed && !NOT_A_RESULT.test(q.name) && !/pix/i.test(q.unit ?? ""));
   if (!p) return null;
