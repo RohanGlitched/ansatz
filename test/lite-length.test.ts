@@ -125,3 +125,54 @@ test("lite pendulum with a stated length: L is held at it and g measured, not g 
   // the run hands the stated length to the library
   assert.match(readFileSync("lib/experiment.ts", "utf8"), /statedL: m\.series\.ch\.theta \? stated\.l : undefined/);
 });
+
+test("no language chosen ('work it out'): a length in any of the seven languages or scripts is still read", () => {
+  const m = (t: string) => statedLength(t)?.metres;
+  assert.equal(m("धागा ६० सेंटीमीटर का है"), 0.6, "Hindi, Devanagari digits, no language");
+  assert.equal(m("धागा साठ सेंटीमीटर का है"), 0.6, "Hindi number word, no language");
+  assert.equal(m("धागे की लंबाई 60 सेमी"), 0.6);
+  assert.equal(m("धागे की लंबाई 60सेमी"), 0.6, "unit run on to the digits");
+  assert.equal(m("நூல் நீளம் அறுபது சென்டிமீட்டர்"), 0.6, "Tamil");
+  assert.equal(m("நூல் ௬௦ சென்டிமீட்டர்"), 0.6, "Tamil digits");
+  assert.equal(m("সুতোর দৈর্ঘ্য ৬০ সেন্টিমিটার"), 0.6, "Bengali digits");
+  assert.equal(m("दोऱ्याची लांबी साठ सेंटीमीटर"), 0.6, "Marathi");
+  assert.equal(m("దారం పొడవు అరవై సెంటీమీటర్లు"), 0.6, "Telugu");
+  assert.equal(m("la cuerda mide sesenta centímetros"), 0.6, "Spanish");
+  assert.equal(m("धागा एक मीटर का है"), undefined, "no number word for one: nothing invented");
+  // what lite mode does with it: a heard Hindi length on a class link with no language picked
+  assert.deepEqual(liteStatedFacts("pendulum", { heard: "धागा ६० सेंटीमीटर का है" }).map((f) => [f.value, f.unit]), [[60, "cm"]]);
+  // a chosen language still reads as before
+  assert.equal(statedLength("धागा ६० सेंटीमीटर का है", "Hindi")?.metres, 0.6);
+});
+
+test("the string's length beats a size of the bob, wherever each comes in the text", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("the bob is 3 cm wide, string 60 cm"), 0.6);
+  assert.equal(m("the bob is 3 cm wide and the string is 60 cm long"), 0.6);
+  assert.equal(m("a 3 cm bob on a 60 cm string"), 0.6);
+  assert.equal(m("bob diameter 2.5 cm. L = 80cm"), 0.8);
+  assert.equal(m("bob 3 cm, 60 cm"), 0.6, "two lengths, one tied to the bob");
+  assert.equal(m("pendulum with string, 3 cm and 60 cm"), 0.6, "ambiguous with a string named: the larger");
+  assert.equal(m("3 cm and 60 cm"), 0.03, "ambiguous with no string named: the first, as before");
+  assert.equal(m("the bob is 3 cm wide"), undefined, "a size alone is never taken as the string");
+  assert.equal(m("the ball is dropped from 1.2 m"), 1.2, "a drop's height is not a size");
+  assert.equal(m("ball 5 cm wide, dropped from 1.2 m"), 1.2);
+  assert.equal(m("गोलक का व्यास 3 सेमी है, धागा 60 सेमी"), 0.6, "Hindi, no language");
+  assert.equal(m("गोलक का व्यास ३ सेमी और धागे की लंबाई ६० सेमी", "Hindi"), 0.6);
+  assert.equal(m("A4 sheet 29.7 cm, bob 3 cm wide, string 80 cm"), 0.8);
+  assert.deepEqual(liteStatedFacts("pendulum", { typed: "the bob is 3 cm wide, string 60 cm" }).map((f) => f.value), [60]);
+});
+
+test("the Hindi worksheet's own sentences read as the worksheet promises", () => {
+  const sheet = readFileSync("app/lab/sheets.ts", "utf8");
+  // what it tells the student to type in "What do you know?", quoted in the Hindi checklist
+  const typed = /बॉक्स में लिखें \(“([^”]+)”\)/.exec(sheet)?.[1];
+  assert.equal(typed, "the string is 60 cm long");
+  assert.equal(statedLength(typed!)?.metres, 0.6);
+  // and the read-back it promises ("Read as 60 cm")
+  assert.match(sheet, /Read as 60 cm/);
+  // "or say the length while filming, in Hindi or English": with the language menu left at "work it out"
+  assert.match(sheet, /लंबाई बोल भी सकते हैं, हिंदी या अंग्रेज़ी में/);
+  for (const said of ["धागे की लंबाई साठ सेंटीमीटर है", "धागा ६० सेंटीमीटर का है", "लंबाई 60 सेंटीमीटर", "the string is sixty centimetres"])
+    assert.equal(statedLength(said)?.metres, 0.6, said);
+});

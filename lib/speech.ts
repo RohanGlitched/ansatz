@@ -102,48 +102,108 @@ const NATIVE_DIGITS = ["०१२३४५६७८९", "০১২৩৪৫৬�
 const asciiDigits = (s: string) => s.replace(/[०-९০-৯௦-௯౦-౯]/g, (d) => String(NATIVE_DIGITS.find((set) => set.includes(d))!.indexOf(d)));
 
 /**
- * A spoken length in metres, read by code from a transcript: a number (digits in any of the scripts, or a round number
- * in words) followed by a centimetre or metre word in the narrator's language or English. Null when there is none.
+ * The word sets a length is read with: the narrator's language and English, or, when no language was chosen ("Muse
+ * Voice Transcribe should work it out"), all seven (their unit words and number words never disagree: साठ is 60 in
+ * Hindi and Marathi alike), so a Hindi or Tamil length is not dropped for want of a menu choice.
  */
-export function spokenLength(text: string, language?: string): { metres: number; said: string } | null {
-  const sets = [speechOf(language), SPEECH.English].filter((s): s is Speech => !!s);
-  const words = asciiDigits(text).replace(/(\d)\s*(cm|m)\b/gi, "$1 $2").split(/[\s,;:!?।]+/).filter(Boolean);
+const setsFor = (language?: string): Speech[] => {
+  const own = speechOf(language);
+  return own ? [own, SPEECH.English] : VOICE_LANGUAGES.map((l) => SPEECH[l]);
+};
+
+type Hit = { metres: number; said: string; word: number };
+
+/** Every number-then-unit in a run of words, with the index of its number word. */
+function lengthsIn(words: string[], sets: Speech[]): Hit[] {
+  const hits: Hit[] = [];
   for (let i = 0; i < words.length - 1; i++) {
     const w = words[i].replace(/[.)]+$/, "");
     let v = /^\d+(?:[.,]\d+)?$/.test(w) ? Number(w.replace(",", ".")) : NaN;
     if (!Number.isFinite(v)) for (const s of sets) if (w.toLowerCase() in s.numbers) v = s.numbers[w.toLowerCase()];
     if (!Number.isFinite(v)) continue;
     const unit = words[i + 1].replace(/[.)]+$/, "");
-    for (const s of sets) {
-      if (s.cm.test(unit)) return { metres: v / 100, said: `${words[i]} ${words[i + 1]}` };
-      if (s.m.test(unit)) return { metres: v, said: `${words[i]} ${words[i + 1]}` };
-    }
+    const said = `${words[i]} ${words[i + 1]}`;
+    if (sets.some((s) => s.cm.test(unit))) hits.push({ metres: v / 100, said, word: i });
+    else if (sets.some((s) => s.m.test(unit))) hits.push({ metres: v, said, word: i });
   }
-  return null;
+  return hits;
+}
+
+/** Words as the readers split them: native digits made ASCII, "60cm" / "60सेमी" parted, punctuation dropped. */
+const wordsOf = (text: string) => asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").split(/[\s,;:!?।]+/).filter(Boolean);
+
+/**
+ * A spoken length in metres, read by code from a transcript: a number (digits in any of the scripts, or a round number
+ * in words) followed by a centimetre or metre word in the narrator's language or English (in any of the seven when no
+ * language is given). The first in the text; null when there is none.
+ */
+export function spokenLength(text: string, language?: string): { metres: number; said: string } | null {
+  const [hit] = lengthsIn(wordsOf(text), setsFor(language));
+  return hit ? { metres: hit.metres, said: hit.said } : null;
 }
 
 /** Words next to a length that say it is the scale in view, not the thing measured ("A4 sheet 29.7 cm"). */
 const SCALE_WORDS = /^(a4|sheet|paper|card|ruler|scale|stick|kagaz|कागज़?|पन्ना|शीट|पैमाना)$/i;
 
+/** Words that name the thing measured: the string (in the seven languages) or, for a drop, its height. Matched as stems. */
+const STRING_STEMS = [
+  "string", "thread", "rope", "cord", "length", "long", "pendulum", "dhaga", "dhaage", "lambai",
+  "धागा", "धागे", "डोरी", "लंबाई", "लम्बाई", "लंबा", "लोलक",
+  "நூல்", "நூலின்", "நீளம்", "ஊசல்",
+  "সুতো", "সুতোর", "দৈর্ঘ্য", "দোলক",
+  "दोरा", "दोऱ्या", "लांबी", "लंबक",
+  "దారం", "దారము", "పొడవు", "లోలకం",
+  "cuerda", "hilo", "longitud", "largo", "péndulo", "pendulo",
+];
+const HEIGHT_STEMS = ["height", "high", "drop", "fell", "fall", "ऊँचाई", "ऊंचाई", "altura"];
+/** Words that say a length is a size across, or the pendulum's bob (always a size); a ball is one when the text names a string. */
+const SIZE_STEMS = [
+  "wide", "width", "diameter", "radius", "across", "thick", "size",
+  "व्यास", "चौड़", "चौड", "त्रिज्या", "விட்டம்", "ব্যাস", "रुंद", "వ్యాసం", "ancho", "diámetro", "diametro", "radio",
+  "bob", "गोलक", "குண்டு", "গোলক", "గుండు",
+];
+const BODY_STEMS = ["ball", "sphere", "गोला", "गेंद", "பந்து", "বল", "चेंडू", "బంతి", "bola", "pelota"];
+
+const bare = (w: string) => w.toLowerCase().replace(/^[("“'‘]+|[.,()”"'’]+$/g, "");
+const hasStem = (w: string, stems: string[]) => {
+  const b = bare(w);
+  return b === "l" || stems.some((s) => b.startsWith(s));
+};
+const stemOf = (w: string, stems: string[]) => stems.some((s) => bare(w).startsWith(s));
+
 /**
- * The length a person stated (typed or said) for the experiment: every number-then-unit in the text, the scale in view
- * left out (a length with "A4", "sheet", "card" or "ruler" just before it), the first that remains. "L = 60cm" and
- * "string: 0.6 m" read too. Null when there is none.
+ * The length a person stated (typed or said) for the experiment, read by code. Every number-then-unit in the text is a
+ * candidate, the scale in view left out (a length with "A4", "sheet", "card" or "ruler" in the three words before it).
+ * Each is tied to the nearest naming word in its clause (four words before it, three after its unit): a string or
+ * height word makes it the length measured, a size word ("3 cm wide", "diameter", the bob) or, when the text names a
+ * string, a ball makes it a size, never the string. The first length tied to the string wins; failing that, of the lengths
+ * tied to nothing, the larger when the text names a string (a bob is smaller than its string), else the first. A size
+ * alone gives null. "L = 60cm" and "string: 0.6 m" read too. With no language, the seven languages' words all count.
  */
 export function statedLength(text: string, language?: string): { metres: number; said: string } | null {
+  const sets = setsFor(language);
   const clean = text.replace(/[=:~≈]/g, " ");
-  const parts = clean.split(/(?<=[.;।])\s+|[\r\n]+|,\s*/).map((t) => t.trim()).filter(Boolean);
-  for (const part of parts) {
-    // within one clause, a length is skipped when a scale word sits in the three words before it
-    let rest = part;
-    for (let guard = 0; guard < 8; guard++) {
-      const hit = spokenLength(rest, language);
-      if (!hit) break;
-      const at = rest.indexOf(hit.said.split(" ")[0]);
-      const before = (at > 0 ? rest.slice(0, at) : "").split(/\s+/).filter(Boolean).slice(-3);
-      if (!before.some((w) => SCALE_WORDS.test(w.replace(/[.,()]/g, "")))) return hit.metres > 0 ? hit : null;
-      rest = rest.slice(Math.max(0, at) + hit.said.length);
+  const namesString = wordsOf(clean).some((w) => stemOf(w, STRING_STEMS) || bare(w) === "l");
+  const clauses = clean.split(/(?<=[.;।])\s+|[\r\n]+|,\s*/).map((t) => t.trim()).filter(Boolean);
+  const tied: Hit[] = [];
+  const loose: Hit[] = [];
+  for (const clause of clauses) {
+    const words = wordsOf(clause);
+    for (const hit of lengthsIn(words, sets)) {
+      if (!(hit.metres > 0)) continue;
+      const before = words.slice(Math.max(0, hit.word - 3), hit.word);
+      if (before.some((w) => SCALE_WORDS.test(bare(w)))) continue;
+      // the nearest naming word, before (up to four words) or after the unit (up to three); a tie goes to the string
+      let kind: "string" | "size" | null = null;
+      for (let d = 1; d <= 4 && !kind; d++) {
+        const near = [words[hit.word - d], d <= 3 ? words[hit.word + 1 + d] : undefined].filter((w): w is string => !!w);
+        if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
+        else if (near.some((w) => stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS)))) kind = "size";
+      }
+      if (kind === "string") tied.push(hit);
+      else if (!kind) loose.push(hit);
     }
   }
-  return null;
+  const pick = tied[0] ?? (namesString && loose.length > 1 ? loose.reduce((a, b) => (b.metres > a.metres ? b : a)) : loose[0]);
+  return pick ? { metres: pick.metres, said: pick.said } : null;
 }
