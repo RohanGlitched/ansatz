@@ -15,7 +15,7 @@ import { readVideoInfo, type VideoInfo } from "./video";
 import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
-import { driveFrequencyParams, residualPeaks, seedDriveFrequency, spectrumSummary, type ResidualSpectrum } from "./spectrum";
+import { driveFrequencyParams, labelHarmonics, residualPeaks, seedDriveFrequency, spectrumSummary, type ResidualSpectrum } from "./spectrum";
 import { fmtPair } from "./format";
 import { median } from "./median";
 import { lawLatex } from "./latex";
@@ -335,7 +335,15 @@ export function refereePlotSeries(cands: Candidate[], m: Pick<Measured, "series"
 export function spectrumOf(c: Pick<Candidate, "law" | "fit">, m: Pick<Measured, "series" | "noise">, frac = TRAIN): ResidualSpectrum {
   const per = fittedResiduals(c.fit, m, frac);
   const series = Object.fromEntries(Object.entries(per).map(([ch, p]) => [ch, { t: p.t, r: p.r.map((v) => v * noiseOf(m.noise, ch)) }]));
-  return { law: c.law.title, peaks: residualPeaks(series, m.noise, 2) };
+  // peaks at 2ω or 3ω of the motion are labelled harmonics (a nonlinear spring's), never read as a drive
+  return labelHarmonics({ law: c.law.title, peaks: residualPeaks(series, m.noise, 2) }, motionOmega(m, frac));
+}
+
+/** The motion's own frequency: the strongest sinusoid in the measured channels over the fitted frames (no law involved). */
+export function motionOmega(m: Pick<Measured, "series" | "noise">, frac = TRAIN): number | undefined {
+  const n = splitIndex(m.series.t.length, frac);
+  const series = Object.fromEntries(Object.entries(m.series.ch).map(([ch, v]) => [ch, { t: m.series.t.slice(0, n), r: v.slice(0, n) }]));
+  return residualPeaks(series, m.noise, 1)[0]?.omega;
 }
 
 /** The spectrum a drive's frequency starts from: the best fit to the fitted frames among laws with no drive term (any law when all have one). */

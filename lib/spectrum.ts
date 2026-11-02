@@ -16,8 +16,25 @@ export type SpectrumPeak = {
   ampNoise: number;
   /** its amplitude in each channel's own unit (px, m or rad) */
   byChannel: Record<string, number>;
+  /** n when the peak sits within 3% of n times the motion's own frequency (n = 2 or 3): a harmonic of the motion, which
+   * a lopsided (2ω₀) or hardening (3ω₀) spring leaves in the misses of a linear law; not evidence of a drive */
+  harmonic?: number;
 };
-export type ResidualSpectrum = { law: string; peaks: SpectrumPeak[] };
+export type ResidualSpectrum = { law: string; peaks: SpectrumPeak[]; /** the motion's own frequency (rad/s): the strongest in the measured series */ motionOmega?: number };
+
+/** The peaks of a spectrum with each one at 2ω or 3ω of the motion (within 3%) marked as a harmonic. */
+export function labelHarmonics(s: ResidualSpectrum, motionOmega: number | undefined, tol = 0.03): ResidualSpectrum {
+  if (!(motionOmega && motionOmega > 0)) return s;
+  return {
+    ...s,
+    motionOmega,
+    peaks: s.peaks.map((p) => {
+      const n = [2, 3].find((k) => Math.abs(p.omega - k * motionOmega) <= tol * k * motionOmega);
+      const { harmonic: _, ...rest } = p;
+      return n ? { ...rest, harmonic: n } : rest;
+    }),
+  };
+}
 type Chan = { ch: string; t: number[]; r: number[]; noise: number };
 
 /** least-squares a·cos ωt + b·sin ωt + c on one series: the sinusoid's amplitude and its values at the samples */
@@ -95,9 +112,11 @@ export function spectrumSummary(s: ResidualSpectrum | null, units: Record<string
   const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toPrecision(3) : v.toPrecision(2));
   const peaks = s.peaks.map((p, i) => {
     const ch = Object.entries(p.byChannel).map(([c, a]) => `${fmt(a)}${units[c] ? ` ${units[c]}` : ""} in ${c}`).join(", ");
-    return `${i ? "next" : "strongest"} at ω = ${p.omega.toFixed(2)} rad/s (period ${((2 * Math.PI) / p.omega).toFixed(3)} s), amplitude ${fmt(p.ampNoise)} × the noise (${ch})`;
+    const h = p.harmonic ? `: ${p.harmonic}× the motion's own frequency, a harmonic of the motion (expected for a nonlinear spring), not evidence of a drive` : "";
+    return `${i ? "next" : "strongest"} at ω = ${p.omega.toFixed(2)} rad/s (period ${((2 * Math.PI) / p.omega).toFixed(3)} s), amplitude ${fmt(p.ampNoise)} × the noise (${ch})${h}`;
   });
-  return `Residual spectrum of “${s.law}” on the fitted frames (its misses, fitted as sinusoids one at a time, strongest first): ${peaks.join("; ")}.`;
+  const own = s.motionOmega ? ` The motion's own frequency is ${s.motionOmega.toFixed(2)} rad/s.` : "";
+  return `Residual spectrum of “${s.law}” on the fitted frames (its misses, fitted as sinusoids one at a time, strongest first): ${peaks.join("; ")}.${own}`;
 }
 
 /* ─────────────────────── a drive's frequency ─────────────────────── */
@@ -160,7 +179,8 @@ export function driveFrequencyParams(law: Law): { name: string; cycles: boolean 
  * the fit still decides where the frequency ends up.
  */
 export function seedDriveFrequency(law: Law, spectrum: ResidualSpectrum | null): Law | null {
-  const peak = spectrum?.peaks[0];
+  // a harmonic of the motion is not a drive: the start comes from the strongest peak that is not one
+  const peak = spectrum?.peaks.find((p) => !p.harmonic);
   if (!peak || !(peak.omega > 0)) return null;
   const drive = driveFrequencyParams(law);
   if (!drive.length) return null;

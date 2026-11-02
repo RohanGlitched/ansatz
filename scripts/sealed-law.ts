@@ -26,9 +26,9 @@ const DRAND = "https://api.drand.sh";
 /** drand's default (quicknet-free, 30 s) chain: round r is published at GENESIS + (r - 1) * 30 s */
 const GENESIS = 1595431050;
 export const roundTime = (r: number) => new Date((GENESIS + (r - 1) * 30) * 1000).toISOString();
-/** the scoring rule, fixed before any draw (the same rule as sets 1 and 2) */
+/** the scoring rule, fixed before any draw (from set 4 on; sets 1 to 3 were re-scored under it, set 3 named the older rule in its pre-commitment) */
 export const SCORING =
-  "hit: the same term structure as the drawn law (stiffness, damping and drive terms), and each shared constant within its error bar or within 10%; pixel constants converted with the render's own scale; anything else is a miss";
+  "hit: the winner's term set equals the drawn term set (stiffness, damping and drive terms), where a fitted term whose constant is within 2σ of zero counts as absent, and each shared constant is within 2σ of the drawn value; pixel constants converted with the render's own scale; anything else is a miss. Reported apart: drive recall (driven laws found / driven laws drawn) and false-drive rate (undriven laws whose winner carries a drive term more than 2σ from zero)";
 const M = 0.2; // kg; only ratios to it shape the motion
 
 type Beacon = { round: number; randomness: string; signature: string; previous_signature?: string };
