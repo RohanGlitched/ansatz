@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runRequestBody, type RunForm } from "../lib/runRequest";
-import { statedLength } from "../lib/speech";
+import { spokenLength, statedLength } from "../lib/speech";
 import { liteLaws, liteObservation, liteStatedFacts } from "../lib/lite";
 import { narrationForObserver } from "../lib/experiment";
 import { fitLaw } from "../lib/physics/law";
@@ -194,4 +194,28 @@ test("a decimal comma, a release offset and a ruler named after its length are n
   assert.equal(m("bob is 5 cm wide, string 60 cm"), 0.6);
   assert.equal(m("steel ball 2 cm diameter on a 60 cm string"), 0.6);
   assert.deepEqual(liteStatedFacts("pendulum", { heard: "released 10 cm to the side; the string is 60 cm" }).map((f) => f.value), [60]);
+});
+
+test("millimetres and compound number words: 'L = 600 mm', 'sixty-five centimetres', 'one metre twenty'", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("L = 600 mm"), 0.6);
+  assert.equal(m("string 600mm"), 0.6);
+  assert.equal(m("the string is 650 millimetres"), 0.65);
+  assert.equal(m("धागा ६०० मिमी"), 0.6, "Hindi millimetres, no language");
+  assert.equal(m("sixty-five centimetres"), 0.65);
+  assert.equal(m("the string is sixty five centimetres long"), 0.65);
+  assert.equal(m("sesenta y cinco centímetros", "Spanish"), 0.65);
+  assert.equal(m("la cuerda mide veinticinco centímetros"), 0.25);
+  assert.equal(m("five centimetres"), 0.05);
+  assert.equal(m("one metre twenty"), 1.2);
+  assert.equal(m("the string is one metre twenty long"), 1.2);
+  assert.equal(m("a metre"), 1);
+  assert.equal(m("un metro veinte"), 1.2);
+  assert.equal(m("string 1 m 20 cm"), 1.2);
+  assert.equal(m("string 1 m 20 swings"), 1, "a trailing number in digits with no unit is not centimetres");
+  assert.equal(m("length 1 m. 20 students"), 1, "never across a full stop");
+  assert.equal(spokenLength("length 1 m, 3 cm bob", "English")?.metres, 1, "never across a comma");
+  assert.equal(spokenLength("sixty-five centimetres", "English")?.said, "sixty-five centimetres");
+  assert.equal(m("the bob is twenty-five mm wide, string sixty-five centimetres"), 0.65);
+  assert.deepEqual(liteStatedFacts("pendulum", { heard: "the string is one metre twenty" }), [{ quantity: "string length", value: 1.2, unit: "m", said: "one metre twenty (said)" }]);
 });

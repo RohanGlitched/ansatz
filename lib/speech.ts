@@ -27,7 +27,10 @@ const SPEECH: Record<VoiceLanguage, Speech> = {
     release: /\b(releas(e|ing)|let(ting)? (it )?go|dropping|drop it)\b/i,
     cm: /^(cm|centimet(re|er)s?)$/i,
     m: /^(m|met(re|er)s?)$/i,
-    numbers: { ten: 10, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100 },
+    numbers: {
+      one: 1, a: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+      eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90, hundred: 100,
+    },
   },
   Hindi: {
     keywords: ["धागा", "धागे", "लंबाई", "सेंटीमीटर", "मीटर", "छोड़", "छोड़ा", "छोड़ रहा", "लोलक", "chhod", "chhodo", "lambai", "dhaga", "centimeter"],
@@ -69,7 +72,12 @@ const SPEECH: Record<VoiceLanguage, Speech> = {
     release: /\b(suelto|soltar|soltando|lo suelto)\b/i,
     cm: /^(cm|cent[ií]metros?)$/i,
     m: /^(m|metros?)$/i,
-    numbers: { diez: 10, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100 },
+    numbers: {
+      un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10,
+      once: 11, doce: 12, trece: 13, catorce: 14, quince: 15, "dieciséis": 16, diecisiete: 17, dieciocho: 18, diecinueve: 19,
+      veintiuno: 21, "veintidós": 22, "veintitrés": 23, veinticuatro: 24, veinticinco: 25, "veintiséis": 26, veintisiete: 27, veintiocho: 28, veintinueve: 29,
+      veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100,
+    },
   },
 };
 
@@ -111,31 +119,91 @@ const setsFor = (language?: string): Speech[] => {
   return own ? [own, SPEECH.English] : VOICE_LANGUAGES.map((l) => SPEECH[l]);
 };
 
-type Hit = { metres: number; said: string; word: number };
+/** Millimetre words in the seven languages (none contains another language's centimetre or metre word). */
+const MM = /^(mm|millimet(re|er)s?|मिलीमीटर|मिलिमीटर|मिमी|மில்லிமீட்டர்|মিলিমিটার|మిల్లీమీటర్లు|మిల్లీమీటర్|mil[ií]metros?)$/i;
 
-/** Every number-then-unit in a run of words, with the index of its number word. */
+/** A length's number word index (word) and the index just past its last word (end: the unit, or a trailing "twenty"). */
+type Hit = { metres: number; said: string; word: number; end: number };
+
+const tidy = (w: string | undefined) => (w ?? "").replace(/[.)]+$/, "");
+
+/**
+ * The number starting at words[i]: digits (a decimal point or comma), a number word, or a compound of words, "sixty-five",
+ * "sixty five", "sesenta y cinco" (a round ten and a digit). Null when there is none.
+ */
+function numberAt(words: string[], i: number, sets: Speech[]): { v: number; end: number; word: boolean } | null {
+  const w = tidy(words[i]);
+  if (/^\d+(?:[.,]\d+)?$/.test(w)) return { v: Number(w.replace(",", ".")), end: i + 1, word: false };
+  const look = (t: string | undefined) => {
+    const k = tidy(t).toLowerCase();
+    for (const s of sets) if (Object.prototype.hasOwnProperty.call(s.numbers, k)) return s.numbers[k];
+    return undefined;
+  };
+  const isTen = (n: number | undefined): n is number => n !== undefined && n >= 20 && n < 100 && n % 10 === 0;
+  const isDigit = (n: number | undefined): n is number => n !== undefined && n >= 1 && n <= 9;
+  const [a, b, ...more] = w.split("-");
+  if (b !== undefined && !more.length) {
+    const ta = look(a), tb = look(b);
+    return isTen(ta) && isDigit(tb) ? { v: ta + tb, end: i + 1, word: true } : null;
+  }
+  const t = look(w);
+  if (t === undefined) return null;
+  // "a" counts as one only before a unit ("a metre"), never as an article before a number word
+  if (w.toLowerCase() === "a" && look(words[i + 1]) !== undefined) return null;
+  if (isTen(t) && w === words[i]) {
+    const next = look(words[i + 1]);
+    if (isDigit(next)) return { v: t + next, end: i + 2, word: true };
+    const after = look(words[i + 2]);
+    if (/^(y|and)$/i.test(words[i + 1] ?? "") && isDigit(after)) return { v: t + after, end: i + 3, word: true };
+  }
+  return { v: t, end: i + 1, word: true };
+}
+
+/**
+ * Every number-then-unit in a run of words (millimetres, centimetres or metres), with "one metre twenty", "1 m 20 cm"
+ * and "un metro veinte" read whole. A trailing number with no unit is taken only in words, and never across a full stop.
+ */
 function lengthsIn(words: string[], sets: Speech[]): Hit[] {
   const hits: Hit[] = [];
   for (let i = 0; i < words.length - 1; i++) {
-    const w = words[i].replace(/[.)]+$/, "");
-    let v = /^\d+(?:[.,]\d+)?$/.test(w) ? Number(w.replace(",", ".")) : NaN;
-    if (!Number.isFinite(v)) for (const s of sets) if (w.toLowerCase() in s.numbers) v = s.numbers[w.toLowerCase()];
-    if (!Number.isFinite(v)) continue;
-    const unit = words[i + 1].replace(/[.)]+$/, "");
-    const said = `${words[i]} ${words[i + 1]}`;
-    if (sets.some((s) => s.cm.test(unit))) hits.push({ metres: v / 100, said, word: i });
-    else if (sets.some((s) => s.m.test(unit))) hits.push({ metres: v, said, word: i });
+    const n = numberAt(words, i, sets);
+    if (!n || n.end >= words.length) continue;
+    const unit = tidy(words[n.end]);
+    let metres: number;
+    let end = n.end + 1;
+    if (MM.test(unit)) metres = n.v / 1000;
+    else if (sets.some((s) => s.cm.test(unit))) metres = n.v / 100;
+    else if (sets.some((s) => s.m.test(unit))) {
+      metres = n.v;
+      // "one metre twenty", "1 m 20 cm": the centimetres after the metres, unless the unit ended a sentence
+      const more = unit === words[n.end] ? numberAt(words, end, sets) : null;
+      if (more && more.v < 100) {
+        const u2 = tidy(words[more.end]);
+        if (sets.some((s) => s.cm.test(u2))) {
+          metres += more.v / 100;
+          end = more.end + 1;
+        } else if (more.word && !MM.test(u2) && !sets.some((s) => s.m.test(u2))) {
+          metres += more.v / 100;
+          end = more.end;
+        }
+      }
+    } else continue;
+    hits.push({ metres: +metres.toPrecision(12), said: words.slice(i, end).join(" "), word: i, end });
+    i = end - 1;
   }
   return hits;
 }
 
-/** Words as the readers split them: native digits made ASCII, "60cm" / "60सेमी" parted, punctuation dropped, a decimal comma ("0,6") kept. */
+/**
+ * Words as the readers split them: native digits made ASCII, "60cm" / "60सेमी" parted, punctuation dropped, a decimal
+ * comma ("0,6") kept, and any other comma kept as a word of its own so "1 m, 3 cm" is never read as one length.
+ */
 const wordsOf = (text: string) =>
-  asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").split(/[\s;:!?।]+|(?<!\d),|,(?!\d)/).filter(Boolean);
+  asciiDigits(text).replace(/(\d)(?=\p{L})/gu, "$1 ").replace(/(?<!\d),|,(?!\d)/g, " , ").split(/[\s;:!?।]+/).filter(Boolean);
 
 /**
  * A spoken length in metres, read by code from a transcript: a number (digits in any of the scripts, or a round number
- * in words) followed by a centimetre or metre word in the narrator's language or English (in any of the seven when no
+ * in words, "sixty-five" too) followed by a millimetre, centimetre or metre word in the narrator's language or English (in any of the seven when no
  * language is given). The first in the text; null when there is none.
  */
 export function spokenLength(text: string, language?: string): { metres: number; said: string } | null {
@@ -186,7 +254,8 @@ const stemOf = (w: string, stems: string[]) => stems.some((s) => bare(w).startsW
  * the side") or, when the text names a
  * string, a ball makes it a size, never the string. The first length tied to the string wins; failing that, of the lengths
  * tied to nothing, the larger when the text names a string (a bob is smaller than its string), else the first. A size
- * alone gives null. "L = 60cm", "string: 0.6 m" and a decimal comma ("0,6 m") read too. With no language, the seven languages' words all count.
+ * alone gives null. "L = 60cm", "string: 0.6 m", a decimal comma ("0,6 m"), millimetres ("L = 600 mm") and
+ * compound number words ("sixty-five centimetres", "one metre twenty", "un metro veinte") read too. With no language, the seven languages' words all count.
  */
 export function statedLength(text: string, language?: string): { metres: number; said: string } | null {
   const sets = setsFor(language);
@@ -203,8 +272,8 @@ export function statedLength(text: string, language?: string): { metres: number;
       // two after) drops the length, then a string word ties it, then a size or offset word marks it a size
       let kind: "scale" | "string" | "size" | null = null;
       for (let d = 1; d <= 4 && !kind; d++) {
-        const near = [words[hit.word - d], d <= 3 ? words[hit.word + 1 + d] : undefined].filter((w): w is string => !!w);
-        const scale = [d <= 3 ? words[hit.word - d] : undefined, d <= 2 ? words[hit.word + 1 + d] : undefined];
+        const near = [words[hit.word - d], d <= 3 ? words[hit.end - 1 + d] : undefined].filter((w): w is string => !!w);
+        const scale = [d <= 3 ? words[hit.word - d] : undefined, d <= 2 ? words[hit.end - 1 + d] : undefined];
         if (scale.some((w) => w && SCALE_WORDS.test(bare(w)))) kind = "scale";
         else if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
         else if (near.some((w) => stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS)))) kind = "size";
