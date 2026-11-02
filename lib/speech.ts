@@ -211,8 +211,20 @@ export function spokenLength(text: string, language?: string): { metres: number;
   return hit ? { metres: hit.metres, said: hit.said } : null;
 }
 
-/** Words next to a length that say it is the scale in view, not the thing measured ("A4 sheet 29.7 cm"). */
-const SCALE_WORDS = /^(a4|sheet|paper|card|ruler|scale|stick|kagaz|कागज़?|पन्ना|शीट|पैमाना)$/i;
+/**
+ * Words next to a length that say it is the scale in view, not the thing measured ("A4 sheet 29.7 cm", "regla de 30 cm"),
+ * in the seven languages, matched as stems so case endings count (స్కేలు, স্কেলের, पट्टीवर).
+ */
+const SCALE_STEMS = [
+  "a4", "sheet", "paper", "card", "ruler", "scale", "stick", "kagaz", "tape",
+  "कागज", "कागज़", "पन्ना", "शीट", "पैमाना", "स्केल", "रूलर", "रुलर", "पट्टी",
+  "স্কেল", "রুলার", "কাগজ", "পাতা", "শিট",
+  "फूटपट्टी", "कागद",
+  "அளவுகோல்", "ஸ்கேல்", "தாள்", "காகித",
+  "స్కేలు", "స్కేల్", "రూలర్", "కాగిత", "షీట్",
+  "regla", "hoja", "papel", "tarjeta", "folio", "cinta",
+];
+const isScale = (w: string) => SCALE_STEMS.some((s) => bare(w).startsWith(s));
 
 /** Words that name the thing measured: the string (in the seven languages) or, for a drop, its height. Matched as stems. */
 const STRING_STEMS = [
@@ -247,7 +259,7 @@ const stemOf = (w: string, stems: string[]) => stems.some((s) => bare(w).startsW
 
 /**
  * The length a person stated (typed or said) for the experiment, read by code. Every number-then-unit in the text is a
- * candidate, the scale in view left out (a length with "A4", "sheet", "card" or "ruler" in the three words before it or the
+ * candidate, the scale in view left out (a length with "A4", "sheet", "ruler", "regla", "पैमाना" or the like in the three words before it or the
  * two after its unit, "30 cm ruler", unless a string word sits nearer: "a 30 cm ruler beside the 60 cm string").
  * Each is tied to the nearest naming word in its clause (four words before it, three after its unit): a string or
  * height word makes it the length measured, a size or offset word ("3 cm wide", "diameter", the bob, "released 10 cm to
@@ -274,7 +286,7 @@ export function statedLength(text: string, language?: string): { metres: number;
       for (let d = 1; d <= 4 && !kind; d++) {
         const near = [words[hit.word - d], d <= 3 ? words[hit.end - 1 + d] : undefined].filter((w): w is string => !!w);
         const scale = [d <= 3 ? words[hit.word - d] : undefined, d <= 2 ? words[hit.end - 1 + d] : undefined];
-        if (scale.some((w) => w && SCALE_WORDS.test(bare(w)))) kind = "scale";
+        if (scale.some((w) => w && isScale(w))) kind = "scale";
         else if (near.some((w) => hasStem(w, STRING_STEMS) || stemOf(w, HEIGHT_STEMS))) kind = "string";
         else if (near.some((w) => stemOf(w, SIZE_STEMS) || (namesString && stemOf(w, BODY_STEMS)))) kind = "size";
       }

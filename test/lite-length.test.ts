@@ -219,3 +219,19 @@ test("millimetres and compound number words: 'L = 600 mm', 'sixty-five centimetr
   assert.equal(m("the bob is twenty-five mm wide, string sixty-five centimetres"), 0.65);
   assert.deepEqual(liteStatedFacts("pendulum", { heard: "the string is one metre twenty" }), [{ quantity: "string length", value: 1.2, unit: "m", said: "one metre twenty (said)" }]);
 });
+
+test("scale words in the seven languages are skipped like 'ruler' and 'A4'", () => {
+  const m = (t: string, l?: string) => statedLength(t, l)?.metres;
+  assert.equal(m("0,6 metros"), 0.6);
+  assert.equal(m("regla de 30 cm a la vista, cuerda de 60 cm"), 0.6);
+  assert.equal(m("hoja A4 de 29,7 cm, la cuerda mide 0,6 metros", "Spanish"), 0.6);
+  assert.equal(m("regla de 30 cm"), undefined);
+  assert.equal(m("पैमाना 30 सेमी, धागा 60 सेमी"), 0.6, "Hindi पैमाना");
+  assert.equal(m("स्केल 30 सेमी का है और धागा 60 सेमी"), 0.6, "Hindi स्केल");
+  assert.equal(m("30 सेमी रूलर, धागा 60 सेमी"), 0.6, "Hindi रूलर after the number");
+  assert.equal(m("স্কেল ৩০ সেমি, সুতো ৬০ সেমি"), 0.6, "Bengali");
+  assert.equal(m("३० सेमी फूटपट्टी, दोरा ६० सेमी"), 0.6, "Marathi");
+  assert.equal(m("அளவுகோல் 30 செமீ, நூல் 60 சென்டிமீட்டர்"), 0.6, "Tamil");
+  assert.equal(m("స్కేలు 30 సెం.మీ, దారం 60 సెం.మీ"), 0.6, "Telugu");
+  assert.equal(m("A4 शीट 29.7 सेमी"), undefined);
+});
