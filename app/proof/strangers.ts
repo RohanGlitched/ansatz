@@ -13,13 +13,15 @@ export type Stranger = {
   told: string;
   measured: string;
   truth: string;
-  verdict: "measured" | "number right, law wrong" | "miss" | "nothing to check";
+  /** a row with a run page (href) follows that page's rule: a winning law that misses its unseen frames by more than
+   * ROUGH_Z times the noise gets no error bar, so it is never "measured" (test/strangers-verdicts.test.ts checks it) */
+  verdict: "measured" | "about right, no error bar" | "number right, law wrong" | "miss" | "nothing to check";
   note: string;
   /** where the truth is stated, linked beside it */
   sources?: { label: string; href: string }[];
   /** a miss that came from the tracking (SAM 3.1 held the wrong thing, or the track broke), not from the law */
   tracking?: boolean;
-  /** which set of runs: 1 (five clips) or 2 (six more, the same night) */
+  /** which set of runs: 1 (the first five clips) or 2 (six more, the same night) */
   set: 1 | 2;
 };
 
@@ -111,10 +113,10 @@ export const STRANGERS: Stranger[] = [
     whoHref: `${COMMONS}Fadenpendelgeschwindigkeit_(2_grad).webm`,
     licence: "CC BY-SA 4.0",
     told: "“The string is about sixty centimetres long.”",
-    measured: "g = 9.97 ± 2.99 m/s². Clock check: real time, which is right (filmed at 24 fps and stored at 25 with one frame repeated each second).",
+    measured: "g about 10 m/s², no error bar: the law misses the unseen frames by 21× the noise. Earth’s is 9.807. Clock check: real time, roughly, which is right (filmed at 24 fps and stored at 25, with one frame repeated each second).",
     truth: "0.6 m, said on screen; one swing counted on screen as 37 frames of 1/24 s, about 1.54 s (theory 1.554 s).",
-    verdict: "measured",
-    note: "1.7% off, 0.05σ, but the ± is 30%: Muse Spark also took the ruler in view as a scale and guessed it at 30 cm ± 30%, and that guess, not the stated length, sets the error bar. The law only partly fits the swing (21× the noise). Published as an experiment.",
+    verdict: "about right, no error bar",
+    note: "No error bar: the law misses the unseen frames by 21× the noise. Had it fitted, the bar would be ± 0.12 m/s² (± 0.07 from the fit, ± 0.10 from the stated 60 cm if it is good to 1%). The ruler in view does not enter g: with the length held at 60 cm, the swing gives g/L, which does not depend on the scale. Dropping the repeated frame and retiming to 24 fps cuts the miss on the unseen frames from 3.8 to 2.8 mm (21× to 17× the noise), still a rough fit. Published as an experiment.",
     sources: [{ label: "the Commons file", href: `${COMMONS}Fadenpendelgeschwindigkeit_(2_grad).webm` }],
     set: 2,
   },
@@ -193,7 +195,7 @@ export const STRANGERS: Stranger[] = [
 
 const W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 const word = (k: number) => W[k] ?? String(k);
-const count = (v: Stranger["verdict"]) => STRANGERS.filter((r) => r.verdict === v).length;
+const count = (...vs: Stranger["verdict"][]) => STRANGERS.filter((r) => vs.includes(r.verdict)).length;
 /** "eleven clips strangers filmed: two measured, two where the number landed but the law did not, one with no published
  * answer and six misses (four of them tracking failures)", counted from the table */
 export const strangersTally = () => {
@@ -201,11 +203,11 @@ export const strangersTally = () => {
   return {
     n: STRANGERS.length,
     measured: count("measured"),
-    lawWrong: count("number right, law wrong"),
+    lawWrong: count("number right, law wrong", "about right, no error bar"),
     nothing: count("nothing to check"),
     miss,
     tracking: tr,
-    text: `${word(STRANGERS.length)} clips strangers filmed: ${word(count("measured"))} measured, ${word(count("number right, law wrong"))} where the number landed but the law did not, ${word(count("nothing to check"))} with no published answer and ${word(miss)} misses${tr ? ` (${word(tr)} of them tracking failures)` : ""}`,
+    text: `${word(STRANGERS.length)} clips strangers filmed: ${word(count("measured"))} measured, ${word(count("number right, law wrong", "about right, no error bar"))} where the number landed but the law did not, ${word(count("nothing to check"))} with no published answer and ${word(miss)} misses${tr ? ` (${word(tr)} of them tracking failures)` : ""}`,
   };
 };
 export const strangersWord = word;

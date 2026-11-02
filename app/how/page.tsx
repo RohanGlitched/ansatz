@@ -124,7 +124,7 @@ export default async function HowPage() {
         <Note who="Muse Spark 1.3">Writes the laws from the first 70% of the measurement. Ansatz&rsquo;s own parser compiles them; nothing is run as code.</Note>
         <div className={styles.body}>
           <p>
-            Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; no number from the last 30% reaches any model; the observer in step 2 watches the whole clip to describe it, but never sees a measurement) and writes two to four candidate laws as initial-value problems in a small equation language:
+            Muse Spark reads a digest of the first 70% of the measurement (a table of positions, noise levels, whether the path is a circle or a line, what is given; on today&rsquo;s pipeline no number from the last 30% reaches any model; the observer in step 2 watches the whole clip to describe it, but never sees a measurement) and writes two to four candidate laws as initial-value problems in a small equation language:
           </p>
           <div className={styles.eq}>
             <Tex display>{"\\begin{aligned} \\ddot{x} &= -k\\,\\dot{x}\\sqrt{\\dot{x}^2+\\dot{y}^2} \\\\ \\ddot{y} &= -g - k\\,\\dot{y}\\sqrt{\\dot{x}^2+\\dot{y}^2} \\end{aligned}"}</Tex>

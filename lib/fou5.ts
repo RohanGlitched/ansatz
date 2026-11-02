@@ -25,6 +25,8 @@ export type Fou5 = {
   sameFilm: number | null;
   /** the period with no law at all, and the speed-up it gives */
   period: { T: number; sigma: number; crossings: number; speedup: number; lengthM: number } | null;
+  /** the ratio of the real-time stretch's period to the sped-up one's: needs no law, no length and no g */
+  sameFilmPeriod: { ratio: number; sigma: number } | null;
 };
 
 export function fou5Of(fast: Experiment | null | undefined, real?: Experiment | null): Fou5 | null {
@@ -48,6 +50,7 @@ export function fou5Of(fast: Experiment | null | undefined, real?: Experiment | 
     gReal,
     sameFilm: gReal && gFast ? Math.sqrt(gFast / gReal) : null,
     period: pc ? { T: pc.period, sigma: pc.sigma, crossings: pc.crossings, speedup: pc.speedup, lengthM: pc.lengthM } : null,
+    sameFilmPeriod: (pc as { sameFilm?: { ratio: number; sigma: number } } | undefined)?.sameFilm ?? null,
   };
 }
 
@@ -73,3 +76,12 @@ export const fou5Long = (x: Fou5, what = "faster than life") =>
 
 /** "√(242.9 ÷ 9.683) = 5.01×": the reference-free check against the same film's real-time stretch */
 export const fou5SameFilm = (x: Fou5) => (x.sameFilm && x.gReal ? `√(${x.gFast.toFixed(1)} ÷ ${x.gReal.toFixed(3)}) = ${x.sameFilm.toFixed(2)}×` : null);
+
+/**
+ * "4.987 ± 0.007 from the ratio of the two stretches' periods, which needs no law, no length and no g (the two fitted
+ * gravities, both from rough fits, give √(242.4 ÷ 9.683) = 5.00×)": the same-film check led by its law-free figure
+ */
+export const fou5SameFilmLawFree = (x: Fou5) =>
+  x.sameFilmPeriod
+    ? `${x.sameFilmPeriod.ratio.toFixed(3)} ± ${x.sameFilmPeriod.sigma.toFixed(3)}× from the ratio of the two stretches’ periods, which needs no law, no length and no g${fou5SameFilm(x) ? ` (the two fitted gravities, both from rough fits, give ${fou5SameFilm(x)})` : ""}`
+    : fou5SameFilm(x);

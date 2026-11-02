@@ -93,9 +93,15 @@
     order: 3;
     width: 100%;
     margin-left: 0;
-    gap: 18px;
-    overflow-x: auto;
+    gap: 2px 16px;
+    flex-wrap: wrap;
     font-size: 14px;
+  }
+
+  /* five links: each keeps its words together, and the row wraps rather than a label breaking */
+  .nav a {
+    white-space: nowrap;
+    padding-block: 4px;
   }
 
   .cta {

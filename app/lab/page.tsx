@@ -4,7 +4,7 @@ import { Noto_Serif_Devanagari } from "next/font/google";
 import Plate, { Note, Page, Reading, Section } from "@/components/book/Plate";
 import FalsifyPlate from "@/components/book/FalsifyPlate";
 import Tex from "@/components/Tex";
-import { getExperiment, winnerOf } from "@/lib/experiments";
+import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
 import type { Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { printOf } from "@/app/x/prints";
@@ -45,7 +45,9 @@ export default async function LabPage() {
   const exps = (await Promise.all(ids.map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null);
   const by = (id: string) => exps.find((e) => e.id === id);
   const comp = (id: string, param: string) => by(id)?.comparisons.find((c) => c.param === param);
-  const rt = runTime(exps);
+  // how long a run takes, over every published run, as the other pages quote it (not only the runs on this page)
+  const allRuns = (await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null);
+  const rt = runTime(allRuns);
 
   // the pendulum practical: periods, g from L against T², and the seconds pendulum (T = 2 s, so L = g/π²)
   const tapeSigma = Math.hypot(sw.tape.sgScatter, sw.tape.sgTape);
@@ -155,7 +157,7 @@ export default async function LabPage() {
       title: "Film, four lengths",
       body: (
         <>
-          Groups of four, one length each: 40, 60, 80 and 100 cm, measured with the metre scale from the point of suspension to the centre of the bob. A4 sheet on the wall, phone on books, ten swings, the length said aloud. Upload with the class link; class links start in lite mode, where no Muse model is called. Fill Table 1. No phones or no network: use the four stored runs of the series instead.
+          Groups of four, one length each: 40, 60, 80 and 100 cm, measured with the metre scale from the point of suspension to the centre of the bob. A4 sheet on the wall, phone on books, ten swings. Upload with the class link and type the length in the box (or say it aloud while filming); class links start in lite mode: no Muse Spark or Muse Wonder, and Muse Voice Transcribe only listens for a spoken length. Fill Table 1. No phones or no network: use the four stored runs of the series instead.
         </>
       ),
       go: { label: "Make a class link", href: "/class/new" },
@@ -354,11 +356,11 @@ export default async function LabPage() {
             </div>
             <div>
               <dt>The student films</dt>
-              <dd>The bob swinging across the frame, side on, from a phone propped still on books 1.5 to 2 m away, for at least ten swings. A small swing: the bob pulled aside no more than a tenth of the length. Saying the length aloud while filming sets it as a given, quoted in the report, in any of the seven languages.</dd>
+              <dd>The bob swinging across the frame, side on, from a phone propped still on books 1.5 to 2 m away, for at least ten swings. A small swing: the bob pulled aside no more than a tenth of the length. Typing the length in the box when uploading sets it as a given, quoted in the report; saying it aloud while filming works too, in any of the seven languages.</dd>
             </div>
             <div>
               <dt>Tape up</dt>
-              <dd>An A4 sheet, flat on the wall behind the bob, in the plane of the swing: its long side (29.7 cm) is the ruler. Better still, measure L with the metre scale, from the point of suspension to the centre of the bob, and type or say it: the series shows why.</dd>
+              <dd>An A4 sheet, flat on the wall behind the bob, in the plane of the swing: its long side (29.7 cm) is the ruler. Better still, measure L with the metre scale, from the point of suspension to the centre of the bob, and type it in the box (or say it): the series shows why.</dd>
             </div>
             <div>
               <dt>How accurate</dt>

@@ -23,6 +23,8 @@ import { lawHtml, lawTex } from "../lawTex";
 import { LANGUAGES, translation } from "@/lib/translate";
 import { CountUp, Reveal } from "./Reveal";
 import SeriesFigure from "./SeriesFigure";
+import SealedLede from "./SealedLede";
+import { SEALED_ROUNDS } from "@/app/sealed";
 import styles from "./page.module.css";
 
 /**
@@ -262,6 +264,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const rendered = !!credit && /^Rendered\b/.test(credit);
   // real footage that carries published figures (the Foucault films): the title block leads with them, in English
   const realTruth = !rendered && !lang && e.source.kind === "showcase" && e.extras?.truth?.rows.length ? e.extras.truth.rows : null;
+  // a sealed-law run opens on the drawn law against the found one; the referee's summary, written before the reveal, folds away
+  const sealedRun = !lang && SEALED_ROUNDS.includes((e.extras as { sealed?: { round: number } } | undefined)?.sealed?.round ?? -1);
   const video = videoUrl(e);
   const phenomenon = e.observation.phenomenon.charAt(0).toUpperCase() + e.observation.phenomenon.slice(1);
   const rerun = (e as Experiment & { rerun?: { note: string } }).rerun;
@@ -338,10 +342,14 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         <div className={styles.titleGrid}>
           <div className={styles.abstract}>
             {lang && !tr && <p className={styles.untranslated}>That translation would have changed a number, so it isn’t shown. Here is the English.</p>}
-            <p className={styles.lede} lang={trLang}>
-              {prose(tr?.headline ?? e.headline ?? e.finding)}
-            </p>
-            {realTruth ? (
+            {sealedRun ? (
+              <SealedLede e={e} />
+            ) : (
+              <p className={styles.lede} lang={trLang}>
+                {prose(tr?.headline ?? e.headline ?? e.finding)}
+              </p>
+            )}
+            {sealedRun ? null : realTruth ? (
               // real footage with published figures: the figures first, in plain words; the referee's sentence folds away
               <>
                 <ul className={styles.findingList}>

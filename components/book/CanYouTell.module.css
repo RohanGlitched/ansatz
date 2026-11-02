@@ -540,3 +540,59 @@
     transition: none;
   }
 }
+
+/* the right factor on the retimed clips: a second tally, as large as the verdict tally above it */
+.factorTally {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--prussian-line);
+}
+
+.factorTally .factorHead {
+  margin: 0;
+  font-family: var(--ui);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--paper);
+}
+
+.svWord {
+  font-size: clamp(26px, 2.6vw, 34px);
+  color: var(--prussian-ink);
+  padding-top: 0.35em;
+}
+
+.factorNote {
+  margin: 0;
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--prussian-ink);
+}
+
+/* each card's reasons, folded behind "Why" on a phone */
+.why summary {
+  cursor: pointer;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--prussian-ink);
+}
+
+.why .rv small + small {
+  margin-top: 6px;
+}
+
+/* on a phone the factor tally comes first: it is the row only measuring can fill */
+@media (max-width: 600px) {
+  .factorTally {
+    order: -1;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .svWord {
+    font-size: 20px;
+  }
+}

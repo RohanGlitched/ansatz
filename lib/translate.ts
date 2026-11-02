@@ -25,6 +25,9 @@ export type Translation = {
   /** the scale sentence (the calibration note) and the given lines, translated by hand where a showcase report prints them */
   scale?: string;
   given?: string[];
+  /** the run's title and the tracked object's name ("red ball"), which the report prints as its heading and in its method */
+  title?: string;
+  noun?: string;
 };
 
 // Devanagari, Bengali, Tamil and Telugu digits count as the same numbers as 0–9
@@ -59,7 +62,7 @@ export async function translation(e: Experiment, lang: string): Promise<Translat
 
 export async function translate(e: Experiment, lang: string, key?: string): Promise<Translation | null> {
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
-  const source: Translation = { headline: e.headline ?? e.finding, finding: e.finding, what_happens: e.observation.what_happens, summary: win.law.summary };
+  const source = { headline: e.headline ?? e.finding, finding: e.finding, what_happens: e.observation.what_happens, summary: win.law.summary, title: e.title, noun: e.tracking.noun };
   // a page view can start a translation, so it answers to the same daily dollar cap as a run, and its cost is counted
   if ((await spentToday().catch(() => Infinity)) >= DAILY_USD) return null;
   const ledger = new Ledger();
@@ -74,7 +77,7 @@ export async function translate(e: Experiment, lang: string, key?: string): Prom
           content: [
             {
               type: "input_text",
-              text: `Translate these four texts from a physics experiment into ${NAMES[lang]} for a school student. Keep every number, unit and symbol exactly as written (digits, ±, m/s², g, L). Plain, natural ${NAMES[lang]}; physics terms as a ${NAMES[lang]} textbook would write them.\n\n${JSON.stringify(source, null, 1)}`,
+              text: `Translate these six texts from a physics experiment into ${NAMES[lang]} for a school student. Keep every number, unit and symbol exactly as written (digits, ±, m/s², g, L). Plain, natural ${NAMES[lang]}; physics terms as a ${NAMES[lang]} textbook would write them.\n\n${JSON.stringify(source, null, 1)}`,
             },
           ],
         },
@@ -83,15 +86,15 @@ export async function translate(e: Experiment, lang: string, key?: string): Prom
       schema: {
         type: "object",
         additionalProperties: false,
-        required: ["headline", "finding", "what_happens", "summary"],
-        properties: { headline: { type: "string" }, finding: { type: "string" }, what_happens: { type: "string" }, summary: { type: "string" } },
+        required: ["headline", "finding", "what_happens", "summary", "title", "noun"],
+        properties: { headline: { type: "string" }, finding: { type: "string" }, what_happens: { type: "string" }, summary: { type: "string" }, title: { type: "string" }, noun: { type: "string" } },
       },
       maxOutput: 6000,
     },
     ledger,
     `translate to ${NAMES[lang]}`,
   ).finally(counted);
-  for (const k of Object.keys(source) as ("headline" | "finding" | "what_happens" | "summary")[]) {
+  for (const k of Object.keys(source) as (keyof typeof source)[]) {
     const want = numbers(source[k]), got = numbers(value[k] ?? "");
     if (want.some((n) => !got.includes(n))) {
       if (key) await putObject(key, JSON.stringify({ refused: true, at: new Date().toISOString() }), "application/json").catch(() => {});

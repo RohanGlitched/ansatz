@@ -1,7 +1,7 @@
 {
- "generatedAt": "2026-11-01T23:27:33.076Z",
+ "generatedAt": "2026-11-02T01:27:42.917Z",
  "current": "2026-11-02a",
- "note": "Which version of the method made each stored run. The tag is bumped when the method changes in a way that can change results (lib/experiment.ts PIPELINE). No published run was re-made for 2026-11-02a: every record below keeps the tag it was made with, and the pages show it. Records made on 1 to 2 November carry 2026-10-27c because the tag was not bumped then, although parts of the round-12 and round-13 changes were already in the code that made them (see madeWith).",
+ "note": "Which version of the method made each stored run. The tag is bumped when the method changes in a way that can change results (lib/experiment.ts PIPELINE). 7 published runs were made on 2026-11-02a; every other record keeps the tag it was made with, and the pages show it. Records made on 1 to 2 November before the bump carry 2026-10-27c, although parts of the round-12 and round-13 changes were already in the code that made them (see madeWith). Written by scripts/pipelines.ts from the stored records.",
  "versions": [
   {
    "tag": "2026-10-27c",
@@ -16,6 +16,38 @@
  ],
  "runs": [
   {
+   "id": "moon-jump",
+   "file": "data/showcase/moon-jump.json",
+   "createdAt": "2026-10-27T00:51:28.416Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "moon-jump-slowed",
+   "file": "data/showcase/moon-jump-slowed.json",
+   "createdAt": "2026-10-27T00:51:37.302Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "foucault-pendulum",
+   "file": "data/showcase/foucault-pendulum.json",
+   "createdAt": "2026-10-29T04:11:44.020Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "foucault-pendulum-5x",
+   "file": "data/showcase/foucault-pendulum-5x.json",
+   "createdAt": "2026-11-01T22:28:36.295Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "round-12 code and part of round 13 (made 2 Nov 03:58 IST, before f6da584), tag 2026-10-27c"
+  },
+  {
    "id": "aachen-pendulum-50cm",
    "file": "data/showcase/aachen-pendulum-50cm.json",
    "createdAt": "2026-11-01T19:36:51.405Z",
@@ -24,9 +56,97 @@
    "madeWith": "round-12 code (made 2 Nov 01:06 IST, after 1811071), tag 2026-10-27c"
   },
   {
+   "id": "aachen-pendulum-60cm",
+   "file": "data/showcase/aachen-pendulum-60cm.json",
+   "createdAt": "2026-11-01T23:24:24.057Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a: a working tree with uncommitted edits (lib/experiment.ts among them) at 2752b74, later committed as 56b2e88 (05:23 IST, after these runs): the closest committed match, not proven identical; prompts and physics code as at 1811071"
+  },
+  {
    "id": "beach-ball-drag",
    "file": "data/showcase/beach-ball-drag.json",
    "createdAt": "2026-10-27T08:42:50.960Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "hardening-spring",
+   "file": "data/showcase/hardening-spring.json",
+   "createdAt": "2026-10-27T00:00:52.759Z",
+   "pipeline": "before version stamps",
+   "set": "showcase",
+   "madeWith": "before version stamps"
+  },
+  {
+   "id": "dry-friction-spring",
+   "file": "data/showcase/dry-friction-spring.json",
+   "createdAt": "2026-10-27T08:16:49.005Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "sealed-law-6604797",
+   "file": "data/showcase/sealed-law-6604797.json",
+   "createdAt": "2026-11-01T23:30:21.895Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a: a working tree with uncommitted edits (lib/experiment.ts among them) at 2752b74, later committed as 56b2e88 (05:23 IST, after these runs): the closest committed match, not proven identical; prompts and physics code as at 1811071"
+  },
+  {
+   "id": "sealed-law-6604798",
+   "file": "data/showcase/sealed-law-6604798.json",
+   "createdAt": "2026-11-01T23:28:37.635Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a: a working tree with uncommitted edits (lib/experiment.ts among them) at 2752b74, later committed as 56b2e88 (05:23 IST, after these runs): the closest committed match, not proven identical; prompts and physics code as at 1811071"
+  },
+  {
+   "id": "sealed-law-6604796",
+   "file": "data/showcase/sealed-law-6604796.json",
+   "createdAt": "2026-11-01T23:24:05.524Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a: a working tree with uncommitted edits (lib/experiment.ts among them) at 2752b74, later committed as 56b2e88 (05:23 IST, after these runs): the closest committed match, not proven identical; prompts and physics code as at 1811071"
+  },
+  {
+   "id": "sealed-law-6604980",
+   "file": "data/showcase/sealed-law-6604980.json",
+   "createdAt": "2026-11-02T00:52:42.738Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a at 4b94c8b (the tree was clean apart from the hash files 80 s before the run; not re-checked at the start)"
+  },
+  {
+   "id": "sealed-law-6604981",
+   "file": "data/showcase/sealed-law-6604981.json",
+   "createdAt": "2026-11-02T00:53:14.507Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a at 4b94c8b (the tree was clean apart from the hash files 80 s before the run; not re-checked at the start)"
+  },
+  {
+   "id": "sealed-law-6604982",
+   "file": "data/showcase/sealed-law-6604982.json",
+   "createdAt": "2026-11-02T01:00:53.930Z",
+   "pipeline": "2026-11-02a",
+   "set": "showcase",
+   "madeWith": "2026-11-02a at b0fba2a (the same code as 4b94c8b), probably with the uncommitted lite-mode edits later committed as ee54330"
+  },
+  {
+   "id": "hindi-pendulum",
+   "file": "data/showcase/hindi-pendulum.json",
+   "createdAt": "2026-10-27T08:06:39.523Z",
+   "pipeline": "2026-10-27c",
+   "set": "showcase",
+   "madeWith": "2026-10-27c"
+  },
+  {
+   "id": "sample-pendulum",
+   "file": "data/showcase/sample-pendulum.json",
+   "createdAt": "2026-10-27T00:25:58.492Z",
    "pipeline": "2026-10-27c",
    "set": "showcase",
    "madeWith": "2026-10-27c"
@@ -48,57 +168,9 @@
    "madeWith": "2026-10-27c"
   },
   {
-   "id": "dry-friction-spring",
-   "file": "data/showcase/dry-friction-spring.json",
-   "createdAt": "2026-10-27T08:16:49.005Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "foucault-pendulum-5x",
-   "file": "data/showcase/foucault-pendulum-5x.json",
-   "createdAt": "2026-11-01T22:28:36.295Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "round-12 code and part of round 13 (made 2 Nov 03:58 IST, before f6da584), tag 2026-10-27c"
-  },
-  {
-   "id": "foucault-pendulum",
-   "file": "data/showcase/foucault-pendulum.json",
-   "createdAt": "2026-10-29T04:11:44.020Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "hardening-spring",
-   "file": "data/showcase/hardening-spring.json",
-   "createdAt": "2026-10-27T00:00:52.759Z",
-   "pipeline": null,
-   "set": "showcase",
-   "madeWith": "before version stamps"
-  },
-  {
-   "id": "hindi-pendulum",
-   "file": "data/showcase/hindi-pendulum.json",
-   "createdAt": "2026-10-27T08:06:39.523Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "moon-jump-slowed",
-   "file": "data/showcase/moon-jump-slowed.json",
-   "createdAt": "2026-10-27T00:51:37.302Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "moon-jump",
-   "file": "data/showcase/moon-jump.json",
-   "createdAt": "2026-10-27T00:51:28.416Z",
+   "id": "spring",
+   "file": "data/showcase/spring.json",
+   "createdAt": "2026-10-27T08:07:26.429Z",
    "pipeline": "2026-10-27c",
    "set": "showcase",
    "madeWith": "2026-10-27c"
@@ -108,7 +180,7 @@
    "file": "data/showcase/pendulum-100cm.json",
    "createdAt": "2026-10-27T01:36:03.145Z",
    "pipeline": "2026-10-27c",
-   "set": "showcase",
+   "set": "showcase (the pendulum-lengths series)",
    "madeWith": "2026-10-27c"
   },
   {
@@ -116,7 +188,7 @@
    "file": "data/showcase/pendulum-40cm.json",
    "createdAt": "2026-10-27T01:35:58.440Z",
    "pipeline": "2026-10-27c",
-   "set": "showcase",
+   "set": "showcase (the pendulum-lengths series)",
    "madeWith": "2026-10-27c"
   },
   {
@@ -124,7 +196,7 @@
    "file": "data/showcase/pendulum-60cm.json",
    "createdAt": "2026-10-27T01:36:01.205Z",
    "pipeline": "2026-10-27c",
-   "set": "showcase",
+   "set": "showcase (the pendulum-lengths series)",
    "madeWith": "2026-10-27c"
   },
   {
@@ -132,23 +204,7 @@
    "file": "data/showcase/pendulum-80cm.json",
    "createdAt": "2026-10-27T01:36:00.619Z",
    "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "sample-pendulum",
-   "file": "data/showcase/sample-pendulum.json",
-   "createdAt": "2026-10-27T00:25:58.492Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
-   "madeWith": "2026-10-27c"
-  },
-  {
-   "id": "spring",
-   "file": "data/showcase/spring.json",
-   "createdAt": "2026-10-27T08:07:26.429Z",
-   "pipeline": "2026-10-27c",
-   "set": "showcase",
+   "set": "showcase (the pendulum-lengths series)",
    "madeWith": "2026-10-27c"
   },
   {

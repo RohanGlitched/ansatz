@@ -13,7 +13,8 @@ import { plateLaws } from "@/lib/plateLaws";
 import { costText, headline } from "@/lib/headline";
 import { canYouTell, quizSaid } from "./cyt";
 import { strangersTally, strangersWord } from "./proof/strangers";
-import { fou5Long, fou5Of, fou5SameFilm, fou5Short } from "@/lib/fou5";
+import { fou5Long, fou5Of, fou5SameFilmLawFree, fou5Short } from "@/lib/fou5";
+import { isRoughFit } from "@/lib/experiment";
 import type { Experiment } from "@/lib/experiment";
 import styles from "./home.module.css";
 
@@ -27,6 +28,30 @@ const HERO = "hardening-spring";
 /** Small counts in words, as the hook says them ("five times out of five"). */
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const inWords = (n: number) => WORDS[n] ?? String(n);
+
+/**
+ * The gallery's caption for a run whose stored headline is the referee's own wording, which is written before the
+ * truth is known (the sealed laws), or says less than the run measured. Figures are read from the record.
+ */
+function cardCaption(e: Experiment): string {
+  const w = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
+  const g = e.comparisons.find((c) => c.param === "g");
+  const sealed = (e.extras as { sealed?: { verdict: string; drawn: { stiffness: string; damping: string; drive: boolean } } } | undefined)?.sealed;
+  if (e.id === "aachen-pendulum-50cm" && g)
+    return `A stranger’s teaching-workshop film, told only “about 50 cm”: g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², ${Math.abs(g.errorPct).toFixed(2)}% from Earth’s.`;
+  if (e.id === "aachen-pendulum-60cm" && g)
+    return isRoughFit(w.fit)
+      ? `The same workshop’s 60 cm pendulum: g about ${+g.measured.toPrecision(2)} m/s², no error bar (the law misses the unseen swing by ${Math.round(w.fit.testZ ?? NaN)}× the noise); the clock check reads real time, which is right.`
+      : `The same workshop’s 60 cm pendulum: g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²; the clock check reads real time.`;
+  if (sealed) {
+    const drawn = `${sealed.drawn.stiffness === "cubic" ? "a stiffening spring" : "a linear spring"} with ${sealed.drawn.damping === "quadratic" ? "quadratic" : "viscous"} damping${sealed.drawn.drive ? " and a drive" : ""}`;
+    if (sealed.verdict === "miss") return `A law drawn by public randomness, sealed before the run: ${drawn}. Missed: no model proposed the drive; the best law misses by ${Math.round(w.fit.testZ ?? NaN)}× the noise.`;
+    const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];
+    const worst = Math.max(...rows.map((r) => Math.abs(r.measured - r.truth) / r.sigma));
+    return `A law drawn by public randomness, sealed before the run: ${drawn}. Found by ${w.origin === "revision" ? "Muse Wonder" : "Muse Spark’s own law"}, every constant within ${worst <= 1 ? 1 : 2}σ of the drawn value.`;
+  }
+  return e.headline ?? e.finding;
+}
 
 /** The first sentence of a later re-run's note, where the published run has one. */
 const rerunOf = (e: Experiment) => (e as Experiment & { rerun?: { note: string } }).rerun?.note.split(/(?<=\.)\s/)[0];
@@ -76,17 +101,21 @@ export default async function Home() {
                 Shown the slowed Apollo 16 copy on its own, Muse Spark called it real speed {inWords(sparkWrongB)} times out of {inWords(rp?.n ?? 5)}.<a href="#five-of-five" className={styles.fnRef} aria-label="How the five are counted">*</a> Timing it jump for jump against the broadcast, Ansatz measured {hl.jumpForJump.ratio.toFixed(3)} ± {hl.jumpForJump.sigma.toFixed(3)}× slower; the truth was {st?.truth ?? 1.5}×.
               </p>
             )}
+            <a href="#can-you-tell" className={styles.hookCta}>
+              Try the blind test ↓
+            </a>
           </div>
           {moon && slowedCopy && (
             <figure className={`${styles.footage} ${styles.footSheet}`}>
+              <p className={styles.pairQ}>One of these is slowed. Which?</p>
               <div className={styles.clipsWrap}>
                 <Footage
                   className={styles.clips}
                   clipClassName={styles.clip}
                   labelClassName={styles.clipLabel}
                   clips={[
-                    { src: moon.source.video, label: "A." },
-                    { src: slowedCopy.source.video, label: "B. One of these is slowed. Which?" },
+                    { src: moon.source.video, label: "A" },
+                    { src: slowedCopy.source.video, label: "B" },
                   ]}
                 />
                 {clipB && (
@@ -164,10 +193,13 @@ export default async function Home() {
           <div className={styles.cytHead}>
             <p className={styles.cytBridge}>This is one thing a law can tell. The rest of the page is how Ansatz finds the law.</p>
             <h2 className={styles.cytH}>Can you tell?</h2>
-            <p>
-              For each real clip, say whether it plays in real time, slowed or sped up. Muse Spark was shown the same six files with the same question, {inWords(cyt.pub.n)} times each, at low reasoning effort: &ldquo;{cyt.pub.question}&rdquo; Then see what it answered and what Ansatz measured.
-            </p>
-            <p>Two pairs of clips here come from the same film; Muse Spark saw each clip alone, you see them together, so you have an edge.{cyt.answers.parity ? ` Ansatz’s runs of ${inWords(cyt.answers.parity.asked)} of the clips were told a length this page does not give; Muse Spark was asked again with those lengths, and both of its scores are shown with the answers.` : ""}</p>
+            <p>Real time, slowed or sped up? Say it for each clip, then see what Muse Spark answered to the same question, {inWords(cyt.pub.n)} times a clip, and what Ansatz measured.</p>
+            <details className={styles.cytFair}>
+              <summary>How this test is fair</summary>
+              <p>
+                Muse Spark was shown the same six files, each on its own, at low reasoning effort: &ldquo;{cyt.pub.question}&rdquo; Two pairs of clips come from the same film; you see them together, so you have an edge.{cyt.answers.parity ? ` Ansatz’s runs of ${inWords(cyt.answers.parity.asked)} of the clips were told a length this page does not give; Muse Spark was asked again with those lengths, and both of its scores are shown with the answers.` : ""}
+              </p>
+            </details>
           </div>
           <CanYouTell data={cyt.pub} />
         </Plate>
@@ -177,7 +209,7 @@ export default async function Home() {
         {hl.moonClock && fou5Row && (
           <p className={styles.after}>
             Gravity as a clock, worked twice, with no original to compare. From gravity alone against the Moon&rsquo;s known gravity, Ansatz read {hl.moonClock.factor.toFixed(2)} ± {hl.moonClock.sigma.toFixed(2)}× slower on the Apollo copy we slowed {st?.truth ?? 1.5}×. On footage nobody made for us, a museum&rsquo;s Foucault pendulum filmed by Zátonyi Sándor (ifj.) of FizFilm (CC BY 4.0), with a stretch he sped up {+fou5Row.truth.toPrecision(3)}× and labelled on screen (we cropped the label out), it read {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}
-            {fou5x && fou5SameFilm(fou5x) ? `, and ${fou5x.sameFilm!.toFixed(2)}× against the same film’s real-time stretch, with no reference value at all` : ""}. During that run Muse Spark described the swing as playing at real time{fou5Quiz ? `; ${fou5Quiz.said}` : ""}. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
+            {fou5x && fou5SameFilmLawFree(fou5x) ? `, and, against the same film’s real-time stretch with no reference value at all, ${fou5SameFilmLawFree(fou5x)}` : ""}. During that run Muse Spark described the swing as playing at real time{fou5Quiz ? `; ${fou5Quiz.said}` : ""}. <Link href="/x/foucault-pendulum-5x">Open the run</Link>.
           </p>
         )}
         {fou5Row && <Note who="code">Gravity came out 25 times too strong: 5 times too fast, since gravity scales with the square of time.</Note>}
@@ -215,7 +247,7 @@ export default async function Home() {
         <ol className={styles.steps}>
           <li>
             <h3>Watch and listen</h3>
-            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech. Muse Spark watches the whole clip at its own frame rate, up to 300 frames, only to say what to track and when. The call that writes the laws never sees the video: it gets that description and the measurements, and code fits every constant on the first 70% alone, so the last 30% stays a true test.</p>
+            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech. Muse Spark watches the whole clip at its own frame rate, up to 300 frames, only to say what to track and when, which world it is on and how long the ruler in view is (both listed as given, not measured). The call that writes the laws never sees the video: it gets that description in words and the measurements of the first 70% only, and code fits every constant on the first 70% alone, so the last 30% stays a true test.</p>
             {spec && <blockquote className={styles.specimen}>&ldquo;{spec.observation.what_happens.split(". ")[0]}.&rdquo;</blockquote>}
           </li>
           <li>
@@ -243,7 +275,7 @@ export default async function Home() {
           </li>
           <li>
             <h3>Referee, and revise</h3>
-            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run with today&rsquo;s pipeline, the two hand off: Muse Spark&rsquo;s laws used air drag, Muse Spark as referee named dry friction from their residual plot, and Muse Wonder turned it into a law that wins.</p>
+            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run on the benchmarked pipeline (2026-10-27c), the two hand off: Muse Spark&rsquo;s laws used air drag, Muse Spark as referee named dry friction from their residual plot, and Muse Wonder turned it into a law that wins.</p>
             {spec?.wonder && wonderLaw && (
               <div className={styles.specimen}>
                 <ol className={styles.tries}>
@@ -279,7 +311,7 @@ export default async function Home() {
                   <span className={styles.ceq}>
                     <Tex>{tex[tex.length > 1 ? 1 : 0] ?? ""}</Tex>
                   </span>
-                  <span className={styles.cfind}>{e.headline ?? e.finding}</span>
+                  <span className={styles.cfind}>{cardCaption(e)}</span>
                   {/* the card shows the published run; a later re-run that changed the story says so under it */}
                   {rerunOf(e) && <span className="small">{rerunOf(e)}</span>}
                 </Link>
@@ -292,7 +324,7 @@ export default async function Home() {
       <Page>
         <Section n={3} title="Who it is for" id="who">
           <p>
-            <b>A student with a phone.</b> The pendulum, free-fall and projectile practicals need a stopwatch you can&rsquo;t start fast enough. Film the swing, say the string&rsquo;s length in your own language, and get g, the law, the error against the textbook and a lab report to hand in. Film four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.
+            <b>A student with a phone.</b> The pendulum practical (and, in part, the projectile and spring ones) needs a stopwatch you can&rsquo;t start fast enough. Film the swing, say the string&rsquo;s length in your own language, and get g, the law, the error against the textbook and a lab report to hand in. Film four lengths and the <Link href="/series/pendulum-lengths">slope of L against T²</Link> gives g, as the practical asks.
           </p>
           <p className={styles.para}>
             <b>A teacher with forty students.</b> One clip of a throw becomes a lesson in method: three laws on the board, each predicting what happens next, and the class watching which one the data keeps. A <Link href="/class/new">class link</Link> gives the class its own runs for a week and one page with every result (<Link href="/class/demo23">a demo class</Link>).{" "}For tomorrow&rsquo;s class: <Link href="/lab">the Class XI motion practicals mapped to runs, with a worksheet in English and Hindi and a 40-minute lesson</Link>.

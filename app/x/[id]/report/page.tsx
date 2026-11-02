@@ -16,13 +16,16 @@ export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ id: string }>; searchParams?: Promise<{ lang?: string }> };
 
-export async function generateMetadata({ params }: Params): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Params): Promise<Metadata> {
   const { id } = await params;
   const e = await getExperiment(id);
   // a missing record is a real 404, rendered on the server
   if (!e) notFound();
+  // a translated report is titled in its own language, from the translation's title where it carries one
+  const q = (await searchParams)?.lang;
+  const trans = q && LANGUAGES[q] ? await translation(e, q).catch(() => null) : null;
   return {
-    title: `Lab report: ${e.title}`,
+    title: trans?.title ?? `Lab report: ${e.title}`,
     description: `The printable lab report for “${e.title}”: aim, method, observations, the winning law, every constant with its error bar against the known value, and what was given rather than measured, with spaces for a student’s name.`,
     alternates: { canonical: `/x/${e.id}/report` },
   };
@@ -63,7 +66,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
       </div>
       <header className={styles.head}>
         <p className={styles.small}>{t("made_with", { date: new Date(e.createdAt).toISOString().slice(0, 10) })}</p>
-        <h1>{e.title}</h1>
+        <h1>{trans?.title ?? e.title}</h1>
         <div className={styles.student}>
           {[t("name"), t("class"), t("roll"), t("date")].map((f) => (
             <label key={f}>
@@ -81,7 +84,7 @@ export default async function ReportPage({ params, searchParams }: Params) {
 
       <h2>{t("method")}</h2>
       <ol>
-        <li>{t(e.measured.point === "top" ? "method_1_top" : "method_1_centre", { noun: e.tracking.noun })}</li>
+        <li>{t(e.measured.point === "top" ? "method_1_top" : "method_1_centre", { noun: trans?.noun ?? e.tracking.noun })}</li>
         <li>{t("method_2", { n: e.candidates.length, pct: Math.round(e.trainFrac * 100) })}</li>
         <li>{t("method_3", { pct: Math.round((1 - e.trainFrac) * 100) })}</li>
       </ol>

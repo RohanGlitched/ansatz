@@ -29,12 +29,16 @@ export function runTimeText(r: RunTime) {
 /** The longest a run on the site may take (app/api/run/route.ts maxDuration). */
 export const RUN_LIMIT_S = 300;
 
+/** "the real-time Foucault film", "the sealed law of drand round 6604796": a run named in a sentence, not by its long title */
+const shortName = (e: { id: string; title: string }) =>
+  e.id === "foucault-pendulum" ? "the real-time Foucault film" : e.id === "foucault-pendulum-5x" ? "the sped-up Foucault film" : /^sealed-law-(\d+)$/.test(e.id) ? `the sealed law of drand round ${/^sealed-law-(\d+)$/.exec(e.id)![1]}` : e.title;
+
 /** Which published runs took longer than a run on the site may, and that the Foucault films were run offline, from
  * the ledgers: "One published run, …, took 561 s, past the site's 5-minute limit; both Foucault films were run offline." */
 export function offlineText(exps: { id: string; title: string; ledger: { ms: number } }[]) {
   const over = exps.filter((e) => e.ledger.ms / 1000 > RUN_LIMIT_S);
   const fou = exps.filter((e) => e.id.startsWith("foucault-pendulum"));
   const lim = `${RUN_LIMIT_S / 60}-minute limit`;
-  const first = over.length === 0 ? `No published run took longer than the site’s ${lim}` : over.length === 1 ? `One published run, ${over[0].title}, took ${Math.round(over[0].ledger.ms / 1000)} s, past the site’s ${lim}` : `${over.length} published runs took longer than the site’s ${lim} (${over.map((e) => `${Math.round(e.ledger.ms / 1000)} s`).join(", ")})`;
+  const first = over.length === 0 ? `No published run took longer than the site’s ${lim}` : over.length === 1 ? `One published run, ${shortName(over[0])}, took ${Math.round(over[0].ledger.ms / 1000)} s, past the site’s ${lim}` : `${over.length === 2 ? "Two" : over.length} published runs took longer than the site’s ${lim}: ${over.map((e) => `${shortName(e)}, ${Math.round(e.ledger.ms / 1000)} s`).join("; ")}`;
   return `${first}${fou.length ? `; ${fou.length === 2 ? "both Foucault films were" : "the Foucault film was"} run offline, not through the site` : ""}.`;
 }

@@ -30,6 +30,8 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [paused, setPaused] = useState(false);
+  // on a phone each card's reasons start folded, so the six cards and the tally fit in a few screens
+  const [narrow, setNarrow] = useState(false);
   const pausedRef = useRef(false);
   const visible = useRef(new Set<HTMLVideoElement>());
   const box = useRef<HTMLDivElement>(null);
@@ -88,6 +90,7 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
       }
       setLoading(false);
     }
+    setNarrow(window.matchMedia("(max-width: 600px)").matches);
     setShown(true);
     requestAnimationFrame(() => tally.current?.focus());
   };
@@ -153,28 +156,33 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
                     <span className={styles.rk}>Muse Spark, same question</span>
                     <span className={styles.rv}>
                       {a.spark.said} <Mark ok={a.spark.verdict === a.truth.verdict} />
-                      {a.spark.detail && <small>{a.spark.detail}</small>}
-                      {a.spark.quote && <small className={styles.quote}>&ldquo;{a.spark.quote}&rdquo;</small>}
                     </span>
                   </dd>
                   <dd className={styles.row}>
                     <span className={styles.rk}>Ansatz, measured</span>
                     <span className={styles.rv}>
                       {a.ansatz.reading} <Mark ok={a.ansatz.verdict === null ? null : a.ansatz.verdict === a.truth.verdict} />
-                      {a.ansatz.detail && <small>{a.ansatz.detail}</small>}
-                      {a.ansatz.href && (
-                        <small>
-                          <Link href={a.ansatz.href}>Open the run</Link>
-                        </small>
-                      )}
                     </span>
                   </dd>
                   <dd className={`${styles.row} ${styles.truth}`}>
                     <span className={styles.rk}>Truth</span>
-                    <span className={styles.rv}>
-                      {a.truth.factor}
-                      <small>{a.truth.source}</small>
-                    </span>
+                    <span className={styles.rv}>{a.truth.factor}</span>
+                  </dd>
+                  <dd className={styles.row}>
+                    <details className={styles.why} open={!narrow}>
+                      <summary>Why</summary>
+                      <span className={styles.rv}>
+                        {a.spark.detail && <small>Muse Spark: {a.spark.detail}</small>}
+                        {a.spark.quote && <small className={styles.quote}>&ldquo;{a.spark.quote}&rdquo;</small>}
+                        {a.ansatz.detail && <small>Ansatz: {a.ansatz.detail}</small>}
+                        {a.ansatz.href && (
+                          <small>
+                            <Link href={a.ansatz.href}>Open the run</Link>
+                          </small>
+                        )}
+                        <small>Truth: {a.truth.source}</small>
+                      </span>
+                    </details>
                   </dd>
                 </dl>
               )}
@@ -216,26 +224,45 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
             </div>
           </div>
           {open && (
-            <p className={styles.factorRow} aria-hidden="true">
-              <span className={styles.factorHead}>Right factor (within {Math.round(ans.factor.tol * 100)}%) on the {ans.factor.n} retimed clips:</span>{" "}
-              <span>You can&rsquo;t say</span> <span className={styles.dot}>&middot;</span> <span>
-                Muse Spark <b>{ans.factor.spark}/{ans.factor.n}</b>
-                {ans.parity ? ` (${ans.parity.factor.spark}/${ans.parity.factor.n} with the same lengths)` : ""}
-              </span>{" "}
-              <span className={styles.dot}>&middot;</span>{" "}
-              <span>
-                Ansatz <b className={ans.factor.ansatz * 2 > ans.factor.n ? styles.held : undefined}>{ans.factor.ansatz}/{ans.factor.n}</b>
-              </span>
-              <small>
-                {ans.factor.sparkAnswersRight === 0 ? "None" : `${ans.factor.sparkAnswersRight}`} of Muse Spark&rsquo;s {ans.factor.sparkAnswers} answers on those clips {ans.factor.sparkAnswersRight === 1 ? "was" : "were"} within {Math.round(ans.factor.tol * 100)}%.
-              </small>
-            </p>
+            <div className={styles.factorTally} aria-hidden="true">
+              <p className={styles.factorHead}>
+                Right factor, within {Math.round(ans.factor.tol * 100)}%, by majority answer, on the {ans.factor.n} retimed clips
+              </p>
+              <div className={styles.tally}>
+                <div className={styles.score}>
+                  <span className={`${styles.sv} ${styles.svWord}`}>can&rsquo;t say</span>
+                  <span className={styles.sl}>You, by eye</span>
+                </div>
+                <div className={`${styles.score} ${ans.factor.spark * 2 > ans.factor.n ? styles.rightScore : styles.wrongScore}`}>
+                  <span className={styles.sv}>
+                    {ans.factor.spark}
+                    <span className={styles.of}>/{ans.factor.n}</span>
+                  </span>
+                  <span className={styles.sl}>Muse Spark, same question</span>
+                  {ans.parity && (
+                    <span className={styles.slSub}>
+                      {ans.parity.factor.spark}/{ans.parity.factor.n} with the same lengths
+                    </span>
+                  )}
+                </div>
+                <div className={`${styles.score} ${ans.factor.ansatz * 2 > ans.factor.n ? styles.rightScore : styles.wrongScore}`}>
+                  <span className={styles.sv}>
+                    {ans.factor.ansatz}
+                    <span className={styles.of}>/{ans.factor.n}</span>
+                  </span>
+                  <span className={styles.sl}>Ansatz, measured</span>
+                </div>
+              </div>
+              <p className={styles.factorNote}>
+                {ans.factor.sparkAnswersRight === 0 ? "None" : `${ans.factor.sparkAnswersRight}`} of Muse Spark&rsquo;s {ans.factor.sparkAnswers} single answers on those clips {ans.factor.sparkAnswersRight === 1 ? "was" : "were"} within {Math.round(ans.factor.tol * 100)}%; a clip counts by its majority answer.
+              </p>
+            </div>
           )}
           {/* read out when the answers land: the visible scores above are hidden from screen readers in favour of this */}
           <p role="status" aria-live="polite" className={open ? styles.baseline : "visually-hidden"}>
             {open && (
               <>
-                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question, ${ans.spark} of ${N}${ans.parity ? `, and ${ans.parity.spark} of ${N} with the same lengths Ansatz was given` : ""}. Ansatz, measured, ${ans.ansatz} of ${N}. Right factor, within ${Math.round(ans.factor.tol * 100)}%, on the ${ans.factor.n} retimed clips: Muse Spark ${ans.factor.spark} of ${ans.factor.n}, Ansatz ${ans.factor.ansatz} of ${ans.factor.n}. `}</span>
+                <span className="visually-hidden">{`You scored ${you} of ${N}. Muse Spark, asked the same question, ${ans.spark} of ${N}${ans.parity ? `, and ${ans.parity.spark} of ${N} with the same lengths Ansatz was given` : ""}. Ansatz, measured, ${ans.ansatz} of ${N}. Right factor, within ${Math.round(ans.factor.tol * 100)}%, by majority answer, on the ${ans.factor.n} retimed clips: Muse Spark ${ans.factor.spark} of ${ans.factor.n}, Ansatz ${ans.factor.ansatz} of ${ans.factor.n}. `}</span>
                 {ans.baseline}
               </>
             )}

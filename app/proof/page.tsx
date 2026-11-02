@@ -3,6 +3,7 @@ import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
+import { isRoughFit } from "@/lib/experiment";
 import slits from "@/data/slits.json";
 import { median } from "@/lib/median";
 import { plateLaws } from "@/lib/plateLaws";
@@ -17,7 +18,7 @@ import { slowRenders } from "./slow";
 import ContactSheet, { type SheetClip } from "@/components/book/ContactSheet";
 import { printOf } from "../x/prints";
 import { STRANGERS, STRANGERS_RUNS, STRANGERS_RUNS_USD, STRANGERS_WITH_TRANSLATIONS_USD, strangersTally, strangersWord } from "./strangers";
-import { fou5Long, fou5Of, fou5SameFilm } from "@/lib/fou5";
+import { fou5Long, fou5Of, fou5Parts, fou5SameFilm, fou5SameFilmLawFree } from "@/lib/fou5";
 import { quizSaid } from "@/app/cyt";
 import { sealedTest } from "@/app/sealed";
 
@@ -237,7 +238,15 @@ export default async function ProofPage() {
     { id: "pendelgesetz", img: "/prints/real/pendelgesetz.webp", title: "Pendulum before a chalkboard", verdict: "miss", line: "A dark bob on a dark board: SAM 3.1 could not hold it, and Ansatz reported no usable g.", anchor: "#fails" },
     ...(aachen60 ? (() => {
       const g = aachen60.comparisons.find((c) => c.param === "g");
-      return g ? [{ id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "measured" as const, line: `g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², against 9.807: ${Math.abs(g.errorPct).toFixed(1)}% off, with a ${Math.round((g.sigma / g.measured) * 100)}% error bar from Muse Spark’s guess at the ruler. Clock check: real time, which is right.`, href: "/x/aachen-pendulum-60cm" }] : [];
+      // the run page's rule: a winner that misses its unseen frames by more than five times the noise gets no error bar
+      const w = winnerOf(aachen60);
+      return g
+        ? [
+            isRoughFit(w.fit)
+              ? { id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "about right, no error bar" as const, line: `g about ${+g.measured.toPrecision(2)} m/s², no error bar: the law misses the unseen swing by ${Math.round(w.fit.testZ ?? NaN)}× the noise. Earth’s is 9.807. Clock check: real time, roughly, which is right.`, href: "/x/aachen-pendulum-60cm" }
+              : { id: "aachen-pendulum-60cm", img: printOf("aachen-pendulum-60cm"), title: "Pendulum before a ruler, Aachen", verdict: "measured" as const, line: `g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s², against 9.807. Clock check: real time.`, href: "/x/aachen-pendulum-60cm" },
+          ]
+        : [];
     })() : []),
     { id: "pendulum-25cm-04g", img: "/prints/real/pendulum-25cm-04g.webp", title: "Pendulum, 25 cm, at 0.4 g", verdict: "number right, law wrong", line: "With the stated 25 cm, g = 4.58 ± 0.15 m/s² against the caption’s 1.5 s period (4.39); the winning law kept Earth’s g and a 0.54 m length instead.", anchor: "#strangers" },
     { id: "pendulum-5m-wangerooge", img: "/prints/real/pendulum-5m-wangerooge.webp", title: "Pendulum, 5 m, from a promenade wall", verdict: "miss", line: "Tracking: the swing was read at 3.04 s against the true 4.46 s, and a control with no force won.", anchor: "#strangers" },
@@ -356,7 +365,7 @@ export default async function ProofPage() {
         {phone.length > 0 && <Note who="code, against a tape">The truth for each phone clip was measured with a tape before the run and stored with it.</Note>}
 
         <Section n={2} title="Real footage" id="real-footage">
-          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion. Then, on 2 November, <a href="#strangers">five clips strangers filmed</a>, misses included.</p>
+          <p>Rendered clips have exact answers. Real clips don&rsquo;t, so we chose ones whose answers are known some other way: the Moon&rsquo;s gravity, a museum&rsquo;s Foucault pendulum whose length and a sped-up stretch were published with the film, and a pendulum posted online as slow motion. Then, on 2 November, <a href="#strangers">{strangersWord(st2.n)} clips strangers filmed</a>, misses included.</p>
         </Section>
       </Page>
 
@@ -389,7 +398,7 @@ export default async function ProofPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/prints/foucault-pendulum-5x.webp" alt="The same pendulum from a sped-up stretch, frames laid over one another" className={styles.print} loading="lazy" />
                 <span className={styles.fig}>Fig. c. The same pendulum, a stretch sped up 5×</span>
-                <Reading value={`${fou5Row.measured.toFixed(2)}×`} pm={fou5x?.rough ? undefined : (fou5Row.sigma ?? 0).toFixed(2)} tone="measured" label={`how much faster than life it plays, from gravity alone; the filmmaker's label says 5×${fou5x?.rough ? `. Statistical ± ${fou5x.stat.toFixed(2)}; the law misses the unseen frames by ${fou5x.testZ.toFixed(1)}× the noise, so no error bar${fou5x.sameFilm ? `. Against the same film's real-time stretch: ${fou5x.sameFilm.toFixed(2)}×` : ""}` : ""}`} />
+                <Reading value={`${fou5Row.measured.toFixed(2)}×`} pm={fou5x?.rough ? undefined : (fou5Row.sigma ?? 0).toFixed(2)} tone="measured" label={`how much faster than life it plays, from gravity alone; the filmmaker's label says 5×${fou5x?.rough ? `. ${fou5Parts(fou5x)}; no error bar on g, whose law misses the unseen frames by ${fou5x.testZ.toFixed(1)}× the noise${fou5SameFilmLawFree(fou5x) ? `. Against the same film's real-time stretch: ${fou5SameFilmLawFree(fou5x)}` : ""}` : ""}`} />
               </Link>
             )}
             {aachen && aachenG && (
@@ -431,7 +440,7 @@ export default async function ProofPage() {
         )}
         {fou5 && fou5Row && (
           <p className={styles.para}>
-            <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. During the run Muse Spark, watching it, took it as real time (&ldquo;{fou5.observation.slow_motion?.evidence ?? "no sign of slow motion"}&rdquo;){fou5Quiz ? `; ${fou5Quiz.said}` : ""}. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. The label says 5×.{fou5x && fou5SameFilm(fou5x) ? ` A check that needs no reference value: gravity scales as one over time squared, so the ratio of this stretch’s gravity to the real-time stretch’s is the square of the speed-up, ${fou5SameFilm(fou5x)}.` : ""}
+            <b>The same pendulum sped up 5×, caught by gravity alone.</b> Part of the same film plays at five times real speed, and the filmmaker labels it on screen; we cropped the label out before the run. During the run Muse Spark, watching it, took it as real time (&ldquo;{fou5.observation.slow_motion?.evidence ?? "no sign of slow motion"}&rdquo;){fou5Quiz ? `; ${fou5Quiz.said}` : ""}. Measured, the swing implies a gravity 25 times Earth&rsquo;s, and the clock check reads that as a clip playing {fou5x ? fou5Long(fou5x) : `${fou5Row.measured.toFixed(2)}× faster than life`}. The label says 5×.{fou5x && fou5SameFilmLawFree(fou5x) ? ` A check that needs no reference value: against the same film’s real-time stretch, ${fou5SameFilmLawFree(fou5x)}${fou5SameFilm(fou5x) ? " (gravity scales as one over time squared, so the ratio of the two gravities is the square of the speed-up)" : ""}.` : ""}
             {(() => {
               // why 4.97 and not 5: the real-time stretch, timed by its zero crossings, swings a little slow for its stated length
               const rt = fou5?.extras?.periodCheck?.realTime;
@@ -450,7 +459,7 @@ export default async function ProofPage() {
         )}
         {slow?.clock && <Note who="code">Gravity scales with the square of time, so a g that is too weak names the slowdown that would fix it. <Link href="/x/sample-pendulum">Open the run</Link>.</Note>}
         <p className={styles.para} id="strangers">
-          <b>Footage from strangers.</b> Judges asked for footage nobody made for us. On 2 November we took {strangersWord(st2.n)} clips that strangers filmed and published under free licences, in two sets, and ran them through today&rsquo;s pipeline. Ansatz was told only what each maker stated, in the maker&rsquo;s own words (Table 1a quotes them); captions, stopwatches and worked answers were cropped out first. Table 1a shows all {strangersWord(st2.n)}: {st2.text.replace(/^\S+ clips strangers filmed: /, "")}. Most misses are tracking failures: SAM 3.1 held the wrong thing, or the track broke, before any law was tried.
+          <b>Footage from strangers.</b> Judges asked for footage nobody made for us. On 2 November we took {strangersWord(st2.n)} clips that strangers filmed and published under free licences, in two sets, and ran them through the same pipeline as any run. Ansatz was told only what each maker stated, in the maker&rsquo;s own words (Table 1a quotes them); captions, stopwatches and worked answers were cropped out first. Table 1a shows all {strangersWord(st2.n)}: {st2.text.replace(/^\S+ clips strangers filmed: /, "")}. Most misses are tracking failures: SAM 3.1 held the wrong thing, or the track broke, before any law was tried.
         </p>
         <Note who="SAM 3.1, Muse Spark, then code">The same pipeline as any run. {STRANGERS_RUNS} runs in all (the gym ball and the board fall twice each): ${STRANGERS_RUNS_USD.toFixed(2)} in runs (${STRANGERS_WITH_TRANSLATIONS_USD.toFixed(2)} with the two Aachen pages&rsquo; translations).</Note>
         {aachen && aachenG && (
@@ -692,7 +701,14 @@ export default async function ProofPage() {
         {sealed && (
           <>
             <p className={styles.para} id="sealed">
-              <b>Laws nobody chose.</b> We let public randomness choose the law. Each of {sealed.n} drand rounds drew one spring law from a fixed list (linear, cubic or lopsided stiffness; viscous, quadratic or dry damping; a drive half the time), with constants from stated ranges. Each law&rsquo;s SHA-256 was pushed to GitHub before its clip was rendered (<a href={sealed.sealUrl}>commit {sealed.sealCommit}</a>), Ansatz was told only &ldquo;{sealed.narration}&rdquo;, and the laws were revealed after the runs (<a href={sealed.revealUrl}>commit {sealed.revealCommit}</a>). Found {sealed.found} of {sealed.n}.
+              <b>Laws nobody chose: found without a drive, missed with one.</b> {sealed.pattern}
+            </p>
+            <p className={styles.para}>
+              We let public randomness choose the law. Each of {sealed.n} drand rounds drew one spring law from a fixed list (linear, cubic or lopsided stiffness; viscous, quadratic or dry damping; a periodic drive half the time), with constants from stated ranges. Each law&rsquo;s SHA-256 was pushed to GitHub before its clip was rendered, Ansatz was told only &ldquo;{sealed.narration}&rdquo;, and the laws were revealed after the runs ({sealed.sets.map((x, i) => (
+                <span key={x.seal}>
+                  {i ? "; " : ""}rounds {x.rounds[0]}–{x.rounds.at(-1)}: seal <a href={`https://github.com/RohanGlitched/ansatz/commit/${x.seal}`}>{x.seal}</a>, reveal <a href={`https://github.com/RohanGlitched/ansatz/commit/${x.reveal}`}>{x.reveal}</a>
+                </span>
+              ))}). Found {sealed.found} of {sealed.n}.
             </p>
             <ul className={styles.para}>
               {sealed.draws.map((d) => (
@@ -701,6 +717,27 @@ export default async function ProofPage() {
                 </li>
               ))}
             </ul>
+            {sealed.wonderStory && <p className={styles.para}>{sealed.wonderStory}</p>}
+            <p className={styles.para}>
+              <b>An independent check.</b> On 2 November a reviewer outside this repository drew two more laws with the same grammar and re-ran one of ours on the identical clip, with the same scripts and narration (its records are kept with the hackathon&rsquo;s review notes, not here):
+            </p>
+            <ul className={styles.para}>
+              {sealed.independent.map((x) => (
+                <li key={`${x.round}-${x.line.slice(0, 12)}`}>
+                  {x.line} <a href={`https://api.drand.sh/public/${x.round}`}>The drand round</a>.
+                </li>
+              ))}
+            </ul>
+            <p className={styles.para}>
+              <b>What counts as found.</b> {sealed.rule}
+            </p>
+            {sealed.driveNote && <p className={styles.para}>{sealed.driveNote}</p>}
+            <p className={styles.para}>
+              <b>What the seal proves, and what it does not.</b> {sealed.proves}
+            </p>
+            <p className={styles.para}>
+              <b>When each set was sealed.</b> {sealed.timing}
+            </p>
             <Note who="Code, then the same pipeline as any run">Check it yourself: <code>npx tsx scripts/sealed-law.ts verify {sealed.draws[0].round}</code> re-derives a law from its drand round and compares it with the committed hash. ${sealed.usd.toFixed(2)} of runs for the {sealed.n}.</Note>
           </>
         )}
@@ -745,10 +782,10 @@ export default async function ProofPage() {
         {clockc && <Note who="code, from Muse Spark's ruler">The clock check is arithmetic on the fitted gravity; the ruler&rsquo;s size is the one thing it takes from Muse Spark.</Note>}
         {lite && (
           <p className={styles.para}>
-            <b>A lite mode with no language model</b>, measured offline on the same stored runs: the student names the experiment, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
+            <b>A lite mode with no language model</b>, measured offline on the same stored runs: the student names the experiment and types or says the length, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
           </p>
         )}
-        {lite && <Note who="SAM 3.1, then code">No Muse model in this mode. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
+        {lite && <Note who="SAM 3.1, then code">No Muse Spark or Muse Wonder in this mode; Muse Voice Transcribe only listens for a spoken length. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
 
         {s && (
           <Section n={6} title="What each part adds" id="ablation">
