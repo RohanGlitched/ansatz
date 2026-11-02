@@ -1,0 +1,31 @@
+{
+ "batch": "4",
+ "grammar": "ansatz-sealed-law/1",
+ "head": "0b852c8ae655e1248d4102b00688d694ea1b41fc",
+ "tracked_changes_at_precommit": [],
+ "latest_seen": {
+  "round": 6605621,
+  "published": "2026-11-02T06:07:30.000Z",
+  "read_at": "2026-11-02T06:07:36.443Z"
+ },
+ "rounds": [
+  {
+   "round": 6605629,
+   "published": "2026-11-02T06:11:30.000Z",
+   "url": "https://api.drand.sh/public/6605629"
+  },
+  {
+   "round": 6605630,
+   "published": "2026-11-02T06:12:00.000Z",
+   "url": "https://api.drand.sh/public/6605630"
+  },
+  {
+   "round": 6605631,
+   "published": "2026-11-02T06:12:30.000Z",
+   "url": "https://api.drand.sh/public/6605631"
+  }
+ ],
+ "draw": "npx tsx scripts/sealed-law.ts draw --precommit sealed/precommit-4.json (drawLaw in this script at the commit above)",
+ "run": "npx tsx scripts/run.ts sealed/clips/sealed-<round>.mp4 --narration \"a block on a spring, filmed from the side\" --sealed (one run each; refuses a dirty tree)",
+ "scoring": "hit: the winner's term set equals the drawn term set (stiffness, damping and drive terms), where a fitted term whose constant is within 2σ of zero counts as absent, and each shared constant is within 2σ of the drawn value; pixel constants converted with the render's own scale; anything else is a miss. Reported apart: drive recall (driven laws found / driven laws drawn) and false-drive rate (undriven laws whose winner carries a drive term more than 2σ from zero)"
+}
