@@ -33,3 +33,14 @@ const b = j("data/bench/synth.json");
 const all = b.rows.flatMap((r: { checks: { quantity: string; errPct: number }[] }) => r.checks);
 const phys = all.filter((c: { quantity: string }) => !c.quantity.startsWith("scale")), sc = all.filter((c: { quantity: string }) => c.quantity.startsWith("scale"));
 console.log(`Bench: ${b.summary.cases} clips; ${phys.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${phys.length} constants within 5% (median ${median(phys.map((c: { errPct: number }) => Math.abs(c.errPct))).toFixed(2)}%); scales ${sc.filter((c: { errPct: number }) => Math.abs(c.errPct) <= 5).length}/${sc.length}; by eye ${Math.round(b.summary.medianEyeballErrPct)}%`);
+
+// v3.1 additions (Nov 2): the Foucault same-film ratio, the Aachen pendulum, the dry-friction handoff, the slowed copy's clock
+const gw = row(fr, "g")!;
+console.log(`Foucault 5× against the same film's real-time stretch (no reference value): √(${g5.measured.toFixed(2)} ÷ ${gw.measured.toFixed(3)}) = ${Math.sqrt(g5.measured / gw.measured).toFixed(2)}×; clock factor ${f5.clock.factor.toFixed(5)} → ${(1 / f5.clock.factor).toFixed(3)}×`);
+const aa = j("data/showcase/aachen-pendulum-50cm.json"), ag = aa.comparisons.find((c: { param: string }) => c.param === "g");
+console.log(`Aachen pendulum: g = ${ag.measured.toFixed(2)} ± ${ag.sigma.toFixed(2)} m/s² (reference ${ag.reference.toFixed(2)})`);
+const dwin = df.candidates.find((c: { law: { id: string } }) => c.law.id === df.winner);
+const dlead = df.candidates.filter((c: { origin: string; fit: { ok: boolean } }) => c.origin === "muse" && c.fit.ok).sort((a: { rank: number }, b: { rank: number }) => a.rank - b.rank)[0];
+console.log(`Dry friction: Muse Wonder's law misses the unseen frames by ${dwin.fit.testRms.toFixed(3)} px against ${dlead.fit.testRms.toFixed(2)} px for Muse Spark's leading law (${dlead.law.id}): ${(dlead.fit.testRms / dwin.fit.testRms).toFixed(0)}× closer; trigger ${df.wonder.trigger}`);
+const sl = j("data/showcase/moon-jump-slowed.json");
+console.log(`Slowed Apollo copy, from gravity alone: ${sl.clock.factor.toFixed(2)} ± ${sl.clock.sigma.toFixed(2)}× slower (truth 1.5×)`);
