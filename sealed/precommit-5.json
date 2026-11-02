@@ -1,0 +1,31 @@
+{
+ "batch": "5",
+ "grammar": "ansatz-sealed-law/1",
+ "head": "65145864755644d7558624ba7205d49ba9e20a13",
+ "tracked_changes_at_precommit": [],
+ "latest_seen": {
+  "round": 6606490,
+  "published": "2026-11-02T13:22:00.000Z",
+  "read_at": "2026-11-02T13:22:22.759Z"
+ },
+ "rounds": [
+  {
+   "round": 6606498,
+   "published": "2026-11-02T13:26:00.000Z",
+   "url": "https://api.drand.sh/public/6606498"
+  },
+  {
+   "round": 6606499,
+   "published": "2026-11-02T13:26:30.000Z",
+   "url": "https://api.drand.sh/public/6606499"
+  },
+  {
+   "round": 6606500,
+   "published": "2026-11-02T13:27:00.000Z",
+   "url": "https://api.drand.sh/public/6606500"
+  }
+ ],
+ "draw": "npx tsx scripts/sealed-law.ts draw --precommit sealed/precommit-5.json (drawLaw in this script at the commit above)",
+ "run": "npx tsx scripts/run.ts sealed/clips/sealed-<round>.mp4 --narration \"a block on a spring, filmed from the side\" --sealed (one run each; refuses a dirty tree)",
+ "scoring": "hit: the winner's term set equals the drawn term set (stiffness, damping and drive terms), where a fitted term whose constant is within 2σ of zero counts as absent, and each shared constant is within 2σ of the drawn value; pixel constants converted with the render's own scale; a winner with an undefined (NaN) σ on any free constant cannot be scored a hit; anything else is a miss. A second, free oscillation whose damping is within 2σ of zero, at a frequency outside the motion's own band, counts as a drive term. Reported apart: drive recall (driven laws found / driven laws drawn), false-drive rate (undriven laws whose winner carries a drive term more than 2σ from zero, or such an undamped mode), and, for each hit and each drive, whether a model wrote the winning law (Muse Spark or Muse Wonder) or a code move made it (a drive added at an unexplained peak, a recombination, or a term added to the leading law)"
+}
