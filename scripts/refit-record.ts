@@ -12,7 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import ffmpeg from "ffmpeg-static";
-import { clockCheckOf, fillPlaceholders, fitWithRoom, gravityComparison, heldLengthFromRuler, inflateForRuler, isRoughFit, referenceValues, rulerExponents, rulerShare, withScaleCorrection, type Experiment, type RulerFit } from "../lib/experiment";
+import { clockCheckOf, fillPlaceholders, fitWithRoom, gravityComparison, heldLengthFromRuler, inflateForRuler, isRoughFit, referenceValues, rulerShare, withScaleCorrection, type Experiment, type RulerFit } from "../lib/experiment";
 import { compileLaw, fitLaw, noiseScale, splitIndex, type Fit, type Series } from "../lib/physics/law";
 import { localGravity } from "../lib/measure";
 import { median } from "../lib/median";
@@ -60,30 +60,34 @@ function refit(e: Experiment) {
   let changed = false;
   for (const c of e.candidates) {
     const fit = c.fit as RulerFit;
-    // no share was added, or it is already the measured one
-    if (!fit.ok || !fit.rulerAdded || fit.rulerExp) continue;
-    const exp = share.fromRuler ? rulerExponents(c, m.series, lFromRuler) : null;
-    // every length the law holds came from the ruler: the share stands as the run added it
-    if (!exp) continue;
-    // the share the run added: each constant's metre power times the ruler's (and the arc's) relative error
+    // no share was added, or no ruler in view (then the share is metre power by g's spread, as the run added it)
+    if (!fit.ok || !fit.rulerAdded || !share.fromRuler) continue;
+    // the fit's own σ: kept by the run (sigmaFit), or the stored σ with the run's metre-power share taken out (the
+    // run's own covariance, not a re-estimate)
+    const stat: Record<string, number> = { ...fit.sigma };
     const holdsG = obs.body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
     const rel = Math.hypot(share.rulerRel || (holdsG ? share.gRel : 0), arcRel);
-    // the fit's own σ is the stored σ with that share taken out: the run's own covariance, not a re-estimate
-    const sigma: Record<string, number> = { ...fit.sigma };
     for (const p of c.law.params) {
       if (p.fixed) continue;
       const pw = metrePower(p.unit), v = fit.theta[p.name], sd = fit.sigma[p.name];
-      if (pw && Number.isFinite(v) && Number.isFinite(sd)) sigma[p.name] = Math.sqrt(Math.max(0, sd * sd - (Math.abs(pw) * rel * Math.abs(v)) ** 2));
+      if (fit.sigmaFit && p.name in fit.sigmaFit) stat[p.name] = fit.sigmaFit[p.name];
+      else if (pw && Number.isFinite(v) && Number.isFinite(sd)) stat[p.name] = Math.sqrt(Math.max(0, sd * sd - (Math.abs(pw) * rel * Math.abs(v)) ** 2));
     }
-    fit.sigma = sigma;
-    delete fit.rulerAdded;
-    inflateForRuler(c, share, obs.body, arcRel, { series: m.series, heldFromRuler: lFromRuler });
+    const trial = { ...fit, sigma: stat } as RulerFit;
+    for (const k of ["rulerAdded", "sigmaFit", "rulerExp", "sigmaHeld", "statedSens"] as const) delete trial[k];
+    inflateForRuler({ ...c, fit: trial }, share, obs.body, arcRel, { series: m.series, heldFromRuler: lFromRuler, statedL: stated.l });
+    // a record whose σ and stated-length shares come out the same is left exactly as it is
+    const same = c.law.params.every((p) => p.fixed || !Number.isFinite(fit.sigma[p.name]) || Math.abs(trial.sigma[p.name] - fit.sigma[p.name]) <= 1e-9 * Math.abs(fit.sigma[p.name])) && JSON.stringify(trial.statedSens ?? {}) === JSON.stringify(fit.statedSens ?? (fit.rulerExp ? {} : trial.statedSens ?? {}));
+    if (same) continue;
+    c.fit = trial;
     changed = true;
     if (c.law.id === e.winner) {
-      // a check on the subtraction: a warm refit from the stored values, its statistical σ by today's covariance code
+      // a check on the fit-only σ: a warm refit from the stored values, its statistical σ by today's covariance code
       const law = c.fitted ?? c.law, free = compileLaw(law).free;
-      const f = fitLaw(law, m.series, { trainFrac: train, theta0: Float64Array.from(free.map((n) => fit.theta[n])), jackknife: false });
-      if (f.ok) notes.push(`check: a warm refit gives the fit-only σ as ${c.law.params.filter((p) => !p.fixed).map((p) => `${p.name} ${r4(f.sigma[p.name])} (record ${r4(fit.sigmaFit![p.name])})`).join(", ")}`);
+      const f = fitLaw(law, m.series, { trainFrac: train, theta0: Float64Array.from(free.map((n) => trial.theta[n])), jackknife: false });
+      if (f.ok) notes.push(`check: a warm refit gives the fit-only σ as ${c.law.params.filter((p) => !p.fixed).map((p) => `${p.name} ${r4(f.sigma[p.name])} (record ${r4(trial.sigmaFit![p.name])})`).join(", ")}`);
+      if (trial.sigmaHeld) notes.push(`held g's spread: ${Object.entries(trial.sigmaHeld).map(([k, v]) => `${k} ± ${r4(v)}`).join(", ")}`);
+      if (trial.statedSens) notes.push(`moves with the stated length: ${Object.entries(trial.statedSens).map(([k, v]) => `${k} ×${v}`).join(", ")}`);
     }
   }
   if (!changed) return notes;
@@ -172,7 +176,8 @@ function retimed(e: Experiment) {
 
 const summary: string[] = [];
 for (const id of ids.length ? ids : all) {
-  const path = `${DIR}/${id}.json`;
+  // an id names a showcase record; a path ending .json names any record file (a stranger's run kept outside the site)
+  const path = id.endsWith(".json") ? id : `${DIR}/${id}.json`;
   const text = readFileSync(path, "utf8");
   const e = JSON.parse(text) as Experiment;
   const notes = refit(e);

@@ -65,7 +65,8 @@ for (const f of readdirSync(src).filter((x) => x.endsWith(".json")).sort()) {
   const share = rulerShare(e.observation, m.calibration, gUsed);
   // a held length moves with the ruler only when the ruler gave it, as the run decides
   const heldFromRuler = heldLengthFromRuler(e.observation, m.calibration, statedFact ? toMetres(statedFact.value, statedFact.unit) : undefined, fromArc);
-  for (const c of e.candidates) inflateForRuler(c, share, e.observation.body, arcRel, { series: m.series, heldFromRuler });
+  const statedL = statedFact ? toMetres(statedFact.value, statedFact.unit) : fromArc ? m.pivot!.r * k : undefined;
+  for (const c of e.candidates) inflateForRuler(c, share, e.observation.body, arcRel, { series: m.series, heldFromRuler, statedL });
   // the winner's restitution σ: the larger of the sandwich and the leave-one-flight-out jackknife, as the run applies it
   jackknifeLeader(e.candidates, m.series);
   const old = e.winner;

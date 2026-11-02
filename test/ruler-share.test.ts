@@ -48,7 +48,7 @@ test("ruler share: a stated length held while a separate ruler sets the scale gi
   const held = heldLengthFromRuler(obs(0.3, 0.3), cal, L, false);
   assert.equal(held, false, "a 60 cm string before a 30 cm ruler: the ruler did not give the length");
   const sEqStat = c.fit.sigma.s_eq;
-  inflateForRuler(c, share, "earth", 0, { series, heldFromRuler: held });
+  inflateForRuler(c, share, "earth", 0, { series, heldFromRuler: held, statedL: L });
   const f = c.fit as RulerFit;
   // g = ω²L does not move with the ruler; s_eq, a position in metres, moves with it one for one
   assert.equal(f.rulerExp?.g, 0);
@@ -72,9 +72,9 @@ test("ruler share: a length that came from the ruler (the swing's radius, or the
   const stat = c.fit.sigma.g, g = c.fit.theta.g;
   const share = rulerShare(obs(0.297, 0.06), cal, null);
   assert.equal(heldLengthFromRuler(obs(0.297, 0.06), cal, 0.402, true), true);
-  inflateForRuler(c, share, "earth", 0.01, { series, heldFromRuler: true });
+  inflateForRuler(c, share, "earth", 0.01, { series, heldFromRuler: true, statedL: L });
   const f = c.fit as RulerFit;
-  assert.equal(f.rulerExp, undefined, "nothing to measure: the held length scales with the ruler");
+  assert.equal(f.rulerExp?.g, 1, "the held length scales with the ruler, so g does too");
   assert.ok(Math.abs(f.sigma.g - Math.hypot(stat, Math.hypot(share.rulerRel, 0.01) * g)) < 1e-12, "g carries ruler and arc once, as before");
   // Hindi: the 60 cm thread is both the ruler and the length, so g ∝ that one length and carries its 2%
   const h = candidate();
@@ -82,7 +82,7 @@ test("ruler share: a length that came from the ruler (the swing's radius, or the
   const heldH = heldLengthFromRuler(obs(0.6, 0.02), cal, 0.6, false);
   assert.equal(heldH, true);
   const hStat = h.fit.sigma.g;
-  inflateForRuler(h, hs, "earth", 0, { series, heldFromRuler: heldH });
+  inflateForRuler(h, hs, "earth", 0, { series, heldFromRuler: heldH, statedL: 0.6 });
   assert.ok(Math.abs(h.fit.sigma.g - Math.hypot(hStat, hs.rulerRel * h.fit.theta.g)) < 1e-12);
   // and a caller that passes no series gets the old metre-power rule
   const o = candidate();
@@ -91,10 +91,10 @@ test("ruler share: a length that came from the ruler (the swing's radius, or the
   assert.ok(Math.abs(o.fit.sigma.g - Math.hypot(oStat, share.rulerRel * o.fit.theta.g)) < 1e-12);
 });
 
-test("ruler share: rulerExponents is null when the law holds no length off the ruler, and reads a quadratic drag as 1/λ", () => {
+test("ruler share: rulerExponents gives the metre powers when the ruler gave the held length, and reads a quadratic drag as 1/λ", () => {
   // the held length came from the ruler (the swing's radius): every length is the ruler's, so the metre powers stand
   const { law, fitted, fit } = fitWithRoom({ ...sho(false), params: sho(false).params.map((p) => (p.name === "L" ? { ...p, fixed: true } : p)) }, series);
-  assert.ok(rulerExponents({ law, fitted, fit, origin: "muse", rank: 1 }, series, true) === null);
+  assert.deepEqual(rulerExponents({ law, fitted, fit, origin: "muse", rank: 1 }, series, true, L), { g: 1, s_eq: 1 });
   // a damped swing with quadratic drag kq (1/m) and L held: kq scales as 1/λ, g as λ⁰
   const tq = Array.from({ length: 200 }, (_, i) => i / 30);
   const lawQ: Law = {
@@ -149,4 +149,49 @@ test("ruler share: the stored records — Aachen 60 cm no longer carries the rul
   // Aachen 50 cm (no ruler): ± 0.098 is the 1% on the stated 50 cm and the fit's 0.0048
   const b = rec("aachen-pendulum-50cm").comparisons.find((x) => x.param === "g")!;
   assert.ok(Math.abs(b.sigma - 0.0983) < 5e-4);
+});
+
+/* r16: a held g's own spread, and a held length however it is written */
+
+test("ruler share: Earth's g held while a metre rule sets the scale: L = g/ω² carries g's ±0.26%, not the rule's 10% and not nothing (brass-bob run)", () => {
+  // the law holds g at 9.807 and measures L; the rule (10%) cancels from L, Earth's g (±0.26%, latitude unknown) does not
+  const law: Law = { ...sho(false), id: "held-g", params: [{ name: "g", guess: 9.807, unit: "m/s^2", meaning: "gravitational acceleration", fixed: true }, { name: "L", guess: 0.5, min: 0.1, max: 2, unit: "m", meaning: "pendulum length" }, { name: "s_eq", guess: 0, min: -0.1, max: 0.1, unit: "m", meaning: "equilibrium" }] };
+  const r = fitWithRoom(law, series);
+  const c: Candidate = { law: r.law, fitted: r.fitted, fit: r.fit, origin: "muse", rank: 1 };
+  const Lfit = c.fit.theta.L, stat = c.fit.sigma.L;
+  assert.ok(Math.abs(Lfit - (9.807 / 9.81) * L) < 0.002, `L ${Lfit}`);
+  const share = rulerShare(obs(1, 0.1), cal, null);
+  assert.equal(share.gRel, 0.0026);
+  inflateForRuler(c, share, "earth", 0, { series, heldFromRuler: false });
+  const f = c.fit as RulerFit;
+  assert.equal(f.rulerExp?.L, 0, "the rule's scale does not enter L");
+  assert.ok(Math.abs(f.sigmaHeld!.L - 0.0026 * Lfit) < 1e-5, `held share ${f.sigmaHeld?.L}`);
+  assert.ok(f.sigma.L >= Lfit * share.gRel, `σL ${f.sigma.L} under L × gRel`);
+  assert.ok(Math.abs(f.sigma.L - Math.hypot(stat, 0.0026 * Lfit)) < 1e-5);
+  assert.ok(f.sigma.L < 0.01 * Lfit, "and nowhere near the rule's 10%");
+});
+
+test("ruler share: a stated length written into the law as a number, with no unit, in cm, or named r still gives g no ruler share and its 1%", () => {
+  const share = rulerShare(obs(0.3, 0.3), cal, null);
+  const base = sho(true);
+  const variants: [string, Law][] = [
+    ["inline 0.6", { ...base, id: "inline", derivatives: { s: "v", v: "-(g/0.6)*(s - s_eq)" }, params: base.params.filter((p) => p.name !== "L") }],
+    ["L with no unit", { ...base, id: "nounit", params: base.params.map((p) => (p.name === "L" ? { ...p, unit: undefined } : p)) }],
+    ["L in cm", { ...base, id: "cm", derivatives: { s: "v", v: "-(g/(L/100))*(s - s_eq)" }, params: base.params.map((p) => (p.name === "L" ? { ...p, guess: 60, min: 50, max: 70, unit: "cm" } : p)) }],
+    ["named r", { ...base, id: "r", derivatives: { s: "v", v: "-(g/r)*(s - s_eq)" }, params: base.params.map((p) => (p.name === "L" ? { ...p, name: "r", meaning: "radius of swing" } : p)) }],
+  ];
+  for (const [what, law] of variants) {
+    const r = fitWithRoom(law, series);
+    const c: Candidate = { law: r.law, fitted: r.fitted, fit: r.fit, origin: "muse", rank: 1 };
+    const g = c.fit.theta.g, stat = c.fit.sigma.g;
+    assert.ok(Math.abs(g - G) < 0.05, `${what}: g ${g}`);
+    inflateForRuler(c, share, "earth", 0, { series, heldFromRuler: false, statedL: L });
+    const f = c.fit as RulerFit;
+    assert.equal(f.rulerExp?.g, 0, `${what}: g's ruler exponent`);
+    assert.ok(f.sigma.g / g < 0.02, `${what}: σg/g ${f.sigma.g / g}`);
+    assert.equal(f.statedSens?.g, 1, `${what}: g moves with the stated length one for one`);
+    const [cmp] = referenceValues(c.law, c.fit, { ...obs(0.3, 0.3), motion_kind: "swing", stated_facts: [] } as unknown as Observation, null, { l: L }, undefined, { calibration: cal } as never, false);
+    assert.ok(Math.abs(cmp.sigmaAssumed! - 0.01 * g) < 1e-9, `${what}: the 1% on the stated length (${cmp.sigmaAssumed})`);
+    assert.ok(Math.abs(cmp.sigma - Math.hypot(stat, 0.01 * g)) < 1e-9, `${what}: total σ`);
+  }
 });

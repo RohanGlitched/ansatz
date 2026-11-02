@@ -82,7 +82,7 @@ export const STRANGERS: Stranger[] = [
     whoHref: "https://www.youtube.com/watch?v=ZZBGxkgtXN8",
     licence: "YouTube CC BY",
     told: "Nothing. Muse Spark picked a metre rule behind the bob, read as 1 m from its markings, running off the frame; SAM 3.1 read it as 1281 ± 1 px.",
-    measured: "A pendulum with viscous drag fits within the noise: L = 0.716 ± 0.072 m, from the period with g held at Earth’s, so the rule’s scale does not enter it.",
+    measured: "A pendulum with viscous drag fits within the noise: L = 0.716 ± 0.002 m, from the period with g held at Earth’s: the ± is Earth’s g, assumed to ±0.26%; the rule’s scale does not enter it.",
     truth: "Not published: no length, no period.",
     verdict: "nothing to check",
     note: "Nothing to compare with, so it is not counted as a result.",
