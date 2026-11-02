@@ -34,9 +34,9 @@ export type Batch = {
 export const BATCHES: Batch[] = [
   { set: 1, rounds: [6604796, 6604797, 6604798], seal: "2752b74", reveal: "b66261e", sealPushed: "2026-11-01T23:16:15Z", revealPushed: "2026-11-01T23:34:45Z", rendered: "2026-11-01T23:17:32Z", warned: true },
   { set: 2, rounds: [6604980, 6604981, 6604982], seal: "4b94c8b", reveal: "9997e76", sealPushed: "2026-11-02T00:48:11Z", revealPushed: "2026-11-02T01:04:54Z", warned: true },
-  // named before they existed (sealed/precommit-3.json, committed 01:54:44 UTC; the first round published 01:58:30), on
+  // named before they existed (sealed/precommit-3.json, pushed 01:54:47 UTC; the first round published 01:58:30), on
   // the code that made Muse Wonder's drive warning conditional and starts a drive's frequency at the strongest residual peak
-  { set: 3, rounds: [6605123, 6605124, 6605125], seal: "8337791", precommit: { commit: "493e869", at: "2026-11-02T01:54:44Z", code: "edb5c02" }, warned: false },
+  { set: 3, rounds: [6605123, 6605124, 6605125], seal: "8337791", reveal: "3636e41", sealPushed: "2026-11-02T01:59:33Z", revealPushed: "2026-11-02T02:23:36Z", precommit: { commit: "493e869", at: "2026-11-02T01:54:47Z", code: "edb5c02" }, warned: false },
 ];
 /** every sealed round whose run page opens on the sealed result (a round without a record is simply never matched) */
 export const SEALED_ROUNDS = BATCHES.flatMap((b) => b.rounds);
