@@ -108,7 +108,7 @@ test("a peak at 2ω or 3ω of the motion is a harmonic: labelled for the theoris
   assert.equal(labelHarmonics({ law: "x", peaks: [{ omega: 29.0, ampNoise: 5, byChannel: {} }] }, 9.75).peaks[0].harmonic, 3);
   assert.equal(labelHarmonics({ law: "x", peaks: [{ omega: 21.0, ampNoise: 5, byChannel: {} }] }, 9.75).peaks[0].harmonic, undefined, "7.7% off 2ω is not a harmonic");
   const line = spectrumSummary(spec, { y: "px" });
-  assert.match(line, /strongest at ω = 19\.60 rad\/s.*a harmonic of the motion \(expected for a nonlinear spring\), not evidence of a drive/);
+  assert.match(line, /strongest at ω = 19\.60 rad\/s.*a harmonic of the motion, not evidence of a drive; a 2ω₀ line is the mark of an even \(lopsided, asymmetric, x²\) nonlinearity/);
   assert.match(line, /The motion's own frequency is 9\.75 rad\/s/);
   const driven: Law = { id: "d", title: "d", summary: "", state: ["s", "v"], observe: { y: "s" }, derivatives: { s: "v", v: "-w0^2*s + F0*cos(wd*t)" }, params: [{ name: "w0", guess: 9, unit: "rad/s" }, { name: "F0", guess: 1, unit: "m/s^2" }, { name: "wd", guess: 10, min: 1, max: 30, unit: "rad/s" }] };
   assert.equal(seedDriveFrequency(driven, spec)!.params.find((p) => p.name === "wd")!.guess, 15.2, "the start skips the harmonic");
