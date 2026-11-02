@@ -27,7 +27,8 @@ export type ResultTile = {
 
 export type FirstScreen = {
   tiles: ResultTile[];
-  /** "9 laws drawn by public randomness: 3 found, all 5 driven ones missed, published" */
+  /** the sealed test's computed headline (app/sealed.ts): what was found, the driven laws, what the spectrum tool changed,
+   * the replicate; `drives` is the short form for places with one clause of room */
   sealed: { n: number; found: number; driven: number; drivenFound: number; drives: string; text: string } | null;
 };
 
@@ -89,8 +90,8 @@ export async function firstScreen(): Promise<FirstScreen> {
   if (sealed) {
     const driven = sealed.sets.reduce((t, s) => t + s.driven, 0);
     const drivenFound = sealed.sets.reduce((t, s) => t + s.drivenFound, 0);
-    const drives = drivenFound === 0 ? `all ${driven} driven ones missed` : drivenFound === driven ? `all ${driven} driven ones found` : `${drivenFound} of ${driven} driven ones found`;
-    line = { n: sealed.n, found: sealed.found, driven, drivenFound, drives, text: `${sealed.n} laws drawn by public randomness: ${sealed.found} found, ${drives}, published` };
+    const drives = drivenFound === 0 ? `none of the ${driven} driven ones found in full` : drivenFound === driven ? `all ${driven} driven ones found` : `${drivenFound} of ${driven} driven ones found`;
+    line = { n: sealed.n, found: sealed.found, driven, drivenFound, drives, text: sealed.headline.replace(/\.$/, "") };
   }
   return { tiles, sealed: line };
 }

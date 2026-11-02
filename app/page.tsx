@@ -32,7 +32,7 @@ export const revalidate = 600;
 const HERO = "hardening-spring";
 
 /** Small counts in words, as the hook says them ("five times out of five"). */
-const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
 const inWords = (n: number) => WORDS[n] ?? String(n);
 
 /**
@@ -285,7 +285,7 @@ export default async function Home() {
         <ol className={styles.steps}>
           <li>
             <h3>Watch and listen</h3>
-            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech. Muse Spark watches the whole clip at its own frame rate, up to 300 frames, only to say what to track and when, which world it is on and how long the ruler in view is (both listed as given, not measured). The call that writes the laws never sees the video: it gets that description in words and the measurements of the first 70% only, and code fits every constant on the first 70% alone, so the last 30% stays a true test.</p>
+            <p>Muse Voice Transcribe hears what was said while filming, in seven languages, tested on synthetic speech; in lite mode a length said aloud sets the scale (two published lite runs, synthetic voices: <Link href="/x/voice-lite-aachen-50cm-hindi">Hindi</Link>, <Link href="/x/voice-lite-pendulum-40cm-english">English</Link>). Muse Spark watches the whole clip at its own frame rate, up to 300 frames, only to say what to track and when, which world it is on and how long the ruler in view is (both listed as given, not measured). The call that writes the laws never sees the video: it gets that description in words and the measurements of the first 70% only, and code fits every constant on the first 70% alone, so the last 30% stays a true test.</p>
             {spec && <blockquote className={styles.specimen}>&ldquo;{spec.observation.what_happens.split(". ")[0]}.&rdquo;</blockquote>}
           </li>
           <li>
@@ -334,7 +334,7 @@ export default async function Home() {
         <Note who="Who did what">SAM 3.1 measured. Muse Spark watched, proposed and refereed. Muse Wonder proposed when every law missed. Code fitted, predicted and ranked; no model picks the winner.</Note>
         {sealed && (
           <p className={styles.para}>
-            <b>Laws nobody chose.</b> Public randomness (drand) drew {inWords(sealed.n)} spring laws for the gallery below, each hash pushed to GitHub before its clip was rendered, and Ansatz was told only &ldquo;{sealed.narration}&rdquo;. {sealed.foundText}: {sealed.title}. Every draw, the rule for &ldquo;found&rdquo; and what the seal does not prove: <Link href="/proof#sealed">Proof, laws nobody chose</Link>.
+            <b>Laws nobody chose.</b> Public randomness (drand) drew {inWords(sealed.n)} spring laws for the gallery below, each hash pushed to GitHub before its clip was rendered, and Ansatz was told only &ldquo;{sealed.narration}&rdquo;. {sealed.foundText}; {sealed.title}. Every draw, the rule for &ldquo;found&rdquo; and what the seal does not prove: <Link href="/proof#sealed">Proof, laws nobody chose</Link>.
           </p>
         )}
       </Page>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getExperiment, showcaseIds, winnerOf } from "@/lib/experiments";
-import { isRoughFit } from "@/lib/experiment";
+import { isRoughFit, type Experiment } from "@/lib/experiment";
 import slits from "@/data/slits.json";
 import { median } from "@/lib/median";
 import { plateLaws } from "@/lib/plateLaws";
@@ -21,6 +21,7 @@ import { STRANGERS, STRANGERS_RUNS, STRANGERS_RUNS_USD, STRANGERS_WITH_TRANSLATI
 import { fou5Long, fou5Of, fou5Parts, fou5SameFilm, fou5SameFilmLawFree } from "@/lib/fou5";
 import { canYouTell, quizSaid } from "@/app/cyt";
 import { sealedTest } from "@/app/sealed";
+import { voiceLite } from "@/app/voiceLite";
 import { fmtAbout } from "@/lib/format";
 import { pipelineName } from "@/app/pipelineWords";
 
@@ -169,7 +170,11 @@ export default async function ProofPage() {
   // home page's blind test (the speed question itself); both answers are named, from their own records
   const gymQuiz = quizSaid("gym-ball-bounce-240fps");
   const sealed = await sealedTest().catch(() => null);
+  // the two published lite runs where Muse Voice Transcribe set the length (synthetic voices), read from their records
+  const voiceRuns = await voiceLite().catch(() => null);
   const aachen60 = await getExperiment("aachen-pendulum-60cm").catch(() => null);
+  // the third set's two promoted strangers' clips, stamped on the contact sheet from their records
+  const promoted3 = (await Promise.all(["thinktac-pendulum-60cm", "rosolowsky-pendulum-27in"].map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null);
   const st2 = strangersTally();
   const fou5Quiz = quizSaid("foucault-pendulum-5x");
   // the blind test's baseline re-asked at medium effort (Ansatz's observer's), all six clips with the runs' lengths
@@ -254,6 +259,19 @@ export default async function ProofPage() {
           ]
         : [];
     })() : []),
+    // the third set: the two promoted clips by the run page's rule (no error bar past 5× the noise), the other three from Table 1a
+    ...promoted3.flatMap((e): SheetClip[] => {
+      const g = e.comparisons.find((c) => c.param === "g");
+      const w = winnerOf(e);
+      const title = e.id.startsWith("thinktac") ? "Ring-magnet pendulum, 60 cm (ThinkTac)" : "Pendulum, 27 inches (PHYS124)";
+      if (!g) return [];
+      return isRoughFit(w.fit)
+        ? [{ id: e.id, img: printOf(e.id), title, verdict: "number right, law wrong" as const, line: `g about ${fmtAbout(g.measured)} m/s² (${Math.abs(g.errorPct).toFixed(1)}% off), no error bar: the law misses the unseen frames by ${(w.fit.testZ ?? NaN).toFixed(2)}× the noise, just over the 5× line. Clock check: real time.`, href: `/x/${e.id}` }]
+        : [{ id: e.id, img: printOf(e.id), title, verdict: "measured" as const, line: `g = ${g.measured.toFixed(3)} ± ${g.sigma.toFixed(3)} m/s², against 9.807 (the 60 cm runs to the knot; the magnet’s centre hangs a little lower). Clock check: real time.`, href: `/x/${e.id}` }];
+    }),
+    { id: "pendulum-40cm-physagreg-200g", img: "/prints/real/pendulum-40cm-physagreg-200g.webp", title: "Pendulum, 40 cm, 200 g hanger", verdict: "number right, law wrong", line: "g about 10.0 m/s², 2.1% off, no error bar: the law misses the unseen frames by 9.7× the noise, so the publish gate refused it.", anchor: "#strangers" },
+    { id: "pendulum-40cm-physagreg-100g", img: "/prints/real/pendulum-40cm-physagreg-100g.webp", title: "Pendulum, 40 cm, 100 g hanger", verdict: "miss", line: "Tracking: the mask slipped; g about 12 m/s², 21.6% high, and the clock check wrongly called the clip 1.1× fast.", anchor: "#strangers" },
+    { id: "pendulum-35cm-muskopf", img: "/prints/real/pendulum-35cm-muskopf.webp", title: "Pendulum, 35 cm, a washer from above", verdict: "miss", line: "Foreshortened from above, the washer blurring mid-swing: g about 8.7 m/s², 11.4% low, no error bar.", anchor: "#strangers" },
     { id: "pendulum-25cm-04g", img: "/prints/real/pendulum-25cm-04g.webp", title: "Pendulum, 25 cm, at 0.4 g", verdict: "miss", line: "Laws holding the stated 25 cm gave g about 4.6 m/s² (the caption’s 1.5 s period means 4.39), but they lost; the winning law kept Earth’s g and a 0.54 m length, so it checks nothing.", anchor: "#strangers" },
     { id: "pendulum-5m-wangerooge", img: "/prints/real/pendulum-5m-wangerooge.webp", title: "Pendulum, 5 m, from a promenade wall", verdict: "miss", line: "Tracking: the swing was read at 3.04 s against the true 4.46 s, and a control with no force won.", anchor: "#strangers" },
     { id: "toss-60cm-10x", img: "/prints/real/toss-60cm-10x.webp", title: "Ball tossed up, 10× slow motion", verdict: "miss", line: "Tracking: slow motion made by repeating frames left 20 usable points.", anchor: "#strangers" },
@@ -465,9 +483,9 @@ export default async function ProofPage() {
         )}
         {slow?.clock && <Note who="code">Gravity scales with the square of time, so a g that is too weak names the slowdown that would fix it. <Link href="/x/sample-pendulum">Open the run</Link>.</Note>}
         <p className={styles.para} id="strangers">
-          <b>Footage from strangers.</b> Judges asked for footage nobody made for us. On 2 November we took {strangersWord(st2.n)} clips that strangers filmed and published under free licences, in two sets, and ran them through the same pipeline as any run. Ansatz was told only what each maker stated, in the maker&rsquo;s own words (Table 1a quotes them); captions, stopwatches and worked answers were cropped out first. Table 1a shows all {strangersWord(st2.n)}: {st2.text.replace(/^\S+ clips strangers filmed: /, "")}. Most misses are tracking failures: SAM 3.1 held the wrong thing, or the track broke, before any law was tried.
+          <b>Footage from strangers.</b> Judges asked for footage nobody made for us. On 2 November we took {strangersWord(st2.n)} clips that strangers filmed and published under free licences, in three sets, and ran them through the same pipeline as any run. Ansatz was told only what each maker stated, in the maker&rsquo;s own words (Table 1a quotes them); captions, stopwatches and worked answers were cropped out first. Table 1a shows all {strangersWord(st2.n)}: {st2.text.replace(/^\S+ clips strangers filmed: /, "")}. Most misses are tracking failures: SAM 3.1 held the wrong thing, or the track broke, before any law was tried.
         </p>
-        <Note who="SAM 3.1, Muse Spark, then code">The same pipeline as any run. {STRANGERS_RUNS} runs in all (the gym ball and the board fall twice each): ${STRANGERS_RUNS_USD.toFixed(2)} in runs (${STRANGERS_WITH_TRANSLATIONS_USD.toFixed(2)} with the two Aachen pages&rsquo; translations).</Note>
+        <Note who="SAM 3.1, Muse Spark, then code">The same pipeline as any run. {STRANGERS_RUNS} runs in all (the gym ball and the board fall twice each): ${STRANGERS_RUNS_USD.toFixed(2)} in runs (${STRANGERS_WITH_TRANSLATIONS_USD.toFixed(2)} with the four published pages&rsquo; translations, the last two estimated).</Note>
         {aachen && aachenG && (
           <p className={styles.para}>
             <b>The headline: a stranger&rsquo;s pendulum on black.</b> Rhetos of the Mathe-AC Lernwerkstatt Aachen filmed a grey metal bob on a yellow string against black (&ldquo;Schwingung (Definition)&rdquo;, CC BY-SA 4.0). It is the same source whose chalkboard clip defeated SAM 3.1 on 29 October (§8). Told only &ldquo;the string is about fifty centimetres long&rdquo;, Ansatz measured g = {aachenG.measured.toFixed(2)} ± {aachenG.sigma.toFixed(2)} m/s² against 9.81: {Math.abs(aachenG.errorPct).toFixed(2)}% off, {aachenG.withinSigma.toFixed(1)}σ. The error bar assumes the stated length is good to 1%. The clock check read real time. The film has its own stopwatch, which we cropped out before the run: it times a swing at about 1.42 s, and theory gives 1.418 s.
@@ -682,6 +700,18 @@ export default async function ProofPage() {
             <b>Muse Voice Transcribe, in each language.</b> A spoken string length and a &ldquo;let go&rdquo; word, in synthetic voices: the length heard and parsed right in {voice.summary.lengthChecked} of {voice.summary.languages} languages (Bengali misheard &ldquo;seventy&rdquo;), the let-go word heard in {voice.summary.releaseHeard} of {voice.summary.languages}. Real speakers are still to be tested.
           </p>
         )}
+        {voiceRuns && (
+          <p className={styles.para}>
+            <b>Muse Voice Transcribe set the length in two published lite runs.</b> No Muse Spark and nothing typed, so the length could only come from the transcript. {voiceRuns.runs.map((x, i) => (
+              <span key={x.id}>
+                {i ? " " : ""}
+                {x.language} over {x.clip}: heard &ldquo;{x.heard.replace(/\.$/, "")}&rdquo;, read as {x.length}, {x.g}
+                {x.full ? `; ${x.full}` : ""} (<Link href={x.href}>the run</Link>).
+              </span>
+            ))}{" "}
+            {voiceRuns.usdText} a run (synthetic voice, labelled on each run).
+          </p>
+        )}
         {refb && wonb && voice && <Note who="Muse Voice Transcribe">Synthetic voices only. A real speaker in each language is still to be tested.</Note>}
         {refb && wonb && (
           <p className={styles.para}>
@@ -707,7 +737,10 @@ export default async function ProofPage() {
         {sealed && (
           <>
             <p className={styles.para} id="sealed">
-              <b>Laws nobody chose: {sealed.title}.</b> {sealed.pattern}
+              <b>Laws nobody chose: {sealed.title}.</b> {sealed.headline}
+            </p>
+            <p className={styles.para}>
+              <b>Set by set.</b> {sealed.pattern}
             </p>
             <p className={styles.para}>
               We let public randomness choose the law. Each of {sealed.n} drand rounds drew one spring law from a fixed list (linear, cubic or lopsided stiffness; viscous, quadratic or dry damping; a periodic drive half the time), with constants from stated ranges. Each law&rsquo;s SHA-256 was pushed to GitHub before its clip was rendered, Ansatz was told only &ldquo;{sealed.narration}&rdquo;, and the laws were revealed after the runs ({sealed.sets.map((x, i) => (
@@ -724,6 +757,11 @@ export default async function ProofPage() {
               ))}
             </ul>
             {sealed.wonderStory && <p className={styles.para}>{sealed.wonderStory}</p>}
+            {sealed.replicate && !sealed.wonderStory?.includes(sealed.replicate.detail) && (
+              <p className={styles.para}>
+                <b>The replicate.</b> {sealed.replicate.detail}
+              </p>
+            )}
             <p className={styles.para}>
               <b>A review run, not counted.</b> {sealed.review}
             </p>
@@ -784,7 +822,7 @@ export default async function ProofPage() {
             <b>A lite mode with no Muse Spark or Muse Wonder</b>, measured offline with typed lengths (so with no Muse Voice Transcribe either) on the same stored runs: the student names the experiment and types or says the length, SAM 3.1 measures, and code fits a textbook library. {lite.summary.constantsWithin5} of {lite.summary.constantsChecked} constants within 5% (median {lite.summary.medianPhysErrPct.toFixed(2)}%), right law on {lite.summary.lawCorrect} of {lite.summary.lawJudged}, at a median {Math.round(lite.summary.medianSamUsd * 100)} cents of SAM 3.1 a clip. On clean textbook motion, the language models add little; they matter on footage nobody labelled, for the clock, and where the textbook runs out.
           </p>
         )}
-        {lite && <Note who="SAM 3.1, then code">No Muse Spark or Muse Wonder in this mode; Muse Voice Transcribe only listens for a spoken length. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
+        {lite && <Note who="SAM 3.1, then code">No Muse Spark or Muse Wonder in this mode; a length said aloud is set by Muse Voice Transcribe, as in the two published lite runs <a href="#models">above</a>. Measured offline by scripts/lite.ts. Lite mode is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it.</Note>}
 
         {s && (
           <Section n={6} title="What each part adds" id="ablation">

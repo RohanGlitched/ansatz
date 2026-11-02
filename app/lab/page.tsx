@@ -9,6 +9,7 @@ import type { Experiment } from "@/lib/experiment";
 import { plateLaws } from "@/lib/plateLaws";
 import { printOf } from "@/app/x/prints";
 import { runTime, runTimeText } from "@/app/runtime";
+import { voiceLite } from "@/app/voiceLite";
 import sw from "@/data/bench/pendulum-stopwatch.json";
 import synth from "@/data/bench/synth.json";
 import series from "@/data/series/pendulum-lengths.json";
@@ -48,6 +49,8 @@ export default async function LabPage() {
   // how long a run takes, over every published run, as the other pages quote it (not only the runs on this page)
   const allRuns = (await Promise.all((await showcaseIds()).map((id) => getExperiment(id).catch(() => null)))).filter((e): e is Experiment => e != null);
   const rt = runTime(allRuns);
+  // the two published lite runs where Muse Voice Transcribe set the length, read from their records
+  const voice = await voiceLite().catch(() => null);
 
   // the pendulum practical: periods, g from L against T², and the seconds pendulum (T = 2 s, so L = g/π²)
   const tapeSigma = Math.hypot(sw.tape.sgScatter, sw.tape.sgTape);
@@ -157,7 +160,7 @@ export default async function LabPage() {
       title: "Film, four lengths",
       body: (
         <>
-          Groups of four, one length each: 40, 60, 80 and 100 cm, measured with the metre scale from the point of suspension to the centre of the bob. A4 sheet on the wall, phone on books, ten swings. Upload with the class link and type the length in the box (or say it aloud while filming); class links start in lite mode: no Muse Spark or Muse Wonder, and Muse Voice Transcribe only listens for a spoken length. Fill Table 1. No phones or no network: use the four stored runs of the series instead.
+          Groups of four, one length each: 40, 60, 80 and 100 cm, measured with the metre scale from the point of suspension to the centre of the bob. A4 sheet on the wall, phone on books, ten swings. Upload with the class link and type the length in the box (or say it aloud while filming); class links start in lite mode: no Muse Spark or Muse Wonder, and a length said aloud is set by Muse Voice Transcribe, as in two published lite runs. Fill Table 1. No phones or no network: use the four stored runs of the series instead.
         </>
       ),
       go: { label: "Make a class link", href: "/class/new" },
@@ -558,6 +561,16 @@ export default async function LabPage() {
           <p>One period, one projector, phones in groups of four. Built on Plate II above; it works without phones too, from the stored runs. Minute marks are from the bell.</p>
         </Section>
         <Note who="What it needs">A projector or a large screen, the printed worksheet, a metre scale, an A4 sheet and a bob on a thread per group. A run takes {runTimeText(rt)}.</Note>
+        {voice && (
+          <Note who="Muse Voice Transcribe, then code">
+            Saying the length works. Muse Voice Transcribe set the length in two published lite runs, as a class link runs them, with nothing typed: {voice.runs.map((x, i) => (
+              <span key={x.id}>
+                {i ? "; " : ""}a synthetic {x.language} voice over {x.clip}, heard as &ldquo;{x.heard.replace(/\.$/, "")}&rdquo;, read as {x.length} and held as the length (given, not measured), {x.g}
+                {x.full ? `; ${x.full}` : ""} (<Link href={x.href}>{x.language} run</Link>)
+              </span>
+            ))}. {voice.usdText} a run. Synthetic voices, labelled on each run; a real speaker is still to be tested.
+          </Note>
+        )}
       </Page>
 
       <div className={styles.planWrap} data-print-part="plan">

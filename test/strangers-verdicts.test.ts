@@ -22,10 +22,10 @@ test("a stranger's row with a run page follows that page's rough-fit rule: a rou
   }
 });
 
-test("the strangers' tally is counted from the table: 1 measured, 2 number right but law wrong, 1 with nothing to check, 7 misses", () => {
+test("the strangers' tally is counted from the table: 2 measured, 4 number right but law wrong, 1 with nothing to check, 9 misses", () => {
   const t = strangersTally();
-  assert.deepEqual([t.n, t.measured, t.lawWrong, t.nothing, t.miss], [11, 1, 2, 1, 7]);
-  assert.match(t.text, /^eleven clips strangers filmed: one measured, two where the number landed/);
+  assert.deepEqual([t.n, t.measured, t.lawWrong, t.nothing, t.miss], [16, 2, 4, 1, 9]);
+  assert.match(t.text, /^sixteen clips strangers filmed: two measured, four where the number landed/);
 });
 
 test("every stranger's figure follows the run page's rough-fit rule: no ± where the winning law misses by more than 5× the noise", () => {

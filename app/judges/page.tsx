@@ -19,6 +19,7 @@ import { offlineText, runTime, runTimeText } from "@/app/runtime";
 import { canYouTell, quizSaid } from "@/app/cyt";
 import { PRACTICALS } from "@/app/lab/practicals";
 import { sealedTest } from "@/app/sealed";
+import { voiceLite } from "@/app/voiceLite";
 import { strangersTally } from "@/app/proof/strangers";
 import { DEMO_VIDEO_LENGTH, demoVideoEmbed, demoVideoUrl } from "@/app/video";
 import { fou5Long, fou5Of, fou5SameFilmLawFree } from "@/lib/fou5";
@@ -100,9 +101,11 @@ export default async function JudgesPage() {
   const BUILT = { n: 4, found: 2, wonder: 2 };
   const sealed = await sealedTest().catch(() => null);
   const springsN = BUILT.n + (sealed?.n ?? 0), springsFound = BUILT.found + (sealed?.found ?? 0), springsWonder = BUILT.wonder + (sealed?.wonderFound ?? 0);
-  // which of Muse Wonder's found laws stand: the friction law; the drawn cubic spring on its first run only (a review re-run
-  // did not reproduce it); the hardening spring, which a later re-run had Muse Spark propose itself
-  const wonderStand = `the dry-friction law stands; the drawn cubic spring (round 6604797) was found on its first run, and a separate review run on the identical clip did not reproduce it; and on the hardening spring a later re-run had Muse Spark propose the cubic law itself${sealed && sealed.wonderFound > 1 ? `; ${sealed.wonderFound - 1} more drawn ${sealed.wonderFound - 1 === 1 ? "law" : "laws"} found by Muse Wonder after the fix, on ${sealed.wonderFound - 1 === 1 ? "its" : "their"} first run` : ""}`;
+  // which of Muse Wonder's found laws stand: the friction law; the drawn cubic spring, with its replicate runs; the hardening
+  // spring, which a later re-run had Muse Spark propose itself; and any later drawn law Muse Wonder found
+  const sRep = sealed?.replicate;
+  const laterWonder = sealed ? sealed.draws.filter((d) => d.verdict === "hit" && d.author === "Muse Wonder" && d.round !== sRep?.round) : [];
+  const wonderStand = `the dry-friction law stands; the drawn cubic spring (round ${sRep?.round ?? 6604797}) ${sRep ? `was found on its first run and in ${sRep.k - 1} of ${sRep.n - 1} replicate runs on the identical clip at code ${sRep.code} (${sRep.k} of ${sRep.n} in all; the other wrote a false drive)` : "was found on its first run"}; and on the hardening spring a later re-run had Muse Spark propose the cubic law itself${laterWonder.length ? `; ${laterWonder.length} more drawn ${laterWonder.length === 1 ? "law" : "laws"} found by Muse Wonder (${laterWonder.map((d) => `round ${d.round}, set ${d.set}`).join("; ")}), on ${laterWonder.length === 1 ? "its" : "their"} first run` : ""}`;
   const springsText = `Of ${springsN} springs whose law it was not shown (${BUILT.n} we built, ${sealed?.n ?? 0} drawn by drand), Ansatz found ${springsFound}, and Muse Wonder wrote ${springsWonder} of those laws${springsFound > springsWonder ? `; Muse Spark’s own law was the ${springsFound - springsWonder === 1 ? "other" : "others"}` : ""}`;
   const wonderJob = `The agent with a tool. When every proposed law misses, it gets a fit_law tool on the seen frames only, tries laws, reads their residuals and submits one, which must then win on the held-out 30%. ${springsText}. Of those, ${wonderStand}.${betterText ? ` ${betterText.charAt(0).toUpperCase()}${betterText.slice(1)}.` : ""}`;
   // the published run is the one where Muse Spark's laws missed; a later re-run's note says what changed since
@@ -152,10 +155,12 @@ export default async function JudgesPage() {
   const physWithin = physErr.filter((x) => x <= 5).length;
   const gRuler = phys.filter((c) => (c.quantity === "g" || c.quantity.startsWith("g as"))).map((c) => Math.abs(c.errPct));
 
+  // the two published lite runs where Muse Voice Transcribe set the length (synthetic voices), read from their records
+  const voice = await voiceLite().catch(() => null);
   // what each Meta model did across the published runs, from their own ledgers
   const usage = MODELS.map((m) => {
     const calls = exps.flatMap((e) => e.ledger.calls.filter((c) => c.model === m.id));
-    return { ...m, job: m.id === "muse-wonder-1.0" ? wonderJob : m.job, calls: calls.length, usd: calls.reduce((a, c) => a + c.usd, 0), frames: calls.reduce((a, c) => a + ((c as { frames?: number }).frames ?? 0), 0) };
+    return { ...m, job: m.id === "muse-wonder-1.0" ? wonderJob : m.id === "muse-voice-transcribe-1.0" && voice ? `${m.job} ${voice.short}: nothing typed, so the length came only from the transcript.` : m.job, calls: calls.length, usd: calls.reduce((a, c) => a + c.usd, 0), frames: calls.reduce((a, c) => a + ((c as { frames?: number }).frames ?? 0), 0) };
   });
   const costs = exps.map((e) => e.ledger.usd).sort((a, b) => a - b);
   const langs = Object.keys(LANGUAGES).length + 1;
@@ -237,7 +242,7 @@ export default async function JudgesPage() {
                     {i ? ", " : ""}
                     <Link href={d.href}>{d.verdict}</Link>
                   </span>
-                ))}). <Link href="/proof#sealed">All {sealed.n}, with their constants</Link>. {sealed.pattern}
+                ))}). <Link href="/proof#sealed">All {sealed.n}, with their constants</Link>. {sealed.headline} {sealed.pattern}
                 {sealed.wonderStory ? ` ${sealed.wonderStory}` : ""}
               </>,
               <>
@@ -312,7 +317,7 @@ export default async function JudgesPage() {
       ? { t: "1:15", title: "Two models hand off, and Muse Wonder writes the law", body: `A spring we rendered with dry friction, run on the benchmarked pipeline (2026-10-27c). Muse Spark’s laws used air drag. Refereeing, Muse Spark read their residual plot and named dry friction. Muse Wonder turned that into a law with its fitting tool: it misses the unseen motion by ${fricWin.fit.testRms.toFixed(3)} px against ${fricLead.fit.testRms.toFixed(2)} px for Muse Spark’s leading law${fricTruth ? `, with friction ${fricTruth.measured.toFixed(3)} ± ${fricTruth.sigma.toFixed(3)} m/s² against a true ${fricTruth.truth}` : ""}. (The older stiffening-spring run, from an earlier pipeline that allowed several fits a turn, shows ${spring?.wonder?.attempts.length ?? "its"} attempts in its notebook.)`, href: "/x/dry-friction-spring", go: "Open it" }
       : { t: "1:15", title: "A law Muse Wonder found", body: `A spring we rendered to stiffen as it stretches: on the published run, from an older pipeline that allowed several fits a turn, Muse Spark’s laws miss, Muse Wonder’s notebook shows ${spring?.wonder?.attempts.length ?? "its"} attempts, and the cubic law it submitted wins on the held-out 30%.`, href: "/x/hardening-spring", go: "Open it" },
     ...(sealed
-      ? [{ t: "1:45", title: "Laws nobody chose", body: `${sealed.foundText}: ${sealed.title}. Public randomness (drand) drew each spring law, and its hash was pushed to GitHub before the clip was rendered; Ansatz was told only “${sealed.narration}”. Each draw, the rule for “found”, the prompt line behind the driven misses and what the seal does not prove are on one page.`, href: "/proof#sealed", go: "The sealed laws" }]
+      ? [{ t: "1:45", title: "Laws nobody chose", body: `${sealed.headline} Ansatz was told only “${sealed.narration}”. Each draw, the rule for “found”, the prompt line behind the driven misses and what the seal does not prove are on one page.`, href: "/proof#sealed", go: "The sealed laws" }]
       : []),
     { t: "2:00", title: "The scoreboard", body: "Every number Ansatz reported on clips with known answers, beside Muse Spark’s guess by eye, and the cases where it fails.", href: "/proof", go: "Proof" },
     { t: "2:30", title: "Watch a run", body: "A recorded run replays from the start: SAM 3.1’s measurements arrive frame by frame, the photo-finish strip builds as they do, and the candidate laws race across the unseen part. No model is called.", href: "/new?replay=hardening-spring", go: "Watch a recorded run" },
@@ -341,7 +346,7 @@ export default async function JudgesPage() {
     ...(fouG ? [{ what: "Real footage: a museum’s Foucault pendulum, g from the swing and its published length (8.97 m)", value: `about ${fouG.measured.toFixed(1)} m/s² (9.807 there)${fouSpark ? `; Muse Spark’s plain law about ${fouSpark.measured.toFixed(2)}, with no error bar either (it misses by ${Math.round(sparkBest(fou!)?.fit.testZ ?? NaN)}× the noise)` : ""}; no error bar on the winning law, which misses the unseen frames by ${Math.round(winnerOf(fou!).fit.testZ ?? NaN)}× the noise`, href: "/x/foucault-pendulum" }] : []),
     ...(aachenG ? [{ what: "Real footage from a stranger: a 50 cm pendulum on black (Rhetos, Aachen, CC BY-SA 4.0), told only “about fifty centimetres”", value: `${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s² (9.807 there; ${Math.abs(aachenG.errorPct).toFixed(2)}% off; the ± assumes the stated length is good to 1%); clock check: real time`, href: "/x/aachen-pendulum-50cm" }] : []),
     ...(fou5 ? [{ what: "Real footage sped up 5× by its filmmaker (label cropped out): the clock check’s reading", value: `${fou5Long(fou5)} (truth 5×)${fou5SameFilmLawFree(fou5) ? `; against the same film’s real-time stretch, with no reference value, ${fou5SameFilmLawFree(fou5)}` : ""}; ${fou5Spark}`, href: "/x/foucault-pendulum-5x" }] : []),
-    ...(sealed ? [{ what: "Spring laws drawn by drand and sealed before the clips were rendered, told only “a block on a spring”", value: `${sealed.foundText.replace(/^Found/, "found")}${sealed.within ? `, ${sealed.within}` : ""}; ${(() => { const m = sealed.draws.filter((d) => d.verdict === "miss").length; return m ? `the ${m === 1 ? "miss" : `${m} misses`} published` : "no misses"; })()}`, href: "/proof#sealed" }] : []),
+    ...(sealed ? [{ what: "Spring laws drawn by drand and sealed before the clips were rendered, told only “a block on a spring”", value: `${sealed.foundText.replace(/^Found/, "found")}${sealed.within ? `, ${sealed.within}` : ""}${(() => { const t = sealed.sets.filter((x) => x.stage === "tool"); const dh = t.reduce((a, x) => a + x.driveHit, 0), dn = t.reduce((a, x) => a + x.driven, 0); return dn ? `; after the spectrum tool, the winning law carried the drive at the right frequency in ${dh} of ${dn} driven draws` : ""; })()}; ${(() => { const m = sealed.draws.filter((d) => d.verdict === "miss").length; return m ? `the ${m === 1 ? "miss" : `${m} misses`} published` : "no misses"; })()}`, href: "/proof#sealed" }] : []),
     ...(sj ? [{ what: "The same clip slowed 1.5× in secret, timed jump for jump", value: `${sjText} slower (truth 1.5×)${mt ? `; whole-run ratio ${ratio.toFixed(2)}× (${mt.rows[1].g.toFixed(2)} ± ${mt.rows[1].sigma.toFixed(2)} against ${mt.rows[0].g.toFixed(2)} m/s²)` : ""}`, href: "/x/moon-jump#same-jump" }] : []),
     ...(springTruth ? [{ what: "Hidden stiffening found by Muse Wonder", value: `k₃/m = ${+springTruth.measured.toPrecision(4)} ± ${+springTruth.sigma.toPrecision(2)} m⁻²s⁻² (true ${+springTruth.truth.toPrecision(4)})`, href: "/x/hardening-spring#constants" }] : []),
     ...(refb ? [{ what: "Referee asked for a new law: when one was missing / when the leading law had the right physics", value: `${refb.summary.reviseWhenNeeded} of ${refb.summary.needed} / ${refb.summary.reviseWhenRight} of ${refb.summary.right}`, href: "/proof#models" }] : []),
@@ -394,7 +399,7 @@ export default async function JudgesPage() {
             Four Meta models, each with a job checked by code: on a spring slowed by dry friction, Muse Spark, refereeing, named the friction from the residual plot and Muse Wonder fitted it with its tool, missing the unseen motion <b>{Math.round(fricLead.fit.testRms / fricWin.fit.testRms)}× less</b> than Muse Spark&rsquo;s own law ({fricWin.fit.testRms.toFixed(3)} px against {fricLead.fit.testRms.toFixed(2)} px).
           </>
         ) : (
-          <>Four Meta models, each with a job checked by code: SAM 3.1 measures, Muse Spark observes, proposes and referees, Muse Wonder fits laws with a tool, Muse Voice Transcribe hears the stated length. {springsText}.</>
+          <>Four Meta models, each with a job checked by code: SAM 3.1 measures, Muse Spark observes, proposes and referees, Muse Wonder fits laws with a tool, Muse Voice Transcribe hears the stated length and, in lite runs, sets it. {springsText}.</>
         ),
       links: [
         { label: "The handoff, in its notebook", href: "/x/dry-friction-spring#notebook" },
@@ -413,7 +418,7 @@ export default async function JudgesPage() {
             <>
               ; of {fs.sealed.n} spring laws drawn by public randomness and sealed before the run,{" "}
               <b>
-                {fs.sealed.found} were found and {fs.sealed.drives}
+                {fs.sealed.found} were found, {fs.sealed.drives}
               </b>
               , every one published
             </>
@@ -761,10 +766,10 @@ export default async function JudgesPage() {
           <Fold summary="The gaps, one by one">
           <ul className={styles.gaps}>
             <li>{phoneRuns ? `Every clip here was filmed on a phone by us (${phoneRuns}), rendered by us or found online.` : "Every clip here was rendered by us or found online; none was filmed on a phone yet."} No outside student or teacher has run it yet.</li>
-            <li>{springsText}. Two of Muse Wonder&rsquo;s found laws are on renders we built to need a law outside the base textbook library, and both (a cubic spring, dry friction) are ones a physicist knows: a library extended with them ties it, and on a later re-run with today&rsquo;s prompt Muse Spark proposed the cubic law itself. The third was drawn by drand, from stiffness and damping families we had rendered before. {betterText ? `${betterText.charAt(0).toUpperCase()}${betterText.slice(1)}. ` : ""}Of the four springs we built, two missed: on the two from 29 October its law took the wrong form, or no proposed law described the motion (<Link href="/proof#fails">Proof</Link>). {sealed ? `Laws nobody chose: ${sealed.pattern}` : "A law nobody planted is still to be shown."}</li>
+            <li>{springsText}. Two of Muse Wonder&rsquo;s found laws are on renders we built to need a law outside the base textbook library, and both (a cubic spring, dry friction) are ones a physicist knows: a library extended with them ties it, and on a later re-run with today&rsquo;s prompt Muse Spark proposed the cubic law itself. The third was drawn by drand, from stiffness and damping families we had rendered before. {betterText ? `${betterText.charAt(0).toUpperCase()}${betterText.slice(1)}. ` : ""}Of the four springs we built, two missed: on the two from 29 October its law took the wrong form, or no proposed law described the motion (<Link href="/proof#fails">Proof</Link>). {sealed ? `Laws nobody chose: ${sealed.headline}` : "A law nobody planted is still to be shown."}</li>
             <li>The benchmark clips are rendered, so the physics is clean. Real footage adds motion blur, rolling shutter and lens distortion that the renders only partly imitate.</li>
             <li>
-              Real footage is still a handful: Apollo 16, the Foucault pendulum twice (real time and sped up 5×), a 50 cm pendulum on black filmed in Aachen{aachenG ? ` (g = ${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s²)` : ""} and a 60 cm one from the same source (g about 10 m/s², no error bar: its law misses the unseen swing by far more than the noise). On 2 November we ran {strangersTally().text}. All of them are shown (<Link href="/proof#strangers">Proof, footage from strangers</Link>).
+              Real footage is still a handful: Apollo 16, the Foucault pendulum twice (real time and sped up 5×), a 50 cm pendulum on black filmed in Aachen{aachenG ? ` (g = ${aachenG.measured.toFixed(2)} ± ${aachenG.sigma.toFixed(2)} m/s²)` : ""} and a 60 cm one from the same source (g about 10 m/s², no error bar: its law misses the unseen swing by far more than the noise), a teacher’s 60 cm ring-magnet pendulum (ThinkTac, g = 9.826 ± 0.099 m/s², measured to the knot) and a 27-inch lab pendulum (Rosolowsky, g about 9.7, its law just over the 5× line). On 2 November we ran {strangersTally().text}. All of them are shown (<Link href="/proof#strangers">Proof, footage from strangers</Link>).
             </li>
             <li>
               It fails when the object doesn&rsquo;t stand out. On a real classroom clip of a dark pendulum bob against a dark chalkboard, SAM 3.1 couldn&rsquo;t hold the bob and Ansatz reported no usable g; a green gym ball in a green-lit corridor was held only in part, so its scale and clock were wrong (<Link href="/proof#fails">Proof, where it fails</Link>).
@@ -785,7 +790,7 @@ export default async function JudgesPage() {
           <Fold summary="Cost, lite mode, and what is planned">
           <ul className={styles.gaps}>
             <li>Today a run costs {costText(hl)}, which we pay, with daily limits per visitor and per class. Of that, SAM 3.1&rsquo;s measurement is the median {samMedianCents} cents; the rest is Muse Spark watching, proposing and refereeing, and Muse Wonder when it is called in.</li>
-            <li>Built: a lite mode for school practicals. The student names the experiment and types or says the length, SAM 3.1 measures, and code fits the textbook laws: no Muse Spark or Muse Wonder; Muse Voice Transcribe only listens for a spoken length. It is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it. Its accuracy, measured offline on the stored benchmark runs: {lite ? `${lite.summary.constantsWithin5} of ${lite.summary.constantsChecked} constants within 5% at about ${Math.round(lite.summary.medianSamUsd * 100)} cents a clip` : "the same accuracy at the cost of SAM alone"}.</li>
+            <li>Built: a lite mode for school practicals. The student names the experiment and types or says the length, SAM 3.1 measures, and code fits the textbook laws: no Muse Spark or Muse Wonder; a length said aloud is set by Muse Voice Transcribe{voice ? `, as in two published lite runs (synthetic voices): ${voice.runs.map((x) => `${x.language}, ${x.g.split(" (")[0].split(",")[0]}`).join("; ")}` : ""}. It is a choice on <Link href="/new">Run an experiment</Link>, and class links start in it. Its accuracy, measured offline on the stored benchmark runs: {lite ? `${lite.summary.constantsWithin5} of ${lite.summary.constantsChecked} constants within 5% at about ${Math.round(lite.summary.medianSamUsd * 100)} cents a clip` : "the same accuracy at the cost of SAM alone"}.</li>
             <li>Muse Spark Open, the open-weight model, could watch and referee on a school&rsquo;s own machine; we have not tried it yet, and will publish how often it agrees with Muse Spark on the benchmark before relying on it.</li>
             <li>The code, the benchmark clips and their true values stay public, so a teacher or a board can check the method without trusting us.</li>
           </ul>

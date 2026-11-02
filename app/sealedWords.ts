@@ -20,6 +20,15 @@ export type SealedRecord = {
 
 export const sealedOf = (e: Experiment) => (e.extras as { sealed?: SealedRecord } | undefined)?.sealed;
 
+/** a residual peak as the run's code labelled it (extras.sealed.spectrumAtScoring) */
+export type Peak = { omega: number; ampNoise: number; label?: string };
+/** the residual peak at a drawn drive's frequency (within 2%), if the record kept the run's spectrum */
+export const drivePeak = (s: SealedRecord): Peak | undefined => {
+  const wd = s.constants.wd?.value;
+  const peaks = (s as SealedRecord & { spectrumAtScoring?: { peaks?: Peak[] } }).spectrumAtScoring?.peaks ?? [];
+  return wd ? peaks.find((p) => Math.abs(p.omega / wd - 1) < 0.02) : undefined;
+};
+
 export const stiffWord = (s: string) => (s === "cubic" ? "a cubic hardening spring" : s === "asymmetric" ? "a lopsided spring" : "a linear spring");
 export const dampWord = (d: string) => (d === "quadratic" ? "quadratic damping" : d === "coulomb" || d === "dry" ? "dry friction" : "viscous damping");
 /** "a linear spring with dry friction and a periodic drive" */
@@ -59,7 +68,7 @@ export function sealedCaption(e: Experiment): string | null {
   const w = winnerOf(e);
   const lead = `A law drawn by public randomness, sealed before the run: ${drawnText(s.drawn)}.`;
   if (s.verdict === "miss") {
-    const why = s.drawn.drive ? (writesDrive(w) ? "the winning law carries the drive, but its stiffness or damping is not the drawn one" : driveProposed(e) ? "a drive was proposed but did not win" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
+    const why = s.drawn.drive ? (writesDrive(w) ? "the winning law carries the drive, but its stiffness or damping is not the drawn one" : driveProposed(e) ? "a drive was proposed but did not win" : drivePeak(s)?.label === "sideband" ? "the drive’s residual line was labelled a sideband of the motion, so no drive was added" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
     return `${lead} Missed: ${why}; the best law misses by ${noiseTimes(w.fit.testZ)}× the noise.`;
   }
   const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];

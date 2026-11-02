@@ -336,7 +336,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
       <header className={styles.title}>
         <p className={styles.crumb}>
           <Link href="/x">The book of experiments</Link>
-          {at >= 0 ? <span>, entry {at + 1} of {order.length}</span> : <span>, a visitor&rsquo;s run</span>}
+          {at >= 0 ? <span>, entry {at + 1} of {order.length}</span> : liteRun ? <span>, a lite run</span> : <span>, a visitor&rsquo;s run</span>}
         </p>
         <h1 className={styles.h1}>{e.title}</h1>
         <div className={styles.titleGrid}>

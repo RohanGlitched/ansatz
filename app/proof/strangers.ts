@@ -1,6 +1,6 @@
-// Clips strangers filmed and published under free licences, run on 2 November in two sets with only what their makers
-// stated. Figures are from those runs (.probe/real-2026-11-02/*.json, NOTES.md and NOTES-2.md); the promoted ones are
-// also experiments.
+// Clips strangers filmed and published under free licences, run on 2 November in three sets with only what their makers
+// stated. Figures are from those runs (.probe/real-2026-11-02/*.json, NOTES.md, NOTES-2.md and NOTES-3.md; the third
+// set's credits in ../media/real/new3/CREDITS.json); the promoted ones are also experiments.
 // Proof's Table 1a prints them in full, and the experiments index lists them until visitors' runs exist.
 const COMMONS = "https://commons.wikimedia.org/wiki/File:";
 
@@ -21,18 +21,21 @@ export type Stranger = {
   sources?: { label: string; href: string }[];
   /** a miss that came from the tracking (SAM 3.1 held the wrong thing, or the track broke), not from the law */
   tracking?: boolean;
-  /** which set of runs: 1 (the first five clips) or 2 (six more, the same night) */
-  set: 1 | 2;
+  /** which set of runs: 1 (the first five clips), 2 (six more, the same night) or 3 (five YouTube CC BY pendulums) */
+  set: 1 | 2 | 3;
   /** the run's record in .probe/real-2026-11-02 (kept with the review notes): a figure follows the run page's rule, no ±
    * when the winning law misses its unseen frames by more than five times the noise (the test reads it where present) */
   record?: string;
 };
 
 /** The first set's six ledgers (two tries on the gym ball), summed: $1.996; the Aachen page's translations add $0.51.
- * The second set's seven ledgers (two tries on the board fall): $2.540; the 60 cm page's translations add $0.027. */
+ * The second set's seven ledgers (two tries on the board fall): $2.540; the 60 cm page's translations add $0.027.
+ * The third set's five ledgers: $1.843; the ThinkTac and Rosolowsky pages' translations add about $0.054 (estimated at
+ * round 2's $0.027 a page, NOTES-3.md). */
 export const STRANGERS_SETS = [
   { runs: 6, usd: 2.0, withTranslations: 2.51 },
   { runs: 7, usd: 2.54, withTranslations: 2.567 },
+  { runs: 5, usd: 1.843, withTranslations: 1.897 },
 ];
 export const STRANGERS_RUNS_USD = STRANGERS_SETS.reduce((t, s) => t + s.usd, 0);
 export const STRANGERS_WITH_TRANSLATIONS_USD = STRANGERS_SETS.reduce((t, s) => t + s.withTranslations, 0);
@@ -205,13 +208,86 @@ export const STRANGERS: Stranger[] = [
     set: 2,
     record: "pendulum-50cm-chalkboard",
   },
+  {
+    clip: "Pendulum, 60 cm: a ring magnet on a thread",
+    href: "/x/thinktac-pendulum-60cm",
+    who: "ThinkTac (Gopinath Thiru)",
+    whoHref: "https://www.youtube.com/watch?v=iCH2-nhq6bs",
+    licence: "YouTube CC BY",
+    told: "“Using a ruler, measure 60 cm starting from the knot on the ring magnet.” (the maker’s on-screen line)",
+    measured: "g = 9.826 ± 0.099 m/s². Clock check: real time.",
+    truth: "9.807 m/s². A 0.60 m pendulum swings in 1.554 s; the tracked swing, timed offline, repeats every 1.550 s.",
+    verdict: "measured",
+    note: "0.20% off, 0.2σ. The ± is almost all the 1% given to a stated length; the fit alone gives ± 0.015. A caveat: the 60 cm runs to the knot, and the magnet’s centre hangs a few millimetres lower; 7 mm lower would make the same swing give g about 9.95 (+1.4%), and the magnet’s size is not stated. The stopwatch overlay was cropped out first. Published as an experiment.",
+    sources: [{ label: "the video (“Motion - Periodic”)", href: "https://www.youtube.com/watch?v=iCH2-nhq6bs" }],
+    set: 3,
+    record: "pendulum-60cm-thinktac",
+  },
+  {
+    clip: "Pendulum, 27 inches, hung from a book",
+    href: "/x/rosolowsky-pendulum-27in",
+    who: "Erik Rosolowsky (PHYS124)",
+    whoHref: "https://www.youtube.com/watch?v=3_YK_hRzyTM",
+    licence: "YouTube CC BY",
+    told: "“I’ll just measure from the pivot point down there and it looks like it’s about 27 inches.” (spoken)",
+    measured: "g about 9.7 m/s², no error bar: the law misses the unseen frames by 5.18× the noise, just over the run page’s 5× line. Clock check: real time.",
+    truth: "9.807 m/s²; a 0.686 m pendulum swings in 1.661 s. The maker times ten swings at 16.4 s, 1.64 s each, 1.7% short of theory and of the tracked 1.667 s, as hand timing of ten swings tends to be.",
+    verdict: "number right, law wrong",
+    note: "0.8% off, but under the site’s rule a law that misses the unseen frames by more than 5× the noise earns no error bar, so the number landed and the law did not. Two drag laws tie it on the unseen frames (g 9.78) and lose on simplicity. Published as an experiment.",
+    sources: [{ label: "the video (“PHYS124 - The Pendulum”)", href: "https://www.youtube.com/watch?v=3_YK_hRzyTM" }],
+    set: 3,
+    record: "pendulum-27in-rosolowsky",
+  },
+  {
+    clip: "Pendulum, 40 cm, a 200 g hanger",
+    who: "Physagreg (physagreg.fr)",
+    whoHref: "https://www.youtube.com/watch?v=T3A3C4X44RI",
+    licence: "YouTube CC BY",
+    told: "“Simple pendulum, 40 cm, m + 200.” (the title)",
+    measured: "g about 10.0 m/s², no error bar: the law misses the unseen frames by 9.7× the noise. Clock check: real time.",
+    truth: "9.807 m/s²; a 0.40 m pendulum swings in 1.269 s, and the tracked swing, timed offline, repeats every 1.267 s.",
+    verdict: "number right, law wrong",
+    note: "2.1% off, but the law misses the unseen swing by 12% of the motion, so the publish gate refused it. A slotted-mass hanger swinging wide, filmed for students’ video analysis.",
+    sources: [{ label: "the video (“pendule simple 40cm m+200”)", href: "https://www.youtube.com/watch?v=T3A3C4X44RI" }],
+    set: 3,
+    record: "pendulum-40cm-physagreg-200g",
+  },
+  {
+    clip: "Pendulum, 40 cm, a 100 g hanger",
+    who: "Physagreg (physagreg.fr)",
+    whoHref: "https://www.youtube.com/watch?v=ol-WCab0ISI",
+    licence: "YouTube CC BY",
+    told: "“Simple pendulum, 40 cm, m + 100.” (the title)",
+    measured: "g about 12 m/s², 21.6% high, no error bar (the law misses the unseen frames by 10× the noise). The clock check said the clip plays about 1.1× faster than life, which is wrong.",
+    truth: "9.807 m/s²; the tracked swing repeats every 1.315 s, longer than a 0.40 m pendulum’s 1.269 s, so the clip is not sped up.",
+    verdict: "miss",
+    note: "SAM 3.1 held the bob in 138 of 150 frames, but the tracked height jumps by about 200 px: the mask slipped. The gate refused it.",
+    sources: [{ label: "the video (“pendule simple 40cm m+100”)", href: "https://www.youtube.com/watch?v=ol-WCab0ISI" }],
+    tracking: true,
+    set: 3,
+    record: "pendulum-40cm-physagreg-100g",
+  },
+  {
+    clip: "Pendulum, 35 cm: a washer filmed from above",
+    who: "Shannan Muskopf",
+    whoHref: "https://www.youtube.com/watch?v=JQbHsR0PkUc",
+    licence: "YouTube CC BY",
+    told: "“Length of string = 35 cm.” (the on-screen caption)",
+    measured: "g about 8.7 m/s², 11.4% low, no error bar (the law misses the unseen frames by 9.7× the noise). The clock check called it real time, though 11% off is a miss, not a pass.",
+    truth: "9.807 m/s²; a 0.35 m pendulum swings in 1.187 s, and the student’s spoken count runs at about 1.2 s a swing.",
+    verdict: "miss",
+    note: "Filmed from above at a steep angle, so the swing is foreshortened, and the small washer blurs mid-swing: SAM 3.1 masked it in 162 of 300 frames. The caption and the digital timer were cropped out first.",
+    sources: [{ label: "the video (“Pendulum and Length”)", href: "https://www.youtube.com/watch?v=JQbHsR0PkUc" }],
+    set: 3,
+    record: "pendulum-35cm-muskopf",
+  },
 ];
 
-const W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+const W = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "twenty-one", "twenty-two", "twenty-three"];
 const word = (k: number) => W[k] ?? String(k);
 const count = (...vs: Stranger["verdict"][]) => STRANGERS.filter((r) => vs.includes(r.verdict)).length;
-/** "eleven clips strangers filmed: one measured, two where the number landed but the law did not, one with no published
- * answer and seven misses (four of them tracking failures)", counted from the table */
+/** "sixteen clips strangers filmed: two measured, four where the number landed but the law did not, one with no published
+ * answer and nine misses (five of them tracking failures)", counted from the table */
 export const strangersTally = () => {
   const miss = count("miss"), tr = STRANGERS.filter((r) => r.verdict === "miss" && r.tracking).length;
   return {
