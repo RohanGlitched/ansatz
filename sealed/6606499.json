@@ -1,0 +1,85 @@
+{
+ "grammar": "ansatz-sealed-law/1",
+ "drand": {
+  "round": 6606499,
+  "randomness": "0499ba514617d38705b5421ef727c03fd49215d2a956648eaa0b4c6673f76f87",
+  "signature": "97acf97cd2ba182a602afd6eaffc1ba24ed7615cf95390de30b8713c7c11f9a1d2ea817291d9504290afb46a713b7d14113a06b3e8bccc93c6481205b948fc0691b8f90ca48306616c9cbcb9df1124410eab7e263ce8a327a83015471438ae92",
+  "url": "https://api.drand.sh/public/6606499"
+ },
+ "law": {
+  "stiffness": "cubic",
+  "damping": "viscous",
+  "drive": false,
+  "equation": "x'' = -(k/m) x - (k3/m) x^3 - b x'",
+  "x": "displacement below the resting point (m, down positive); t from release"
+ },
+ "constants": {
+  "k": {
+   "value": 12.35,
+   "unit": "N/m",
+   "rule": "uniform in [10, 30]"
+  },
+  "m": {
+   "value": 0.2,
+   "unit": "kg",
+   "rule": "fixed"
+  },
+  "A": {
+   "value": 0.1293,
+   "unit": "m",
+   "rule": "release below rest, uniform in [0.08, 0.14]"
+  },
+  "k3": {
+   "value": 598.3,
+   "unit": "N/m^3",
+   "rule": "k3 A^2 / k uniform in [0.3, 0.9] (drawn 0.810)"
+  },
+  "b": {
+   "value": 0.571,
+   "unit": "1/s",
+   "rule": "uniform in [0.2, 0.6]"
+  }
+ },
+ "derived": {
+  "omega0": {
+   "value": 7.858116822750855,
+   "unit": "rad/s",
+   "note": "sqrt(k/m)"
+  },
+  "beta": {
+   "value": 2991.4999999999995,
+   "unit": "1/(m^2 s^2)",
+   "note": "k3/m"
+  }
+ },
+ "render": {
+  "script": "bench/synth/render.py build_spring",
+  "kw": {
+   "k": 12.35,
+   "m": 0.2,
+   "b": 0.571,
+   "l0": 0.3,
+   "A": 0.1293,
+   "g": 9.81,
+   "bw_m": 0.09,
+   "bh_m": 0.06,
+   "colour": "green",
+   "W": 1280,
+   "H": 720,
+   "fps": 60,
+   "dur": 7,
+   "bgk": "wall",
+   "bgkw": "wall_sand",
+   "ref": "stick_h",
+   "lead": 0.5,
+   "seed": 7417,
+   "noun": "block",
+   "k3": 598.3,
+   "k2": 0,
+   "mu": 0,
+   "cq": 0,
+   "F0": 0,
+   "wd": 0
+  }
+ }
+}
