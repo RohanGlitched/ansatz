@@ -1,0 +1,72 @@
+code 0b852c8ae655e1248d4102b00688d694ea1b41fc (clean tree)
+[0.0s] upload start
+[5.7s] upload done: 420 frames at 60.00 fps (avc1, 1280×720), clock read from the file
+[5.7s] listen done: typed notes used; the clip has no sound
+[5.7s] observe start
+[18.0s] observe done: mass on a spring: tracking “green block”
+[18.0s] track start
+[20.9s] track update
+[21.5s] track update
+[22.0s] track update
+[22.6s] track update
+[23.2s] track update
+[23.8s] track update
+[24.3s] track update
+[24.9s] track update
+[25.5s] track update
+[26.1s] track update
+[26.6s] track update
+[27.2s] track update
+[27.8s] track update
+[28.4s] track update
+[28.9s] track update
+[29.5s] track update
+[30.1s] track update
+[30.7s] track update
+[31.2s] track update
+[31.8s] track update
+[32.4s] track update
+[33.0s] track update
+[33.5s] track update
+[34.1s] track update
+[34.7s] track update
+[35.2s] track update
+[35.6s] track update
+[37.1s] track update
+[37.1s] track done: 1 object named “green block”, 420 of 420 frames with a mask
+[37.1s] measure start
+[37.1s] measure done: 390 points over 6.48 s; no scale: lengths are in pixels
+[37.1s] hypothesise start
+[62.7s] hypothesise done: Ideal undamped spring-mass; Viscously damped spring-mass; Damped spring with quadratic air drag
+[62.7s] fit start
+[156.3s] fit done: 5 laws fitted; the best predicts the unseen 30% to within 6.6 px
+[156.3s] referee start
+[320.2s] referee done: Muse Wonder tried 2 laws on the fitted frames and submitted “Spring with cubic stiffening and quadratic drag”
+[320.2s] report start
+[320.3s] report done: The block bobs around 67.157 ± 0.023 px, getting stiffer farther out with 0.005073 ± 0.000040 1/(s² px²) and losing energy to air with 0.0020824 ± 0.0000052 1/px. It still drifts a little from low to high, so this only partly captures the motion.
+
+FINDING: The block bobs around 67.157 ± 0.023 px, getting stiffer farther out with 0.005073 ± 0.000040 1/(s² px²) and losing energy to air with 0.0020824 ± 0.0000052 1/px. It still drifts a little from low to high, so this only partly captures the motion.
+ #1 revision spring-quad-cubic-rev        unseen 1.81e-1 train 1.66e-1 bic 144 omega0=8.416±0.0025 s_eq=67.16±0.023 cq=0.002082±0.0000052 beta=0.005073±0.000040 
+ #2 combined spring-quad-cubic-rev+spring-quad-drag-damping unseen 1.81e-1 train 1.66e-1 bic 150 omega0=8.416±0.0026 s_eq=67.16±0.024 beta=0.005072±0.000041 gamma=0.002612±0.0082 cq=0.002073±0.000029 
+ #3 combined spring-quad-cubic-rev+spring-viscous-damping unseen 3.55e+0 train 1.47e+0 bic 1336 omega0=8.403±0.073 s_eq=67.01±0.67 beta=0.005106±0.0011 gamma=0.5749±0.038 
+ #4 muse     spring-viscous               unseen 6.63e+0 train 3.34e+0 bic 1778 omega0=8.739±0.043 s_eq=66.62±2.6 gamma=0.5711±0.088 
+ #5 muse     spring-quad-drag             unseen 6.49e+0 train 2.93e+0 bic 1713 omega0=8.730±0.036 s_eq=66.71±2.3 gamma=0.000±0.47 cq=0.002097±0.0017 
+ #6 muse     spring-ideal                 unseen 1.52e+1 train 9.31e+0 bic 2333 omega0=8.719±0.11 s_eq=67.04±4.5 
+ #7 control  textbook-vacuum              unseen 1.47e+1 train 1.86e+1 bic 5405 g=2.769±21 
+ #8 control  textbook-uniform             unseen 2.08e+1 train 2.62e+1 bic 2893 a=-2.769±21 
+comparisons []
+eyeball [
+  { quantity: 'omega0', unit: '1/s', value: 4.5 },
+  { quantity: 's_eq', unit: 'px', value: 340 },
+  { quantity: 'gamma', unit: '1/s', value: 0.05 }
+]
+cost $ 0.2971 tokens 122335 time 320.4 s
+   muse-spark-1.3 observe the clip 12274ms $0.0138 39385 1866 1612
+   sam-3.1 track "green block" (est.) 18338ms $0.0840   
+   muse-spark-1.3 propose laws 25574ms $0.0191 1228 4136 3183
+   muse-spark-1.3 eyeball baseline (300 frames at 42.9 fps) 9175ms $0.0529 39122 939 819
+   muse-spark-1.3 referee the fits 36869ms $0.0232 2617 4679 4401
+   muse-wonder-1.0 theorist turn 1 10640ms $0.0403 4784 1081 508
+   muse-wonder-1.0 theorist turn 2 12971ms $0.0217 5978 789 231
+   muse-wonder-1.0 theorist turn 3 9403ms $0.0197 7143 671 132
+   muse-spark-1.3 referee the fits 22388ms $0.0224 3764 4153 3929

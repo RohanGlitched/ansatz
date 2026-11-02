@@ -1,0 +1,219 @@
+{
+ "id": "5nmc45tfv4",
+ "createdAt": "2026-11-01T19:26:10.563Z",
+ "pipeline": "2026-10-27c",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "metronome-96bpm.mp4"
+ },
+ "given": [
+  "g = 9.807 m/s² (Earth): hold g fixed and measure the pendulum's length L in metres from its swing"
+ ],
+ "winner": "pendulum-large-angle",
+ "candidates": [
+  {
+   "law": {
+    "id": "pendulum-large-angle",
+    "title": "Large-angle undamped pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.372898514177012,
+    "testRms": 7.226435829192351,
+    "trainZ": 22.61775042334742,
+    "testZ": 25.64699903370663,
+    "k": 5,
+    "theta": {
+     "L": 0.042695716137437716,
+     "K": 141.7806525576431,
+     "s0": -1.8314503344225341,
+     "theta@0": -0.03870631571459294,
+     "omega@0": -0.1988968316101931,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.08080173057911177,
+     "K": 617141.5718341093,
+     "s0": 0.7465336172714607,
+     "theta@0": 173.05307141528462,
+     "omega@0": 889.1340427992999,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "shm-small-angle",
+    "title": "Small-angle undamped metronome"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.372892857315214,
+    "testRms": 7.226462633234049,
+    "trainZ": 22.617730346848774,
+    "testZ": 25.6470941626537,
+    "k": 5,
+    "theta": {
+     "L": 0.0427046304769341,
+     "K": 17.66124979028632,
+     "s0": -1.8314498869168014,
+     "theta@0": -0.3107844460494654,
+     "omega@0": -1.5971055134980625,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.00031541295168495805,
+     "K": 50058323.6404538,
+     "s0": 0.5247586961815028,
+     "theta@0": 513591.0098845676,
+     "omega@0": 3773377.1670581778,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 4.943451777264307,
+    "testRms": 5.777325788467188,
+    "trainZ": 19.869827111593214,
+    "testZ": 25.852509388754488,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": 0.2381058595541114,
+     "y@0": -3.3993904349593573,
+     "vx@0": -0.38651811354565613,
+     "vy@0": 1.3262508449240118
+    },
+    "sigma": {
+     "g": 0.3240762296382277,
+     "x@0": 0.25462154831539,
+     "y@0": 2.3626568696149364,
+     "vx@0": 0.05447831295241669,
+     "vy@0": 1.3521157868271325
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "driven-damped-arc-rev",
+    "title": "Driven damped pendulum, arc projection"
+   },
+   "origin": "revision",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.787159442990222,
+    "testRms": 7.730170635813958,
+    "trainZ": 24.08798414465927,
+    "testZ": 27.43478023097116,
+    "k": 7,
+    "theta": {
+     "L": 0.09413631388512071,
+     "b": 0.5330248432262734,
+     "D": 1.449558442609821,
+     "K": 13.523020054311917,
+     "s0": -1.8801850280447263,
+     "theta@0": 0.07707671130197605,
+     "omega@0": 3.8248099216571547,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.029902825929182975,
+     "b": 5.75089084405166,
+     "D": 4.713250528597435,
+     "K": 127.53571020021508,
+     "s0": 0.8182606952112262,
+     "theta@0": 0.8315759537785011,
+     "omega@0": 36.57686244783958,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-drive-damped",
+    "title": "Driven damped pendulum with escapement"
+   },
+   "origin": "muse",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.791394651822855,
+    "testRms": 7.732046739754182,
+    "trainZ": 24.10301512250306,
+    "testZ": 27.441438622061778,
+    "k": 7,
+    "theta": {
+     "L": 0.0947720253603826,
+     "K": 52.27293770080213,
+     "s0": -1.8944556161540973,
+     "b": 1.5111392684572142,
+     "D": 1.0498722051488818,
+     "theta@0": 0.00997434584012985,
+     "omega@0": 1.1661068710244689,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.03781723293062301,
+     "K": 9942.051615849075,
+     "s0": 0.8186031677398777,
+     "b": 9.744570956340622,
+     "D": 199.7979447272763,
+     "theta@0": 1.961904791806031,
+     "omega@0": 221.61577013717633,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.922495061933684,
+    "testRms": 9.60809385935758,
+    "trainZ": 24.568297340584664,
+    "testZ": 34.099628053328615,
+    "k": 3,
+    "theta": {
+     "a": -0.19542985069962132,
+     "s@0": 2.3320936014471596,
+     "v@0": -0.5133212292171248
+    },
+    "sigma": {
+     "a": 0.3101521240271943,
+     "s@0": 2.2612057842180033,
+     "v@0": 1.2940359984821372
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: with no ruler in view and no length stated, gravity can’t be measured in metres. A slowed clip would look the same."
+ },
+ "ledger": {
+  "usd": 0.5103468999999999,
+  "ms": 245789
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/metronome-96bpm.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

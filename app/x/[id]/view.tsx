@@ -24,6 +24,7 @@ import { LANGUAGES, translation } from "@/lib/translate";
 import { CountUp, Reveal } from "./Reveal";
 import SeriesFigure from "./SeriesFigure";
 import SealedLede from "./SealedLede";
+import { aboutOff } from "../summary";
 import { SEALED_ROUNDS } from "@/app/sealed";
 import styles from "./page.module.css";
 
@@ -232,7 +233,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
     const name = rend ? (truthLabel(cmp.param) ?? p.meaning ?? cmp.param) : cmp.label;
     return {
       label: name.charAt(0).toUpperCase() + name.slice(1),
-      v: rough ? `about ${fmtAbout(v, cmp.reference)}` : pv0,
+      v: rough ? `about ${aboutOff(v, cmp.reference)}` : pv0,
       pm: rough ? undefined : ps0,
       unit,
       against: `${rend ? "Rendered with" : "Known value"} ${+cmp.reference.toPrecision(4)}${unit ? ` ${unit}` : ""}: off by ${fmt(Math.abs(cmp.errorPct), 2)}%${!rough && Number.isFinite(cmp.withinSigma) && cmp.withinSigma < 20 ? `, ${fmt(cmp.withinSigma, 2)}σ` : ""}.${point ? ` The ± is statistical and ruler; which point of the body is followed adds a further ± ${point.value.toFixed(2)} (see the error budget below).` : ""}`,
@@ -260,8 +261,10 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   const nextPlate = () => ROMAN[plateN++] ?? String(plateN);
   const sec = () => ++secN;
 
-  const credit = e.source.kind === "showcase" ? e.source.credit : undefined;
-  const rendered = !!credit && /^Rendered\b/.test(credit);
+  // a sealed-law record is always a render of a drawn law, whatever its source fields say
+  const sealedRound = (e.extras as { sealed?: { round?: number } } | undefined)?.sealed?.round;
+  const credit = e.source.kind === "showcase" ? e.source.credit ?? (sealedRound ? `Rendered by Ansatz from a law drawn by drand round ${sealedRound} and sealed (SHA-256 committed and pushed) before the run` : undefined) : undefined;
+  const rendered = (!!credit && /^Rendered\b/.test(credit)) || !!sealedRound;
   // real footage that carries published figures (the Foucault films): the title block leads with them, in English
   const realTruth = !rendered && !lang && e.source.kind === "showcase" && e.extras?.truth?.rows.length ? e.extras.truth.rows : null;
   // a sealed-law run opens on the drawn law against the found one; the referee's summary, written before the reveal, folds away
@@ -284,9 +287,11 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
         <dd>{phenomenon}</dd>
       </div>
       <div>
-        <dt>{e.source.kind === "showcase" ? (rendered ? "Rendered, not filmed" : "Filmed") : "Filmed by a visitor"}</dt>
+        <dt>{rendered ? "Rendered, not filmed" : e.source.kind === "showcase" ? "Filmed" : "Filmed by a visitor"}</dt>
         <dd>
-          {e.source.kind === "showcase" && credit ? (
+          {sealedRound && e.source.kind !== "showcase" ? (
+            <>Rendered by Ansatz from a law drawn by drand round {sealedRound} and sealed (SHA-256 committed and pushed) before the run; run on {fmtDate(e.createdAt)}.</>
+          ) : e.source.kind === "showcase" && credit ? (
             <>
               {e.source.page ? <a href={e.source.page}>{credit}</a> : credit}
               {e.source.license ? `. Licence: ${e.source.license}` : ""}. Trimmed and re-encoded for measurement.
@@ -357,7 +362,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <li key={r.param}>
                       {r.label.charAt(0).toUpperCase() + r.label.slice(1)}:{" "}
                       <b>
-                        {rowRough(r.param) ? (r.param === "speedup" ? `${r.measured.toFixed(2)}` : `about ${fmtAbout(r.measured, r.truth)}`) : fmtPair(r.measured, r.sigma)} {r.unit}
+                        {rowRough(r.param) ? (r.param === "speedup" ? `${r.measured.toFixed(2)}` : `about ${aboutOff(r.measured, r.truth)}`) : fmtPair(r.measured, r.sigma)} {r.unit}
                       </b>
                       , against a known {fmtRef(r.truth)} {r.unit} ({fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% off).
                     </li>
@@ -449,10 +454,15 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           {Number.isFinite(win.fit.testZ) ? `, ${zFmt(win.fit.testZ!)}× the measurement noise` : ""}
           {runnerUp ? `; the runner-up, ${runnerUp.law.title.charAt(0).toLowerCase() + runnerUp.law.title.slice(1)}, by ${fmtLen(runnerUp.fit.testRms, lengthUnit, channels)}${zOf(runnerUp) && zOf(win) ? `, ${zOf(runnerUp)}× the noise against the winner’s ${zOf(win)}×` : ""}${tied(win.fit, runnerUp.fit) ? " (a tie within the measurement noise; see the trial)" : ""}` : ""}.
         </p>
-        <blockquote className={styles.watched} lang={trLang}>
-          &ldquo;{tr?.what_happens ?? e.observation.what_happens}&rdquo;
-        </blockquote>
-        <Note who="Muse Spark 1.3, watching">Its account of the clip, written before anything was measured.</Note>
+        {/* a lite run makes no Muse Spark call, so there is no account of the clip to quote */}
+        {!liteRun && (
+          <>
+            <blockquote className={styles.watched} lang={trLang}>
+              &ldquo;{tr?.what_happens ?? e.observation.what_happens}&rdquo;
+            </blockquote>
+            <Note who="Muse Spark 1.3, watching">Its account of the clip, written before anything was measured.</Note>
+          </>
+        )}
         {pick && (
           <p className={styles.para}>
             Muse Spark’s own pick of what to follow: “{pick.noun}”{pick.ruler ? `, with “${pick.ruler}” as the ruler` : ", with no ruler named"}
@@ -524,7 +534,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                     <td data-h="Measured" className={`r ${styles.value}`}>
                       {rough ? (
                         <>
-                          about {fmtAbout(v, e.extras?.truth?.rows.find((r) => r.param === p.name)?.truth)} <span className={styles.unitS}>{unit}</span>
+                          about {aboutOff(v, e.extras?.truth?.rows.find((r) => r.param === p.name)?.truth)} <span className={styles.unitS}>{unit}</span>
                           <span className={styles.nd}>no error bar: the law misses the unseen frames by {fmtNoise(win.fit.testZ)}× the noise</span>
                         </>
                       ) : Number.isFinite(s) && s > 0 ? (
@@ -582,7 +592,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           return (
             <p className={styles.para}>
               {isRunnerUp ? "The runner-up law’s own g" : "Muse Spark’s plain law’s own g"} ({isRunnerUp ? "Muse Spark’s plain law, " : ""}
-              {sparkPlain.law.title.charAt(0).toLowerCase() + sparkPlain.law.title.slice(1)}): {rowRough(r.param) ? `about ${fmtAbout(r.measured, r.truth)}` : fmtPair(r.measured, r.sigma)} {r.unit}, {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% from {fmtRef(r.truth)}
+              {sparkPlain.law.title.charAt(0).toLowerCase() + sparkPlain.law.title.slice(1)}): {rowRough(r.param) ? `about ${aboutOff(r.measured, r.truth)}` : fmtPair(r.measured, r.sigma)} {r.unit}, {fmt(Math.abs((r.measured - r.truth) / r.truth) * 100, 2)}% from {fmtRef(r.truth)}
               {rowRough(r.param) && zOf(sparkPlain) ? `; no error bar: it misses the unseen frames by ${zOf(sparkPlain)}× the noise` : ""}. The gravity reported for this run is the winning law&rsquo;s, above.
             </p>
           );
@@ -852,7 +862,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
                         {/* on a rough run the winning law's values carry no error bar, the speed-up computed from its gravity included; Muse Spark's plain law follows the same rule by its own miss */}
                         {rowRough(r.param) ? (
                           <>
-                            {r.param === "speedup" ? r.measured.toFixed(2) : `about ${fmtAbout(r.measured, r.truth)}`} <span className={styles.unitS}>{r.unit}</span>
+                            {r.param === "speedup" ? r.measured.toFixed(2) : `about ${aboutOff(r.measured, r.truth)}`} <span className={styles.unitS}>{r.unit}</span>
                             <span className={styles.nd}>{rowWhy(r)}</span>
                           </>
                         ) : (
@@ -1501,10 +1511,14 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             </tbody>
           </table>
         </div>
-        <Note who="Who did what">SAM 3.1 measured. Muse Spark watched, proposed and refereed. Muse Wonder proposed when every law missed. Code fitted, predicted and ranked; no model picks the winner.</Note>
+        {liteRun ? (
+          <Note who="Who did what">SAM 3.1 measured.{e.narration?.turns.length ? " Muse Voice Transcribe heard the length; code read it." : " Code read the typed length."} Code fitted, predicted and ranked the lite law list (the textbook laws for the named experiment); no Muse Spark or Muse Wonder call.</Note>
+        ) : (
+          <Note who="Who did what">SAM 3.1 measured. Muse Spark watched, proposed and refereed. Muse Wonder proposed when every law missed. Code fitted, predicted and ranked; no model picks the winner.</Note>
+        )}
 
         <h3 className={styles.h3} id="observed">
-          What Muse Spark saw
+          {liteRun ? "What was given" : "What Muse Spark saw"}
         </h3>
         <dl className={styles.obs}>
           <dt>Tracked</dt>
@@ -1561,7 +1575,7 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           <>
             <h3 className={styles.h3}>Why these candidates</h3>
             <p>{e.reasoning}</p>
-            <Note who="Muse Spark 1.3">Its reasoning, written when it proposed the laws.</Note>
+            {liteRun ? <Note who="Code">The lite law list: the textbook laws for the named experiment (no Muse Spark call).</Note> : <Note who="Muse Spark 1.3">Its reasoning, written when it proposed the laws.</Note>}
           </>
         )}
 
@@ -1677,7 +1691,14 @@ function proseOf(e: Experiment, params: Record<string, { v: number; s: number }>
   return (t: string) => {
     let out = fmtProse(t, params);
     for (const w of widened) out = out.replace(new RegExp(`${w.fit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}${UNIT}`, "g"), (_all, unit?: string) => `${w.full}${unit ?? ""} (the fit alone gives ± ${w.fitPm}; ${rest})`);
-    return rough ? out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmtAbout(Number(x))}`) : out;
+    if (!rough) return out;
+    out = out.replace(/([-−]?)(\d+(?:\.\d+)?)\s*±\s*\d+(?:\.\d+)?/g, (_all, sign: string, x: string) => `about ${sign}${fmtAbout(Number(x))}`);
+    // the model's own "about 240" for a fitted 241.8: restated with the digits every other line of the page uses
+    return out.replace(/about (\d+(?:\.\d+)?)/g, (all, x: string) => {
+      const n = Number(x);
+      const p = n >= 10 ? Object.values(params).find((q) => Number.isFinite(q.v) && Math.abs(q.v - n) < 0.02 * Math.abs(q.v)) : undefined;
+      return p && fmtAbout(p.v) !== x ? `about ${fmtAbout(p.v)}` : all;
+    });
   };
 }
 

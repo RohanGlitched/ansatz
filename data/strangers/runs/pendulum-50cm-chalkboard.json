@@ -1,0 +1,230 @@
+{
+ "id": "a4ym6xd3cv",
+ "createdAt": "2026-11-02T00:06:31.798Z",
+ "pipeline": "2026-11-02a",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-50cm-chalkboard.mp4"
+ },
+ "given": [
+  "pendulum length = 0.5 m (“The pendulum is half a metre long.”)",
+  "pendulum length = 0.5 m (“0,5 m”)",
+  "pendulum length L = 0.5 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The pendulum is half a metre long."
+ },
+ "winner": "pendulum-small-ideal",
+ "candidates": [
+  {
+   "law": {
+    "id": "pendulum-small-ideal",
+    "title": "Ideal small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.5536384498352458,
+    "testRms": 2.0805310754425883,
+    "trainZ": 4.413333707204159,
+    "testZ": 16.58497152224334,
+    "k": 4,
+    "theta": {
+     "g": 6.8069335027471425,
+     "s_eq": 0.40995252826906553,
+     "s@0": -0.29138054218762366,
+     "v@0": 10.180397426044115,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.07041285350046905,
+     "s_eq": 0.12986383022468578,
+     "s@0": 0.29797114976971323,
+     "v@0": 0.5709533178932038,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-damped-linear",
+    "title": "Damped linear pendulum"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.543045426016217,
+    "testRms": 1.9748229932080066,
+    "trainZ": 4.328891325907038,
+    "testZ": 15.742318627400829,
+    "k": 5,
+    "theta": {
+     "g": 6.811012675569051,
+     "s_eq": 0.39929900859989753,
+     "gamma": 0.04222252757876554,
+     "s@0": -0.38324442370886114,
+     "v@0": 11.17332136424518,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.07067655665582524,
+     "s_eq": 0.13103799429612784,
+     "gamma": 0.0408458437406121,
+     "s@0": 0.32248374486034825,
+     "v@0": 1.152926366238205,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-quad-drag",
+    "title": "Pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.5437181493083677,
+    "testRms": 1.9842067404239727,
+    "trainZ": 4.3342539454681495,
+    "testZ": 15.817121249762824,
+    "k": 5,
+    "theta": {
+     "g": 6.810577317758093,
+     "s_eq": 0.3996730598933107,
+     "cq": 0.004490930577799697,
+     "s@0": -0.379954963701027,
+     "v@0": 11.159277549261178,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.07067046570678301,
+     "s_eq": 0.13130370814430992,
+     "cq": 0.004597319932286701,
+     "s@0": 0.3245117251732896,
+     "v@0": 1.216048973822325,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.0548237441513413,
+    "testRms": 2.2317296018759327,
+    "trainZ": 16.38004530777307,
+    "testZ": 17.790251887771515,
+    "k": 3,
+    "theta": {
+     "a": 0.04355927149268645,
+     "s@0": 1.0719184982733618,
+     "v@0": -0.26736977392535083
+    },
+    "sigma": {
+     "a": 0.4382189492019564,
+     "s@0": 4.546534676738744,
+     "v@0": 2.0683238232236105
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 1.4765841194950864,
+    "testRms": 2.1958295212323526,
+    "trainZ": 11.86712286261691,
+    "testZ": 17.525685396716742,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": -1.572708763088645,
+     "y@0": 0.3853193939698209,
+     "vx@0": 0.011467173208468252,
+     "vy@0": -0.06842623425110242
+    },
+    "sigma": {
+     "g": 0.4246775082861221,
+     "x@0": 1.2561817895298986,
+     "y@0": 4.406045300408562,
+     "vx@0": 0.24474308573114,
+     "vy@0": 2.004411862125082
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-large-damped",
+    "title": "Large-angle damped pendulum"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.5390153030063023,
+    "testRms": 2.2231278923768127,
+    "trainZ": 4.296765165361056,
+    "testZ": 17.72168328585569,
+    "k": 6,
+    "theta": {
+     "g": 7.779571217281698,
+     "s_eq": 0.3893422868298544,
+     "gamma": 0.04161020188246266,
+     "K": 2.7946121853566113,
+     "s@0": -0.21602894217310403,
+     "v@0": 11.425482624452954,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 1.608204037184034,
+     "s_eq": 0.13616128818783566,
+     "gamma": 0.04032917937980871,
+     "K": 2.150040811442532,
+     "s@0": 0.40453610186292543,
+     "v@0": 1.1323602263381258,
+     "L": 0
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 6.8069335027471425,
+   "sigma": 0.09793571518685441,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": -30.588595465860998,
+   "withinSigma": 30.62944393196711
+  }
+ ],
+ "clock": {
+  "factor": 1.20028556672815,
+  "sigma": 0.008634638883907053,
+  "note": "Gravity came out 1.4× too weak. Either this happened somewhere with 0.69× Earth’s gravity, or the clip plays about 1.2× slower than real life (slow motion). Or the stated pendulum length is not the length assumed: g scales with it, so a length read 1.4× too long looks just like a clip slowed 1.2×. Run it again with the slow-motion factor set, or check the length."
+ },
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out far from the world’s, so the clip’s clock, or the length behind the scale, is in doubt."
+ },
+ "ledger": {
+  "usd": 0.38511900000000004,
+  "ms": 299425
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-50cm-chalkboard.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

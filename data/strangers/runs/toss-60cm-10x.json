@@ -1,0 +1,205 @@
+{
+ "id": "vdnhr2cz9k",
+ "createdAt": "2026-11-01T23:35:05.349Z",
+ "pipeline": "2026-11-02a",
+ "title": "Vertical projectile",
+ "source": {
+  "kind": "upload",
+  "video": "toss-60cm-10x.mp4"
+ },
+ "given": [
+  "the clip plays 10× slower than real life (ball takes ~3.5 s to rise ~0.6 m to apex and ~3 s to fall back, versus ~0.35 s expected for free fall over 0.6 m, so about 10x slower than real time); times are already corrected to real seconds",
+  "rise height = 60 cm (“The juggling ball rises about sixty centimetres.”)"
+ ],
+ "narration": {
+  "transcript": "The juggling ball rises about sixty centimetres."
+ },
+ "winner": "strong-linear-drag-fixed-g-rev",
+ "candidates": [
+  {
+   "law": {
+    "id": "strong-linear-drag-fixed-g-rev",
+    "title": "Strong linear air drag with fixed Earth gravity"
+   },
+   "origin": "revision",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 3.423929500599215,
+    "testRms": 1.168099375246911,
+    "trainZ": 58.71318004371556,
+    "testZ": 20.030444235437972,
+    "k": 4,
+    "theta": {
+     "k_lin": 20,
+     "pix_per_m": 100,
+     "h@0": -0.041456180298701725,
+     "v@0": 4.4073820070693275,
+     "g": 9.81
+    },
+    "sigma": {
+     "k_lin": 344.5750926594229,
+     "pix_per_m": 8779.787366065711,
+     "h@0": 3.6570018796888246,
+     "v@0": 392.98539580105376,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "vacuum",
+    "title": "Free fall no drag"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.953255385129181,
+    "testRms": 4.574503160613806,
+    "trainZ": 50.642110216292885,
+    "testZ": 78.44309517256707,
+    "k": 4,
+    "theta": {
+     "g": 0.01,
+     "pix_per_m": 3.137775457818057,
+     "h@0": -1.030948134178171,
+     "v@0": 85.88876874936389
+    },
+    "sigma": {
+     "g": 44940.54026362255,
+     "pix_per_m": 11441533.177661812,
+     "h@0": 3616365.3384854523,
+     "v@0": 264127739.90016174
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "linear-drag",
+    "title": "Gravity with linear air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.9532994938091695,
+    "testRms": 4.552701133843609,
+    "trainZ": 50.642866587260585,
+    "testZ": 78.06923632913806,
+    "k": 5,
+    "theta": {
+     "g": 0.01,
+     "pix_per_m": 4.274147992229984,
+     "k_lin": 0,
+     "h@0": -0.7530908189876755,
+     "v@0": 62.91457506786395
+    },
+    "sigma": {
+     "g": 5599148.737865441,
+     "pix_per_m": 68857833.2013168,
+     "k_lin": 89028.47782250031,
+     "h@0": null,
+     "v@0": 1056732517.1174475
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quadratic-drag",
+    "title": "Gravity with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.9532698918533025,
+    "testRms": 4.582044217534938,
+    "trainZ": 50.64235897606002,
+    "testZ": 78.5724084170871,
+    "k": 5,
+    "theta": {
+     "g": 0.01,
+     "pix_per_m": 7.572124866216561,
+     "k_quad": 0,
+     "h@0": -0.43047834140752955,
+     "v@0": 35.65454933720258
+    },
+    "sigma": {
+     "g": 42277540.78084084,
+     "pix_per_m": 88459063.62431818,
+     "k_quad": 33268.14691770641,
+     "h@0": 5028997.4181049,
+     "v@0": 416523617.0187684
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.0888676371428385,
+    "testRms": 3.5640743037361897,
+    "trainZ": 44.77767237545604,
+    "testZ": 76.19850687987712,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": -1.0208846719100468,
+     "y@0": -3.047739237732515,
+     "vx@0": 69.43744943719811,
+     "vy@0": 259.31104405988714
+    },
+    "sigma": {
+     "g": 11052.877106962234,
+     "x@0": 19.053808131708326,
+     "y@0": 13.82042647827225,
+     "vx@0": 229.44420647959979,
+     "vy@0": 354.4724602762885
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 2.6655568087969206,
+    "testRms": 8.267005781574742,
+    "trainZ": 45.70868553346562,
+    "testZ": 141.76173860796186,
+    "k": 3,
+    "theta": {
+     "a": 5000,
+     "s@0": -2.2017575854985703,
+     "v@0": 139.62741293265782
+    },
+    "sigma": {
+     "a": 6965.7830760635225,
+     "s@0": 2.1034727242987974,
+     "v@0": 187.8438052749408
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: a slow-motion factor was set, so times were corrected by it, not tested."
+ },
+ "ledger": {
+  "usd": 0.3842865,
+  "ms": 205171
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/toss-60cm-10x.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

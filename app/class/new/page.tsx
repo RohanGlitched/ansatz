@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ClassMaker from "@/components/ClassMaker";
 import { Note, Page } from "@/components/book/Plate";
+import { voiceLite } from "@/app/voiceLite";
 import styles from "./new.module.css";
 
 export const metadata: Metadata = { title: "Make a class link", description: "Give a class of students their own Ansatz runs for a week, and see every result on one page.", alternates: { canonical: "/class/new" } };
 
-export default function NewClassPage() {
+export default async function NewClassPage() {
+  // a class link starts in lite mode: its time and cost, read from the two published lite runs' ledgers
+  const voice = await voiceLite().catch(() => null);
   return (
     <>
       <header className={styles.title}>
@@ -42,7 +45,7 @@ export default function NewClassPage() {
             </li>
             <li>
               <h3>Students film and run</h3>
-              <p>A phone propped on some books, the motion side on, an A4 sheet on the wall for scale. SAM 3.1 measures every frame and code fits the laws; each run takes a couple of minutes.</p>
+              <p>A phone propped on some books, the motion side on, an A4 sheet on the wall for scale. SAM 3.1 measures every frame and code fits the laws; {voice ? `a class-link run (lite mode) took ${voice.timeText} and cost ${voice.usdText} in the two published runs.` : "a class-link run (lite mode) takes under a minute."}</p>
             </li>
             <li>
               <h3>You read the grading sheet</h3>

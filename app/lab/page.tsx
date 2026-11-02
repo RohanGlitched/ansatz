@@ -359,7 +359,7 @@ export default async function LabPage() {
             </div>
             <div>
               <dt>The student films</dt>
-              <dd>The bob swinging across the frame, side on, from a phone propped still on books 1.5 to 2 m away, for at least ten swings. A small swing: the bob pulled aside no more than a tenth of the length. Typing the length in the box when uploading sets it as a given, quoted in the report; saying it aloud while filming works too, in any of the seven languages.</dd>
+              <dd>The bob swinging across the frame, side on, from a phone propped still on books 1.5 to 2 m away, for at least ten swings. A small swing: the bob pulled aside no more than a tenth of the length. Typing the length in the box when uploading sets it as a given, quoted in the report; saying it aloud while filming works too, in any of the seven languages (tested so far with synthetic voices in Hindi and English).</dd>
             </div>
             <div>
               <dt>Tape up</dt>
@@ -560,7 +560,10 @@ export default async function LabPage() {
         <Section n={4} title="A 40-minute lesson" id="lesson">
           <p>One period, one projector, phones in groups of four. Built on Plate II above; it works without phones too, from the stored runs. Minute marks are from the bell.</p>
         </Section>
-        <Note who="What it needs">A projector or a large screen, the printed worksheet, a metre scale, an A4 sheet and a bob on a thread per group. A run takes {runTimeText(rt)}.</Note>
+        <Note who="What it needs">
+          A projector or a large screen, the printed worksheet, a metre scale, an A4 sheet and a bob on a thread per group.{" "}
+          {voice ? `A class-link run (lite mode) took ${voice.timeText} end to end and cost ${voice.usdText} in the two published runs; a full run takes ${runTimeText(rt)}.` : `A run takes ${runTimeText(rt)}.`}
+        </Note>
         {voice && (
           <Note who="Muse Voice Transcribe, then code">
             Saying the length works. Muse Voice Transcribe set the length in two published lite runs, as a class link runs them, with nothing typed: {voice.runs.map((x, i) => (
@@ -568,7 +571,7 @@ export default async function LabPage() {
                 {i ? "; " : ""}a synthetic {x.language} voice over {x.clip}, heard as &ldquo;{x.heard.replace(/\.$/, "")}&rdquo;, read as {x.length} and held as the length (given, not measured), {x.g}
                 {x.full ? `; ${x.full}` : ""} (<Link href={x.href}>{x.language} run</Link>)
               </span>
-            ))}. {voice.usdText} a run. Synthetic voices, labelled on each run; a real speaker is still to be tested.
+            ))}. {voice.usdText} a run, {voice.timeText} end to end. Synthetic voices, labelled on each run; a real speaker is still to be tested.
           </Note>
         )}
       </Page>

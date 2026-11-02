@@ -1,4 +1,16 @@
-import { sealedTest } from "@/app/sealed";
+import { REPLICATE_URL, sealedTest } from "@/app/sealed";
+
+/** the replicate records' folder, as a link wherever a sealed sentence names it */
+const linkRep = (t: string) => {
+  const [a, b] = t.split(REPLICATE_URL);
+  return b === undefined ? t : (
+    <>
+      {a}
+      <a href={REPLICATE_URL}>data/replicate on GitHub</a>
+      {b}
+    </>
+  );
+};
 import type { Experiment } from "@/lib/experiment";
 import { fmtProse } from "@/lib/format";
 import styles from "./page.module.css";
@@ -39,7 +51,7 @@ export default async function SealedLede({ e }: { e: Experiment }) {
           })}
         </ul>
       )}
-      {wonder && <p className={styles.finding}>{sealed.wonderStory}</p>}
+      {wonder && sealed.wonderStory && <p className={styles.finding}>{linkRep(sealed.wonderStory)}</p>}
       {draw.verdict === "miss" && sealed.driveNote && <p className={styles.finding}>{sealed.driveNote}</p>}
       <p className={styles.finding}>
         Drawn by <a href={draw.url}>drand round {draw.round}</a>; its hash was pushed to GitHub before the clip was rendered (<a href={draw.sealUrl}>commit {draw.seal}</a>, set {draw.set}) and the law revealed after the run (<a href={draw.revealUrl}>commit {draw.reveal}</a>). {rows.some((r) => r.si) ? "Lengths are in pixels in the run, which found no ruler; the metre values use the render’s own scale. " : ""}

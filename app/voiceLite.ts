@@ -24,14 +24,17 @@ export type VoiceRun = {
   heard: string;
   /** "50 cm" */
   length: string;
-  /** "g = 9.806 ± 0.098 m/s², 0.01% low", or for a law that misses the unseen frames, the value and why it is shown rounded */
+  /** "g = 9.806 ± 0.098 m/s², 0.04% low against the render’s 9.81", or for a law that misses the unseen frames by more than 5× the noise, "g about 9.9 m/s², no error bar (8.1× the noise)" */
   g: string;
   /** the full run on the same clip: "closer than its full run with the A4 sheet as the ruler: 9.86 ± 0.59 m/s²" */
   full: string;
   usd: number;
+  /** the run's own end-to-end time, from its ledger */
+  ms: number;
   rough: boolean;
 };
-export type VoiceLite = { runs: VoiceRun[]; usdText: string; sentence: string; short: string };
+/** `timeText`: "37.7 s and 39.8 s"; `about`: "about 40 s and 5 to 7 cents a run", both read from the two ledgers */
+export type VoiceLite = { runs: VoiceRun[]; usdText: string; timeText: string; about: string; sentence: string; short: string };
 
 const signed = (x: number, d: number) => `${x < 0 ? "−" : ""}${Math.abs(x).toFixed(d)}%`;
 
@@ -43,13 +46,18 @@ function runOf(r: (typeof RUNS)[number], e: Experiment, full: Experiment | null)
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const z = win.fit.testZ ?? 0;
   const rough = (g as { rough?: boolean }).rough ?? z > ROUGH_Z;
-  const off = `${Math.abs(g.errorPct).toFixed(Math.abs(g.errorPct) < 0.1 ? 2 : 2)}% ${g.errorPct < 0 ? "low" : "high"}`;
-  const gText = rough
-    ? `g = ${g.measured.toFixed(3)} ± ${g.sigma.toFixed(3)} m/s² (${off}), shown as about ${g.measured.toFixed(1)} with no error bar, as its law misses the unseen frames by ${fmtNoise(z)}× the noise`
-    : `g = ${g.measured.toFixed(3)} ± ${g.sigma.toFixed(3)} m/s², ${off}`;
+  // a render is compared with the g it was rendered with (its credit line: "g = 9.81 m/s²"), real footage with Earth's
+  const rendered = /^Rendered\b/.test(e.source.credit ?? "");
+  const renderG = rendered ? Number(e.source.credit?.match(/g = ([\d.]+) m\/s²/)?.[1]) : NaN;
+  const ref = Number.isFinite(renderG) ? renderG : g.reference;
+  const pct = (v: number) => (v / ref - 1) * 100;
+  const off = `${Math.abs(pct(g.measured)).toFixed(2)}% ${pct(g.measured) < 0 ? "low" : "high"}${Number.isFinite(renderG) ? ` against the render’s ${renderG}` : ""}`;
+  // a law that misses the unseen frames by more than 5× the noise gets no error bar and no percentage, as on its run page
+  const gText = rough ? `g about ${g.measured.toFixed(1)} m/s², no error bar (${fmtNoise(z)}× the noise)` : `g = ${g.measured.toFixed(3)} ± ${g.sigma.toFixed(3)} m/s², ${off}`;
   const fg = full?.comparisons.find((c) => c.param === "g");
-  const closer = fg && Math.abs(g.errorPct) < Math.abs(fg.errorPct);
-  const fullText = fg ? `${closer ? "closer than its full run" : "its full run"} with ${r.fullHow}: ${fg.measured.toFixed(2)} ± ${fg.sigma.toFixed(2)} m/s²` : "";
+  const closer = fg && !rough && Math.abs(pct(g.measured)) < Math.abs(pct(fg.measured));
+  // the two runs were not told the same thing: say which one had the exact length
+  const fullText = fg ? (closer ? `closer than its full run, which took its scale from ${r.fullHow} where this lite run was told the exact length: ${fg.measured.toFixed(2)} ± ${fg.sigma.toFixed(2)} m/s²` : `its full run with ${r.fullHow}: ${fg.measured.toFixed(2)} ± ${fg.sigma.toFixed(2)} m/s²`) : "";
   return {
     id: r.id,
     href: `/x/${r.id}`,
@@ -60,6 +68,7 @@ function runOf(r: (typeof RUNS)[number], e: Experiment, full: Experiment | null)
     g: gText,
     full: fullText,
     usd: e.ledger.usd,
+    ms: e.ledger.ms,
     rough,
   };
 }
@@ -69,9 +78,13 @@ export async function voiceLite(): Promise<VoiceLite | null> {
   const runs = got.flatMap(([r, e, f]) => (e ? [runOf(r, e, f)] : [])).filter((x): x is VoiceRun => !!x);
   if (runs.length !== RUNS.length) return null;
   const usdText = runs.map((x) => `$${x.usd.toFixed(3)}`).join(" and ");
+  const timeText = runs.map((x) => `${(x.ms / 1000).toFixed(1)} s`).join(" and ");
+  const secs = runs.map((x) => x.ms / 1000), cents = runs.map((x) => x.usd * 100);
+  const lo = Math.round(Math.min(...cents)), hi = Math.round(Math.max(...cents));
+  const about = `about ${Math.round(Math.max(...secs) / 10) * 10} s and ${lo === hi ? `${lo}` : `${lo} to ${hi}`} cents a run`;
   const sentence = `Muse Voice Transcribe set the length in two published lite runs (synthetic voices, labelled), with nothing typed, so the length could only come from the transcript: ${runs
     .map((x) => `${x.language} over ${x.clip}, heard “${x.heard.replace(/\.$/, "")}”, read as ${x.length}, ${x.g}${x.full ? `; ${x.full}` : ""}`)
-    .join("; ")}. ${usdText} a run.`;
-  const short = `Muse Voice Transcribe set the length in two published lite runs, synthetic voices, labelled: ${runs.map((x) => `${x.language} over ${x.clip}, read as ${x.length}, ${x.g.replace(/, shown as about ([\d.]+) with no error bar, as its law misses the unseen frames by ([\d.]+)× the noise/, ", shown as about $1 with no error bar ($2× the noise)")}`).join("; ")}`;
-  return { runs, usdText, sentence, short };
+    .join("; ")}. ${usdText} a run, ${timeText} end to end.`;
+  const short = `Muse Voice Transcribe set the length in two published lite runs, synthetic voices, labelled: ${runs.map((x) => `${x.language} over ${x.clip}, read as ${x.length}, ${x.g}`).join("; ")}`;
+  return { runs, usdText, timeText, about, sentence, short };
 }

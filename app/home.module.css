@@ -159,11 +159,22 @@
   margin-top: clamp(16px, 1.8vw, 24px);
 }
 
-.sealLine {
+/* the phone's one descriptor per tile; wide screens show the longer lines instead */
+.tileB {
+  display: none;
+}
+
+.topNotes {
   flex: 1 1 28em;
+  display: grid;
+  gap: 4px;
+  max-width: 62em;
+}
+
+.sealLine {
+  margin: 0;
   font-size: 17px;
   line-height: 1.45;
-  max-width: 62em;
 }
 
 .sealLine b {
@@ -188,7 +199,8 @@
     grid-template-rows: none;
     grid-template-areas:
       "k k"
-      "v s";
+      "v s"
+      "b b";
     align-items: center;
     column-gap: 16px;
     row-gap: 4px;
@@ -208,6 +220,14 @@
   .tileW,
   .tileX {
     display: none;
+  }
+
+  .tileB {
+    display: block;
+    grid-area: b;
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--prussian-ink);
   }
 
   .tileSide {
@@ -251,8 +271,11 @@
     width: 100%;
   }
 
-  .sealLine {
+  .topNotes {
     flex-basis: 100%;
+  }
+
+  .sealLine {
     font-size: 15px;
     line-height: 1.4;
   }

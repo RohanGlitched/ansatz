@@ -60,6 +60,8 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
   const by = Object.entries(ob.naiveWouldFailBy as Record<string, number>);
   const worlds = by.filter(([k]) => /world/.test(k)).reduce((s, [, n]) => s + n, 0);
   const slowed = by.filter(([k]) => /slow/.test(k)).reduce((s, [, n]) => s + n, 0);
+  // the budgets in lib/experiment.ts (RUN_BUDGET_MS, 250 s on the site, 600 s in scripts/run.ts) and its 200 s room rule for code's drive
+  const BUDGET_NOTE = "A run here has a 250 s budget, and code adds a drive at an unexplained residual peak only when 200 s are still left at that step, so a run here can skip the step the sealed-law runs (scripted, 600 s) had.";
   const liteNote =
     `About ${Math.round(lite.medianSamUsd * 100)} cents (${rs(lite.medianSamUsd)}) a run for SAM 3.1 alone, the median over ${lite.clips} benchmark clips run this way, or ${rs(lite.medianSamUsd * 40)} for a class of 40, plus under a cent when Muse Voice Transcribe listens for a spoken length. ` +
     `It assumes Earth, real time and the whole clip, so it goes wrong where only Muse Spark’s observer knows better: on ${ob.naiveWouldFail} of the ${ob.runs} clips in our observer test, ${worlds} on the Moon or Mars (every one) and ${slowed} in undeclared slow motion.`;
@@ -116,7 +118,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
         autoReplay={autoReplay}
         liteDefault={liteDefault}
         liteNote={liteNote}
-        runNote={`A run takes ${runTimeText(rt)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, about ${rs(hl.usd.median)} (${rs(hl.usd.min)} to ${rs(hl.usd.max)}), which we pay.`}
+        runNote={`A run takes ${runTimeText(rt)}, longer when Muse Wonder steps in, and cost ${costText(hl)}, about ${rs(hl.usd.median)} (${rs(hl.usd.min)} to ${rs(hl.usd.max)}), which we pay. ${BUDGET_NOTE}`}
       />
   );
 }

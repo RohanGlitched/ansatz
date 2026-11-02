@@ -1,0 +1,281 @@
+{
+ "id": "2yt7hw8k6m",
+ "createdAt": "2026-11-02T08:05:06.246Z",
+ "pipeline": "2026-11-02a",
+ "code": {
+  "commit": "ae34e6d46fff04b384df04cb0515e14a2f748e93",
+  "dirty": true,
+  "changed": [
+   "app/firstScreen.ts",
+   "app/judges/page.tsx",
+   "app/lab/page.tsx",
+   "app/llms.txt/route.ts",
+   "app/page.tsx",
+   "app/proof/page.tsx",
+   "app/sealed.ts",
+   "app/x/[id]/view.tsx",
+   "data/showcase/order.json"
+  ]
+ },
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-35cm-muskopf.mp4"
+ },
+ "given": [
+  "length of string = 0.35 m (“Length of string = 35 cm.”)",
+  "pendulum length L = 0.35 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "Length of string = 35 cm."
+ },
+ "winner": "pendulum-viscous",
+ "candidates": [
+  {
+   "law": {
+    "id": "pendulum-viscous",
+    "title": "Damped pendulum with linear drag"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.02991834943659656,
+    "testRms": 0.05016791065897324,
+    "trainZ": 5.7871914390339745,
+    "testZ": 9.704121669382396,
+    "k": 5,
+    "theta": {
+     "g": 8.683968187639964,
+     "theta0": 0.27377980445667693,
+     "b": 0.0918606767379959,
+     "theta@0": 0.9652836454045473,
+     "omega@0": -0.7538677418680224,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.012597623971691228,
+     "theta0": 0.007227351328101103,
+     "b": 0.005661790522734435,
+     "theta@0": 0.014608643026539131,
+     "omega@0": 0.07550578226149318,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-coulomb-viscous-rev+pendulum-viscous-damping",
+    "title": "Pendulum with viscous and Coulomb pivot friction, with the damping of “Damped pendulum with linear drag”"
+   },
+   "origin": "combined",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.029918349436591343,
+    "testRms": 0.050167904324228324,
+    "trainZ": 5.7871914390329655,
+    "testZ": 9.704120444034666,
+    "k": 5,
+    "theta": {
+     "g": 8.683968187131164,
+     "theta0": 0.2737798090039933,
+     "b": 0.09186066500431495,
+     "theta@0": 0.9652836142561393,
+     "omega@0": -0.7538674816036175,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.012597622544761645,
+     "theta0": 0.007227351537501352,
+     "b": 0.005661791462144583,
+     "theta@0": 0.014608645932766149,
+     "omega@0": 0.07550575521538096,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-quad",
+    "title": "Damped pendulum with linear plus quadratic drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.029599688731418033,
+    "testRms": 0.04816056410994258,
+    "trainZ": 5.725551992350133,
+    "testZ": 9.31583491618622,
+    "k": 6,
+    "theta": {
+     "g": 8.6780607033167,
+     "theta0": 0.27457738696888306,
+     "b": 0.040825385577100186,
+     "k": 0.024897611003076414,
+     "theta@0": 0.9810758527329436,
+     "omega@0": -0.8198432741100413,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.0136539787652417,
+     "theta0": 0.007934579289146391,
+     "b": 0.06389941757603514,
+     "k": 0.030763023143250988,
+     "theta@0": 0.02511489434630031,
+     "omega@0": 0.09065986166074905,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-coulomb-viscous-rev+pendulum-quad-damping",
+    "title": "Pendulum with viscous and Coulomb pivot friction, with the damping of “Damped pendulum with linear plus quadratic drag”"
+   },
+   "origin": "combined",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.029599688731424306,
+    "testRms": 0.04816056240594723,
+    "trainZ": 5.7255519923513445,
+    "testZ": 9.315834586577553,
+    "k": 6,
+    "theta": {
+     "g": 8.678060702930107,
+     "theta0": 0.2745773886553031,
+     "b": 0.0408253707053721,
+     "k": 0.02489761622211889,
+     "theta@0": 0.9810758431816378,
+     "omega@0": -0.8198431547523509,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.013653978985666471,
+     "theta0": 0.007934579398970196,
+     "b": 0.06389943830980746,
+     "k": 0.030763034641524623,
+     "theta@0": 0.02511489137965548,
+     "omega@0": 0.0906598366747397,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-coulomb-viscous-rev",
+    "title": "Pendulum with viscous and Coulomb pivot friction"
+   },
+   "origin": "revision",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.02991843592418176,
+    "testRms": 0.05023504004407753,
+    "trainZ": 5.787208168573607,
+    "testZ": 9.717106697303352,
+    "k": 6,
+    "theta": {
+     "g": 8.68378996599503,
+     "theta0": 0.2738094508283311,
+     "b": 0.0918624509864762,
+     "c": 0,
+     "theta@0": 0.9651540749744755,
+     "omega@0": -0.7540369488984712,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.013749170227611152,
+     "theta0": 0.007519250076720627,
+     "b": 0.06389195074957588,
+     "c": 0.1197721669818845,
+     "theta@0": 0.021188985662272102,
+     "omega@0": 0.08621144694981761,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-ideal",
+    "title": "Ideal undamped pendulum"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.08130524123040968,
+    "testRms": 0.11494622577985004,
+    "trainZ": 15.72710409691456,
+    "testZ": 22.23437543545477,
+    "k": 4,
+    "theta": {
+     "g": 8.673845563484658,
+     "theta0": 0.3009572796483273,
+     "theta@0": 0.7581721066232417,
+     "omega@0": 0.07713088634758038,
+     "L": 0.35
+    },
+    "sigma": {
+     "g": 0.030287832377694,
+     "theta0": 0.01626247392060486,
+     "theta@0": 0.020271204597911333,
+     "omega@0": 0.14438523173423848,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-small-angle",
+    "title": "Textbook pendulum (small angles)"
+   },
+   "origin": "control",
+   "rank": 7,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.4751023931168366,
+    "testRms": 0.5737394587652581,
+    "trainZ": 91.90040740506468,
+    "testZ": 110.98005560229203,
+    "k": 3,
+    "theta": {
+     "w0": 0.5592892454650398,
+     "theta@0": 0.04649838251121072,
+     "omega@0": 0.18575412162843216
+    },
+    "sigma": {
+     "w0": 0.13220029076739284,
+     "theta@0": 0.44120040304226327,
+     "omega@0": 0.17126550272911756
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 8.683968187639964,
+   "sigma": 0.0877486779280829,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": -11.448168460789724,
+   "withinSigma": 12.794287490919958,
+   "sigmaFit": 0.012597623971691228,
+   "sigmaAssumed": 0.08683968187639965,
+   "rough": true
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 11% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.39105425,
+  "ms": 529308
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-35cm-muskopf.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

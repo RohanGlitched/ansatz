@@ -1,0 +1,330 @@
+{
+ "id": "6yc4msr92f",
+ "createdAt": "2026-11-02T07:33:56.340Z",
+ "pipeline": "2026-11-02a",
+ "code": {
+  "commit": "b1902a4d17a3afdbc57dc393dc978ae23f15e464",
+  "dirty": true,
+  "changed": [
+   "app/sealed.ts",
+   "app/sealedWords.ts",
+   "data/bench/pipelines.json",
+   "data/showcase/order.json"
+  ]
+ },
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-40cm-physagreg-100g.mp4"
+ },
+ "given": [
+  "pendulum length = 0.4 m (“40 cm”)",
+  "pendulum length L = 0.4 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "Simple pendulum, 40 cm, m + 100."
+ },
+ "winner": "true-pendulum-xy-rev+quadratic-drag-damping",
+ "candidates": [
+  {
+   "law": {
+    "id": "true-pendulum-xy-rev+quadratic-drag-damping",
+    "title": "True large-angle damped pendulum, with the damping of “Pendulum with quadratic air drag”"
+   },
+   "origin": "combined",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 29.359246332964553,
+    "testRms": 30.285396002497908,
+    "trainZ": 5.539891794873398,
+    "testZ": 10.156992945780601,
+    "k": 7,
+    "theta": {
+     "g": 11.922384236585254,
+     "x0": -68.5119234774128,
+     "y0": 57.757317003597116,
+     "Spix": 68.8595213020869,
+     "cq": 0.1416946096437001,
+     "theta@0": 1.0230944767697214,
+     "omega@0": 9.698205409117975,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 0.6066503813660695,
+     "x0": 3.770515107300283,
+     "y0": 12.012836962256705,
+     "Spix": 5.963456100775474,
+     "cq": 0.03848952868182298,
+     "theta@0": 0.33761539447891675,
+     "omega@0": 1.198373422019133,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "true-pendulum-xy-rev+quadratic-drag-damping-drive",
+    "title": "True large-angle damped pendulum, with the damping of “Pendulum with quadratic air drag”, with a periodic drive"
+   },
+   "origin": "combined",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 29.037132643062048,
+    "testRms": 30.42196817782212,
+    "trainZ": 5.436989214458239,
+    "testZ": 10.195855311872586,
+    "k": 10,
+    "theta": {
+     "g": 11.999227406953713,
+     "x0": -68.29930494245453,
+     "y0": 58.82447649306233,
+     "Spix": 68.35435378790012,
+     "cq": 0.1295838556086413,
+     "F_drive": 31.761985102671595,
+     "w_drive": 19.59327179009199,
+     "phi_drive": 0.8884733271339785,
+     "theta@0": 0.9797576575612428,
+     "omega@0": 11.081026645107132,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 0.644373318575631,
+     "x0": 3.853396284102579,
+     "y0": 12.186767542950326,
+     "Spix": 5.949699528249378,
+     "cq": 0.03691350540594398,
+     "F_drive": 18.582572122101144,
+     "w_drive": 0.5771721284577827,
+     "phi_drive": 1.2899420841340103,
+     "theta@0": 0.32302111830032626,
+     "omega@0": 2.0063383881738686,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "true-pendulum-xy-rev",
+    "title": "True large-angle damped pendulum"
+   },
+   "origin": "revision",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 30.0199638025074,
+    "testRms": 34.27355148717194,
+    "trainZ": 5.795110110166213,
+    "testZ": 11.976823645526505,
+    "k": 7,
+    "theta": {
+     "g": 12.482621242254291,
+     "gamma": 0.7559518198003122,
+     "x0": -67.33944810135672,
+     "y0": 61.76611097484878,
+     "Spix": 66.30822835234298,
+     "theta@0": 0.9522728541674885,
+     "omega@0": 9.975400153175496,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 0.7209066544977849,
+     "gamma": 0.14948538214012622,
+     "x0": 4.189342654070782,
+     "y0": 12.620929807966753,
+     "Spix": 5.935608437011313,
+     "theta@0": 0.3514100005479279,
+     "omega@0": 1.039833669886471,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 40.99697387789498,
+    "testRms": 47.228949787347034,
+    "trainZ": 15.77154954789809,
+    "testZ": 17.948376245512037,
+    "k": 5,
+    "theta": {
+     "g": 28.79948103767754,
+     "x@0": -37.15352651119585,
+     "y@0": 17.78793508725419,
+     "vx@0": -13.89669876712552,
+     "vy@0": 75.7829911296203
+    },
+    "sigma": {
+     "g": 148.81554292379136,
+     "x@0": 120.06427821349925,
+     "y@0": 186.52338453838826,
+     "vx@0": 45.848925067261966,
+     "vy@0": 260.4147615556646
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "small-angle-ideal",
+    "title": "Ideal small-angle pendulum in x"
+   },
+   "origin": "muse",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 58.138040015531175,
+    "testRms": 55.0765561530238,
+    "trainZ": 22.58271571485306,
+    "testZ": 23.715462721500742,
+    "k": 4,
+    "theta": {
+     "g": 9.58302127444635,
+     "x@0": -35.29642643404905,
+     "vx@0": 185.58036750862664,
+     "y@0": 89.33161384097295,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 3.242490316155871,
+     "x@0": 68.09324881474276,
+     "vx@0": 302.99159627121986,
+     "y@0": 107.33321446797066,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "viscous-damped",
+    "title": "Damped small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 58.13804281490177,
+    "testRms": 55.07324290122578,
+    "trainZ": 22.582717177145696,
+    "testZ": 23.713901442461346,
+    "k": 5,
+    "theta": {
+     "g": 9.585088892718389,
+     "gamma": 0,
+     "x@0": -35.31308245277649,
+     "vx@0": 185.32541277847355,
+     "y@0": 89.33161384118276,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 3.2571065545572386,
+     "gamma": 1.875700013861553,
+     "x@0": 87.3588557493931,
+     "vx@0": 456.4444808543766,
+     "y@0": 107.62292024854705,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quadratic-drag",
+    "title": "Pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 7,
+   "fit": {
+    "ok": true,
+    "trainRms": 58.13806744146774,
+    "testRms": 55.124761933727676,
+    "trainZ": 22.5827300411957,
+    "testZ": 23.738177372083523,
+    "k": 5,
+    "theta": {
+     "g": 9.572726058904063,
+     "cq": 0,
+     "x@0": -35.086081778739235,
+     "vx@0": 186.10066194012845,
+     "y@0": 89.33161384110288,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 3.256225086719087,
+     "cq": 0.008738055304940835,
+     "x@0": 87.55068789599169,
+     "vx@0": 460.7274646011763,
+     "y@0": 107.62298155427887,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "large-angle-damped",
+    "title": "Large-angle damped pendulum"
+   },
+   "origin": "muse",
+   "rank": 8,
+   "fit": {
+    "ok": true,
+    "trainRms": 57.74355260265894,
+    "testRms": 55.19831666954717,
+    "trainZ": 22.37640609971369,
+    "testZ": 23.772832892893238,
+    "k": 6,
+    "theta": {
+     "g": 18.10676627961687,
+     "gamma": 0.08496273451819024,
+     "alpha": 0.01,
+     "x@0": -26.331950275748092,
+     "vx@0": 261.45398290447656,
+     "y@0": 89.33161384108685,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 110.79915124841739,
+     "gamma": 1.5220659193616006,
+     "alpha": 0.13411048748372464,
+     "x@0": 101.9079504970473,
+     "vx@0": 471.13114248110145,
+     "y@0": 106.92908843155824,
+     "L": 0
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 11.922384236585254,
+   "sigma": 0.6182548097670372,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 21.574485033984637,
+   "withinSigma": 3.422107201046245,
+   "sigmaFit": 0.6066503813660695,
+   "sigmaAssumed": 0.11922384236585254,
+   "rough": true
+  }
+ ],
+ "clock": {
+  "factor": 0.906940467938597,
+  "sigma": 0.02351544352826543,
+  "note": "Gravity came out 1.2× too strong: the clip probably plays about 1.1× faster than real life (time-lapse or dropped frames), or the stated pendulum length is not the length assumed (a length read 1.2× too short looks the same)."
+ },
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out far from the world’s, so the clip’s clock, or the length behind the scale, is in doubt."
+ },
+ "ledger": {
+  "usd": 0.42150405,
+  "ms": 392394
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-40cm-physagreg-100g.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

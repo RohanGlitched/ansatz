@@ -1,0 +1,213 @@
+{
+ "id": "teuvyqj4mc",
+ "createdAt": "2026-11-01T19:42:08.884Z",
+ "pipeline": "2026-10-27c",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-25cm-normal-gravity.mp4"
+ },
+ "given": [
+  "pendulum length = 0.25 m (“The pendulum is twenty-five centimetres long.”)",
+  "pendulum length L = 0.25 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The pendulum is twenty-five centimetres long."
+ },
+ "winner": "shm-ideal",
+ "candidates": [
+  {
+   "law": {
+    "id": "shm-ideal",
+    "title": "Small-angle ideal pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.022303270738794324,
+    "testRms": 0.0666157513761159,
+    "trainZ": 34.282331839911265,
+    "testZ": 102.39499493985362,
+    "k": 3,
+    "theta": {
+     "g": 9.838127432966933,
+     "theta@0": 0.2021684050675145,
+     "omega@0": 0.060900853839500654,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.13277517344307302,
+     "theta@0": 0.015000121564398502,
+     "omega@0": 0.18658488194072645,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-ideal",
+    "title": "Large-angle ideal pendulum"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.022303717066347678,
+    "testRms": 0.06661763291766874,
+    "trainZ": 34.28301788948096,
+    "testZ": 102.39788705521374,
+    "k": 3,
+    "theta": {
+     "g": 9.888651003187254,
+     "theta@0": 0.20212516560981028,
+     "omega@0": 0.06076347055172322,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.13337645767223036,
+     "theta@0": 0.014990496341142535,
+     "omega@0": 0.18623316098218656,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-offset-rev",
+    "title": "Pendulum with constant equilibrium offset"
+   },
+   "origin": "revision",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.010254878702385464,
+    "testRms": 0.06540016421479061,
+    "trainZ": 15.762762276911763,
+    "testZ": 100.52651731013972,
+    "k": 4,
+    "theta": {
+     "g": 9.856825669784541,
+     "theta0": 0.019966854571183527,
+     "theta@0": 0.2227032243360447,
+     "omega@0": 0.022245550981360555,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.061634764247183824,
+     "theta0": 0.010176972638520049,
+     "theta@0": 0.010295191424221284,
+     "omega@0": 0.08610505828126491,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-viscous",
+    "title": "Damped pendulum with linear drag"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.02177136400683327,
+    "testRms": 0.06336587864454958,
+    "trainZ": 33.46473861304639,
+    "testZ": 97.39961929626055,
+    "k": 4,
+    "theta": {
+     "g": 9.888962864701327,
+     "gamma": 0.039310124157297156,
+     "theta@0": 0.21403622916169168,
+     "omega@0": 0.056113283468799485,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.1308827710630659,
+     "gamma": 0.08392660128039178,
+     "theta@0": 0.0297856473913433,
+     "omega@0": 0.18815071868461195,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-quad-drag",
+    "title": "Pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.02177647719449173,
+    "testRms": 0.06347195788890732,
+    "trainZ": 33.472598087924304,
+    "testZ": 97.56267358094327,
+    "k": 4,
+    "theta": {
+     "g": 9.888793242179457,
+     "cq": 0.036087241508270126,
+     "theta@0": 0.21413671608667295,
+     "omega@0": 0.05660062819420771,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.13085731307570322,
+     "cq": 0.0778646156912534,
+     "theta@0": 0.0306173287852031,
+     "omega@0": 0.18820172153946918,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-small-angle",
+    "title": "Textbook pendulum (small angles)"
+   },
+   "origin": "control",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.1405674494392362,
+    "testRms": 0.16472945772815492,
+    "trainZ": 216.06606510782765,
+    "testZ": 253.20546030149308,
+    "k": 3,
+    "theta": {
+     "w0": 7.792133677926732,
+     "theta@0": 0.008004408984235099,
+     "omega@0": 0.36030458157952777
+    },
+    "sigma": {
+     "w0": 1.1746548143415005,
+     "theta@0": 0.1850450070547886,
+     "omega@0": 0.7821009770967368
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 9.838127432966933,
+   "sigma": 0.16525169234100984,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 0.32098048739308593,
+   "withinSigma": 0.19048175858906127
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 0.32% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.37220780000000003,
+  "ms": 134317
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-25cm-normal-gravity.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

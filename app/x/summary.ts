@@ -35,12 +35,27 @@ const CREDIT_SYMBOL: Record<string, string> = { k: "k", e: "e", L: "L", omega0: 
 
 const num = (v: number) => String(+v.toPrecision(4));
 
+/**
+ * "about 11.12" beside "−4.2%": a rough value printed next to its % off keeps the digits that % implies, so the two
+ * never disagree ("about 11" beside 11.61 would read −5.3%). Without a known value it is fmtAbout as before.
+ */
+export function aboutOff(v: number, known?: number): string {
+  const base = fmtAbout(v, known);
+  if (known === undefined || !Number.isFinite(known) || known === 0 || !Number.isFinite(v)) return base;
+  const want = fmtOff((v / known - 1) * 100);
+  for (let sig = Math.max(2, base.replace(/^-?0\.0*|[-.]/g, "").length); sig <= 6; sig++) {
+    const t = +v.toPrecision(sig);
+    if (fmtOff((t / known - 1) * 100) === want) return String(t);
+  }
+  return base;
+}
+
 export function summarise(e: Experiment): Summary | null {
   const w = winnerOf(e);
   // the run page's rule (isRoughFit): a winning law that misses its unseen frames by more than five times the noise gets no ±
   const rough = isRoughFit(w.fit);
   // no error bar, by the one rule the experiment page uses (lib/format.ts fmtAbout: "about 9.7", "about 242")
-  const pair = (v: number, s: number, known?: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${fmtAbout(v, known)}` : fmtPair(v, s));
+  const pair = (v: number, s: number, known?: number) => (rough || !Number.isFinite(s) || s <= 0 ? `about ${aboutOff(v, known)}` : fmtPair(v, s));
   const sj = e.extras?.memoryTest?.sameJump?.combined;
   const also = sj ? `the copy we slowed 1.5× in secret, timed against this clip jump for jump: ${sj.ratio.toFixed(3)} ± ${sj.sigma.toFixed(3)}× slower` : undefined;
 

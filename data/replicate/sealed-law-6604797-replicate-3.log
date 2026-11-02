@@ -1,0 +1,72 @@
+code 0b852c8ae655e1248d4102b00688d694ea1b41fc (clean tree)
+[0.0s] upload start
+[5.3s] upload done: 420 frames at 60.00 fps (avc1, 1280×720), clock read from the file
+[5.3s] listen done: typed notes used; the clip has no sound
+[5.3s] observe start
+[16.2s] observe done: mass on a spring: tracking “green block”
+[16.2s] track start
+[18.9s] track update
+[19.4s] track update
+[20.0s] track update
+[20.5s] track update
+[21.1s] track update
+[21.7s] track update
+[22.2s] track update
+[22.8s] track update
+[23.4s] track update
+[24.0s] track update
+[24.6s] track update
+[25.1s] track update
+[26.5s] track update
+[26.8s] track update
+[27.4s] track update
+[28.0s] track update
+[28.5s] track update
+[29.1s] track update
+[29.7s] track update
+[30.2s] track update
+[30.8s] track update
+[31.4s] track update
+[31.9s] track update
+[32.5s] track update
+[33.1s] track update
+[33.5s] track update
+[36.5s] track update
+[36.5s] track done: 1 object named “green block”, 420 of 420 frames with a mask
+[36.6s] measure start
+[36.6s] measure done: 390 points over 6.48 s; no scale: lengths are in pixels
+[36.6s] hypothesise start
+[54.2s] hypothesise done: Ideal undamped spring; Viscously damped spring; Damped spring with quadratic air drag; Damped spring with dry friction
+[54.3s] fit start
+[319.5s] fit done: 6 laws fitted; the best predicts the unseen 30% to within 6.6 px
+[319.6s] referee start
+[491.2s] referee done: Muse Wonder tried 2 laws on the fitted frames and submitted “Duffing spring with viscous and quadratic damping”
+[491.2s] report start
+[491.3s] report done: The block bobs on a spring that stiffens as it stretches around 67.127 ± 0.020 px, with slowing from 0.002073 ± 0.000025 1/px and 0.0024 ± 0.0070 1/s and extra stiffness 0.005080 ± 0.000035 1/(px² s²). It only partly captures the motion, leaving a slow drift in its misses.
+
+FINDING: The block bobs on a spring that stiffens as it stretches around 67.127 ± 0.020 px, with slowing from 0.002073 ± 0.000025 1/px and 0.0024 ± 0.0070 1/s and extra stiffness 0.005080 ± 0.000035 1/(px² s²). It only partly captures the motion, leaving a slow drift in its misses.
+ #1 revision duffing-quad-drag-rev        unseen 1.84e-1 train 1.61e-1 bic 135 w0=8.416±0.0022 s_eq=67.13±0.020 gamma=0.002406±0.0070 cq=0.002073±0.000025 beta=0.005080±0.000035 
+ #2 combined duffing-quad-drag-rev+viscous-damped-damping unseen 3.55e+0 train 1.47e+0 bic 1337 w0=8.403±0.073 s_eq=66.98±0.67 beta=0.005112±0.0011 gamma=0.5746±0.038 
+ #3 combined duffing-quad-drag-rev+coulomb-friction-damping unseen 3.63e+0 train 1.47e+0 bic 1343 w0=8.405±0.073 s_eq=66.96±0.71 beta=0.005075±0.0011 gamma=0.5792±0.21 mu=0.000±50 
+ #4 muse     viscous-damped               unseen 6.64e+0 train 3.34e+0 bic 1780 w0=8.739±0.043 s_eq=66.59±2.6 gamma=0.5708±0.088 
+ #5 muse     quadratic-drag               unseen 6.51e+0 train 2.94e+0 bic 1715 w0=8.730±0.036 s_eq=66.68±2.3 gamma=0.000±0.47 cq=0.002095±0.0017 
+ #6 muse     coulomb-friction             unseen 6.64e+0 train 3.34e+0 bic 1785 w0=8.739±0.043 s_eq=66.60±2.6 gamma=0.5703±0.51 mu=0.000±1.2e+2 
+ #7 muse     undamped-spring              unseen 1.52e+1 train 9.31e+0 bic 2334 w0=8.719±0.11 s_eq=67.01±4.5 
+ #8 control  textbook-vacuum              unseen 1.47e+1 train 1.86e+1 bic 5408 g=2.774±21 
+ #9 control  textbook-uniform             unseen 2.08e+1 train 2.62e+1 bic 2894 a=-2.774±21 
+comparisons []
+eyeball [
+  { quantity: 'w0', unit: '1/s', value: 7.5 },
+  { quantity: 's_eq', unit: 'px', value: 320 },
+  { quantity: 'gamma', unit: '1/s', value: 0.15 }
+]
+cost $ 0.2787 tokens 123846 time 491.3 s
+   muse-spark-1.3 observe the clip 10915ms $0.0129 39385 1642 1405
+   sam-3.1 track "green block" (est.) 19524ms $0.0840   
+   muse-spark-1.3 propose laws 17677ms $0.0173 1223 3708 2394
+   muse-spark-1.3 eyeball baseline (300 frames at 42.9 fps) 7939ms $0.0095 39121 839 688
+   muse-spark-1.3 referee the fits 27008ms $0.0235 2954 4670 4412
+   muse-wonder-1.0 theorist turn 1 8670ms $0.0408 5118 1015 464
+   muse-wonder-1.0 theorist turn 2 14937ms $0.0451 6303 993 377
+   muse-wonder-1.0 theorist turn 3 12273ms $0.0214 7525 752 194
+   muse-spark-1.3 referee the fits 22138ms $0.0242 4103 4495 4282

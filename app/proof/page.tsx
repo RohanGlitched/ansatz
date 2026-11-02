@@ -20,7 +20,19 @@ import { printOf } from "../x/prints";
 import { STRANGERS, STRANGERS_RUNS, STRANGERS_RUNS_USD, STRANGERS_WITH_TRANSLATIONS_USD, strangersTally, strangersWord } from "./strangers";
 import { fou5Long, fou5Of, fou5Parts, fou5SameFilm, fou5SameFilmLawFree } from "@/lib/fou5";
 import { canYouTell, quizSaid } from "@/app/cyt";
-import { sealedTest } from "@/app/sealed";
+import { REPLICATE_URL, sealedTest } from "@/app/sealed";
+
+/** the replicate records' folder, as a link wherever a sealed sentence names it */
+const linkRep = (t: string) => {
+  const [a, b] = t.split(REPLICATE_URL);
+  return b === undefined ? t : (
+    <>
+      {a}
+      <a href={REPLICATE_URL}>data/replicate on GitHub</a>
+      {b}
+    </>
+  );
+};
 import { voiceLite } from "@/app/voiceLite";
 import { fmtAbout } from "@/lib/format";
 import { pipelineName } from "@/app/pipelineWords";
@@ -756,10 +768,10 @@ export default async function ProofPage() {
                 </li>
               ))}
             </ul>
-            {sealed.wonderStory && <p className={styles.para}>{sealed.wonderStory}</p>}
+            {sealed.wonderStory && <p className={styles.para}>{linkRep(sealed.wonderStory)}</p>}
             {sealed.replicate && !sealed.wonderStory?.includes(sealed.replicate.detail) && (
               <p className={styles.para}>
-                <b>The replicate.</b> {sealed.replicate.detail}
+                <b>The replicate.</b> {linkRep(sealed.replicate.detail)}
               </p>
             )}
             <p className={styles.para}>

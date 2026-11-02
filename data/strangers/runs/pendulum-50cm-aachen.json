@@ -1,0 +1,177 @@
+{
+ "id": "t2cvnjwssz",
+ "createdAt": "2026-11-01T19:36:51.405Z",
+ "pipeline": "2026-10-27c",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-50cm-aachen.mp4"
+ },
+ "given": [
+  "string length = 0.5 m (“The string is about fifty centimetres long.”)",
+  "pendulum length L = 0.5 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The string is about fifty centimetres long."
+ },
+ "winner": "pendulum-quadratic-drag",
+ "candidates": [
+  {
+   "law": {
+    "id": "pendulum-quadratic-drag",
+    "title": "Large-angle pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 5.408140209443487,
+    "testRms": 5.151723036322228,
+    "trainZ": 2.3824754848586354,
+    "testZ": 2.4282105636209206,
+    "k": 7,
+    "theta": {
+     "g": 9.822693230069735,
+     "R": 2900.210014829795,
+     "xeq": 345.4132154814669,
+     "ybot": -20.11240295972298,
+     "qd": 0.029034211725556883,
+     "theta@0": -0.11659149952825565,
+     "omega@0": -0.1759212252098201,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.004788007346168973,
+     "R": 52.824305570145064,
+     "xeq": 0.7336718454104515,
+     "ybot": 0.2240904047877458,
+     "qd": 0.0044758249812116065,
+     "theta@0": 0.0021013452491165166,
+     "omega@0": 0.00428134676471773,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-damped-linear",
+    "title": "Large-angle pendulum with linear air damping"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 5.4071377335370485,
+    "testRms": 5.19849761519734,
+    "trainZ": 2.3820013656702153,
+    "testZ": 2.434908677227847,
+    "k": 7,
+    "theta": {
+     "g": 9.822721678471751,
+     "R": 2900.1822987854316,
+     "xeq": 345.41026406851347,
+     "ybot": -20.112496010559266,
+     "c": 0.01307507963112416,
+     "theta@0": -0.1165707895054797,
+     "omega@0": -0.17584340376381213,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.004786985703969134,
+     "R": 52.80649132212474,
+     "xeq": 0.7334524823122205,
+     "ybot": 0.22401564392002468,
+     "c": 0.0019916727243279382,
+     "theta@0": 0.0020986301421763963,
+     "omega@0": 0.004278530069530016,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-small-angle",
+    "title": "Small-angle undamped pendulum"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.029693532517364,
+    "testRms": 7.64422752976388,
+    "trainZ": 2.641272812240435,
+    "testZ": 3.5294007847982045,
+    "k": 6,
+    "theta": {
+     "g": 9.806019470282507,
+     "R": 2901.012121065989,
+     "xeq": 345.49602527363425,
+     "ybot": -20.107363229985225,
+     "theta@0": -0.11316809188412534,
+     "omega@0": -0.17238899198941526,
+     "L": 0.5
+    },
+    "sigma": {
+     "g": 0.006355191656257192,
+     "R": 67.13210010616181,
+     "xeq": 1.0096774096274568,
+     "ybot": 0.28996469062674307,
+     "theta@0": 0.0025253509282385615,
+     "omega@0": 0.005469888351860397,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 173.0309438954172,
+    "testRms": 173.07155987951353,
+    "trainZ": 61.71465659699941,
+    "testZ": 61.65562583358335,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": 342.4705552737735,
+     "y@0": -8.204631032187676,
+     "vx@0": -1.553678485649389,
+     "vy@0": -0.3401472119240297
+    },
+    "sigma": {
+     "g": 5.587726224329258,
+     "x@0": 403.4611179317912,
+     "y@0": 51.50553068286982,
+     "vx@0": 68.4768811459858,
+     "vy@0": 26.207008225752205
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 9.822693230069735,
+   "sigma": 0.09834355720408301,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 0.16359541810644324,
+   "withinSigma": 0.1631345308817997
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 0.16% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.22933199999999998,
+  "ms": 121687
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-50cm-aachen.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

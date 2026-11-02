@@ -48,6 +48,17 @@ function cardCaption(e: Experiment): string {
     return isRoughFit(w.fit)
       ? `The same workshop’s 60 cm pendulum: g about ${fmtAbout(g.measured)} m/s², no error bar (the law misses the unseen swing by ${fmtNoise(w.fit.testZ)}× the noise); the clock check reads real time, which is right.`
       : `The same workshop’s 60 cm pendulum: g = ${g.measured.toFixed(2)} ± ${g.sigma.toFixed(2)} m/s²; the clock check reads real time.`;
+  // the two lite runs where a spoken length set the scale (synthetic voices): who heard it, what code held, and g, from the record
+  if (e.id.startsWith("voice-lite-") && g) {
+    const langName = /hindi/.test(e.id) ? "Hindi" : /english/.test(e.id) ? "English" : "its own language";
+    const len = (e as Experiment & { given?: string[] }).given?.find((t) => /length = /.test(t))?.match(/= ([\d.]+ ?c?m)/)?.[1]?.replace(/(\d)(c?m)$/, "$1 $2");
+    const renderG = /^Rendered\b/.test(e.source.credit ?? "") ? Number(e.source.credit?.match(/g = ([\d.]+) m\/s²/)?.[1]) : NaN;
+    const ref = Number.isFinite(renderG) ? renderG : g.reference;
+    const off = Math.abs((g.measured / ref - 1) * 100);
+    return isRoughFit(w.fit)
+      ? `Muse Voice Transcribe heard the length in ${langName} (a synthetic voice); code held ${len ?? "it"} as given: g about ${g.measured.toFixed(1)} m/s², no error bar (the law misses the unseen frames by ${fmtNoise(w.fit.testZ)}× the noise).`
+      : `The length said in ${langName} (a synthetic voice), heard by Muse Voice Transcribe, set the scale${len ? ` at ${len}` : ""}: g = ${g.measured.toFixed(3)} ± ${g.sigma.toFixed(3)} m/s²${Number.isFinite(renderG) ? ` on a render, ${off.toFixed(2)}% from its ${renderG}` : `, ${off.toFixed(2)}% off`}.`;
+  }
   // a sealed law: the drawn law in the words /proof uses (app/sealedWords.ts), found or missed, from the record
   const sealed = sealedCaption(e);
   if (sealed) return sealed;
@@ -112,6 +123,7 @@ export default async function Home() {
                       {t.unit && <span className={styles.tileU}>{t.unit === "×" ? "×" : ` ${t.unit}`}</span>}
                     </span>
                     <span className={styles.tileW}>{t.what}</span>
+                    <span className={styles.tileB}>{t.brief}</span>
                     <span className={styles.tileSide}>
                       <span className={styles.tileT}>
                         <b>Truth</b> {t.truth}
@@ -125,14 +137,19 @@ export default async function Home() {
             </ul>
           )}
           <div className={styles.topAct}>
-            <a href="#can-you-tell" className="btn">
+            <a href="#cyt-quiz" className="btn">
               Try the blind test ↓
             </a>
-            {fs.sealed && (
+            <div className={styles.topNotes}>
+              {fs.sealed && (
+                <p className={styles.sealLine}>
+                  <b>Laws nobody chose.</b> {fs.sealed.short} <Link href="/proof#sealed">Every draw</Link>
+                </p>
+              )}
               <p className={styles.sealLine}>
-                <b>Laws nobody chose.</b> {fs.sealed.text}. <Link href="/proof#sealed">Every draw</Link>
+                <b>For teachers:</b> <Link href="/lab">/lab maps the Class 11 practicals to runs</Link>
               </p>
-            )}
+            </div>
           </div>
         </div>
         <div className={styles.titleIn}>
@@ -187,7 +204,7 @@ export default async function Home() {
               <Link href="/judges" className="btn ghost">
                 For judges: the case in one page
               </Link>
-              <a href="#can-you-tell" className="btn ghost">
+              <a href="#cyt-quiz" className="btn ghost">
                 Try the blind test
               </a>
             </div>
@@ -230,7 +247,9 @@ export default async function Home() {
         <Plate id="can-you-tell" className={styles.cytPlate} caption="Six real clips, each cut to a few seconds without retiming a frame. Every answer is read from stored runs, and loads only when you ask for it; nothing here calls a model.">
           <div className={styles.cytHead}>
             <p className={styles.cytBridge}>This is one thing a law can tell. The rest of the page is how Ansatz finds the law.</p>
-            <h2 className={styles.cytH}>Can you tell?</h2>
+            <h2 className={styles.cytH} id="cyt-quiz">
+              Can you tell?
+            </h2>
             <p>Real time, slowed or sped up? Say it for each clip, then see what Muse Spark answered to the same question, {inWords(cyt.pub.n)} times a clip, and what Ansatz measured.</p>
             <details className={styles.cytFair}>
               <summary>How this test is fair</summary>
@@ -313,7 +332,7 @@ export default async function Home() {
           </li>
           <li>
             <h3>Referee, and revise</h3>
-            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with a fitting tool, tries laws on the seen frames, and submits one, which has to win the same way. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run on the benchmarked pipeline (2026-10-27c), the two hand off: Muse Spark&rsquo;s laws used air drag, Muse Spark as referee named dry friction from their residual plot, and Muse Wonder turned it into a law that wins.</p>
+            <p>Muse Spark reads the scoreboard and the residuals on the fitted frames. When every law misses, Muse Wonder works as an agent with two tools on the seen frames (fit_law, residual_spectrum), tries laws, and submits one, which has to win the same way; code also proposes laws built from the models&rsquo; terms. On this published run it found the cubic stiffening; on a <Link href="/x/dry-friction-spring">spring slowed by dry friction</Link>, re-run on the benchmarked pipeline (2026-10-27c), the two hand off: Muse Spark&rsquo;s laws used air drag, Muse Spark as referee named dry friction from their residual plot, and Muse Wonder turned it into a law that wins.</p>
             {spec?.wonder && wonderLaw && (
               <div className={styles.specimen}>
                 <ol className={styles.tries}>

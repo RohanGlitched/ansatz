@@ -1,0 +1,205 @@
+{
+ "id": "r4jcuek6pn",
+ "createdAt": "2026-11-01T23:24:25.390Z",
+ "pipeline": "2026-11-02a",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-5m-wangerooge.mp4"
+ },
+ "given": [
+  "pendulum string length = 5 m (“The pendulum string is about five metres long.”)",
+  "pendulum length L = 5 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The pendulum string is about five metres long."
+ },
+ "winner": "textbook-vacuum",
+ "candidates": [
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.395494792339094,
+    "testRms": 10.480867150221911,
+    "trainZ": 6.014125208403691,
+    "testZ": 8.500702167193625,
+    "k": 5,
+    "theta": {
+     "g": 0.14978795293570468,
+     "x@0": -0.12017842797381538,
+     "y@0": 0.17884626574216145,
+     "vx@0": -0.06214530200962553,
+     "vy@0": 0.9990785600783638
+    },
+    "sigma": {
+     "g": 0.20234421454029836,
+     "x@0": 8.351923932348537,
+     "y@0": 2.569736185619986,
+     "vx@0": 1.3322988772284479,
+     "vy@0": 1.1059010309120643
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-ideal",
+    "title": "Ideal small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.036698475076289,
+    "testRms": 17.042701190420505,
+    "trainZ": 4.855926729212507,
+    "testZ": 13.709167120111793,
+    "k": 3,
+    "theta": {
+     "g": 9.677853370205565,
+     "s@0": 1.8969193373900897,
+     "v@0": 12.43045341697225,
+     "L": 5
+    },
+    "sigma": {
+     "g": 1.1909782942794351,
+     "s@0": 4.437415944112075,
+     "v@0": 3.749627572309774,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-ideal-s-rev",
+    "title": "Ideal small-angle pendulum along its arc"
+   },
+   "origin": "revision",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.036698475076289,
+    "testRms": 17.042701190420505,
+    "trainZ": 4.855926729212507,
+    "testZ": 13.709167120111793,
+    "k": 3,
+    "theta": {
+     "g": 9.677853370205565,
+     "s@0": 1.8969193373900897,
+     "v@0": 12.43045341697225,
+     "L": 5
+    },
+    "sigma": {
+     "g": 1.1909782942794351,
+     "s@0": 4.437415944112075,
+     "v@0": 3.749627572309774,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-viscous",
+    "title": "Damped pendulum with linear air drag"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.02836484531419,
+    "testRms": 16.5738534446685,
+    "trainZ": 4.849223148491987,
+    "testZ": 13.332025490473011,
+    "k": 4,
+    "theta": {
+     "g": 9.722385847512863,
+     "gamma": 0.03478167103391792,
+     "s@0": 1.9014019386930805,
+     "v@0": 13.67623887349819,
+     "L": 5
+    },
+    "sigma": {
+     "g": 1.2463798809108868,
+     "gamma": 0.17501949272485187,
+     "s@0": 4.853335535912176,
+     "v@0": 7.616669440466656,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-quad-drag",
+    "title": "Pendulum with linear plus quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 6.025147878222036,
+    "testRms": 16.46225996312526,
+    "trainZ": 4.846635416712061,
+    "testZ": 13.242259574207846,
+    "k": 5,
+    "theta": {
+     "g": 9.735120248821742,
+     "gamma": 0,
+     "cq": 0.00431361801879054,
+     "s@0": 1.9126345592788165,
+     "v@0": 14.154113255975982,
+     "L": 5
+    },
+    "sigma": {
+     "g": 1.3374233167822684,
+     "gamma": 5.7845873398581515,
+     "cq": 0.5366854040530588,
+     "s@0": 5.085401440828074,
+     "v@0": 11.557627716433279,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 7.446748618088895,
+    "testRms": 22.70163231178168,
+    "trainZ": 5.990172576881468,
+    "testZ": 18.261217384746377,
+    "k": 3,
+    "theta": {
+     "a": 1.1856955226476054,
+     "s@0": 10.493355935234444,
+     "v@0": -6.302155497114262
+    },
+    "sigma": {
+     "a": 1.056709767767929,
+     "s@0": 14.731281000601234,
+     "v@0": 5.859598758451434
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)."
+ },
+ "ledger": {
+  "usd": 0.43310604999999996,
+  "ms": 212022
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-5m-wangerooge.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

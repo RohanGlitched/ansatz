@@ -1,0 +1,213 @@
+{
+ "id": "29tfasgn76",
+ "createdAt": "2026-11-01T19:55:03.298Z",
+ "pipeline": "2026-10-27c",
+ "title": "Bouncing ball",
+ "source": {
+  "kind": "upload",
+  "video": "gym-ball-bounce-240fps-b.mp4"
+ },
+ "given": [
+  "scale: green ball = 0.75 m (narrator said the ball is about seventy-five centimetres across) spans 89 ± 1.1 px in SAM's mask (83 frames), known to ±10% (its size ±10%, its length in pixels ±1.2%)",
+  "diameter = 0.75 m (“The ball is about seventy-five centimetres across.”)"
+ ],
+ "narration": {
+  "transcript": "A big green gym ball bounces on the floor a few times. The ball is about seventy-five centimetres across."
+ },
+ "winner": "textbook-uniform",
+ "candidates": [
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.25115215733806934,
+    "testRms": 0.2760825544407407,
+    "trainZ": 321.780774434843,
+    "testZ": 353.722058840644,
+    "k": 3,
+    "theta": {
+     "a": -0.3453550417739103,
+     "s@0": -0.3159687494985557,
+     "v@0": 0.8604475283251475
+    },
+    "sigma": {
+     "a": 1.5687612058367582,
+     "s@0": 0.8429928121086643,
+     "v@0": 1.5206885959032006
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.18042597465293608,
+    "testRms": 0.3577354148178806,
+    "trainZ": 225.7474158319429,
+    "testZ": 448.1704173724969,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": -0.03978677054270694,
+     "y@0": 0.22606435932055383,
+     "vx@0": 0.07874514049020419,
+     "vy@0": -0.5509680552942713
+    },
+    "sigma": {
+     "g": 1.5909561485614607,
+     "x@0": 0.17653533188187265,
+     "y@0": 0.8551298280211197,
+     "vx@0": 0.17720870686305934,
+     "vy@0": 1.5425827274333925
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "bounce-quadratic-drag",
+    "title": "Bouncing ball with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.07515078218571636,
+    "testRms": 0.38388298939206755,
+    "trainZ": 96.28456767963637,
+    "testZ": 491.8379636001565,
+    "k": 6,
+    "theta": {
+     "g": 4.658430682542093,
+     "e": 0.7491236997655399,
+     "s_floor": 1.1761202755047828,
+     "k": 0,
+     "s@0": 0.12991661525725684,
+     "v@0": -1.8161842280460418
+    },
+    "sigma": {
+     "g": 1.9207799703663733,
+     "e": 0.9985429372077615,
+     "s_floor": 0.3679190435056113,
+     "k": 1.2796748665522897,
+     "s@0": 0.33118408775877134,
+     "v@0": 1.1990462093631222
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "bounce-linear-drag",
+    "title": "Bouncing ball with linear air drag"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.07507466289817721,
+    "testRms": 0.3881569706911519,
+    "trainZ": 96.18704224504171,
+    "testZ": 497.3138672392726,
+    "k": 6,
+    "theta": {
+     "g": 4.707519749828179,
+     "e": 0.7490606555426196,
+     "s_floor": 1.1797706406341226,
+     "c": 0,
+     "s@0": 0.13530206597363267,
+     "v@0": -1.8439581573405757
+    },
+    "sigma": {
+     "g": 1.9036470899788251,
+     "e": 0.6996117349420189,
+     "s_floor": 0.36847650314742914,
+     "c": 2.198472339843219,
+     "s@0": 0.3307355488873812,
+     "v@0": 1.31039228919784
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "bounce-gravity-linear-drag-rev",
+    "title": "Bouncing ball under gravity with restitution and weak linear drag"
+   },
+   "origin": "revision",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.07512001102206982,
+    "testRms": 0.399474807625635,
+    "trainZ": 96.24514309744926,
+    "testZ": 511.8144885849336,
+    "k": 6,
+    "theta": {
+     "g": 4.85127988840008,
+     "e": 0.7486148089230503,
+     "s_floor": 1.1912484110027217,
+     "c": 0,
+     "s@0": 0.15107556491041618,
+     "v@0": -1.9249391541517469
+    },
+    "sigma": {
+     "g": 1.8440287082461357,
+     "e": 0.667795973866217,
+     "s_floor": 0.3693399514384136,
+     "c": 2.1096285430350283,
+     "s@0": 0.33110360721833054,
+     "v@0": 1.2940674074967071
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "bounce-vacuum",
+    "title": "Gravity bounce with no air"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.24293019790776804,
+    "testRms": 1.672907793769532,
+    "trainZ": 311.24664842575214,
+    "testZ": 2143.360308518633,
+    "k": 5,
+    "theta": {
+     "g": 6.945206069977976,
+     "e": 0.3556030741315738,
+     "s_floor": 0.5445974040335372,
+     "s@0": -0.09221815028697639,
+     "v@0": 8.486672075555985
+    },
+    "sigma": {
+     "g": 6.426884745140106,
+     "e": 0.467532664976277,
+     "s_floor": 0.5216395640674341,
+     "s@0": 0.8098701187395744,
+     "v@0": 9.372509088888027
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)."
+ },
+ "ledger": {
+  "usd": 0.35671115,
+  "ms": 202498
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/gym-ball-bounce-240fps-b.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

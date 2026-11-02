@@ -1,0 +1,227 @@
+{
+ "id": "9uhzh3mykz",
+ "createdAt": "2026-11-01T23:24:24.057Z",
+ "pipeline": "2026-11-02a",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-60cm-24fps.mp4"
+ },
+ "given": [
+  "scale: wooden ruler = 0.3 m (close-up Faber-Castell wooden school ruler with centimetre and millimetre marks; assumed 30 cm long, so 1 cm spacing is 0.01 m in plane of motion) spans 1296 ± 5.7 px in SAM's mask (read in 3 still frames), known to ±30% (its size ±30%, its length in pixels ±0.44%)",
+  "string length = 0.6 m (“The string is about sixty centimetres long.”)",
+  "pendulum length L = 0.6 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The string is about sixty centimetres long."
+ },
+ "winner": "sho-ideal",
+ "candidates": [
+  {
+   "law": {
+    "id": "sho-ideal",
+    "title": "Ideal small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.004204710789948335,
+    "testRms": 0.0038396098894122963,
+    "trainZ": 23.282621819610466,
+    "testZ": 21.260959303962345,
+    "k": 4,
+    "theta": {
+     "g": 9.969950493823305,
+     "s_eq": 0.008987790743988764,
+     "s@0": 0.0074106458773570815,
+     "v@0": 0.2959244694700367,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.0706297648890139,
+     "s_eq": 0.0030702035754038843,
+     "s@0": 0.0031762798058969583,
+     "v@0": 0.0065583279108517465,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-finite-angle-arc-rev",
+    "title": "Exact finite-angle pendulum (arc coordinate)"
+   },
+   "origin": "revision",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.004204803206518517,
+    "testRms": 0.0038395696105937138,
+    "trainZ": 23.283133555175866,
+    "testZ": 21.260736269240752,
+    "k": 4,
+    "theta": {
+     "g": 9.988259961712757,
+     "s_eq": 0.008987788931724,
+     "s@0": 0.007408910820549251,
+     "v@0": 0.2959926566707192,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.07175628758076733,
+     "s_eq": 0.0030703752263777817,
+     "s@0": 0.0031770884266428133,
+     "v@0": 0.006563270601074368,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "sho-viscous",
+    "title": "Damped small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.004204723442095149,
+    "testRms": 0.003836337989772367,
+    "trainZ": 23.282691877972198,
+    "testZ": 21.24284190998359,
+    "k": 5,
+    "theta": {
+     "g": 9.970237989906508,
+     "s_eq": 0.008988755039394091,
+     "gamma": 0,
+     "s@0": 0.00740073157922643,
+     "v@0": 0.2958756012750242,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.0744082275515268,
+     "s_eq": 0.003120922798008817,
+     "gamma": 0.03837098773224566,
+     "s@0": 0.0034504361357709634,
+     "v@0": 0.014884179285348947,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-nonlinear-drag",
+    "title": "Exact pendulum with linear plus quadratic drag"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.004205737222958283,
+    "testRms": 0.0038369361012238236,
+    "trainZ": 23.288305457032315,
+    "testZ": 21.24615381499345,
+    "k": 6,
+    "theta": {
+     "g": 9.98789219437975,
+     "s_eq": 0.008990697334257006,
+     "gamma": 0,
+     "c": 0,
+     "theta@0": -0.0026058503513968294,
+     "omega@0": 0.4940163437921721,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.07558419807757684,
+     "s_eq": 0.003150523329950952,
+     "gamma": 1.6696823486258288,
+     "c": 3.9929153212054866,
+     "theta@0": 0.005196083712809648,
+     "omega@0": 0.025304801055875778,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.03510480009431153,
+    "testRms": 0.04652813488281351,
+    "trainZ": 199.05300649761912,
+    "testZ": 268.43681995083324,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": 0.030621411303858072,
+     "y@0": -0.0006768899886393881,
+     "vx@0": -0.009327152103708007,
+     "vy@0": 0.0021042324800727382
+    },
+    "sigma": {
+     "g": 0.01100834431812213,
+     "x@0": 0.11267754208133983,
+     "y@0": 0.026497658664303474,
+     "vx@0": 0.03326992938089367,
+     "vy@0": 0.026390960339317107
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.049615688844447677,
+    "testRms": 0.06032207221332045,
+    "trainZ": 274.7354996320533,
+    "testZ": 334.0196424627889,
+    "k": 3,
+    "theta": {
+     "a": 0.0017662776803723612,
+     "s@0": 0.03378314628662814,
+     "v@0": -0.013427307748250353
+    },
+    "sigma": {
+     "a": 0.04245092025058889,
+     "s@0": 0.1428363924726381,
+     "v@0": 0.10651170203932293
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 9.969950493823305,
+   "sigma": 0.12218246589918759,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 1.6652016113892651,
+   "withinSigma": 1.3365296945147935,
+   "sigmaFit": 0.0706297648890139,
+   "sigmaAssumed": 0.09969950493823306,
+   "rough": true
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 1.7% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.2859619,
+  "ms": 210746
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-60cm-24fps.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

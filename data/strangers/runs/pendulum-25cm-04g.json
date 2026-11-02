@@ -1,0 +1,207 @@
+{
+ "id": "76fjpj6pqu",
+ "createdAt": "2026-11-01T23:34:24.831Z",
+ "pipeline": "2026-11-02a",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-25cm-04g.mp4"
+ },
+ "given": [
+  "pendulum length = 0.25 m (“The pendulum is twenty-five centimetres long.”)",
+  "pendulum length L = 0.25 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "The pendulum is twenty-five centimetres long."
+ },
+ "winner": "physical-pendulum-effective-length-rev",
+ "candidates": [
+  {
+   "law": {
+    "id": "physical-pendulum-effective-length-rev",
+    "title": "Physical pendulum with effective length longer than string"
+   },
+   "origin": "revision",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.0172619003319472,
+    "testRms": 0.01558138031392945,
+    "trainZ": 8.25074453600695,
+    "testZ": 7.447499175433941,
+    "k": 4,
+    "theta": {
+     "L_eff": 0.5351620867777308,
+     "gamma": 0.06528035512761965,
+     "theta@0": 0.19035100151688888,
+     "omega@0": -0.4882286156414752,
+     "g": 9.81
+    },
+    "sigma": {
+     "L_eff": 0.017248370911036603,
+     "gamma": 0.16120071300631603,
+     "theta@0": 0.03144287628843589,
+     "omega@0": 0.14003772001416961,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "viscous-damped",
+    "title": "Damped pendulum (viscous)"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.017261900331947234,
+    "testRms": 0.015581385979139026,
+    "trainZ": 8.250744536006966,
+    "testZ": 7.447501883258461,
+    "k": 4,
+    "theta": {
+     "g": 4.58272369804855,
+     "gamma": 0.0652803450384137,
+     "theta@0": 0.1903509964730324,
+     "omega@0": -0.48822863441409925,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.14722066951861593,
+     "gamma": 0.16120072231493646,
+     "theta@0": 0.031442852707333845,
+     "omega@0": 0.1400378533466176,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quadratic-drag",
+    "title": "Pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.017254374402283053,
+    "testRms": 0.015720822441283467,
+    "trainZ": 8.247147335127513,
+    "testZ": 7.51414892709692,
+    "k": 4,
+    "theta": {
+     "g": 4.582231242362665,
+     "cq": 0.08691816778213769,
+     "theta@0": 0.19074060078815558,
+     "omega@0": -0.4898823991224655,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.14711467278664378,
+     "cq": 0.21196773381242542,
+     "theta@0": 0.03234641001425561,
+     "omega@0": 0.1439309698353399,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "dry-friction",
+    "title": "Pendulum with pivot dry friction"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.01726190064284866,
+    "testRms": 0.015582963926898535,
+    "trainZ": 8.250744684609854,
+    "testZ": 7.448256101716716,
+    "k": 5,
+    "theta": {
+     "g": 4.582732565493734,
+     "gamma": 0.06524296860073113,
+     "mu": 0,
+     "theta@0": 0.19034375096932216,
+     "omega@0": -0.48819436333638777,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.15307439181946583,
+     "gamma": 6.238104755099622,
+     "mu": 4.386559787938797,
+     "theta@0": 0.04295675338574226,
+     "omega@0": 0.20858462511121417,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-small-angle",
+    "title": "Textbook pendulum (small angles)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.017796939020252433,
+    "testRms": 0.023535453039282603,
+    "trainZ": 8.506479272576867,
+    "testZ": 11.24934143009296,
+    "k": 3,
+    "theta": {
+     "w0": 4.270627370714952,
+     "theta@0": 0.1806341442074844,
+     "omega@0": -0.4536514037937427
+    },
+    "sigma": {
+     "w0": 0.0703755086148983,
+     "theta@0": 0.019862811194741925,
+     "omega@0": 0.10994710357282475
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "ideal-pendulum",
+    "title": "Ideal pendulum (no damping)"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.017801894263007826,
+    "testRms": 0.023536440490974465,
+    "trainZ": 8.50884775120914,
+    "testZ": 11.249813406613187,
+    "k": 3,
+    "theta": {
+     "g": 4.584654988986162,
+     "theta@0": 0.18062729983886192,
+     "omega@0": -0.4530341403410296,
+     "L": 0.25
+    },
+    "sigma": {
+     "g": 0.15094053256726697,
+     "theta@0": 0.019853272469967743,
+     "omega@0": 0.10993424251276454,
+     "L": 0
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)."
+ },
+ "ledger": {
+  "usd": 0.4068908999999999,
+  "ms": 164648
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-25cm-04g.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

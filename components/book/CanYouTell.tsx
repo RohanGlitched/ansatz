@@ -256,7 +256,8 @@ export default function CanYouTell({ data }: { data: CytPublic }) {
                 </div>
               </div>
               <p className={styles.factorNote}>
-                {ans.factor.sparkAnswersRight === 0 ? "None" : `${ans.factor.sparkAnswersRight}`} of Muse Spark&rsquo;s {ans.factor.sparkAnswers} single answers on those clips {ans.factor.sparkAnswersRight === 1 ? "was" : "were"} within {Math.round(ans.factor.tol * 100)}%; a clip counts by its majority answer.
+                {/* each set's own count, named: the first ask alone is not the whole story (the asks with the lengths have one each) */}
+                Muse Spark&rsquo;s single answers on those clips within {Math.round(ans.factor.tol * 100)}%: {ans.sets.map((s) => `${s.factor.sparkAnswersRight} of ${s.factor.sparkAnswers} ${s.key === "first" ? "on its first ask" : s.label}`).join(", ")}; a clip counts by its majority answer.
               </p>
             </div>
           )}

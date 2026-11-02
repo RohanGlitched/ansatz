@@ -1,0 +1,212 @@
+{
+ "id": "trv6chnwng",
+ "createdAt": "2026-11-02T06:08:40.550Z",
+ "pipeline": "2026-11-02a",
+ "code": {
+  "commit": "d4017834772c01c018037b0891b23e3f902179b7",
+  "dirty": true,
+  "changed": [
+   "app/sealed.ts",
+   "app/sealedWords.ts",
+   "app/x/[id]/view.tsx",
+   "components/LiveRun.tsx",
+   "components/book/FalsifyPlate.tsx",
+   "lib/experiment.ts",
+   "lib/plateLaws.ts",
+   "lib/scientist.ts",
+   "lib/spectrum.ts"
+  ]
+ },
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-60cm-thinktac.mp4"
+ },
+ "given": [
+  "string length = 60 cm (“Using a ruler, measure 60 cm starting from the knot on the ring magnet.”)",
+  "pendulum length L = 0.6 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "Using a ruler, measure 60 cm starting from the knot on the ring magnet."
+ },
+ "winner": "nonlinear-damped",
+ "candidates": [
+  {
+   "law": {
+    "id": "nonlinear-damped",
+    "title": "Damped large-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.0049426593755594155,
+    "testRms": 0.007872486110880554,
+    "trainZ": 2.2178357697865283,
+    "testZ": 3.5324872638795575,
+    "k": 5,
+    "theta": {
+     "g": 9.826090359413655,
+     "theta0": -0.130236132322717,
+     "gamma": 0.0497209389835949,
+     "theta@0": -0.2748243132902566,
+     "omega@0": -0.19387804056652602,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.015304340270981043,
+     "theta0": 0.0005799852056166297,
+     "gamma": 0.005742806880198887,
+     "theta@0": 0.001768079876427268,
+     "omega@0": 0.006922490383946775,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "viscous-damped",
+    "title": "Damped small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.0049592008582615725,
+    "testRms": 0.00795745314244905,
+    "trainZ": 2.2252581489623124,
+    "testZ": 3.570613079871858,
+    "k": 5,
+    "theta": {
+     "g": 9.801719887423877,
+     "theta0": -0.130232297663245,
+     "gamma": 0.04961043825181034,
+     "theta@0": -0.27473852381319397,
+     "omega@0": -0.19460893185472458,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.015449666008632519,
+     "theta0": 0.0005874763684779617,
+     "gamma": 0.005820817552497213,
+     "theta@0": 0.001785011432998825,
+     "omega@0": 0.007023695271158512,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quadratic-drag",
+    "title": "Pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.004942659564063335,
+    "testRms": 0.007874436848077168,
+    "trainZ": 2.2178358543706973,
+    "testZ": 3.5333625851192725,
+    "k": 6,
+    "theta": {
+     "g": 9.826077528077521,
+     "theta0": -0.1302364552395372,
+     "gamma": 0.04973407860370188,
+     "q": 0,
+     "theta@0": -0.27482786025106176,
+     "omega@0": -0.1938749675330292,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.015761701506151773,
+     "theta0": 0.0006061128530479917,
+     "gamma": 0.26053112516588367,
+     "q": 0.5377946816929084,
+     "theta@0": 0.0021436177475118927,
+     "omega@0": 0.0074806695430580245,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "sho-undamped",
+    "title": "Undamped small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.006959061097625526,
+    "testRms": 0.010211202347170578,
+    "trainZ": 3.12262153907722,
+    "testZ": 4.58189976231568,
+    "k": 4,
+    "theta": {
+     "g": 9.814618131826732,
+     "theta0": -0.12998629836824557,
+     "theta@0": -0.26298241845469494,
+     "omega@0": -0.18780872601094192,
+     "L": 0.6
+    },
+    "sigma": {
+     "g": 0.034946726779548264,
+     "theta0": 0.0015608536379102653,
+     "theta@0": 0.0026559542563917723,
+     "omega@0": 0.015297474742064988,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-small-angle",
+    "title": "Textbook pendulum (small angles)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.10096706522832885,
+    "testRms": 0.09313541841978415,
+    "trainZ": 45.30523991619649,
+    "testZ": 41.791077780279736,
+    "k": 3,
+    "theta": {
+     "w0": 0.001,
+     "theta@0": -0.13238628109300032,
+     "omega@0": -0.0013671395728943948
+    },
+    "sigma": {
+     "w0": 151.87880634861673,
+     "theta@0": 0.25243497731270154,
+     "omega@0": 0.14452456592551227
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 9.826090359413655,
+   "sigma": 0.099445603252563,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 0.19823649680222732,
+   "withinSigma": 0.19548736975613443,
+   "sigmaFit": 0.015304340270981043,
+   "sigmaAssumed": 0.09826090359413656
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 0.2% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.2690965,
+  "ms": 189426
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-60cm-thinktac.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

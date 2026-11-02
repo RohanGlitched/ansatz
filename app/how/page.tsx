@@ -196,7 +196,7 @@ export default async function HowPage() {
 
       <Page>
         <Step n={6} id="referee" title="Referee, and a theorist with a tool" />
-        <Note who="Muse Spark 1.3, Muse Wonder 1.0">Spark referees from the fitted frames only. Wonder gets a fitting tool on the seen frames, and its law must win the same way.</Note>
+        <Note who="Muse Spark 1.3, Muse Wonder 1.0">Spark referees from the fitted frames only. Wonder gets two tools on the seen frames, fit_law and (since code 0b852c8) residual_spectrum, and its law must win the same way. Since the same code, code also proposes laws built from the models&rsquo; terms: a drive at an unexplained residual peak, or Wonder&rsquo;s stiffness with Spark&rsquo;s damping.</Note>
         <div className={styles.body}>
           <p>
             Muse Spark reads the ranking, the residuals binned in time and a plot of the leading laws&rsquo; misses, all over the fitted frames (never the held-out errors, so a revision can&rsquo;t be tuned to the test). If the winner drifts in a way that points to a missing effect, or misses even the frames it was fitted to by more than six times the noise, Muse Wonder steps in as an agent with a fitting tool: it tries laws on the seen frames, reads their residuals, and submits one, which is fitted and must win the same way. The referee writes the headline and the finding, but never a number: fitted values enter the text as placeholders that code fills in, and a finding that types its own digits is replaced.

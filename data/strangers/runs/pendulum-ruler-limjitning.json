@@ -1,0 +1,183 @@
+{
+ "id": "8yums2b9xk",
+ "createdAt": "2026-11-01T19:31:48.992Z",
+ "pipeline": "2026-10-27c",
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-ruler-limjitning.mp4"
+ },
+ "given": [
+  "scale: wooden ruler = 1 m (wooden stick numbered 13 to 35 with centimetre divisions, part of a metre stick in the plane behind the motion) spans 1281 ± 1.0 px in SAM's mask (read in 3 still frames), known to ±10% (its size ±10%, its length in pixels ±0.078%)",
+  "g = 9.807 m/s² (Earth): hold g fixed and measure the pendulum's length L in metres from its swing"
+ ],
+ "narration": {
+  "transcript": ""
+ },
+ "winner": "viscous",
+ "candidates": [
+  {
+   "law": {
+    "id": "viscous",
+    "title": "Viscous-damped pendulum"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.0015845100505116581,
+    "testRms": 0.0009336759453413585,
+    "trainZ": 2.270322455779656,
+    "testZ": 1.3377923759115897,
+    "k": 5,
+    "theta": {
+     "L": 0.715778103242981,
+     "s0": -0.15711309318644281,
+     "gamma": 0.004934243106343535,
+     "s@0": -0.01819288376150555,
+     "v@0": 0.5942079566490792,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.0018650412638314302,
+     "s0": 0.015712767825292847,
+     "gamma": 0.0006207238182908735,
+     "s@0": 0.00048263999685806803,
+     "v@0": 0.0017343950847121799,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quad-drag",
+    "title": "Damped pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.001584314302235761,
+    "testRms": 0.0009288263982900234,
+    "trainZ": 2.2700419831462986,
+    "testZ": 1.3308438333211208,
+    "k": 6,
+    "theta": {
+     "L": 0.7157784939130853,
+     "s0": -0.15711327560960175,
+     "gamma": 0,
+     "Cq": 0.007506611399741675,
+     "s@0": -0.0181858800428701,
+     "v@0": 0.5941785688846634,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.001865154824517947,
+     "s0": 0.015712820127270273,
+     "gamma": null,
+     "Cq": 0.15994473850620472,
+     "s@0": 0.0005053048445190419,
+     "v@0": 0.0018896150134359972,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "shm",
+    "title": "Undamped small-angle pendulum"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.00203396830997562,
+    "testRms": 0.0031983444946339368,
+    "trainZ": 2.914316590791402,
+    "testZ": 4.582661577401735,
+    "k": 4,
+    "theta": {
+     "L": 0.7158235687336517,
+     "s0": -0.15703095652775334,
+     "s@0": -0.020015077928595523,
+     "v@0": 0.5856414041837019,
+     "g": 9.807
+    },
+    "sigma": {
+     "L": 0.0018708371953713172,
+     "s0": 0.015710473072108978,
+     "s@0": 0.0007608964093284752,
+     "v@0": 0.002007672969852876,
+     "g": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.1477898765362568,
+    "testRms": 0.14931452588988112,
+    "trainZ": 211.75673535729203,
+    "testZ": 213.9412880293344,
+    "k": 3,
+    "theta": {
+     "a": 0.0015022081500503392,
+     "s@0": -0.12091424824651902,
+     "v@0": -0.011625354234206648
+    },
+    "sigma": {
+     "a": 0.017930285068324867,
+     "s@0": 0.35617331099342403,
+     "v@0": 0.11497539135902042
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.10475311781387701,
+    "testRms": 0.10801332997360746,
+    "trainZ": 157.1105713790983,
+    "testZ": 313.1540121893838,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": -0.13884314494676542,
+     "y@0": -0.013159282239990211,
+     "vx@0": -0.0026121555861789,
+     "vy@0": 0.005902844228937084
+    },
+    "sigma": {
+     "g": 0.001264938918143207,
+     "x@0": 0.2663081314446086,
+     "y@0": 0.02036501740063029,
+     "vx@0": 0.03333888726928107,
+     "vy@0": 0.007841237975337007
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: gravity was given, not measured, so the clip’s clock could not be checked against it (a swing alone fixes only g/L, so g was held at the world’s value and the length measured). Type the string’s length to measure g and check the clock."
+ },
+ "ledger": {
+  "usd": 0.23217649999999998,
+  "ms": 155781
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-ruler-limjitning.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

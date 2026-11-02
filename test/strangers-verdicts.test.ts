@@ -29,20 +29,17 @@ test("the strangers' tally is counted from the table: 2 measured, 4 number right
 });
 
 test("every stranger's figure follows the run page's rough-fit rule: no ± where the winning law misses by more than 5× the noise", () => {
-  const dir = ".probe/real-2026-11-02";
+  // compact copies of the 2 November run records, tracked in the repository: a missing one fails the test
+  const dir = "data/strangers/runs";
   let read = 0;
   for (const r of STRANGERS.filter((x) => x.record)) {
-    let e: Experiment;
-    try {
-      e = JSON.parse(readFileSync(`${dir}/${r.record}.json`, "utf8")) as Experiment;
-    } catch {
-      continue; // the records are kept with the review notes; a checkout without them skips the row
-    }
+    const e = JSON.parse(readFileSync(`${dir}/${r.record}.json`, "utf8")) as Experiment;
     read++;
     if (isRoughFit(winner(e).fit)) {
       assert.doesNotMatch(r.measured, /±/, `${r.clip}: the winner misses by ${winner(e).fit.testZ?.toFixed(0)}× the noise, so no ±`);
       assert.notEqual(r.verdict, "measured", `${r.clip}: a rough winner is never measured`);
     }
   }
-  if (read) assert.ok(read >= 8, `read ${read} stranger records`);
+  assert.equal(read, STRANGERS.filter((x) => x.record).length, `read ${read} stranger records`);
+  assert.ok(read >= 16, `read ${read} stranger records`);
 });

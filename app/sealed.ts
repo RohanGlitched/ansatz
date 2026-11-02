@@ -27,6 +27,9 @@ export type Batch = {
   rendered?: string;
   /** a commit that named the rounds before drand published them, its commit time, and the code commit it froze */
   precommit?: { commit: string; at: string; code: string };
+  /** the pre-commitment's own scoring said only "the same term structure" (sealed/precommit-3.json): a winner with an
+   * extra term fitted at zero, which the stated rule counts as absent, would have been a miss under that wording */
+  structureOnly?: boolean;
   /** Muse Wonder's prompt warned against a drive when these runs were made (lib/scientist.ts:404 at 1811071) */
   warned: boolean;
   /** what the code that ran the set gave the models: the drive warning (sets 1–2), the prompt fix (set 3: the warning
@@ -46,12 +49,15 @@ const STAGE: Record<Stage, { name: string; change: string }> = {
 /**
  * Re-runs of one found law on the identical clip, made after its reveal (so not sealed draws), at a named code commit:
  * the first law Muse Wonder found, round 6604797, re-run three times at 0b852c8 (.probe/sealed/NOTES.md, "Replicate
- * study"). Their records are kept with the notes, not published as runs, so this table holds what they showed; the
- * first run counts as one of the runs. The review run's earlier re-run (old code) is quoted apart and counted nowhere.
+ * study"). Their records are published in data/replicate/ (sealed-law-6604797-replicate-2..4.json, with each run's log);
+ * this table holds what they showed; the first run counts as one of the runs. The review run's earlier re-run (old code,
+ * outside this repository) also missed: it is said beside the count every time, never counted in it.
  */
 const REPLICATE = {
   round: 6604797,
   code: "0b852c8",
+  /** residual_spectrum calls by Muse Wonder across the re-runs (wonder.turns in data/replicate/*.json: none) */
+  spectrumCalls: 0,
   runs: [
     { found: true, note: "the drawn terms, every constant within 0.9σ" },
     { found: true, note: "the drawn terms (a viscous term at 0.3σ, absent), every constant within 0.8σ" },
@@ -64,7 +70,7 @@ export const BATCHES: Batch[] = [
   { set: 2, rounds: [6604980, 6604981, 6604982], seal: "4b94c8b", reveal: "9997e76", sealPushed: "2026-11-02T00:48:11Z", revealPushed: "2026-11-02T01:04:54Z", warned: true, stage: "warning" },
   // named before they existed (sealed/precommit-3.json, pushed 01:54:47 UTC; the first round published 01:58:30), on
   // the code that made Muse Wonder's drive warning conditional and starts a drive's frequency at the strongest residual peak
-  { set: 3, rounds: [6605123, 6605124, 6605125], seal: "8337791", reveal: "3636e41", sealPushed: "2026-11-02T01:59:33Z", revealPushed: "2026-11-02T02:23:36Z", precommit: { commit: "493e869", at: "2026-11-02T01:54:47Z", code: "edb5c02" }, warned: false, stage: "prompt" },
+  { set: 3, rounds: [6605123, 6605124, 6605125], seal: "8337791", reveal: "3636e41", sealPushed: "2026-11-02T01:59:33Z", revealPushed: "2026-11-02T02:23:36Z", precommit: { commit: "493e869", at: "2026-11-02T01:54:47Z", code: "edb5c02" }, structureOnly: true, warned: false, stage: "prompt" },
   // named before they existed (sealed/precommit-4.json, pushed 06:07:45 UTC; the first round published 06:11:30), on the
   // code that gives Muse Wonder a residual_spectrum tool and lets code add a drive at an unexplained residual peak and
   // recombine Muse Wonder's stiffness with Muse Spark's damping (0b852c8, pushed 06:06:56)
@@ -73,6 +79,8 @@ export const BATCHES: Batch[] = [
 /** every sealed round whose run page opens on the sealed result (a round without a record is simply never matched) */
 export const SEALED_ROUNDS = BATCHES.flatMap((b) => b.rounds);
 const REPO = "https://github.com/RohanGlitched/ansatz";
+/** where the replicate runs' records are published */
+export const REPLICATE_URL = `${REPO}/tree/main/data/replicate`;
 const commitUrl = (c: string) => `${REPO}/commit/${c}`;
 
 type Row = { label: string; param: string; measured: number; sigma: number; truth: number; unit: string; si?: { measured: number; sigma: number; truth: number; unit: string } };
@@ -101,8 +109,8 @@ export type SealedTest = {
   foundText: string;
   /** the one sentence every page leads with: what was found, the driven laws, what the spectrum tool changed, the replicate */
   headline: string;
-  /** the replicate of the first law Muse Wonder found, the first run counted as one run (null if that run is not a hit) */
-  replicate: { round: number; code: string; k: number; n: number; text: string; detail: string } | null;
+  /** the re-runs of the first law Muse Wonder found at the current code, the first run not counted (null if that run is not a hit) */
+  replicate: { round: number; code: string; /** re-runs at `code` that found it again */ k: number; /** re-runs at `code` */ n: number; text: string; detail: string } | null;
   /** the section's title: found without a drive, missed in full with one, the drive found after the spectrum tool */
   title: string;
   narration: string;
@@ -180,6 +188,13 @@ const masked = (s: Sealed) => {
   return p?.label === "sideband" ? `The residual line at the drive’s frequency (${p.omega.toFixed(2)} rad/s against ${s.constants.wd.value.toFixed(2)}, ${Math.round(p.ampNoise)}× the noise) was labelled a sideband of the motion, so code added no drive, and no model wrote one.` : "";
 };
 
+/** the winner's fitted terms that the rule counts as absent (a constant within 2σ of zero), as the record's scoring wrote them:
+ * "viscous term fitted at 0.000 ± 0.005" */
+const absentTerms = (s: Sealed) => {
+  const winner = ((s as Sealed & { terms?: string }).terms ?? "").split("; drawn:")[0];
+  return [...winner.matchAll(/([a-zA-Z]+) [^\s=,()]+ = ([−\-\d.]+ ± [\d.]+) \([\d.]+σ, absent\)/g)].map((m) => `${m[1]} term fitted at ${m[2]}`);
+};
+
 function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): string {
   const rows = rowsOf(e);
   const win = e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
@@ -190,7 +205,8 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
     const within1 = rows.every((r) => zOf(r) <= 1);
     const who = win.origin === "revision" ? `Found: Muse Wonder wrote the law${e.wonder?.trigger === "referee" ? " after the referee read the residuals" : ""}` : win.origin === "combined" ? (win.combined === "drive" ? "Found: code added the drive to the best law without one, at the unexplained frequency in its misses" : "Found: code combined Muse Wonder’s stiffness with Muse Spark’s damping") : "Found: Muse Spark’s own law";
     const tie = next && Math.abs(next.fit.testRms - win.fit.testRms) < 0.01 * win.fit.testRms ? ` (the next law is the same one with an extra term, which ties and ranks second)` : "";
-    return `${head} ${who}, ${rows.map(rowText).join(", ")}${within1 ? ", every constant within 1σ" : ""}.${s.drawn.drive ? ` ${driveCredit(e).charAt(0).toUpperCase()}${driveCredit(e).slice(1)}.` : ""} ${miss}${tie}.`;
+    const extra = absentTerms(s);
+    return `${head} ${who}${extra.length ? ` (its ${extra.join(", ")}, counted absent${b.structureOnly ? `; set ${b.set}’s pre-committed wording, “the same term structure”, would have counted it present` : ""})` : ""}, ${rows.map(rowText).join(", ")}${within1 ? ", every constant within 1σ" : ""}.${s.drawn.drive ? ` ${driveCredit(e).charAt(0).toUpperCase()}${driveCredit(e).slice(1)}.` : ""} ${miss}${tie}.`;
   }
   if (s.verdict === "hit") return `${head} Missed under the stated rule: the winning law has the drawn terms, but ${rows.filter((r) => zOf(r) > SIGMA_BOUND).map(rowText).join(", ")}. ${miss}.`;
   // a miss: what was written instead, and whether any model proposed the missing term
@@ -199,10 +215,17 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
   const beat = ws && w0 && wd ? ` Its hidden second oscillator runs at ${ws.toFixed(2)} rad/s, the sum of the swing’s and the drive’s frequencies (${(w0 + wd).toFixed(2)}) to ${(Math.abs(ws / (w0 + wd) - 1) * 100).toFixed(1)}%: it fitted the beat, not the drive.` : "";
   const wdRow = rows.find((r) => r.param === "w_drive");
   const driveWon = s.drawn.drive && writesDrive(win);
+  // a drive found in disguise: the winner has no drive term, but an undamped oscillation of its own at the drive's frequency
+  const th = win.fit.theta, sg = win.fit.sigma;
+  const disguise = s.drawn.drive && !driveWon && wd
+    ? Object.keys(th).filter((k) => /^omega\d*$/.test(k)).map((k) => ({ k, g: k.replace("omega", "gamma") })).find(({ k, g }) => Number.isFinite(sg[k]) && Math.abs(th[k] - wd) <= 2 * sg[k] && g in th && Math.abs(th[g]) <= 2 * (sg[g] ?? 0))
+    : undefined;
+  const disguiseText = disguise ? ` Its undamped second oscillation runs at ${th[disguise.k].toFixed(2)} ± ${sg[disguise.k].toFixed(2)} rad/s, the drive’s ${wd.toFixed(2)}: the drive was found in disguise, as a free oscillation rather than a forcing term.` : "";
   const noDrive = driveWon
     ? ` The drive itself was found: ${driveCredit(e)}${wdRow ? `, its frequency ${pm(wdRow.measured, wdRow.sigma)} against ${wdRow.truth.toFixed(2)} rad/s` : ""}; the miss is in the stiffness or the damping.`
-    : s.drawn.drive && !driveProposed ? (b.warned ? " No model proposed a drive, and Muse Wonder’s prompt at the time warned it against one." : masked(s) ? ` ${masked(s)}` : " No model proposed a drive.") : s.drawn.drive ? " A drive was proposed, but that law did not win." : "";
-  return `${head} Missed: Ansatz wrote “${win.law.title}”.${beat}${noDrive} The best law still misses the unseen frames by ${win.fit.testRms.toFixed(2)} px, ${Math.round(win.fit.testZ ?? NaN)}× the noise${next ? ` (the next-ranked law: ${next.fit.testRms.toFixed(2)} px)` : ""}.`;
+    : s.drawn.drive && !driveProposed ? (b.warned ? `${disguiseText || " No model proposed a drive."}${disguiseText ? " No model wrote a drive term" : ""}${disguiseText ? ", and Muse Wonder’s prompt at the time warned it against one." : " Muse Wonder’s prompt at the time warned it against one."}` : masked(s) ? ` ${masked(s)}` : `${disguiseText} No model ${disguiseText ? "wrote a drive term" : "proposed a drive"}.`) : s.drawn.drive ? `${disguiseText} A drive was proposed, but that law did not win.` : "";
+  const tied = next && next.fit.testRms < win.fit.testRms && (next.fit.k ?? 0) > (win.fit.k ?? 0) ? `; the two tie on the worse of their fitted and unseen misses, and a tie goes to the law with fewer constants, ${win.fit.k} against ${next.fit.k}` : "";
+  return `${head} Missed: Ansatz wrote “${win.law.title}”.${beat}${noDrive} The best law still misses the unseen frames by ${win.fit.testRms.toFixed(2)} px, ${Math.round(win.fit.testZ ?? NaN)}× the noise${next ? ` (the next-ranked law: ${next.fit.testRms.toFixed(2)} px${tied})` : ""}.`;
 }
 
 export async function sealedTest(): Promise<SealedTest | null> {
@@ -234,6 +257,7 @@ export async function sealedTest(): Promise<SealedTest | null> {
   const hm = (d: Date) => d.toISOString().slice(11, 19);
   const winOf = (e: Experiment) => e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0];
   const wdRow = (e: Experiment) => rowsOf(e).find((r) => r.param === "w_drive");
+  const spectrumCalls = (e: Experiment) => (e.wonder?.turns ?? []).filter((t) => (t as { tool?: string }).tool === "residual_spectrum").length;
   /** a driven draw whose winning law carries the drive at the drawn frequency (within 2σ), whatever its other terms */
   const driveHit = (e: Experiment) => {
     const s = sealedOfE(e);
@@ -280,20 +304,28 @@ export async function sealedTest(): Promise<SealedTest | null> {
 
   // the stated rule, applied to every record; any verdict it changes is named
   const flipped = es.filter((e) => sealedOfE(e).verdict === "hit" && verdictOf(e) === "miss");
-  const rule = `A draw counts as found when the winning law’s terms are the drawn law’s terms (a constant consistent with zero counts as absent) and every constant lands within ${SIGMA_BOUND}σ of its drawn value. ${flipped.length ? `That rule changes ${flipped.length === 1 ? "one verdict" : `${w(flipped.length)} verdicts`}: ${flipped.map((e) => `round ${sealedOfE(e).round} had the drawn terms, but ${rowsOf(e).filter((r) => zOf(r) > SIGMA_BOUND).map(rowText).join(", ")}, so it is counted as missed here`).join("; ")}.` : `It changes no verdict: ${within || "no law was found"}.`} We stated it after the reveals; it is stricter than the note we wrote before the first one, and it is not in the seal commits.`;
+  // hits that need the "zero-fitted term counts as absent" arm in a set whose pre-commitment said only "the same term structure"
+  const armOnly = es.filter((e) => verdictOf(e) === "hit" && batchOf(e).structureOnly && absentTerms(sealedOfE(e)).length);
+  const structureSets = used.filter((x) => x.b.structureOnly).map((x) => x.b);
+  const ruleSet = used.map((x) => x.b).find((b) => b.precommit && !b.structureOnly && b.stage === "tool");
+  const armText = armOnly.length
+    ? `Under it, ${found} of ${draws.length} are found; under ${structureSets.map((b) => `set ${b.set}’s pre-committed wording (${b.precommit!.commit})`).join(" and ")}, “the same term structure”, which did not allow a zero-fitted extra term, ${found - armOnly.length} of ${draws.length} (${armOnly.map((e) => `round ${sealedOfE(e).round}’s winner carries a ${absentTerms(sealedOfE(e)).join(", ")}`).join("; ")}). `
+    : "";
+  const rule = `A draw counts as found when the winning law’s terms are the drawn law’s terms (a constant within ${SIGMA_BOUND}σ of zero counts as absent) and every constant lands within ${SIGMA_BOUND}σ of its drawn value. ${flipped.length ? `That rule changes ${flipped.length === 1 ? "one verdict" : `${w(flipped.length)} verdicts`}: ${flipped.map((e) => `round ${sealedOfE(e).round} had the drawn terms, but ${rowsOf(e).filter((r) => zOf(r) > SIGMA_BOUND).map(rowText).join(", ")}, so it is counted as missed here`).join("; ")}. ` : ""}${armText}We added the zero-fitted arm after set 2’s reveal and stated the rule after the reveals of sets 1–3; ${ruleSet ? `set ${ruleSet.set}’s pre-commitment (${ruleSet.precommit!.commit}, sealed/precommit-${ruleSet.set}.json, “scoring”) contains the current rule, written before its rounds existed.` : "no seal commit contains it."}`;
 
   // the replicate of the first law Muse Wonder found: the first run counts as one run (only when that run is a hit)
   const repFirst = es.find((e) => sealedOfE(e).round === REPLICATE.round);
   const replicate =
     repFirst && verdictOf(repFirst) === "hit"
       ? (() => {
-          const n = REPLICATE.runs.length + 1;
-          const k = 1 + REPLICATE.runs.filter((r) => r.found).length;
-          const failed = REPLICATE.runs.map((r, i) => ({ ...r, i: i + 2 })).filter((r) => !r.found);
-          const tail = failed.length === 1 && /^a false drive/.test(failed[0].note) ? ` (the ${ORD[failed[0].i] ?? `run ${failed[0].i}`} wrote a false drive)` : failed.length ? ` (the others missed)` : "";
+          // counted at the current code only: the re-runs; the original run (older code) and the review re-run (older code, a miss) are said beside it
+          const n = REPLICATE.runs.length;
+          const k = REPLICATE.runs.filter((r) => r.found).length;
+          const failed = REPLICATE.runs.map((r, i) => ({ ...r, i: i + 1 })).filter((r) => !r.found);
+          const tail = failed.length === 1 && /^a false drive/.test(failed[0].note) ? ` (the ${ORD[failed[0].i] ?? `re-run ${failed[0].i}`} wrote a false drive)` : failed.length ? ` (the others missed)` : "";
           const by = authorOf(repFirst) === "Muse Wonder" ? "the first law Muse Wonder found" : "the first law found";
-          const text = `a replicate of ${by} (round ${REPLICATE.round}) reproduced it ${k} times in ${n} runs${tail}`;
-          const detail = `Re-run ${w(REPLICATE.runs.length)} times on the identical clip at code ${REPLICATE.code}, after its reveal (so these are replicates, not sealed draws; their records are kept with the notes, not published as runs): ${REPLICATE.runs.map((r, i) => `run ${i + 2}, ${r.found ? "found again" : "missed"}: ${r.note}`).join("; ")}. That is ${w(k)} of ${w(n)} runs, the first included.`;
+          const text = `at the current code, ${k} of ${n} re-runs of ${by} (round ${REPLICATE.round}) reproduced it${tail}; its original run (older code) hit, and a review re-run on older code missed`;
+          const detail = `Re-run ${w(n)} times on the identical clip at code ${REPLICATE.code}, after its reveal (so these are replicates, not sealed draws; their records and logs are published in ${REPLICATE_URL}): ${REPLICATE.runs.map((r, i) => `re-run ${i + 1}, ${r.found ? "found again" : "missed"}: ${r.note}`).join("; ")}. At the current code that is ${w(k)} of ${w(n)} re-runs; the original run, on older code, hit, and a separate review re-run on older code, outside this repository, missed (below).`;
           return { round: REPLICATE.round, code: REPLICATE.code, k, n, text, detail };
         })()
       : null;
@@ -304,15 +336,29 @@ export async function sealedTest(): Promise<SealedTest | null> {
   const byCode = toolDriveE.filter((e) => winOf(e).combined === "drive").length;
   const foundClause =
     cAll.found === cAll.undrivenFound
-      ? `${found} found (${found ? `every one without a drive, on its first run, ${cAll.undrivenFound} of ${cAll.undriven}` : `none of the ${cAll.undriven} without a drive`})`
+      ? `${found} found${found ? `, all without a drive (${cAll.undrivenFound} of the ${cAll.undriven} undriven laws, each on its first run)` : ` (none of the ${cAll.undriven} without a drive)`}`
       : `${found} found (${cAll.undrivenFound} of the ${cAll.undriven} without a drive, ${cAll.drivenFound} of the ${cAll.driven} with one)`;
   const drivenClause = cAll.drivenFound === 0 ? `none of the ${cAll.driven} driven laws found in full` : `${cAll.drivenFound} of the ${cAll.driven} driven laws found in full`;
   const codeWords = byCode === toolDriveE.length ? (byCode === 1 ? "added by code" : byCode === 2 ? "both added by code" : "all added by code") : `${byCode} added by code`;
+  const allByCode = tool && tool.c.driveHit > 0 && byCode === toolDriveE.length;
+  // Muse Wonder's spectrum-tool calls at the set-4 code: its sessions on the set-4 clips, plus the replicate re-runs at the same code
+  const sameCode = !!(tool && replicate && REPLICATE.code === tool.sets[0].precommit?.code);
+  const toolSessions = tool ? tool.es.filter((e) => e.wonder).length + (sameCode ? REPLICATE.runs.length : 0) : 0;
+  const toolCalls = tool ? tool.es.filter((e) => spectrumCalls(e) > 0).length + (sameCode ? REPLICATE.spectrumCalls : 0) : 0;
+  // the two-way split the draws actually show: laws with none of a drive, dry friction or a lopsided spring, against laws with any
+  const hard = (e: Experiment) => {
+    const d = sealedOfE(e).drawn;
+    return !!d.drive || d.damping === "coulomb" || d.stiffness === "asymmetric";
+  };
+  const plainE = es.filter((e) => !hard(e)), hardE = es.filter(hard);
+  const splitClause = plainE.length && hardE.length ? `laws with no drive, no dry friction and no lopsided spring ${plainE.filter((e) => verdictOf(e) === "hit").length} of ${plainE.length} found, laws with any of those ${hardE.filter((e) => verdictOf(e) === "hit").length} of ${hardE.length}` : "";
   const toolClause =
     tool && tool.c.driven
-      ? `after Muse Wonder got a residual-spectrum tool (${setsWord(tool.sets)}), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit ? ` (${byCode ? codeWords : "written by the models"})${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}` : ""}`
+      ? allByCode
+        ? `after code began adding a drive at an unexplained residual peak (${setsWord(tool.sets)}; Muse Wonder’s new residual-spectrum tool was called in ${toolCalls} of its ${toolSessions} sessions), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}`
+        : `after Muse Wonder got a residual-spectrum tool (${setsWord(tool.sets)}), the winning law carried the drive at the right frequency in ${tool.c.driveHit} of ${tool.c.driven} driven draws${tool.c.driveHit ? ` (${byCode ? codeWords : "written by the models"})${tool.c.driveHit > tool.c.drivenFound ? " and missed on stiffness or damping" : ""}` : ""}`
       : "";
-  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, toolClause, replicate?.text].filter(Boolean).join("; ")}.`;
+  const headline = `${Wc(draws.length)} laws drawn by public randomness, hashes pushed before any clip: ${[foundClause, drivenClause, splitClause, toolClause, replicate?.text].filter(Boolean).join("; ")}.`;
 
   // each stage in its own words: what changed, what was found, and where the drive went
   const driveWord = (e: Experiment) => {
@@ -347,7 +393,7 @@ export async function sealedTest(): Promise<SealedTest | null> {
   const falseDrive = cAll.undriven ? ` No sealed law without a drive gained a false one (${cAll.falseDrive} of ${cAll.undriven} first runs)${replicate && REPLICATE.runs.some((r) => /^a false drive/.test(r.note)) ? "; one replicate run did" : ""}.` : "";
   const pattern = `${stages.map(stageText).join(" ")}${falseDrive}`;
   // the section's title: found without a drive, missed in full with one, and what the spectrum tool found
-  const title = `${cAll.found && cAll.found === cAll.undrivenFound ? "found without a drive" : `${cAll.found} found`}, ${cAll.drivenFound ? `${cAll.drivenFound} of ${cAll.driven} with one` : "missed in full with one"}${tool && tool.c.driveHit ? `; after the spectrum tool, the drive itself in ${tool.c.driveHit} of ${tool.c.driven}` : ""}`;
+  const title = `${cAll.found && cAll.found === cAll.undrivenFound ? "found without a drive" : `${cAll.found} found`}, ${cAll.drivenFound ? `${cAll.drivenFound} of ${cAll.driven} with one` : "missed in full with one"}${tool && tool.c.driveHit ? `; once code added a drive at an unexplained residual peak, the drive itself in ${tool.c.driveHit} of ${tool.c.driven}` : ""}`;
 
   // what the seal proves: the laws were not chosen, and the order of draw, run and reveal; not a frozen pipeline
   const postCode = post.map((e) => (e as Experiment & { code?: { commit: string; dirty: boolean } }).code).filter((c): c is { commit: string; dirty: boolean } => !!c);
@@ -405,11 +451,27 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const wd = s.constants.wd?.value;
     return ` ${cap(setsWord(promptStage.sets))}, the prompt fix, made the warning conditional and showed Muse Wonder the two strongest frequencies in the misses${top && wd ? `: on its driven clip (round ${s.round}) the strongest sat at ${top.omega.toFixed(2)} rad/s against the drive’s ${wd.toFixed(2)}, Muse Wonder read it as the spring’s own frequency, and no model wrote a drive` : ""}. Showing the frequency was not enough.`;
   })();
+  // what Muse Wonder itself did on the set-4 clips, from the records: its spectrum calls, and the drives it kept
+  const wonderCredit = (() => {
+    if (!tool) return "";
+    const callR = tool.es.filter((e) => spectrumCalls(e) > 0).map((e) => sealedOfE(e).round);
+    const maskedR = tool.es.filter((e) => !driveHit(e) && masked(sealedOfE(e))).map((e) => sealedOfE(e).round);
+    const carriedE = tool.es.filter((e) => verdictOf(e) === "miss" && driveHit(e) && winOf(e).combined === "drive");
+    const early = carriedE.length > 0 && carriedE.every((e) => ((sealedOfE(e) as Sealed & { codeAdded?: { stage?: string }[] }).codeAdded ?? []).some((c) => c.stage === "fit"));
+    const kept = carriedE.map((e) => ({ e, rev: e.candidates.find((c) => c.origin === "revision" && writesDrive(c)) })).filter((x) => x.rev);
+    const better = kept.filter((x) => x.rev!.fit.testRms < winOf(x.e).fit.testRms);
+    const calls = `Muse Wonder called the spectrum tool in ${w(toolCalls)} of its ${w(toolSessions)} sessions at this code${callR.length ? ` (round ${roundsText(callR)}${maskedR.some((r) => callR.includes(r)) ? ", where the drive’s line was labelled a sideband and it wrote no drive" : ""})` : ""}.`;
+    const codeFirst = early ? ` ${carriedE.length === 2 ? "Both winning drives were" : carriedE.length === 1 ? "The winning drive was" : "The winning drives were"} added by code before Muse Wonder was called.` : "";
+    const keptText = kept.length
+      ? ` Muse Wonder’s own revision kept and tested the drive on ${kept.length === carriedE.length ? (kept.length === 2 ? "both" : kept.length === 1 ? "it" : "each") : `${kept.length} of them`}${better.length ? `, and on round ${roundsText(better.map((x) => sealedOfE(x.e).round))} its driven law predicted the unseen frames best of all (${better.map((x) => `${x.rev!.fit.testRms.toFixed(2)} px against ${winOf(x.e).fit.testRms.toFixed(2)}`).join("; ")}) and ranked second only because the two tie and it has one more constant` : ""}.`
+      : "";
+    return ` ${calls}${codeFirst}${keptText}`;
+  })();
   const toolNote = (() => {
     if (!tool || !tool.c.driven) return "";
     const carried = tool.es.filter((e) => verdictOf(e) === "miss" && driveHit(e)).map((e) => sealedOfE(e).round);
     const maskedR = tool.es.filter((e) => !driveHit(e) && masked(sealedOfE(e))).map((e) => sealedOfE(e).round);
-    return ` ${cap(setsWord(tool.sets))}, the spectrum tool, gave Muse Wonder a tool that labels each peak in a law’s misses and let code add a drive at an unexplained one: the winning law carried the drive on ${w(tool.c.driveHit)} of the ${w(tool.c.driven)} driven clips${carried.length ? ` (${carried.length === 1 ? "round" : "rounds"} ${roundsText(carried)}${byCode === toolDriveE.length ? `, ${byCode === 1 ? "added" : "both added"} by code` : ""})` : ""}, so ${carried.length === 1 ? "that miss is" : "those misses are"} in the stiffness or the damping, not the drive${maskedR.length ? `; on round ${roundsText(maskedR)} the sideband label, added to stop false drives on undriven springs, hid the drive’s line` : ""}.`;
+    return ` ${cap(setsWord(tool.sets))}, the spectrum tool, gave Muse Wonder a tool that labels each peak in a law’s misses and let code add a drive at an unexplained one: the winning law carried the drive on ${w(tool.c.driveHit)} of the ${w(tool.c.driven)} driven clips${carried.length ? ` (${carried.length === 1 ? "round" : "rounds"} ${roundsText(carried)}${byCode === toolDriveE.length ? `, ${byCode === 1 ? "added" : "both added"} by code` : ""})` : ""}, so ${carried.length === 1 ? "that miss is" : "those misses are"} in the stiffness or the damping, not the drive${maskedR.length ? `; on round ${roundsText(maskedR)} the sideband label, added to stop false drives on undriven springs, hid the drive’s line` : ""}.${wonderCredit}`;
   })();
   const driveNote = driveMisses.length
     ? `The misses in ${setsWord(warnSets)} include all ${w(driveMisses.length)} driven springs. Muse Wonder’s prompt at the time warned against exactly that term: “${DRIVE_WARNING}” (${WARNING_AT}). The line was written to stop overfitting; these clips show it can also hide a real drive. It is not the whole story: in the review run’s re-run of round 6604982 Muse Wonder did propose a drive, and the fit still missed its frequency, because a sinusoid’s frequency needs a starting guess, for example from the residuals’ spectrum, which the fit did not take then (it does from code edb5c02 on).${promptNote}${toolNote}`

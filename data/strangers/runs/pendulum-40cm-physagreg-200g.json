@@ -1,0 +1,233 @@
+{
+ "id": "3v3qf9rs29",
+ "createdAt": "2026-11-02T07:34:11.248Z",
+ "pipeline": "2026-11-02a",
+ "code": {
+  "commit": "b1902a4d17a3afdbc57dc393dc978ae23f15e464",
+  "dirty": true,
+  "changed": [
+   "app/sealed.ts",
+   "app/sealedWords.ts",
+   "data/bench/pipelines.json",
+   "data/showcase/order.json"
+  ]
+ },
+ "title": "Pendulum",
+ "source": {
+  "kind": "upload",
+  "video": "pendulum-40cm-physagreg-200g.mp4"
+ },
+ "given": [
+  "pendulum length = 0.4 m (“40 cm”)",
+  "mass = 200 g (“m + 200”)",
+  "pendulum length L = 0.4 m (stated): hold L fixed and measure g"
+ ],
+ "narration": {
+  "transcript": "Simple pendulum, 40 cm, m + 200."
+ },
+ "winner": "pendulum-small-undamped",
+ "candidates": [
+  {
+   "law": {
+    "id": "pendulum-small-undamped",
+    "title": "Undamped small-angle pendulum with geometric height"
+   },
+   "origin": "muse",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 9.040335505286015,
+    "testRms": 14.190574844972836,
+    "trainZ": 6.357808994764814,
+    "testZ": 9.676518985252724,
+    "k": 6,
+    "theta": {
+     "g": 10.013983938440285,
+     "x0": 33.30864948183262,
+     "y0": -13.569548241163412,
+     "R": 43.95129140164708,
+     "x@0": 6.008784661147188,
+     "vx@0": 19.26963012750078,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 0.3470042487915194,
+     "x0": 5.96208142792437,
+     "y0": 2.0036363743677312,
+     "R": 11.881922092354577,
+     "x@0": 6.431111703373858,
+     "vx@0": 29.498447518099546,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-damped-linear",
+    "title": "Damped small-angle pendulum, linear air drag"
+   },
+   "origin": "muse",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 9.041403615977744,
+    "testRms": 14.212506932279327,
+    "trainZ": 6.358054418695354,
+    "testZ": 9.691364039144563,
+    "k": 7,
+    "theta": {
+     "g": 10.024857053323323,
+     "x0": 33.34809436772539,
+     "y0": -13.515715689352144,
+     "R": 44.31382392336772,
+     "gamma": 0,
+     "x@0": 6.0913967639139255,
+     "vx@0": 18.264383285310522,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 0.34592715291930587,
+     "x0": 6.426995072560832,
+     "y0": 2.2238911954417167,
+     "R": 18.251673113116254,
+     "gamma": 0.15552552974826384,
+     "x@0": 8.026971841763638,
+     "vx@0": 29.69584496276999,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-large-quad-drag",
+    "title": "Large-angle pendulum with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 9.041344099776998,
+    "testRms": 14.212891842381495,
+    "trainZ": 6.358121422127051,
+    "testZ": 9.69248281863683,
+    "k": 8,
+    "theta": {
+     "g": 10.025655050890494,
+     "x0": 33.371447207702985,
+     "y0": -13.610854651303542,
+     "R": 43.251122030837564,
+     "k": 0,
+     "alpha": 0.000026107700261528366,
+     "x@0": 6.199291196480515,
+     "vx@0": 18.591804116045633,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 9.788992482631112,
+     "x0": 6.359214123923228,
+     "y0": 2.222140690211727,
+     "R": 12.213599880889515,
+     "k": 0.001329495663127838,
+     "alpha": 0.043365259460047996,
+     "x@0": 8.02000289469291,
+     "vx@0": 30.229840946478557,
+     "L": 0
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 16.456552657462222,
+    "testRms": 23.239353967814537,
+    "trainZ": 11.137318667942015,
+    "testZ": 15.49135848151753,
+    "k": 5,
+    "theta": {
+     "g": 0.001,
+     "x@0": 33.67498551095033,
+     "y@0": -10.861444581615835,
+     "vx@0": -0.7078825476342462,
+     "vy@0": 0.7334750338814148
+    },
+    "sigma": {
+     "g": 5.283933365712036,
+     "x@0": 48.460130456053534,
+     "y@0": 13.64001853407591,
+     "vx@0": 16.29765377566001,
+     "vy@0": 11.644332200823326
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "pendulum-driven-711-rev",
+    "title": "Driven small-angle pendulum near 7.1 rad/s"
+   },
+   "origin": "revision",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 8.358786246496985,
+    "testRms": 20.492327257178165,
+    "trainZ": 5.848297247072518,
+    "testZ": 14.519924351086365,
+    "k": 9,
+    "theta": {
+     "g": 10.94714049253892,
+     "x0": 33.62693616341298,
+     "y0": -13.592614778122261,
+     "R": 46.162768933602734,
+     "Ad": 116.3752510554301,
+     "wd": 6,
+     "phi": 1.493542741435988,
+     "x@0": -0.8069212780513937,
+     "vx@0": 29.856985082318854,
+     "L": 0.4
+    },
+    "sigma": {
+     "g": 2.0049585892499953,
+     "x0": 5.437477840468013,
+     "y0": 1.9344188636128974,
+     "R": 12.810531704568051,
+     "Ad": 66.88889249669705,
+     "wd": 1.2292063647543607,
+     "phi": 2.2012533017393183,
+     "x@0": 6.775013770829501,
+     "vx@0": 41.032416355156116,
+     "L": 0
+    }
+   }
+  }
+ ],
+ "comparisons": [
+  {
+   "param": "g",
+   "measured": 10.013983938440285,
+   "sigma": 0.3611646938881217,
+   "reference": 9.80665,
+   "label": "standard gravity on Earth",
+   "errorPct": 2.1142177852812702,
+   "withinSigma": 0.5740703395125097,
+   "sigmaFit": 0.3470042487915194,
+   "sigmaAssumed": 0.10013983938440285,
+   "rough": true
+  }
+ ],
+ "clock": null,
+ "clockCheck": {
+  "checked": true,
+  "why": "Clock checked: gravity came out within 2.1% of Earth’s, so the clip plays in real time."
+ },
+ "ledger": {
+  "usd": 0.4623475000000001,
+  "ms": 406406
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/pendulum-40cm-physagreg-200g.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}

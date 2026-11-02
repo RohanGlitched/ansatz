@@ -1,0 +1,205 @@
+{
+ "id": "8ggdbdddbx",
+ "createdAt": "2026-11-01T23:47:34.225Z",
+ "pipeline": "2026-11-02a",
+ "title": "Free fall",
+ "source": {
+  "kind": "upload",
+  "video": "fall-board-5x-b.mp4"
+ },
+ "given": [
+  "scale: chalk scale = 0.75 m (narrator says the board lines are numbered in centimetres from 0 to 75, so 0 to 75 spans 0.75 m) spans 874 ± 2.1 px in SAM's mask (69 frames), known to ±2% (its size ±2%, its length in pixels ±0.24%)",
+  "maximum board marking = 75 cm (“The lines on the board are numbered in centimetres, from 0 to 75.”)"
+ ],
+ "narration": {
+  "transcript": "The lines on the board are numbered in centimetres, from 0 to 75."
+ },
+ "winner": "textbook-vacuum",
+ "candidates": [
+  {
+   "law": {
+    "id": "textbook-vacuum",
+    "title": "Textbook projectile (no air)"
+   },
+   "origin": "control",
+   "rank": 1,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.013509801849542473,
+    "testRms": 0.027746704137819357,
+    "trainZ": 87.0810176087243,
+    "testZ": 176.82067489482955,
+    "k": 5,
+    "theta": {
+     "g": 0.3745852626351276,
+     "x@0": 0.005933298269733351,
+     "y@0": -0.014908727463151535,
+     "vx@0": 0.02073298836724701,
+     "vy@0": -0.1725805978708217
+    },
+    "sigma": {
+     "g": 0.2267853883238402,
+     "x@0": 0.0008970533980526991,
+     "y@0": 0.014962919273613151,
+     "vx@0": 0.001997446111310681,
+     "vy@0": 0.09007196106686143
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "tumbling-tracked-point-rev",
+    "title": "Free fall of centre of mass with a uniformly tumbling off-centre tracked point"
+   },
+   "origin": "revision",
+   "rank": 2,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.01251513510035796,
+    "testRms": 0.026308090805678613,
+    "trainZ": 82.98573344773682,
+    "testZ": 169.48674788226955,
+    "k": 8,
+    "theta": {
+     "g": 0.38070882275919843,
+     "w": 32.08833809129693,
+     "x@0": 0.00515086256897779,
+     "y@0": -0.015422191150928573,
+     "vx@0": 0.02277442914676588,
+     "vy@0": -0.169660291771634,
+     "o@0": 0.003436490952258901,
+     "u@0": 0.0008571874333723628
+    },
+    "sigma": {
+     "g": 0.2157575277864444,
+     "w": 1.4777576493596971,
+     "x@0": 0.0015925642017155215,
+     "y@0": 0.014213399102292596,
+     "vx@0": 0.0035636537249577114,
+     "vy@0": 0.08563009425211388,
+     "o@0": 0.001222090129306229,
+     "u@0": 0.07119964678456409
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "vacuum",
+    "title": "Vacuum free fall"
+   },
+   "origin": "muse",
+   "rank": 3,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.01907581724775309,
+    "testRms": 0.03925351689281215,
+    "trainZ": 119.77834113324201,
+    "testZ": 246.47547604391838,
+    "k": 3,
+    "theta": {
+     "g": 0.3731168661946999,
+     "s@0": 0.015226074851994877,
+     "v@0": 0.17382232757575766
+    },
+    "sigma": {
+     "g": 0.2405481063775608,
+     "s@0": 0.01589109628585354,
+     "v@0": 0.09558292999392823
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "textbook-uniform",
+    "title": "Uniform acceleration along the path"
+   },
+   "origin": "control",
+   "rank": 4,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.019075817247753094,
+    "testRms": 0.03925351686489472,
+    "trainZ": 119.77834113324201,
+    "testZ": 246.47547586862296,
+    "k": 3,
+    "theta": {
+     "a": 0.37311686656244786,
+     "s@0": 0.015226074871070066,
+     "v@0": 0.17382232743275877
+    },
+    "sigma": {
+     "a": 0.2405481037702399,
+     "s@0": 0.015891096291102906,
+     "v@0": 0.09558293001212337
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "linear-drag",
+    "title": "Free fall with linear air drag"
+   },
+   "origin": "muse",
+   "rank": 5,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.019075843196551947,
+    "testRms": 0.039164715149674324,
+    "trainZ": 119.77850406749752,
+    "testZ": 245.91788391852506,
+    "k": 4,
+    "theta": {
+     "g": 0.3744347259096526,
+     "k": 0,
+     "s@0": 0.015302115463448139,
+     "v@0": 0.17327781899162822
+    },
+    "sigma": {
+     "g": 3.4271490009105303,
+     "k": 10.780588792708544,
+     "s@0": 0.02230167781992902,
+     "v@0": 0.2556769108705408
+    }
+   }
+  },
+  {
+   "law": {
+    "id": "quadratic-drag",
+    "title": "Free fall with quadratic air drag"
+   },
+   "origin": "muse",
+   "rank": 6,
+   "fit": {
+    "ok": true,
+    "trainRms": 0.019075831998734933,
+    "testRms": 0.03919280566538059,
+    "trainZ": 119.77843375565037,
+    "testZ": 246.09426615836173,
+    "k": 4,
+    "theta": {
+     "g": 0.37406703656802714,
+     "c": 0,
+     "s@0": 0.01528737972486933,
+     "v@0": 0.17341578005195632
+    },
+    "sigma": {
+     "g": 1.784329404448603,
+     "c": 16.99930470243222,
+     "s@0": 0.021948039101015338,
+     "v@0": 0.23453457984580814
+    }
+   }
+  }
+ ],
+ "comparisons": [],
+ "clock": null,
+ "clockCheck": {
+  "checked": false,
+  "why": "Clock not checked: no gravity was measured in this run (the winning law has none, or the clip didn’t determine it)."
+ },
+ "ledger": {
+  "usd": 0.43158894999999997,
+  "ms": 312523
+ },
+ "compact": "copied from the 2 November run record (.probe/real-2026-11-02/fall-board-5x-b.json): the fields the strangers table and its test read; the full records stay with the review notes"
+}
