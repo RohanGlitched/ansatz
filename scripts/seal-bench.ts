@@ -3,7 +3,7 @@
 // <dst>/ for scripts/score.ts. With --unsealed the scale, pivot, line and noise are read from every frame, as before.
 // usage: tsx scripts/seal-bench.ts [src=.probe/bench_r7] [dst=.probe/bench_sealed] [--unsealed]
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { fitWithRoom, inflateForRuler, jackknifeLeader, noiseFloorOf, rankCandidates, rulerShare, withScaleCorrection, type Experiment } from "../lib/experiment";
+import { fitWithRoom, heldLengthFromRuler, inflateForRuler, jackknifeLeader, noiseFloorOf, rankCandidates, rulerShare, withScaleCorrection, type Experiment } from "../lib/experiment";
 import { fitCircle, fitLine, pixelGravity } from "../lib/measure";
 import { noiseScale, splitIndex } from "../lib/physics/law";
 import { toMetres } from "../lib/units";
@@ -58,10 +58,14 @@ for (const f of readdirSync(src).filter((x) => x.endsWith(".json")).sort()) {
   }
   rankCandidates(e.candidates, noiseFloorOf(m.noise));
   // the ruler's share of each length-carrying constant, as the run applies it now
-  const stated = e.observation.stated_facts.some((s) => /length|string|rope|thread|dhaga|dhaage/.test(s.quantity.toLowerCase()) && (toMetres(s.value, s.unit) ?? 0) > 0.02);
-  const arcRel = ch.theta && m.pivot && m.pivot.lengthOk !== false && m.calibration.kind === "reference" && !stated ? (m.pivot.sigmaR ?? 0) / m.pivot.r : 0;
+  const statedFact = e.observation.stated_facts.find((s) => /length|string|rope|thread|dhaga|dhaage/.test(s.quantity.toLowerCase()) && (toMetres(s.value, s.unit) ?? 0) > 0.02);
+  const stated = !!statedFact;
+  const fromArc = !!(ch.theta && m.pivot && m.pivot.lengthOk !== false && m.calibration.kind === "reference" && !stated);
+  const arcRel = fromArc ? (m.pivot!.sigmaR ?? 0) / m.pivot!.r : 0;
   const share = rulerShare(e.observation, m.calibration, gUsed);
-  for (const c of e.candidates) inflateForRuler(c, share, e.observation.body, arcRel);
+  // a held length moves with the ruler only when the ruler gave it, as the run decides
+  const heldFromRuler = heldLengthFromRuler(e.observation, m.calibration, statedFact ? toMetres(statedFact.value, statedFact.unit) : undefined, fromArc);
+  for (const c of e.candidates) inflateForRuler(c, share, e.observation.body, arcRel, { series: m.series, heldFromRuler });
   // the winner's restitution σ: the larger of the sandwich and the leave-one-flight-out jackknife, as the run applies it
   jackknifeLeader(e.candidates, m.series);
   const old = e.winner;

@@ -37,7 +37,15 @@ export type Candidate = {
   rank: number;
 };
 
-export type Comparison = { param: string; measured: number; sigma: number; reference: number; label: string; errorPct: number; withinSigma: number };
+export type Comparison = {
+  param: string; measured: number; sigma: number; reference: number; label: string; errorPct: number; withinSigma: number;
+  /** the fit's own statistical part of sigma (with the ruler's share when the value scales with the ruler) */
+  sigmaFit?: number;
+  /** the part from a value assumed, not measured: a stated length held in the law, good to STATED_REL */
+  sigmaAssumed?: number;
+  /** the winning law misses its unseen frames by more than ROUGH_Z times the noise: the value is printed with no ± */
+  rough?: boolean;
+};
 
 export type Experiment = {
   id: string;
@@ -392,24 +400,95 @@ export function rulerShare(obs: Pick<Observation, "body" | "location" | "referen
   const sizeRel = Math.max(0, obs.reference.relative_uncertainty ?? 0.03);
   const pxRel = cal.kind === "reference" && cal.px && cal.sigmaPx && Number.isFinite(cal.sigmaPx / cal.px) ? cal.sigmaPx / cal.px : 0;
   const rulerRel = cal.kind === "reference" ? Math.hypot(sizeRel, pxRel) : obs.body === "earth" && (cal.kind === "gravity" || gUsed !== null) ? gRel : 0;
-  return { rulerRel, gRel, sizeRel, pxRel };
+  // fromRuler: the scale is a ruler in view, so a length the law holds that the ruler did not give does not move with it
+  return { rulerRel, gRel, sizeRel, pxRel, fromRuler: cal.kind === "reference" };
 }
 
-/** Adds the ruler's share to each length-carrying constant's statistical σ (once per fit). */
-export function inflateForRuler(c: Candidate, share: { rulerRel: number; gRel: number }, body: string, arcRel = 0) {
+/** A fit with what the ruler's share added: the σ before it (sigmaFit) and, when measured, how each constant scales with the ruler. */
+export type RulerFit = Fit & { rulerAdded?: boolean; sigmaFit?: Record<string, number>; rulerExp?: Record<string, number> };
+
+/**
+ * Whether a pendulum length the law holds moves with the ruler: it was measured against it (the swing's radius), or
+ * the ruler is that same length (a thread stated as 60 cm and used as the scale). A length stated while a different
+ * ruler sets the scale (a 60 cm string before a 30 cm wooden ruler) does not.
+ */
+export function heldLengthFromRuler(obs: Pick<Observation, "reference">, cal: Pick<Calibration, "kind">, statedL: number | undefined, fromArc: boolean) {
+  if (fromArc) return true;
+  const r = obs.reference;
+  return cal.kind === "reference" && statedL !== undefined && !!r?.present && Number.isFinite(r.real_length_m) && Math.abs(r.real_length_m - statedL) <= 0.005 * statedL;
+}
+
+/** a fixed constant with a length in it that does not scale with the ruler (a stated string length, a held g) */
+const heldOffRuler = (p: Law["params"][number], heldFromRuler: boolean) => !!p.fixed && p.name !== "cal" && metrePower(p.unit) !== 0 && !(heldFromRuler && isLParam(p));
+
+/**
+ * How each free constant scales with the ruler: d ln θ / d ln λ when every length measured against the ruler is
+ * multiplied by λ. A law whose lengths all come from the ruler scales by each constant's metre power (g in m/s² as λ, a
+ * quadratic drag in 1/m as 1/λ), and null is returned. A law that holds a length the ruler did not give breaks that: in
+ * s'' = −(g/L)(s − s_eq) with L held at a stated 0.6 m, scaling s by λ leaves g/L, and so g, unchanged, and only s_eq
+ * moves. Then the exponent is measured, whatever the law: it is refitted from its own optimum to the length channels
+ * scaled by 1.01 and by 1/1.01, and the slope of θ taken (rounded to 0.001). Null too when it can't be measured.
+ */
+export function rulerExponents(c: Candidate, series: Series, heldFromRuler = false): Record<string, number> | null {
+  if (!c.fit.ok || !c.law.params.some((p) => heldOffRuler(p, heldFromRuler))) return null;
+  const law = c.fitted ?? c.law;
+  let free: string[];
+  try {
+    free = compileLaw(law).free;
+  } catch {
+    return null;
+  }
+  const theta0 = Float64Array.from(free.map((n) => c.fit.theta[n]));
+  if (theta0.some((v) => !Number.isFinite(v))) return null;
+  const F = 1.01;
+  const refit = (f: number) => {
+    const ch = Object.fromEntries(Object.entries(series.ch).map(([k, v]) => [k, LENGTH_CHANNELS.has(k) ? v.map((x) => x * f) : v]));
+    // a warm start: the initial positions and speeds are lengths too, so they start scaled
+    const th = Float64Array.from(free.map((n, i) => (n.endsWith("@0") ? theta0[i] * f : theta0[i])));
+    return fitLaw(law, { t: series.t, ch }, { trainFrac: TRAIN, theta0: th, jackknife: false });
+  };
+  const up = refit(F), down = refit(1 / F);
+  if (!up.ok || !down.ok) return null;
+  const out: Record<string, number> = {};
+  for (const p of c.law.params) {
+    if (p.fixed || p.name === "cal") continue;
+    const v = c.fit.theta[p.name], a = up.theta[p.name], b = down.theta[p.name];
+    const k = (a - b) / (v * (F - 1 / F));
+    out[p.name] = Number.isFinite(k) ? Math.round(k * 1000) / 1000 || 0 : metrePower(p.unit);
+  }
+  return out;
+}
+
+/**
+ * Adds the ruler's share to each length-carrying constant's statistical σ (once per fit), by how far the constant
+ * actually moves with the ruler. When every length the law holds came from the ruler (or no `opts.series` is given)
+ * that is its metre power; when the law holds a length the ruler did not give (a stated string length before a
+ * separate ruler), it is measured by rulerExponents: there g = ω²L carries no ruler share at all, since only g/L is in
+ * the motion. The σ before the share is kept (fit.sigmaFit), and a measured exponent too (fit.rulerExp).
+ */
+export function inflateForRuler(c: Candidate, share: { rulerRel: number; gRel: number; fromRuler?: boolean }, body: string, arcRel = 0, opts: { series?: Series; heldFromRuler?: boolean } = {}) {
   // a law that holds Earth's g fixed (a swing measured as an angle) turns time into length through g, so its lengths
   // carry g's spread even with no ruler in view
   const holdsG = body === "earth" && c.law.params.some((p) => p.fixed && /^g$/i.test(p.name));
   // a length taken from the swing's radius carries that radius's own spread too
   const rel = Math.hypot(share.rulerRel || (holdsG ? share.gRel : 0), arcRel);
-  if (!rel || (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded) return;
+  const f = c.fit as RulerFit;
+  if (!rel || f.rulerAdded) return;
+  // a ruler in view and a held length it did not give: how each constant scales is measured, not read off its unit
+  const exp = share.fromRuler && opts.series ? rulerExponents(c, opts.series, opts.heldFromRuler) : null;
+  const before: Record<string, number> = {};
   for (const p of c.law.params) {
     if (p.fixed) continue;
-    const pw = metrePower(p.unit);
-    const v = c.fit.theta[p.name], sStat = c.fit.sigma[p.name];
-    if (pw && Number.isFinite(v)) c.fit.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(pw) * rel * Math.abs(v));
+    const k = exp ? exp[p.name] ?? metrePower(p.unit) : metrePower(p.unit);
+    const v = f.theta[p.name], sStat = f.sigma[p.name];
+    before[p.name] = sStat;
+    // (a measured exponent carries the ruler alone: the arc's spread belongs to a length from the arc, never held here)
+    const r = exp ? share.rulerRel : rel;
+    if (k && Number.isFinite(v)) f.sigma[p.name] = Math.hypot(Number.isFinite(sStat) ? sStat : 0, Math.abs(k) * r * Math.abs(v));
   }
-  (c.fit as Fit & { rulerAdded?: boolean }).rulerAdded = true;
+  f.sigmaFit = before;
+  if (exp) f.rulerExp = exp;
+  f.rulerAdded = true;
 }
 
 /** the uncertainty a stated length carries into g = ω²L */
@@ -425,7 +504,7 @@ export function comparable(fit: Fit, name: string) {
   return Number.isFinite(v) && !fit.undetermined?.includes(name) && !(Number.isFinite(s) && s > Math.abs(v) / 3);
 }
 
-function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"], m?: Measured): Comparison[] {
+export function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | null, stated: Record<string, number>, line?: Measured["line"], m?: Measured, lFromRuler = false): Comparison[] {
   const out: Comparison[] = [];
   // a free flight written as uniform acceleration along a vertical path: |a| is the gravity it measured
   const a = law.params.find((p) => !p.fixed && /^a$/i.test(p.name) && /m\/s/.test(p.unit ?? ""));
@@ -462,9 +541,15 @@ function referenceValues(law: Law, fit: Fit, obs: Observation, gUsed: number | n
       ref = stated[nm];
       label = "what the narrator said";
     }
-    // a g fitted against a stated length carries that length's rounding too (g ∝ L)
-    const sd = ref !== undefined && label !== "what the narrator said" && m?.calibration.kind === "none" && stated.l !== undefined ? Math.hypot(s || 0, v * STATED_REL) : s;
-    if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: sd, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: sd ? Math.abs(v - ref) / sd : NaN });
+    // a g fitted against a stated length carries that length's rounding too (g ∝ L). With no ruler all of g's metres
+    // come from that length; with a ruler in view and the stated length held in the law, the share is the part the
+    // ruler does not carry (rulerExponents: g = ω²L moves with L alone, so its sensitivity to L is 1 − 0)
+    const exp = (fit as RulerFit).rulerExp?.[p.name];
+    const holdsStated = stated.l !== undefined && !lFromRuler && law.params.some((q) => q.fixed && isLParam(q) && Math.abs(q.guess - stated.l) <= 1e-9 * stated.l);
+    const sens = m?.calibration.kind === "none" && stated.l !== undefined ? 1 : holdsStated && exp !== undefined ? Math.abs(metrePower(p.unit) - exp) : 0;
+    const assumed = ref !== undefined && label !== "what the narrator said" && sens ? Math.abs(v) * STATED_REL * sens : 0;
+    const sd = assumed ? Math.hypot(s || 0, assumed) : s;
+    if (ref !== undefined && Number.isFinite(v)) out.push({ param: p.name, measured: v, sigma: sd, reference: ref, label, errorPct: ((v - ref) / ref) * 100, withinSigma: sd ? Math.abs(v - ref) / sd : NaN, ...(assumed ? { sigmaFit: s || 0, sigmaAssumed: assumed } : {}) });
   }
   return out;
 }
@@ -803,10 +888,11 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       if (/length|string|rope|thread|dhaga|dhaage/.test(q) && metres !== undefined && metres > 0.02 && metres < 30) stated.l = metres;
     }
     // the swing's radius is a length only when the arc is wide enough and the path is one circle (measure.ts decides)
-    let arcRel = 0;
+    let arcRel = 0, lFromArc = false;
     if (m.series.ch.theta && m.pivot && m.pivot.lengthOk !== false && m.calibration.kind === "reference" && stated.l === undefined) {
       const lGeo = m.pivot.r * m.calibration.metresPerPixel;
       stated.l = lGeo;
+      lFromArc = true;
       arcRel = (m.pivot.sigmaR ?? 0) / m.pivot.r;
       given.push(`pendulum length L = ${lGeo.toFixed(3)} m, measured from the radius of the swing with the ruler: hold L fixed and measure g`);
     } else if (m.series.ch.theta || m.rejectedPivot) {
@@ -855,7 +941,9 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // gravity is the ruler (a given g, or a fall that sets the scale), the ruler is good to the spread of g over
     // Earth's surface (9.78 to 9.83, ±0.26%), or ±0.05% where the latitude is known
     const share = rulerShare(obs, m.calibration, gUsed);
-    const inflate = (c: Candidate) => inflateForRuler(c, share, obs.body, arcRel);
+    // a held length moves with the ruler only when the ruler gave it (the swing's radius, or the ruler is that length)
+    const lFromRuler = heldLengthFromRuler(obs, m.calibration, stated.l, lFromArc);
+    const inflate = (c: Candidate) => inflateForRuler(c, share, obs.body, arcRel, { series: m.series, heldFromRuler: lFromRuler });
     cands.forEach(inflate);
 
     // 8. referee (and one revision), with the eyeball baseline in parallel
@@ -952,7 +1040,8 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     jackknifeLeader(cands, m.series);
     const win = cands[0];
     const rep = await step("report", async () => {
-      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line, m);
+      // a rough fit's values carry no ± on any page: the comparison says so itself
+      const comps = referenceValues(win.law, win.fit, obs, gUsed, stated, m.line, m, lFromRuler).map((c) => (isRoughFit(win.fit) ? { ...c, rough: true } : c));
       // the referee's sentence is used only if it types no numbers of its own and names the winner's fitted values
       const typed = crit?.finding ? /\d/.test(crit.finding.replace(/\{[^}]*\}/g, "")) : true;
       const winnerFree = win.law.params.filter((p) => !p.fixed && p.name !== "cal").map((p) => p.name);
