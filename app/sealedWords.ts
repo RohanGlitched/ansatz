@@ -59,7 +59,7 @@ export function sealedCaption(e: Experiment): string | null {
   const w = winnerOf(e);
   const lead = `A law drawn by public randomness, sealed before the run: ${drawnText(s.drawn)}.`;
   if (s.verdict === "miss") {
-    const why = s.drawn.drive ? (driveProposed(e) ? "a drive was proposed but did not win" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
+    const why = s.drawn.drive ? (writesDrive(w) ? "the winning law carries the drive, but its stiffness or damping is not the drawn one" : driveProposed(e) ? "a drive was proposed but did not win" : "no model proposed the drive") : `Ansatz wrote “${w.law.title}”`;
     return `${lead} Missed: ${why}; the best law misses by ${noiseTimes(w.fit.testZ)}× the noise.`;
   }
   const rows = (e.extras?.truth?.rows ?? []) as { measured: number; sigma: number; truth: number }[];

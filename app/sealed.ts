@@ -37,6 +37,10 @@ export const BATCHES: Batch[] = [
   // named before they existed (sealed/precommit-3.json, pushed 01:54:47 UTC; the first round published 01:58:30), on
   // the code that made Muse Wonder's drive warning conditional and starts a drive's frequency at the strongest residual peak
   { set: 3, rounds: [6605123, 6605124, 6605125], seal: "8337791", reveal: "3636e41", sealPushed: "2026-11-02T01:59:33Z", revealPushed: "2026-11-02T02:23:36Z", precommit: { commit: "493e869", at: "2026-11-02T01:54:47Z", code: "edb5c02" }, warned: false },
+  // named before they existed (sealed/precommit-4.json, pushed 06:07:45 UTC; the first round published 06:11:30), on the
+  // code that gives Muse Wonder a residual_spectrum tool and lets code add a drive at an unexplained residual peak and
+  // recombine Muse Wonder's stiffness with Muse Spark's damping (0b852c8, pushed 06:06:56)
+  { set: 4, rounds: [6605629, 6605630, 6605631], seal: "d846c66", reveal: "b1902a4", sealPushed: "2026-11-02T06:12:51Z", revealPushed: "2026-11-02T07:14:45Z", rendered: "2026-11-02T06:15:11Z", precommit: { commit: "3bc0190", at: "2026-11-02T06:07:45Z", code: "0b852c8" }, warned: false },
 ];
 /** every sealed round whose run page opens on the sealed result (a round without a record is simply never matched) */
 export const SEALED_ROUNDS = BATCHES.flatMap((b) => b.rounds);
@@ -153,7 +157,11 @@ function drawLine(e: Experiment, s: Sealed, b: Batch, verdict: "hit" | "miss"): 
   const driveProposed = e.candidates.some(writesDrive);
   const ws = win.fit.theta.omega_s, w0 = rows.find((r) => r.param === "omega")?.truth, wd = s.constants.wd?.value;
   const beat = ws && w0 && wd ? ` Its hidden second oscillator runs at ${ws.toFixed(2)} rad/s, the sum of the swing’s and the drive’s frequencies (${(w0 + wd).toFixed(2)}) to ${(Math.abs(ws / (w0 + wd) - 1) * 100).toFixed(1)}%: it fitted the beat, not the drive.` : "";
-  const noDrive = s.drawn.drive && !driveProposed ? (b.warned ? " No model proposed a drive, and Muse Wonder’s prompt at the time warned it against one." : " No model proposed a drive.") : s.drawn.drive ? " A drive was proposed, but that law did not win." : "";
+  const wdRow = rows.find((r) => r.param === "w_drive");
+  const driveWon = s.drawn.drive && writesDrive(win);
+  const noDrive = driveWon
+    ? ` The drive itself was found: ${driveCredit(e)}${wdRow ? `, its frequency ${pm(wdRow.measured, wdRow.sigma)} against ${wdRow.truth.toFixed(2)} rad/s` : ""}; the miss is in the stiffness or the damping.`
+    : s.drawn.drive && !driveProposed ? (b.warned ? " No model proposed a drive, and Muse Wonder’s prompt at the time warned it against one." : " No model proposed a drive.") : s.drawn.drive ? " A drive was proposed, but that law did not win." : "";
   return `${head} Missed: Ansatz wrote “${win.law.title}”.${beat}${noDrive} The best law still misses the unseen frames by ${win.fit.testRms.toFixed(2)} px, ${Math.round(win.fit.testZ ?? NaN)}× the noise${next ? ` (the next-ranked law: ${next.fit.testRms.toFixed(2)} px)` : ""}.`;
 }
 
@@ -221,13 +229,15 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const drivenMisses = post.filter((e) => sealedOfE(e).drawn.drive && verdictOf(e) === "miss");
     const falseDrive = post.filter((e) => !sealedOfE(e).drawn.drive && writesDrive(e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0]));
     const proposed = drivenMisses.filter((e) => e.candidates.some(writesDrive)).map((e) => sealedOfE(e).round);
+    // driven misses whose winning law carries the drive (the miss is in another term)
+    const driveWon = drivenMisses.filter((e) => writesDrive(e.candidates.find((c) => c.law.id === e.winner) ?? e.candidates[0])).map((e) => sealedOfE(e).round);
     const head = `After the fix (${postWords}), Ansatz found ${cPost.found} of ${cPost.n}`;
     if (drivenHits.length) {
       // the version for a driven law found: who wrote the drive, and who started its frequency
       after = `${head}, including ${w(cPost.drivenFound)} of the ${w(cPost.driven)} driven laws, the first ${drivenHits.length === 1 ? "drive" : "drives"} it found: ${drivenHits.map((e) => `on round ${sealedOfE(e).round} ${driveCredit(e)}`).join("; ")}.`;
     } else if (cPost.driven) {
       // the version for no driven law found
-      after = `${head}; the driven laws were missed again (0 of ${cPost.driven})${proposed.length ? `, though a drive was proposed on round ${roundsText(proposed)}` : ", and no model proposed a drive"}.`;
+      after = `${head}; the driven laws were missed again (0 of ${cPost.driven})${driveWon.length ? `, though on round ${roundsText(driveWon)} the winning law carried the drive and missed on its stiffness or damping` : proposed.length ? `, though a drive was proposed on round ${roundsText(proposed)}` : ", and no model proposed a drive"}.`;
     } else after = `${head}; no law in it had a drive, so the fix is not yet tested on one.`;
     if (cPost.undriven) after += ` Without a drive: ${cPost.undrivenFound} of ${cPost.undriven} found${falseDrive.length ? `, but a drive term won on round ${roundsText(falseDrive.map((e) => sealedOfE(e).round))}, where none was drawn` : ", and no drive term won where none was drawn"}.`;
     after = ` ${after}`;
@@ -244,7 +254,7 @@ export async function sealedTest(): Promise<SealedTest | null> {
   // what the seal proves: the laws were not chosen, and the order of draw, run and reveal; not a frozen pipeline
   const postCode = post.map((e) => (e as Experiment & { code?: { commit: string; dirty: boolean } }).code).filter((c): c is { commit: string; dirty: boolean } => !!c);
   const postProves = post.length
-    ? ` The ${postSets.length === 1 ? "third set" : "later sets"} named ${postSets.length === 1 ? "its" : "their"} rounds before drand published them${postSets[0]?.precommit ? ` (commit ${postSets[0].precommit.commit})` : ""}${postCode.length === post.length ? `, and every run records its code: ${[...new Set(postCode.map((c) => c.commit.slice(0, 7)))].join(", ")}${postCode.some((c) => c.dirty) ? ", with uncommitted changes on at least one run" : " on a clean tree"}` : ""}.`
+    ? ` The ${postSets.length === 1 ? "third set" : "later sets"} named ${postSets.length === 1 ? "its" : "their"} rounds before drand published them${postSets.some((b) => b.precommit) ? ` (${postSets.length === 1 ? "commit" : "commits"} ${postSets.flatMap((b) => (b.precommit ? [b.precommit.commit] : [])).join(" and ")})` : ""}${postCode.length === post.length ? `, and every run records its code: ${[...new Set(postCode.map((c) => c.commit.slice(0, 7)))].join(", ")}${postCode.some((c) => c.dirty) ? ", with uncommitted changes on at least one run" : " on a clean tree"}` : ""}.`
     : "";
   const proves = `Each law is a public function of its drand value, so the hash adds nothing beyond drand itself: anyone, us included, could compute the law once the round was out. Neither of the first two sets committed its round numbers before those rounds existed; the hashes were pushed 15 s and 11 s after the last round, which fixes each law before any clip was rendered but does not rule out a draw that was thrown away. And none of their runs can be tied to a clean committed tree: the first set ran with uncommitted edits to lib/experiment.ts, later committed as 56b2e88 (the closest match, not proven identical), and the last run of the second set probably with uncommitted lite-mode edits. So for those sets the seal proves that the laws were not picked by hand, and the order of draw, run and reveal. It does not prove that the code was frozen.${postProves}`;
 
@@ -265,7 +275,7 @@ export async function sealedTest(): Promise<SealedTest | null> {
     const named = b.precommit ? `, named in advance in commit ${b.precommit.commit} (committed ${hm(new Date(b.precommit.at))})` : "";
     return `The ${["first", "second", "third", "fourth", "fifth"][i] ?? `set ${b.set}`} set: rounds ${span(b.rounds)}${named}, published from ${hm(drandTime(b.rounds[0]))} to ${hm(last)}, the seal ${seal}${b.sealPushed ? ` pushed at ${hm(new Date(b.sealPushed))}` : ""}, ${runSpan(x.es)}, the reveal ${reveal}${b.revealPushed ? ` pushed at ${hm(new Date(b.revealPushed))}` : ""}.`;
   };
-  const timing = `${used.map(setTiming).join(" ")} The script could have been run on earlier rounds and the result thrown away${post.length ? " (for the first two sets)" : ""}, and the grammar was committed with the first hashes, not before them. What protects the test is that the models never see the repository, and that for the first two sets the prompts and the physics code (lib/scientist.ts, lib/physics) were last changed at 1811071, 3¾ hours before the first draw${b3?.precommit ? `; for the third, at ${b3.precommit.code}, before its rounds were named` : ""}.`;
+  const timing = `${used.map(setTiming).join(" ")} The script could have been run on earlier rounds and the result thrown away${post.length ? " (for the first two sets)" : ""}, and the grammar was committed with the first hashes, not before them. What protects the test is that the models never see the repository, and that for the first two sets the prompts and the physics code (lib/scientist.ts, lib/physics) were last changed at 1811071, 3¾ hours before the first draw${postSets.some((b) => b.precommit) ? `; for each later set, at the code commit its pre-commitment named before its rounds existed (${postSets.flatMap((b) => (b.precommit ? [`set ${b.set}: ${b.precommit.code}`] : [])).join(", ")})` : ""}.`;
 
   // the law Muse Wonder wrote: what the referee asked for, what Muse Wonder tried and what it submitted, read from the record
   const wonderRun = es.find((e) => verdictOf(e) === "hit" && e.candidates.find((c) => c.law.id === e.winner)?.origin === "revision" && !sealedOfE(e).drawn.drive);
