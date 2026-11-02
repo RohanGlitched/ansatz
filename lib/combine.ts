@@ -10,7 +10,7 @@
  *
  * Pure: laws in, laws out. Nothing here fits or ranks.
  */
-import { names, parse, type Node } from "./physics/expr";
+import { compile, names, parse, type Node } from "./physics/expr";
 import type { Law } from "./physics/law";
 import type { SpectrumPeak } from "./spectrum";
 
@@ -193,9 +193,9 @@ export function withDrive(law: Law, peak: SpectrumPeak, motionOmega: number, uni
 /**
  * Muse Wonder's stiffness with another law's damping: the stiffness law's acceleration keeps its stiffness (and any
  * offset) terms and takes the damping law's damping terms in place of its own, with the damping law's position and
- * velocity renamed to the stiffness law's and its damping constants carried over (renamed on a clash). Null when
- * either law is not a position–velocity law on the channel, a damping term names anything but the pair and its own
- * constants, either law has a time term, or the damping would not change.
+ * velocity renamed to the stiffness law's and its damping constants carried over (renamed on a clash). A drive in the
+ * stiffness law is kept. Null when either law is not a position–velocity law on the channel, a damping term names
+ * anything but the pair and its own constants, the damping law has a time term, or the damping would not change.
  */
 export function combineStiffnessDamping(stiff: Law, damp: Law, channel?: string): Law | null {
   const ps = motionPair(stiff, channel), pd = motionPair(damp, channel);
@@ -207,8 +207,10 @@ export function combineStiffnessDamping(stiff: Law, damp: Law, channel?: string)
   } catch {
     return null;
   }
-  if (ts.some((t) => termKind(t, ps) === "drive") || td.some((t) => termKind(t, pd) === "drive")) return null;
-  const keep = ts.filter((t) => termKind(t, ps) === "stiffness");
+  // the stiffness law may carry a drive (kept with its stiffness: a driven law whose damping is the wrong form, set 4's
+  // misses); the damping donor may not
+  if (td.some((t) => termKind(t, pd) === "drive")) return null;
+  const keep = ts.filter((t) => termKind(t, ps) !== "damping");
   const dampTerms = td.filter((t) => termKind(t, pd) === "damping");
   if (!dampTerms.length) return null;
   const dParams = new Map(damp.params.map((p) => [p.name, p]));
@@ -247,4 +249,157 @@ export function combineStiffnessDamping(stiff: Law, damp: Law, channel?: string)
     derivatives: { ...stiff.derivatives, [ps.vel]: sum([...keep, ...newDamp]) },
     params: [...stiffParams.map((p) => ({ ...p })), ...carried],
   };
+}
+
+/* ─────────────── code moves that complete a law's terms (recorded as code's, never as a model's) ─────────────── */
+
+/** every position–velocity pair in a law (s' = v), in state order */
+export function motionPairs(law: Law): { pos: string; vel: string }[] {
+  return law.state.flatMap((s) => {
+    const d = (law.derivatives[s] ?? "").trim();
+    return d !== s && law.state.includes(d) ? [{ pos: s, vel: d }] : [];
+  });
+}
+
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** the power of the position in a stiffness term: (pos − X)^n or pos^n, else the count of position factors */
+function posPower(t: Node, pos: string): number {
+  const s = print(t).replace(/\s+/g, "");
+  const p = esc(pos);
+  const caret = s.match(new RegExp(`\\(${p}-\\w+\\)\\^(\\d)|\\b${p}\\^(\\d)`));
+  if (caret) return +(caret[1] ?? caret[2]);
+  return (s.match(new RegExp(`\\(${p}-\\w+\\)|\\b${p}\\b(?!\\^)`, "g")) ?? []).length;
+}
+/** the rest position a law's stiffness is written about: X in (pos − X), or null when it is written about pos itself */
+function restOf(terms: Node[], pos: string): string | null {
+  const p = esc(pos);
+  for (const t of terms) {
+    const m = print(t).replace(/\s+/g, "").match(new RegExp(`\\(${p}-(\\w+)\\)`));
+    if (m) return m[1];
+  }
+  return null;
+}
+/** a law's acceleration terms on its observed position, or null when it has no position–velocity pair there */
+function accTerms(law: Law, channel?: string): { pair: { pos: string; vel: string }; terms: Node[] } | null {
+  const pair = motionPair(law, channel);
+  if (!pair) return null;
+  try {
+    return { pair, terms: additiveTerms(parse(law.derivatives[pair.vel])) };
+  } catch {
+    return null;
+  }
+}
+
+/** whether a law's stiffness already has a term in the square of the position (a lopsided spring) */
+export function hasLopsided(law: Law, channel?: string): boolean {
+  const a = accTerms(law, channel);
+  return !!a && a.terms.some((t) => termKind(t, a.pair) === "stiffness" && posPower(t, a.pair.pos) === 2);
+}
+
+/**
+ * The law plus a lopsided (x²) stiffness, −k2·(pos − X)², about the rest position its stiffness is written about (every
+ * other term, a drive included, as it was). `scale` sets the start: the motion's frequency and its amplitude (in the
+ * channel's unit). Null when the law already has one or has no position–velocity pair.
+ */
+export function withLopsided(law: Law, scale: { omega: number; amp: number }, channel?: string): Law | null {
+  const a = accTerms(law, channel);
+  if (!a || hasLopsided(law, channel)) return null;
+  if (law.params.some((p) => p.name === "k2_lop")) return null;
+  const rest = restOf(a.terms.filter((t) => termKind(t, a.pair) === "stiffness"), a.pair.pos);
+  const g = (0.02 * scale.omega * scale.omega) / Math.max(scale.amp, 1e-9);
+  const sq = rest ? `(${a.pair.pos} - ${rest})^2` : `${a.pair.pos}^2`;
+  return {
+    ...law,
+    id: `${law.id}+lopsided`,
+    title: `${law.title}, with a lopsided (x²) stiffness`,
+    summary: `${law.summary} Plus a lopsided restoring force k2·(s − s_eq)², added by code.`.trim(),
+    derivatives: { ...law.derivatives, [a.pair.vel]: `${law.derivatives[a.pair.vel]} - k2_lop*${sq}` },
+    params: [...law.params.map((p) => ({ ...p })), { name: "k2_lop", guess: g, min: -1000 * g, max: 1000 * g, meaning: "lopsided (x²) stiffness per unit mass" }],
+  };
+}
+
+/** whether a law's damping already has a dry (Coulomb) form */
+export const hasDry = (law: Law, channel?: string) => (dampingSignature(law, channel) ?? "").split("+").includes("dry");
+
+/**
+ * The law with its damping replaced by dry (Coulomb) friction, −μ·tanh(v/v0) with v0 held at 2% of the swing's peak
+ * speed (stiffness and drive terms kept). Null when it already has a dry form or no position–velocity pair.
+ */
+export function withDryDamping(law: Law, scale: { omega: number; amp: number }, channel?: string): Law | null {
+  const a = accTerms(law, channel);
+  if (!a || hasDry(law, channel)) return null;
+  if (law.params.some((p) => p.name === "mu_dry" || p.name === "v0_dry")) return null;
+  const keep = a.terms.filter((t) => termKind(t, a.pair) !== "damping");
+  const kept = new Set(keep.flatMap((t) => [...names(t)]));
+  for (const [s, d] of Object.entries(law.derivatives)) if (s !== a.pair.vel) for (const n of namesOf(d) ?? []) kept.add(n);
+  for (const o of Object.values(law.observe)) for (const n of namesOf(o) ?? []) kept.add(n);
+  for (const ev of law.events ?? []) for (const src of [ev.when, ...Object.values(ev.then)]) for (const n of namesOf(src) ?? []) kept.add(n);
+  const w = scale.omega, A = Math.max(scale.amp, 1e-9);
+  const mu = (w * w * A) / 30;
+  return {
+    ...law,
+    id: `${law.id}+dry`,
+    title: `${law.title}, with dry (Coulomb) friction for its damping`,
+    summary: `${law.summary} Its damping replaced by dry (Coulomb) friction μ·tanh(v/v0), by code.`.trim(),
+    derivatives: { ...law.derivatives, [a.pair.vel]: `${sum(keep)} - mu_dry*tanh(${a.pair.vel}/v0_dry)` },
+    params: [...law.params.filter((p) => kept.has(p.name)).map((p) => ({ ...p })), { name: "mu_dry", guess: mu, min: 0, max: 30 * mu, meaning: "dry friction (deceleration)" }, { name: "v0_dry", guess: 0.02 * w * A, fixed: true, meaning: "speed below which dry friction fades (held)" }],
+  };
+}
+
+/**
+ * The free oscillators a law carries besides its motion: for a law with more than one position–velocity pair, each
+ * pair's own frequency and damping, linearised about its rest position (∂a/∂pos and ∂a/∂vel at rest), with the
+ * damping's σ from the fit's σ on each constant. A pair whose damping is within 2σ of zero is an undamped mode: a
+ * sinusoid at its own frequency that never decays, which is how a drive looks when it is written as a second
+ * oscillator (sealed round 6604982's winner). Empty for a law with one pair.
+ */
+export function freeModes(law: Law, theta: Record<string, number>, sigma: Record<string, number> = {}): { pos: string; omega: number; gamma: number; sigmaGamma: number; undamped: boolean }[] {
+  const pairs = motionPairs(law);
+  if (pairs.length < 2) return [];
+  const pnames = law.params.map((p) => p.name);
+  const vars = [...law.state, "t", ...pnames];
+  const out: { pos: string; omega: number; gamma: number; sigmaGamma: number; undamped: boolean }[] = [];
+  for (const pair of pairs) {
+    let f: (s: Float64Array) => number;
+    let rest: string | null = null;
+    try {
+      f = compile(law.derivatives[pair.vel], vars);
+      const r = restOf(additiveTerms(parse(law.derivatives[pair.vel])), pair.pos);
+      rest = r && pnames.includes(r) ? r : null;
+    } catch {
+      continue;
+    }
+    const ip = vars.indexOf(pair.pos), iv = vars.indexOf(pair.vel);
+    const lin = (th: number[]) => {
+      const s = new Float64Array(vars.length);
+      th.forEach((v, i) => (s[law.state.length + 1 + i] = v));
+      if (rest) s[ip] = th[pnames.indexOf(rest)];
+      const d = (i: number, h: number) => {
+        const a = Float64Array.from(s), b = Float64Array.from(s);
+        a[i] += h;
+        b[i] -= h;
+        return (f(a) - f(b)) / (2 * h);
+      };
+      return { k: -d(ip, 1e-4 * Math.max(1, Math.abs(s[ip]))), c: -d(iv, 1e-4) };
+    };
+    const th0 = law.params.map((p) => (Number.isFinite(theta[p.name]) ? theta[p.name] : p.guess));
+    const { k, c } = lin(th0);
+    if (!(k > 0) || !Number.isFinite(c)) continue;
+    let v2 = 0, undef = false;
+    law.params.forEach((p, i) => {
+      if (p.fixed) return;
+      const sg = sigma[p.name];
+      if (!Number.isFinite(sg)) { undef = true; return; }
+      const h = 1e-4 * Math.max(Math.abs(th0[i]), Math.abs(sg), 1e-9);
+      const up = [...th0], dn = [...th0];
+      up[i] += h;
+      dn[i] -= h;
+      const dc = (lin(up).c - lin(dn).c) / (2 * h);
+      if (Number.isFinite(dc)) v2 += (dc * sg) ** 2;
+    });
+    const sg = undef ? NaN : Math.sqrt(v2);
+    const omega = Math.sqrt(k);
+    out.push({ pos: pair.pos, omega, gamma: c, sigmaGamma: sg, undamped: Number.isFinite(sg) ? Math.abs(c) <= 2 * sg : Math.abs(c) < 0.05 * omega });
+  }
+  return out;
 }

@@ -26,9 +26,10 @@ const DRAND = "https://api.drand.sh";
 /** drand's default (quicknet-free, 30 s) chain: round r is published at GENESIS + (r - 1) * 30 s */
 const GENESIS = 1595431050;
 export const roundTime = (r: number) => new Date((GENESIS + (r - 1) * 30) * 1000).toISOString();
-/** the scoring rule, fixed before any draw (from set 4 on; sets 1 to 3 were re-scored under it, set 3 named the older rule in its pre-commitment) */
+/** the scoring rule, fixed before any draw (from set 4 on; sets 1 to 3 were re-scored under it, set 3 named the older
+ * rule in its pre-commitment; set 5 on adds the undamped-mode clause, the undefined-σ clause and the model/code split) */
 export const SCORING =
-  "hit: the winner's term set equals the drawn term set (stiffness, damping and drive terms), where a fitted term whose constant is within 2σ of zero counts as absent, and each shared constant is within 2σ of the drawn value; pixel constants converted with the render's own scale; anything else is a miss. Reported apart: drive recall (driven laws found / driven laws drawn) and false-drive rate (undriven laws whose winner carries a drive term more than 2σ from zero)";
+  "hit: the winner's term set equals the drawn term set (stiffness, damping and drive terms), where a fitted term whose constant is within 2σ of zero counts as absent, and each shared constant is within 2σ of the drawn value; pixel constants converted with the render's own scale; a winner with an undefined (NaN) σ on any free constant cannot be scored a hit; anything else is a miss. A second, free oscillation whose damping is within 2σ of zero, at a frequency outside the motion's own band, counts as a drive term. Reported apart: drive recall (driven laws found / driven laws drawn), false-drive rate (undriven laws whose winner carries a drive term more than 2σ from zero, or such an undamped mode), and, for each hit and each drive, whether a model wrote the winning law (Muse Spark or Muse Wonder) or a code move made it (a drive added at an unexplained peak, a recombination, or a term added to the leading law)";
 const M = 0.2; // kg; only ratios to it shape the motion
 
 type Beacon = { round: number; randomness: string; signature: string; previous_signature?: string };
@@ -106,7 +107,16 @@ export function drawLaw(b: Beacon) {
 
 async function getJson<T>(url: string): Promise<T | null> {
   const r = await fetch(url).catch(() => null);
-  return r && r.ok ? ((await r.json()) as T) : null;
+  return r && r.ok ? ((await r.json().catch(() => null)) as T | null) : null;
+}
+/** a beacon, retried three times with backoff (1, 2, 4 s): null only when drand could not be reached */
+async function beacon(round: number | "latest"): Promise<Beacon | null> {
+  for (let i = 0; i < 4; i++) {
+    const b = await getJson<Beacon>(`${DRAND}/public/${round}`);
+    if (b && b.randomness) return b;
+    if (i < 3) await new Promise((r) => setTimeout(r, 1000 * 2 ** i));
+  }
+  return null;
 }
 
 const sha = (buf: Buffer | string) => createHash("sha256").update(buf).digest("hex");
@@ -185,8 +195,14 @@ print(render.render_case(cid))
   const json = readFileSync(`sealed/${arg}.json`);
   const want = readFileSync(`sealed/${arg}.sha256`, "utf8").split(/\s+/)[0];
   const got = sha(json);
-  const b = await getJson<Beacon>(`${DRAND}/public/${arg}`);
-  const again = b ? JSON.stringify(drawLaw(b), null, 1) + "\n" : null;
+  const b = await beacon(+arg);
+  if (!b) {
+    // a network failure is not a mismatch: say so, check the hash alone, and exit 2 (never "DIFFERS" for a fetch that failed)
+    console.log(`hash ${got === want ? "matches" : "DIFFERS"} (${got}); could not fetch drand round ${arg} (network), so the law was not re-derived: hash check only`);
+    process.exit(got === want ? 2 : 1);
+  }
+  const again = JSON.stringify(drawLaw(b), null, 1) + "\n";
+  console.log(`drand round ${b.round}, randomness ${b.randomness.slice(0, 16)}…`);
   console.log(`hash ${got === want ? "matches" : "DIFFERS"} (${got}); re-derived from drand round ${arg}: ${again === json.toString("utf8") ? "identical" : "DIFFERS"}`);
   process.exit(got === want && again === json.toString("utf8") ? 0 : 1);
 } else {

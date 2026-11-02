@@ -21,12 +21,15 @@ export type SpectrumPeak = {
   harmonic?: number;
   /** what the peak is (classifyPeaks): the motion's own frequency, a harmonic of it, a drift (under two cycles in the
    * fitted frames), the noise (under the look-elsewhere threshold), one of a pair of sidebands mirrored about the
-   * motion's frequency (the motion's own amplitude or frequency changing), or unexplained (none of these: worth a drive) */
+   * motion's frequency (the motion's own amplitude or frequency changing), the mixing product of a stronger unexplained
+   * line with the motion (2ω₀ − ω_d, mirrored about the motion's frequency), or unexplained (none of these: worth a drive) */
   label?: PeakLabel;
+  /** for a drive-and-mixing pair: the other line's frequency (on the mixing product, the drive's; on the drive, its mixing product's) */
+  partner?: number;
   /** the fitted sinusoid a·cos ωt + b·sin ωt in each channel's own unit (t as in the series), for a drive's start */
   coef?: Record<string, { a: number; b: number }>;
 };
-export type PeakLabel = "motion" | "harmonic" | "sideband" | "drift" | "noise" | "unexplained";
+export type PeakLabel = "motion" | "harmonic" | "sideband" | "mixing" | "drift" | "noise" | "unexplained";
 export type ResidualSpectrum = {
   law: string;
   peaks: SpectrumPeak[];
@@ -153,35 +156,56 @@ export function noiseThreshold(n: number, channels = 1, p = 1e-3): number {
   return Math.max(2, Math.sqrt((2 * hi) / n));
 }
 
+/** a mirrored pair counts as sidebands only within this many resolution widths (2π/T) of the motion's own frequency;
+ * farther out it is a drive and its mixing product */
+export const MIXING_WIDE = 2;
+
 /**
  * Labels every peak of a residual spectrum. In order: under the noise threshold → noise; under two cycles in the fitted
  * span → drift (a slow trend, not resolvable as a periodic force); within 10% (or half a resolution width, π/T, if
  * wider) of the motion's own frequency → motion (the law's own frequency, damping or amplitude is off); within 3% of
- * 2ω or 3ω of the motion → harmonic (a lopsided or hardening spring's); otherwise → unexplained. Then two unexplained
- * peaks mirrored about the motion's frequency (their mean within 3% of it) with amplitudes within a factor 2 of each
- * other → sideband, both: a swing whose amplitude or frequency changes over the clip (a damping or stiffness law of the
- * wrong form) leaves such a pair, while a drive leaves one line that dominates its mixing products. Only a peak still
- * unexplained says a periodic drive at that frequency is worth testing.
+ * 2ω or 3ω of the motion → harmonic (a lopsided or hardening spring's); otherwise → unexplained.
+ *
+ * Then pairs of unexplained peaks mirrored about the motion's frequency (their mean within 3% of it):
+ *  - a drive and its mixing product: both lines more than MIXING_WIDE resolution widths (2·2π/T) from the motion's own
+ *    frequency. A drive at ω_d on a nonlinear (lopsided or hardening) spring leaves its own line and a mixing line at
+ *    2ω₀ − ω_d; a swing whose amplitude or frequency changes once over the T seconds moves its line only about one
+ *    resolution width (the sidebands in sealed runs sat 1.0–1.4 widths out; 6605629's drive pair 3.2), so a pair this
+ *    far apart is not that. The stronger stays unexplained (the drive), the weaker is labelled mixing (it comes and goes
+ *    with the drive: not a second drive);
+ *  - within 2 widths, with amplitudes within a factor 2 of each other → sideband, both: a swing whose amplitude or
+ *    frequency changes over the clip (a damping or stiffness law of the wrong form) leaves such a pair close about the
+ *    motion.
+ * Only a peak still unexplained says a periodic drive at that frequency is worth testing.
  */
 export function classifyPeaks(s: ResidualSpectrum, motionOmega: number | undefined, opts: { spanS: number; n: number; channels: number }): ResidualSpectrum {
   const thr = noiseThreshold(opts.n, opts.channels);
   const res = (2 * Math.PI) / opts.spanS;
   const withH = labelHarmonics(s, motionOmega);
+  const first = withH.peaks.map((p) => {
+    let label: PeakLabel;
+    if (!(p.ampNoise > thr)) label = "noise";
+    else if (p.omega < 2 * res) label = "drift";
+    else if (motionOmega && Math.abs(p.omega - motionOmega) <= Math.max(0.1 * motionOmega, res / 2)) label = "motion";
+    else if (p.harmonic) label = "harmonic";
+    else label = "unexplained";
+    const { partner: _, ...rest } = p;
+    return { ...rest, label };
+  });
+  const mirrored = (p: SpectrumPeak, q: SpectrumPeak) => !!motionOmega && Math.abs((p.omega + q.omega) / 2 - motionOmega) <= 0.03 * motionOmega;
+  const wide = (p: SpectrumPeak) => !!motionOmega && Math.abs(p.omega - motionOmega) > MIXING_WIDE * res;
+  const mixingPair = (p: SpectrumPeak, q: SpectrumPeak) => mirrored(p, q) && wide(p) && wide(q);
   return {
     ...withH,
     noiseThreshold: thr,
     spanS: opts.spanS,
-    peaks: withH.peaks.map((p) => {
-      let label: PeakLabel;
-      if (!(p.ampNoise > thr)) label = "noise";
-      else if (p.omega < 2 * res) label = "drift";
-      else if (motionOmega && Math.abs(p.omega - motionOmega) <= Math.max(0.1 * motionOmega, res / 2)) label = "motion";
-      else if (p.harmonic) label = "harmonic";
-      else label = "unexplained";
-      return { ...p, label };
-    }).map((p, i, all) => {
+    peaks: first.map((p, i, all) => {
       if (p.label !== "unexplained" || !motionOmega) return p;
-      const twin = all.find((q, j) => j !== i && q.label === "unexplained" && Math.abs((p.omega + q.omega) / 2 - motionOmega) <= 0.03 * motionOmega && Math.max(p.ampNoise, q.ampNoise) < 2 * Math.min(p.ampNoise, q.ampNoise));
+      const others = all.filter((q, j) => j !== i && q.label === "unexplained");
+      // a drive and its mixing product: the weaker is the mixing line, the stronger stays unexplained
+      const mix = others.filter((q) => mixingPair(p, q)).sort((x, y) => y.ampNoise - x.ampNoise)[0];
+      if (mix) return mix.ampNoise > p.ampNoise ? { ...p, label: "mixing" as const, partner: mix.omega } : { ...p, partner: mix.omega };
+      const twin = others.find((q) => mirrored(p, q) && !wide(p) && !wide(q) && Math.max(p.ampNoise, q.ampNoise) < 2 * Math.min(p.ampNoise, q.ampNoise));
       return twin ? { ...p, label: "sideband" as const } : p;
     }),
   };
@@ -206,11 +230,22 @@ export const unexplainedPeak = (s: ResidualSpectrum | null) => s?.peaks.find((p)
 const LABEL_WORDS: Record<PeakLabel, (s: ResidualSpectrum) => string> = {
   motion: () => ": the motion's own frequency (the law's own frequency, damping or amplitude is off), not a drive",
   harmonic: () => "", // worded from the harmonic number
-  sideband: () => ": one of a pair mirrored about the motion's own frequency with like amplitudes, the motion's own amplitude or frequency changing over the clip (the form of the damping or the stiffness), not a drive",
-  drift: (s) => `: under two cycles in the fitted ${s.spanS ? s.spanS.toFixed(1) + " s" : "frames"}, a slow drift, not resolvable as a periodic force`,
+  sideband: () => ": one of a pair mirrored close about the motion's own frequency with like amplitudes, the motion's own amplitude or frequency changing over the clip (the form of the damping or the stiffness), not a drive",
+  mixing: () => "", // worded from its partner (mixingMeaning)
+  drift: (s) => `: under two cycles in the fitted ${s.spanS ? s.spanS.toFixed(1) + " s" : "frames"}, a drift of the centre, not a periodic force; a centre that shifts as the swing decays is the mark of a lopsided (asymmetric, x²) restoring force k2·(s − s_eq)², which also leaves a line at 2ω₀`,
   noise: (s) => `: within the noise (pure noise reaches ${s.noiseThreshold ? s.noiseThreshold.toFixed(2) : "?"} × the noise somewhere in the band once in a thousand spectra)`,
-  unexplained: () => ": UNEXPLAINED, neither the motion's own frequency nor a harmonic of it; a periodic drive at this frequency is worth testing, and the held-out frames will reject one that is not there",
+  unexplained: () => "", // worded from the peak's own frequency (unexplainedMeaning)
 };
+
+/** The two stiffness and damping signatures the theorist is told by name, whatever the peaks are. */
+export const SIGNATURES = "a drift of the centre plus a line at 2ω₀ is the mark of a lopsided (asymmetric, x²) spring; a decay envelope that is linear in time, not exponential, is the mark of dry (Coulomb) friction";
+
+/** What an unexplained peak means, in plain words, with its frequency. */
+export const unexplainedMeaning = (omega: number) =>
+  `a peak at ω = ${omega.toFixed(2)} rad/s that is not the motion's frequency, a harmonic, a drift or noise; a periodic drive F·cos(ωt+φ) with ω near this value is the usual cause; a drive whose fitted frequency slides onto the motion's own frequency is not a drive`;
+/** What a mixing peak means, with its partner. */
+export const mixingMeaning = (omega: number, partner: number | undefined, motion: number | undefined) =>
+  `the mixing product of the unexplained line at ${partner ? partner.toFixed(2) : "?"} rad/s with the motion (2 × ${motion ? motion.toFixed(2) : "ω₀"} − ${partner ? partner.toFixed(2) : "ω_d"} ≈ ${omega.toFixed(2)}): it comes and goes with that line, so it is not a second drive`;
 
 /** One line per peak for the theorist: frequency, amplitude in noise units and in each channel's unit, and its label. */
 export function spectrumSummary(s: ResidualSpectrum | null, units: Record<string, string> = {}): string {
@@ -218,19 +253,26 @@ export function spectrumSummary(s: ResidualSpectrum | null, units: Record<string
   const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toPrecision(3) : v.toPrecision(2));
   const peaks = s.peaks.map((p, i) => {
     const ch = Object.entries(p.byChannel).map(([c, a]) => `${fmt(a)}${units[c] ? ` ${units[c]}` : ""} in ${c}`).join(", ");
-    const h = p.harmonic && (!p.label || p.label === "harmonic") ? `: ${p.harmonic}× the motion's own frequency, a harmonic of the motion (expected for a nonlinear spring), not evidence of a drive` : "";
-    const l = p.label && p.label !== "harmonic" ? LABEL_WORDS[p.label](s) : "";
+    const h = p.harmonic && (!p.label || p.label === "harmonic") ? `: ${p.harmonic}× the motion's own frequency, a harmonic of the motion, not evidence of a drive; ${p.harmonic === 2 ? "a 2ω₀ line is the mark of an even (lopsided, asymmetric, x²) nonlinearity, k2·(s − s_eq)²" : "a 3ω₀ line is the mark of an odd (hardening, x³) nonlinearity"}` : "";
+    const l = p.label === "unexplained" ? `: UNEXPLAINED, ${unexplainedMeaning(p.omega)}` : p.label === "mixing" ? `: MIXING, ${mixingMeaning(p.omega, p.partner, s.motionOmega)}` : p.label && p.label !== "harmonic" ? LABEL_WORDS[p.label](s) : "";
     return `${i ? "next" : "strongest"} at ω = ${p.omega.toFixed(2)} rad/s (period ${((2 * Math.PI) / p.omega).toFixed(3)} s), amplitude ${fmt(p.ampNoise)} × the noise (${ch})${h}${l}`;
   });
   const own = s.motionOmega ? ` The motion's own frequency is ${s.motionOmega.toFixed(2)} rad/s.` : "";
   return `Residual spectrum of “${s.law}” on the fitted frames (its misses, fitted as sinusoids one at a time, strongest first): ${peaks.join("; ")}.${own}`;
 }
 
-/** The spectrum as the theorist's residual_spectrum tool returns it: every peak with its amplitude and label. */
+/**
+ * The spectrum as the theorist's residual_spectrum tool returns it: every peak with its amplitude, its label and, for an
+ * unexplained or mixing peak, what that means in plain words; then what follows for the law: write a drive started at
+ * the strongest unexplained peak, or, when no peak is unexplained, write none.
+ */
 export function spectrumTool(s: ResidualSpectrum, units: Record<string, string> = {}) {
+  const top = unexplainedPeak(s);
+  const motion = s.motionOmega;
+  const band = motion ? Math.max(0.1 * motion, s.spanS ? Math.PI / s.spanS : 0) : 0;
   return {
     law: s.law,
-    motion_omega_rad_s: s.motionOmega ?? null,
+    motion_omega_rad_s: motion ?? null,
     noise_threshold: s.noiseThreshold ?? null,
     peaks: s.peaks.map((p) => ({
       omega_rad_s: +p.omega.toFixed(4),
@@ -239,7 +281,16 @@ export function spectrumTool(s: ResidualSpectrum, units: Record<string, string> 
       amplitude: Object.fromEntries(Object.entries(p.byChannel).map(([c, a]) => [c, `${+a.toPrecision(4)}${units[c] ? ` ${units[c]}` : ""}`])),
       label: p.label ?? (p.harmonic ? "harmonic" : "unlabelled"),
       ...(p.harmonic ? { harmonic_of_motion: p.harmonic } : {}),
+      ...(p.label === "unexplained" ? { meaning: unexplainedMeaning(p.omega) } : {}),
+      ...(p.label === "mixing" ? { meaning: mixingMeaning(p.omega, p.partner, motion) } : {}),
     })),
+    what_follows: top
+      ? `Unexplained peak at ${top.omega.toFixed(2)} rad/s: write the drive term yourself, F_d*cos(w_d*t + phi_d) added to the acceleration, with w_d's guess at ${top.omega.toFixed(2)} rad/s and its bounds kept clear of the motion's own ${motion ? motion.toFixed(2) : "?"} rad/s${motion ? ` (code rejects a drive whose fitted frequency ends within ${band.toFixed(2)} rad/s of it, or past the frame rate's limit${s.maxOmega ? ` of ${s.maxOmega.toFixed(0)} rad/s` : ""})` : ""}; keep the stiffness and damping terms the misses support.`
+      : "No peak is unexplained: nothing in these misses calls for a periodic drive. Do not write one; change the stiffness or the damping instead.",
+    signatures: SIGNATURES,
+    ...(s.peaks.some((p) => p.label === "drift") || s.peaks.some((p) => p.harmonic === 2 && p.label !== "noise")
+      ? { lopsided_mark: `seen here: ${[s.peaks.some((p) => p.label === "drift") ? "a drift of the centre" : "", s.peaks.some((p) => p.harmonic === 2 && p.label !== "noise") ? "a line at 2ω₀" : ""].filter(Boolean).join(" and ")}; a lopsided stiffness k2*(s - s_eq)^2 is a candidate term` }
+      : {}),
     summary: spectrumSummary(s, units),
   };
 }

@@ -365,7 +365,7 @@ export const WONDER_TOOLS = [
     type: "function",
     name: "residual_spectrum",
     description:
-      "The spectrum of a law's misses on the fitted frames: the strongest sinusoids in them, each with its frequency, amplitude and a label: the motion's own frequency, a harmonic of it (2× or 3×, from a nonlinear spring), a drift (under two cycles in the frames), the noise, or unexplained (none of these: a periodic drive at that frequency is worth testing). Does not use up a fit_law try.",
+      "The spectrum of a law's misses on the fitted frames: the strongest sinusoids in them, each with its frequency, amplitude and a label: the motion's own frequency, a harmonic of it (2×: an even, lopsided x² spring; 3×: an odd, hardening x³ spring), a sideband (a pair close about the motion's own frequency: its amplitude or frequency changing), a mixing product (2ω₀ − ω_d of a stronger unexplained line: comes with it, not a second drive), a drift (under two cycles in the frames: a centre that shifts, the mark of a lopsided spring), the noise, or unexplained (a peak that is not the motion's frequency, a harmonic, a drift or noise; a periodic drive F·cos(ωt+φ) with ω near it is the usual cause). An unexplained peak comes with its meaning in plain words, and what_follows says whether to write a drive and where to start its frequency. Does not use up a fit_law try.",
     strict: true,
     parameters: SPECTRUM_SCHEMA,
   },
@@ -374,7 +374,14 @@ export const WONDER_TOOLS = [
 /** residual_spectrum calls a theorist may make on top of its turns */
 export const SPECTRUM_CALLS = 2;
 
-export type WonderAttempt = { title: string; ok: boolean; trainRms?: number; error?: string };
+export type WonderAttempt = {
+  title: string;
+  ok: boolean;
+  trainRms?: number;
+  error?: string;
+  /** a try with a drive term: where its fitted frequency ended (rad/s), and whether code kept or rejected it */
+  drive?: { omega: number; verdict: string };
+};
 
 /** One theorist turn as stored: Muse Wonder's reasoning summary and any text it wrote, and the one tool call code ran. */
 export type WonderTurn = { turn: number; reasoning: string; text?: string; tool?: "fit_law" | "submit_law" | "residual_spectrum"; law?: string; ignored?: number };
@@ -423,7 +430,7 @@ export async function reviseAgentic(
     // the two strongest frequencies in the misses (fitted frames only), so a periodic effect shows up as a number
     ...(spectrum ? [spectrum] : []),
     METHOD,
-    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, the two strongest frequencies in them, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; every added term is paid for on the held-out frames. A periodic drive is worth trying when the residual oscillates at a frequency other than the motion's own; a drive that is not there loses on the held-out frames.${spectrumFor ? ` The residual_spectrum tool reads any law's misses (a law in the table, or one of your tries) as labelled peaks; up to ${SPECTRUM_CALLS} such calls don't use up a turn. A peak labelled unexplained is neither the motion's own frequency nor a harmonic of it: it is the signature of a periodic drive at that frequency, which is a second, forced frequency, not a change of the spring's own.` : ""} Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
+    `You have ${maxTurns} turn${maxTurns === 1 ? "" : "s"}, and each turn runs exactly one tool call (a second call in the same turn is not run). Use the fit_law tool to try a law: it fits the law to the same frames and returns its residuals there, the two strongest frequencies in them, its fitted parameters with uncertainties and any parameter stuck at a bound, and shows you a plot of its misses against time. ${tries ? `That leaves room for at most ${tries} fit_law ${tries === 1 ? "try" : "tries"} before you must submit.` : "Submit straight away."} If an idea's parameter comes back stuck at its bound, the idea isn't refuted: widen that bound (or fix its guess) and try it again before moving on. Prefer the simplest law that removes the drift; every added term is paid for on the held-out frames. Besides cubic stiffening and viscous or quadratic drag, consider two terms by name: a lopsided (asymmetric) stiffness k2*(s - s_eq)^2, whose mark is a drift of the centre plus a line at 2ω₀ in the misses, and dry (Coulomb) friction mu*tanh(v/v0) (or mu*sign(v)), whose mark is a decay envelope that is linear in time, not exponential. A periodic drive is worth trying when the residual oscillates at a frequency other than the motion's own; a drive that is not there loses on the held-out frames.${spectrumFor ? ` The residual_spectrum tool reads any law's misses (a law in the table, or one of your tries) as labelled peaks; up to ${SPECTRUM_CALLS} such calls don't use up a turn. Before you propose any law, call residual_spectrum on the leading law (the_law_code_chose in the table). When it reports a peak labelled unexplained, write the drive term yourself: add F_d*cos(w_d*t + phi_d) to the acceleration (F_d an acceleration, w_d in rad/s, phi_d in rad), with that peak's frequency as w_d's starting value (guess) and its bounds kept clear of the motion's own frequency, alongside the stiffness and damping terms the misses support; an unexplained peak is a second, forced frequency, not a change of the spring's own. When no peak is unexplained (only motion, harmonic, sideband, mixing, drift or noise), do not write a drive, whoever suggested one. Code checks every drive, yours included: one whose fitted frequency ends within 10% of the motion's own (a push "near the bobbing rate") or past the frame rate's limit is rejected, because it reshapes the swing rather than drives it.` : ""} Then call submit_law with the one law to test; if your turns run out first, your best-fitting try is entered for you.`,
   ].join("\n\n");
   const tools = spectrumFor ? WONDER_TOOLS : WONDER_TOOLS.filter((t) => t.name !== "residual_spectrum");
   let spectrumLeft = spectrumFor ? SPECTRUM_CALLS : 0;
@@ -501,7 +508,8 @@ export async function reviseAgentic(
       }
       const plot = result[WONDER_PLOT];
       delete result[WONDER_PLOT];
-      attempts.push({ title: wire.title, ok: !!result.ok, trainRms: typeof result.train_rms === "number" ? result.train_rms : undefined, error: typeof result.error === "string" ? result.error : undefined });
+      const dc = result.drive_check as { fitted_omega_rad_s?: number; verdict?: string } | undefined;
+      attempts.push({ title: wire.title, ok: !!result.ok, trainRms: typeof result.train_rms === "number" ? result.train_rms : undefined, error: typeof result.error === "string" ? result.error : undefined, ...(dc && typeof dc.fitted_omega_rad_s === "number" ? { drive: { omega: dc.fitted_omega_rad_s, verdict: String(dc.verdict ?? "") } } : {}) });
       outputs.push({ type: "function_call_output", call_id: c.call_id, output: JSON.stringify(result) });
       if (plot instanceof Uint8Array)
         images.push({ type: "input_image", image_url: `data:image/png;base64,${Buffer.from(plot).toString("base64")}` }, { type: "input_text", text: `The misses of “${wire.title}” on the fitted frames (law minus measurement, in units of the measurement noise) against time; the dashed band is ±1 noise.` });

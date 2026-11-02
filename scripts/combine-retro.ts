@@ -4,11 +4,12 @@
 // it reads the pool as the run left it, labels the residual spectrum of the best law without a drive, adds the drive
 // candidate when that spectrum has an unexplained peak, refits it exactly as the pipeline does, and re-ranks the pool.
 // A diagnostic only: the pool is the one the old code produced (Muse Wonder never saw the spectrum tool), and the
-// sealed verdicts stand as published.
+// sealed verdicts stand as published. When a record carries the run's own labelled spectrum, it is printed relabelled
+// by the current classifyPeaks next to the labels the run gave it (the drive-and-mixing rule after set 4).
 import { readFileSync } from "node:fs";
 import { baseCandidate, driveCandidate, fitWithRoom, rankCandidates, recombinations, spectrumOf, type Candidate } from "../lib/experiment";
 import { compileLaw, type Law } from "../lib/physics/law";
-import { spectrumSummary } from "../lib/spectrum";
+import { classifyPeaks, spectrumSummary } from "../lib/spectrum";
 
 const files = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -21,6 +22,12 @@ for (const f of files) {
   const t0 = Date.now();
   const unitFor = (ch: string) => (ch === "theta" ? "rad" : e.measured.calibration.kind === "none" ? "px" : "m");
   const fitOne = (l: Law) => fitWithRoom(l, m.series);
+  if (e.residualSpectrum?.peaks?.length) {
+    const rs = e.residualSpectrum;
+    const n = Math.round((e.measured.series.t.length as number) * 0.7);
+    const again = classifyPeaks({ law: rs.law, peaks: rs.peaks }, rs.motionOmega, { spanS: rs.spanS, n, channels: Object.keys(e.measured.series.ch).length });
+    console.log(`  stored spectrum of “${rs.law}” (motion ${rs.motionOmega?.toFixed(2)}): ${rs.peaks.map((p: { omega: number; ampNoise: number; label?: string }, i: number) => `${p.omega.toFixed(2)} ${p.ampNoise.toFixed(0)}× ${p.label} → ${again.peaks[i].label}`).join("; ")}`);
+  }
   const base = baseCandidate(cands, m);
   const spec = base ? spectrumOf(base, m) : null;
   const dc = base ? driveCandidate(base, spec, unitFor, fitOne) : null;

@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { additiveTerms, combineStiffnessDamping, dampingSignature, motionPair, print, withDrive } from "../lib/combine";
+import { additiveTerms, combineStiffnessDamping, dampingSignature, freeModes, hasLopsided, motionPair, print, warmStart, withDrive, withDryDamping, withLopsided } from "../lib/combine";
 import { classifyPeaks, noiseThreshold, spectrumTool, unexplainedPeak } from "../lib/spectrum";
 import { compile, parse } from "../lib/physics/expr";
-import { baseCandidate, driveCandidate, fitWithRoom, rankCandidates, recombinations, spectrumOf, type Candidate } from "../lib/experiment";
+import { baseCandidate, driveCandidate, driveGuard, fitWithRoom, rankCandidates, recombinations, spectrumOf, type Candidate } from "../lib/experiment";
 import { compileLaw, type Law, type Series } from "../lib/physics/law";
 
 function rng(seed: number) {
@@ -167,4 +167,97 @@ test("recombination in the pool: Muse Wonder's hardening with Muse Spark's quadr
   rankCandidates(cands, 0.15);
   assert.equal(cands[0].combined, "stiffness+damping", `winner ${cands[0].law.id}`);
   assert.ok(Math.abs(cands[0].fit.theta.cq - 0.0021) / 0.0021 < 0.02, `quadratic drag ${cands[0].fit.theta.cq}`);
+});
+
+test("a driven lopsided spring (like sealed round 6605629): the drive's line is unexplained, its mixing product at 2ω₀ − ω_d is labelled mixing, no peak is a sideband, and code's drive recovers ω_d", () => {
+  // in pixels at 0.00129 m/px: ω₀ 9.03, k2/m 213.75 /(m s²) = 0.2757 /(px s²), viscous 0.40, drive 2.996 m/s² = 2322 px/s² at 13.13 rad/s
+  const data = spring((x, v, t) => -(9.0277 ** 2) * x - 0.2757 * x * x - 0.4038 * v + 2322 * Math.cos(13.13 * t), { A: 94, seed: 11 });
+  const m = { series: data, noise: { s: 0.15 } };
+  const cands = pool([viscous, quadratic], data);
+  const b = baseCandidate(cands, m)!;
+  const spec = spectrumOf(b, m, undefined, 4);
+  const say = spec.peaks.map((p) => `${p.omega.toFixed(2)} ${p.ampNoise.toFixed(0)} ${p.label}`).join(", ");
+  const peak = unexplainedPeak(spec);
+  assert.ok(peak && Math.abs(peak.omega - 13.13) / 13.13 < 0.02, `unexplained peak ${peak?.omega} (${say})`);
+  assert.ok(!spec.peaks.some((p) => p.label === "sideband"), `no sideband label (${say})`);
+  const mix = spec.peaks.find((p) => p.label === "mixing");
+  assert.ok(mix && Math.abs(mix.omega - (2 * spec.motionOmega! - peak!.omega)) < 0.5, `mixing product near 2ω₀ − ω_d (${say})`);
+  const tool = spectrumTool(spec, { s: "px" });
+  assert.match(tool.what_follows, /write the drive term yourself/);
+  assert.match(String(tool.peaks.find((p) => p.label === "unexplained")!.meaning), /is the usual cause; a drive whose fitted frequency slides onto the motion's own frequency is not a drive/);
+  const dc = driveCandidate(b, spec, () => "px", (l) => fitOne(l, data))!;
+  assert.ok(dc.cand.fit.ok, dc.cand.fit.why);
+  assert.ok(Math.abs(dc.cand.fit.theta.w_drive - 13.13) / 13.13 < 0.01, `w_drive ${dc.cand.fit.theta.w_drive}`);
+  assert.equal(driveGuard(dc.cand.law, dc.cand.fit, spec), null, "a drive at the drive's own frequency passes the guard");
+});
+
+test("a drive a model writes inside the motion's band is rejected (sealed replicate 6604797-r3), and no spectrum of an undriven spring asks for one", () => {
+  // the hardening spring with quadratic drag of round 6604797; Muse Wonder wrote "a gentle periodic push near the bobbing rate"
+  const data = spring((x, v) => -(8.41 ** 2) * x - 0.0051 * x ** 3 - 0.0021 * v * Math.abs(v), { seed: 9 });
+  const m = { series: data, noise: { s: 0.15 } };
+  const cands = pool([viscous, quadratic], data);
+  const spec = spectrumOf(baseCandidate(cands, m)!, m);
+  const nearRes: Law = { ...base, id: "spring-damped-drive-near-res", title: "Damped spring with a push near the bobbing rate", derivatives: { s: "v", v: "-w0*w0*(s - s_eq) - gamma*v + F*cos(w_d*t + phi)" }, params: [...viscous.params, { name: "F", guess: 300, min: 0, max: 5000, unit: "px/s^2" }, { name: "w_d", guess: 8.5, min: 7.8, max: 9.4, unit: "rad/s" }, { name: "phi", guess: 0, min: -7, max: 7, unit: "rad" }] };
+  const r = fitOne(nearRes, data);
+  assert.ok(r.fit.ok);
+  const g = driveGuard(r.law, r.fit, spec);
+  assert.ok(g, `w_d ${r.fit.theta.w_d} against the motion's ${spec.motionOmega}`);
+  assert.match(g!.why, /slid onto the motion's own/);
+  // in cycles per second the same: 2π f is the frequency checked
+  const hz: Law = { ...nearRes, id: "hz", derivatives: { s: "v", v: "-w0*w0*(s - s_eq) - gamma*v + F*cos(2*pi*f_d*t + phi)" }, params: [...viscous.params, { name: "F", guess: 300, min: 0, max: 5000, unit: "px/s^2" }, { name: "f_d", guess: 1.35, min: 1.25, max: 1.5, unit: "Hz" }, { name: "phi", guess: 0, min: -7, max: 7, unit: "rad" }] };
+  assert.ok(driveGuard(hz, { ok: true, theta: { f_d: 1.36 } }, spec));
+  assert.equal(driveGuard(hz, { ok: true, theta: { f_d: 2.2 } }, spec), null, "13.8 rad/s is clear of the motion");
+  assert.ok(driveGuard(hz, { ok: true, theta: { f_d: 40 } }, spec)!.why.includes("frame rate"), "past the frame rate's limit");
+});
+
+test("code moves on the leader: a driven law keeps its drive when its damping is swapped (recombination or dry friction), an x² stiffness joins about the law's own rest position, and a drive written as a free undamped oscillator is seen", () => {
+  const driven: Law = { ...viscous, id: "viscous-drive", title: "Damped spring, driven", derivatives: { s: "v", v: "-w0*w0*(s - s_eq) - gamma*v + F_drive*cos(w_drive*t + phi_drive)" }, params: [...viscous.params, { name: "F_drive", guess: 2000, min: 0, max: 9000, unit: "px/s^2" }, { name: "w_drive", guess: 13.9, min: 7, max: 28, unit: "rad/s" }, { name: "phi_drive", guess: 0, min: -7, max: 7, unit: "rad" }] };
+  const rec = combineStiffnessDamping(driven, quadratic, "s")!;
+  assert.ok(rec, "a driven stiffness law takes another damping");
+  assert.match(rec.derivatives.v, /F_drive \* cos\(w_drive \* t \+ phi_drive\)/);
+  assert.match(rec.derivatives.v, /cq \* v \* abs\(v\)/);
+  assert.doesNotThrow(() => compileLaw(rec));
+  const dry = withDryDamping(driven, { omega: 10, amp: 80 })!;
+  assert.equal(dry.derivatives.v, "-w0 * w0 * (s - s_eq) + F_drive * cos(w_drive * t + phi_drive) - mu_dry*tanh(v/v0_dry)");
+  assert.ok(!dry.params.some((p) => p.name === "gamma"), "the viscous constant goes with its term");
+  assert.equal(withDryDamping(dry, { omega: 10, amp: 80 }), null, "never a second dry term");
+  const lop = withLopsided(driven, { omega: 10, amp: 80 })!;
+  assert.match(lop.derivatives.v, /- k2_lop\*\(s - s_eq\)\^2$/);
+  assert.ok(hasLopsided(lop));
+  assert.equal(withLopsided(lop, { omega: 10, amp: 80 }), null);
+  assert.doesNotThrow(() => compileLaw(withDryDamping(lop, { omega: 10, amp: 80 })!));
+  // 6604982's winner: two free modes, one undamped at the drive's frequency
+  const twoMode: Law = { ...base, id: "two-mode", title: "Two modes", state: ["u", "v", "p", "w"], derivatives: { u: "v", v: "-om*om*u - g1*v", p: "w", w: "-om2*om2*p - g2*w" }, observe: { s: "seq + u + p" }, params: [{ name: "om", guess: 15, unit: "rad/s" }, { name: "g1", guess: 0, unit: "1/s" }, { name: "om2", guess: 9, unit: "rad/s" }, { name: "g2", guess: 0.3, unit: "1/s" }, { name: "seq", guess: 300, unit: "px" }] };
+  const modes = freeModes(twoMode, { om: 15.21, g1: 0.0, om2: 9.356, g2: 0.26, seq: 300 }, { om: 0.27, g1: 0.53, om2: 0.056, g2: 0.11, seq: 0.1 });
+  assert.equal(modes.length, 2);
+  assert.ok(modes[0].undamped && Math.abs(modes[0].omega - 15.21) < 1e-3, JSON.stringify(modes[0]));
+  assert.ok(!modes[1].undamped, "γ 0.26 ± 0.11 is damped");
+  assert.deepEqual(freeModes(viscous, { w0: 8, s_eq: 300, gamma: 0.3 }), [], "one oscillator: no free mode");
+});
+
+test("an undriven lopsided spring (the stiffness drawn 5 of 12 times): no false drive, and code's x² move on the leader recovers k2", () => {
+  // like sealed round 6605123 without its dry friction, in pixels: ω₀ 7.49, k2/m 0.183 /(px s²), viscous 0.3
+  let falseDrives = 0;
+  for (const seed of [21, 22]) {
+    const data = spring((x, v) => -(7.49 ** 2) * x - 0.183 * x * x - 0.3 * v, { A: 108, seed });
+    const m = { series: data, noise: { s: 0.15 } };
+    const cands = pool([viscous, quadratic], data);
+    const b = baseCandidate(cands, m)!;
+    const spec = spectrumOf(b, m);
+    const dc = driveCandidate(b, spec, () => "px", (l) => fitOne(l, data));
+    if (dc?.cand.fit.ok) cands.push(dc.cand);
+    rankCandidates(cands, 0.15);
+    if (cands[0].combined === "drive") falseDrives++;
+    const lead = cands[0];
+    const marked = spec.peaks.some((p) => p.label === "drift" || p.harmonic === 2);
+    assert.ok(marked, `a drift or a 2ω₀ line marks the lopsided spring (${spec.peaks.map((p) => `${p.omega.toFixed(2)} ${p.label}`).join(", ")})`);
+    const l = withLopsided(warmStart(lead.law, lead.fit.theta), { omega: spec.motionOmega!, amp: 108 })!;
+    const r = fitOne(l, data);
+    assert.ok(r.fit.ok, r.fit.why);
+    cands.push({ law: r.law, fitted: r.fitted, fit: r.fit, origin: "combined", combined: "lopsided", rank: 0 });
+    rankCandidates(cands, 0.15);
+    assert.equal(cands[0].combined, "lopsided", `winner ${cands[0].law.id}`);
+    assert.ok(Math.abs(r.fit.theta.k2_lop - 0.183) / 0.183 < 0.03, `k2 ${r.fit.theta.k2_lop}`);
+  }
+  assert.equal(falseDrives, 0);
 });

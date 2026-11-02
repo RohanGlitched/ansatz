@@ -16,7 +16,7 @@ import { residualPlot } from "./plot";
 import { toPixels } from "./pixels";
 import { metrePower, prettyUnit, secondPower, toMetres } from "./units";
 import { driveFrequencyParams, residualPeaks, residualSpectrum, seedDriveFrequency, spectrumSummary, spectrumTool, unexplainedPeak, type ResidualSpectrum } from "./spectrum";
-import { combineStiffnessDamping, dampingSignature, hasTimeTerm, warmStart, withDrive } from "./combine";
+import { combineStiffnessDamping, dampingSignature, freeModes, hasDry, hasTimeTerm, motionPairs, warmStart, withDrive, withDryDamping, withLopsided } from "./combine";
 import { fmtPair } from "./format";
 import { median } from "./median";
 import { lawLatex } from "./latex";
@@ -45,17 +45,57 @@ export type Candidate = {
 export type CodeAdded = {
   /** the law's id in the candidates */
   law: string;
-  how: "drive" | "stiffness+damping";
+  /** drive: a periodic drive at an unexplained peak; stiffness+damping: Muse Wonder's stiffness with Muse Spark's
+   * damping; lopsided / dry damping / lopsided+dry damping: the leading law with an x² stiffness added, its damping
+   * replaced by dry friction, or both (the two forms no model wrote on sealed sets 1–4) */
+  how: "drive" | "stiffness+damping" | "lopsided" | "dry damping" | "lopsided+dry damping";
   /** the laws it was made from (a drive: the one law it was added to; a recombination: stiffness law, damping law) */
   from: string[];
-  /** when: on the first pool, or after Muse Wonder's revision */
-  stage: "fit" | "after revision";
+  /** when: on the first pool, after Muse Wonder's revision, or on the law that led once every other law was in */
+  stage: "fit" | "after revision" | "on the leader";
   /** a drive: the unexplained residual peak it started from (rad/s, noise units), and which phase start fitted better */
   peak?: { omega: number; ampNoise: number };
   phaseStart?: "as estimated" | "half a cycle on";
   ok: boolean;
+  /** why it failed, when it did (a drive whose frequency slid onto the motion's own, or ran past the frame rate's limit) */
+  why?: string;
+  /** a drive code added is a fallback: built from the first pool but entered only after the referee and Muse Wonder
+   * have read the table (they never see it), so a drive Muse Wonder writes is its own; `enteredAfter` says when */
+  fallback?: boolean;
+  enteredAfter?: "Muse Wonder" | "the referee";
   /** its final rank (filled when the run ends) */
   rank?: number;
+};
+
+/** Who wrote a drive term: a model (Muse Spark among the first laws, Muse Wonder in its revision) or code (a fallback). */
+export type DriveAuthor = "Muse Spark" | "Muse Wonder" | "code" | "control";
+
+/** A drive a model wrote that code rejected, checked exactly as code's own drive is (driveGuard). */
+export type DriveRejected = {
+  law: string;
+  writtenBy: DriveAuthor;
+  /** a Muse Spark law in the first pool, one of Muse Wonder's fit_law tries, or the law it submitted */
+  stage: "first pool" | "try" | "submitted";
+  /** the drive's fitted angular frequency, the motion's own, and the band around it a drive may not end in (rad/s) */
+  omega: number;
+  motionOmega: number;
+  band: number;
+  why: string;
+};
+
+/** Every candidate in the final pool that carries a drive term: who wrote it, where its frequency ended, and its rank. */
+export type DriveEntry = {
+  law: string;
+  writtenBy: DriveAuthor;
+  /** a drive term (a free frequency times t in a sin or cos), or an undamped mode: a second oscillator whose damping is
+   * within 2σ of zero, at a frequency outside the motion's band (a drive written as a free oscillation, 6604982) */
+  kind: "drive term" | "undamped mode";
+  omega?: number;
+  sigma?: number;
+  ok: boolean;
+  why?: string;
+  rank?: number;
+  fallback?: boolean;
 };
 
 export type Comparison = {
@@ -148,6 +188,10 @@ export type Experiment = {
   /** the candidates code added from terms the models wrote (a drive at an unexplained residual peak; Muse Wonder's
    * stiffness with Muse Spark's damping), each with what it was made from and its final rank */
   codeAdded?: CodeAdded[];
+  /** drives the models wrote that code rejected (frequency slid onto the motion's own, or past the frame rate's limit) */
+  drivesRejected?: DriveRejected[];
+  /** every law in the final pool with a drive term, and who wrote it; `winner` is the winning law's author when it carries one */
+  drives?: { entries: DriveEntry[]; winner: DriveAuthor | null };
   sample?: boolean;
   /** the class link it was run with, and the name or roll number the student gave */
   class?: string;
@@ -378,7 +422,30 @@ export function baseSpectrum(cands: Candidate[], m: Pick<Measured, "series" | "n
 /** The best fit to the fitted frames among laws with no drive term (any law when all have one): the law code adds a drive to. */
 export function baseCandidate(cands: Candidate[], m: Pick<Measured, "series" | "noise">): Candidate | null {
   const ok = byFittedFit(cands.filter((c) => c.fit.ok), m.noise);
-  return ok.find((c) => !driveFrequencyParams(c.law).length && !hasTimeTerm(c.law)) ?? ok[0] ?? null;
+  const noDrive = (c: Candidate) => !driveFrequencyParams(c.law).length && !hasTimeTerm(c.law);
+  // a law with a second oscillator (more than one position–velocity pair) may be a drive written as a free mode: the
+  // base is a single-oscillator law when there is one
+  return ok.find((c) => noDrive(c) && motionPairs(c.law).length <= 1) ?? ok.find(noDrive) ?? ok[0] ?? null;
+}
+
+/**
+ * The check every drive term passes, whoever wrote it (Muse Spark, Muse Wonder or code): its fitted angular frequency
+ * may not end within the motion's own band (10% of the motion's frequency, or π/T if wider) — such a term reshapes the
+ * swing (its damping or stiffness), it does not drive it — nor past the frame rate's limit, where it would alias. A
+ * frequency in cycles per second is read as 2π times it. Null when the law has no drive frequency or passes.
+ */
+export function driveGuard(law: Law, fit: Pick<Fit, "ok" | "theta">, spec: Pick<ResidualSpectrum, "motionOmega" | "spanS" | "maxOmega"> | null): { param: string; omega: number; motionOmega: number; band: number; why: string } | null {
+  if (!fit.ok || !spec?.motionOmega) return null;
+  const w0 = spec.motionOmega;
+  const band = Math.max(0.1 * w0, spec.spanS ? Math.PI / spec.spanS : 0);
+  for (const d of driveFrequencyParams(law)) {
+    const v = fit.theta[d.name];
+    if (!Number.isFinite(v)) continue;
+    const omega = Math.abs(d.cycles ? 2 * Math.PI * v : v);
+    if (Math.abs(omega - w0) <= band) return { param: d.name, omega, motionOmega: w0, band, why: `the drive's frequency slid onto the motion's own (${omega.toFixed(2)} against ${w0.toFixed(2)} rad/s, within ${band.toFixed(2)})` };
+    if (spec.maxOmega && omega > spec.maxOmega) return { param: d.name, omega, motionOmega: w0, band, why: `the drive's frequency ran past the frame rate's limit (${omega.toFixed(1)} against ${spec.maxOmega.toFixed(1)} rad/s)` };
+  }
+  return null;
 }
 
 /**
@@ -406,11 +473,10 @@ export function driveCandidate(
     const l = withDrive(warm, peak, spec.motionOmega, unit, flip, spec.maxOmega);
     if (!l) return null;
     const r = fitOne(l);
-    // a frequency widened past the frame rate's limit would alias: that start failed
-    if (r.fit.ok && spec.maxOmega && !(r.fit.theta.w_drive <= spec.maxOmega)) r.fit = { ...r.fit, ok: false, why: "the drive's frequency ran past the frame rate's limit" };
-    // a drive that slid onto the motion's own frequency is reshaping the swing (its damping or stiffness), not driving it
-    const near = Math.max(0.1 * spec.motionOmega, spec.spanS ? Math.PI / spec.spanS : 0);
-    if (r.fit.ok && Math.abs(r.fit.theta.w_drive - spec.motionOmega) <= near) r.fit = { ...r.fit, ok: false, why: "the drive's frequency slid onto the motion's own" };
+    // a frequency past the frame rate's limit would alias, and a drive that slid onto the motion's own frequency is
+    // reshaping the swing (its damping or stiffness), not driving it: that start failed (the same check as a model's drive)
+    const g = driveGuard(r.law, r.fit, spec);
+    if (g) r.fit = { ...r.fit, ok: false, why: g.why };
     if (!best || (r.fit.ok && (!best.fit.ok || r.fit.trainCost < best.fit.trainCost))) best = { ...r, flip };
   }
   if (!best) return null;
@@ -421,6 +487,37 @@ export function driveCandidate(
   };
 }
 
+/** Who wrote a candidate's terms: Muse Spark (the first laws), Muse Wonder (its revision), code (a law it combined) or a control. */
+export const authorOf = (c: Pick<Candidate, "origin">): DriveAuthor => (c.origin === "muse" ? "Muse Spark" : c.origin === "revision" ? "Muse Wonder" : c.origin === "combined" ? "code" : "control");
+
+/**
+ * Every candidate with a drive: a drive term (a free frequency times t inside a sin or cos), or an undamped mode (a
+ * second oscillator whose damping is within 2σ of zero, at a frequency outside the motion's band: a drive written as a
+ * free oscillation). Who wrote it, where its frequency ended, its rank.
+ */
+export function driveEntries(cands: Candidate[], spec?: Pick<ResidualSpectrum, "motionOmega" | "spanS"> | null): DriveEntry[] {
+  const w0 = spec?.motionOmega;
+  const band = w0 ? Math.max(0.1 * w0, spec?.spanS ? Math.PI / spec.spanS : 0) : 0;
+  return cands.flatMap((c): DriveEntry[] => {
+    const base = { law: c.law.id, writtenBy: authorOf(c), ok: c.fit.ok, ...(c.fit.ok ? {} : { why: c.fit.why }), rank: c.rank, ...(c.origin === "combined" ? { fallback: true } : {}) };
+    const d = driveFrequencyParams(c.law)[0];
+    if (d) {
+      const v = c.fit.theta?.[d.name], sv = c.fit.sigma?.[d.name];
+      const k = d.cycles ? 2 * Math.PI : 1;
+      return [{ ...base, kind: "drive term", ...(Number.isFinite(v) ? { omega: Math.abs(v * k) } : {}), ...(Number.isFinite(sv) ? { sigma: Math.abs(sv * k) } : {}) }];
+    }
+    if (!c.fit.ok || !w0) return [];
+    let modes: ReturnType<typeof freeModes> = [];
+    try {
+      modes = freeModes(c.law, c.fit.theta, c.fit.sigma);
+    } catch {
+      /* a law the linearisation can't read has no free mode to report */
+    }
+    const m = modes.find((x) => x.undamped && Math.abs(x.omega - w0) > band);
+    return m ? [{ ...base, kind: "undamped mode", omega: m.omega }] : [];
+  });
+}
+
 /**
  * Muse Wonder's stiffness with each damping form Muse Spark wrote that Muse Wonder's law lacks (the best-fitting
  * Muse Spark law of each form, by the fitted frames), at most `max` of them, each warm-started from its two parents' fits.
@@ -428,7 +525,8 @@ export function driveCandidate(
 export function recombinations(rev: Candidate, cands: Candidate[], m: Pick<Measured, "series" | "noise">, max = 2): { law: Law; from: string[] }[] {
   const ch = Object.keys(rev.law.observe)[0];
   const own = dampingSignature(rev.law, ch);
-  if (own === null || hasTimeTerm(rev.law)) return [];
+  // a driven revision still gets the other damping forms (its drive is kept): set 4's winners had the drive right and the damping wrong
+  if (own === null) return [];
   const spark = byFittedFit(cands.filter((c) => c.origin === "muse" && c.fit.ok && !hasTimeTerm(c.law)), m.noise);
   const seen = new Set<string>([own]);
   const out: { law: Law; from: string[] }[] = [];
@@ -1108,6 +1206,10 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     const seededLog: { law: string; params: string[]; kept: boolean }[] = [];
     // the candidates code adds from terms the models wrote (lib/combine.ts), fitted exactly as the pool's other laws
     const codeAdded: CodeAdded[] = [];
+    // drives the models wrote that failed the same check as code's own (driveGuard)
+    const drivesRejected: DriveRejected[] = [];
+    // code's drive, built from the first pool but held back until the referee and Muse Wonder have read the table
+    let heldDrive: { cand: Candidate; entry: CodeAdded } | null = null;
     let baseAtFit: string | null = null;
     const unitFor = (ch: string) => (ch === "theta" ? "rad" : m.calibration.kind === "none" ? "px" : "m");
     const fitPooled = (law: Law) => {
@@ -1145,10 +1247,20 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
         seededLog.push({ law: c.law.id, params: driveFrequencyParams(c.law).map((d) => d.name), kept });
         if (kept) Object.assign(c, { law: r.law, fitted: r.fitted, fit: r.fit });
       }
+      // a drive Muse Spark wrote passes the same check as code's own: one that slid onto the motion's own frequency,
+      // or past the frame rate's limit, does not compete
+      for (const c of list) {
+        const g = driveGuard(c.law, c.fit, spectrum);
+        if (!g) continue;
+        drivesRejected.push({ law: c.law.id, writtenBy: c.origin === "control" ? "control" : "Muse Spark", stage: "first pool", omega: g.omega, motionOmega: g.motionOmega, band: g.band, why: g.why });
+        c.fit = { ...c.fit, ok: false, why: g.why };
+      }
       // an unexplained peak in the misses of the best law without a drive (not the motion's own frequency, not a
-      // harmonic of it, not a drift, above the noise): code adds that law plus a periodic drive started at the peak
+      // harmonic of it, not a drift, above the noise): code builds that law plus a periodic drive started at the peak
       // (it takes up to two minutes of fitting: only when the run has room for it and still for the referee and Muse
-      // Wonder; a scripted run's 600 s budget always has, a site run's 250 s budget does not)
+      // Wonder; a scripted run's 600 s budget always has, a site run's 250 s budget does not). It is a fallback: held
+      // back from the table the referee and Muse Wonder read, and entered after them, so a drive Muse Wonder writes is
+      // its own work
       const roomForDrive = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0) > 200_000;
       if (!input.lite && roomForDrive) {
         const base = baseCandidate(list, m);
@@ -1159,8 +1271,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           while (seen.has(id)) id += "-2";
           seen.add(id);
           dc.cand.law = { ...dc.cand.law, id };
-          codeAdded.push({ law: id, how: "drive", from: [base.law.id], stage: "fit", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok });
-          if (dc.cand.fit.ok) list.push(dc.cand);
+          heldDrive = { cand: dc.cand, entry: { law: id, how: "drive", from: [base.law.id], stage: "fit", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok, ...(dc.cand.fit.ok ? {} : { why: dc.cand.fit.why }), fallback: true } };
         }
       }
       rankCandidates(list, noiseFloor);
@@ -1194,6 +1305,58 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           }).catch(() => null);
     const winnerAtReferee = cands[0].law.id;
     let wonder: Experiment["wonder"] = null;
+    // the leading law with the two term forms no model wrote on sealed sets 1–4 (lib/combine.ts withLopsided,
+    // withDryDamping): each one more candidate the held-out frames judge, recorded in codeAdded as stage "on the leader"
+    const leaderMoves = () => {
+      const room = () => Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0) > 60_000;
+      const lead = cands.find((c) => c.fit.ok);
+      if (!lead || !room()) return;
+      const ch = Object.keys(lead.law.observe).find((c) => m.series.ch[c]) ?? Object.keys(m.series.ch)[0];
+      const spec = spectrumOf(lead, m);
+      const w = spec.motionOmega ?? (spectrum as ResidualSpectrum | null)?.motionOmega;
+      const n = splitIndex(m.series.t.length, TRAIN);
+      const ys = (m.series.ch[ch] ?? []).slice(0, n).filter(Number.isFinite);
+      if (!w || ys.length < 8) return;
+      const amp = (Math.max(...ys) - Math.min(...ys)) / 2;
+      const marks = [spec, spectrum as ResidualSpectrum | null].some((x) => x?.peaks.some((p) => p.label === "drift" || (p.harmonic === 2 && p.label !== "noise")));
+      const dryWritten = cands.some((c) => c.origin !== "combined" && c.origin !== "control" && hasDry(c.law, ch));
+      const warm = warmStart(lead.law, lead.fit.theta);
+      const scale = { omega: w, amp };
+      const lop = marks ? withLopsided(warm, scale, ch) : null;
+      const dry = dryWritten ? null : withDryDamping(warm, scale, ch);
+      const both = lop && !dryWritten ? withDryDamping(lop, scale, ch) : null;
+      const moves: [Law, CodeAdded["how"]][] = [];
+      if (lop) moves.push([lop, "lopsided"]);
+      if (dry) moves.push([dry, "dry damping"]);
+      if (both) moves.push([both, "lopsided+dry damping"]);
+      for (const [law0, how] of moves) {
+        if (!room()) break;
+        const f = fitPooled(law0);
+        const g = driveGuard(f.law, f.fit, spectrum as ResidualSpectrum | null);
+        if (g) f.fit = { ...f.fit, ok: false, why: g.why };
+        let id = f.law.id;
+        while (cands.some((c) => c.law.id === id)) id += "-2";
+        codeAdded.push({ law: id, how, from: [lead.law.id], stage: "on the leader", ok: f.fit.ok, ...(f.fit.ok ? {} : { why: f.fit.why }) });
+        if (!f.fit.ok) continue;
+        const c: Candidate = { law: { ...f.law, id }, fitted: f.fitted, fit: f.fit, origin: "combined", combined: how, rank: 0 };
+        inflate(c);
+        cands.push(c);
+      }
+      if (moves.length) rankCandidates(cands, noiseFloor);
+    };
+    // code's fallback drive joins the pool once (its codeAdded entry says after whom); a failed one is only recorded
+    const enterHeldDrive = (after: "Muse Wonder" | "the referee") => {
+      if (!heldDrive) return;
+      const { cand, entry } = heldDrive;
+      heldDrive = null;
+      let id = cand.law.id;
+      while (cands.some((c) => c.law.id === id)) id += "-2";
+      codeAdded.push({ ...entry, law: id, enteredAfter: after });
+      if (!cand.fit.ok) return;
+      const c: Candidate = { ...cand, law: { ...cand.law, id } };
+      inflate(c);
+      cands.push(c);
+    };
     const crit = input.lite ? await step("referee", async () => null as Critique | null, () => "lite mode: no referee and no Muse Wonder; the ranking stands") : await step("referee", async () => {
       // the three best-fitting laws' misses over the fitted frames, drawn as a picture for the referee (best effort):
       // in noise units, so the dashed band is ±1, and ordered by the fit to the fitted frames
@@ -1226,7 +1389,13 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
             const wrapped = gUsed !== null ? withScaleCorrection(l2) : l2;
             // (an attempt's σ is only shown to Muse Wonder: no jackknife here; the law it submits is refitted with one)
             // a drive's frequency also starts at the strongest residual peak; the better fit to the fitted frames stands
-            const { fit: f, seeded } = fitSeeded(wrapped, spectrum, (x) => ({ fit: fitLaw(x, m.series, { trainFrac: TRAIN, jackknife: false }) }));
+            const { fit: f0, seeded } = fitSeeded(wrapped, spectrum, (x) => ({ fit: fitLaw(x, m.series, { trainFrac: TRAIN, jackknife: false }) }));
+            // a drive it wrote passes the same check as code's own; a rejected one is reported back to it as a failed try
+            const dp = driveFrequencyParams(law)[0];
+            const guard = driveGuard(law, f0, spectrum);
+            if (guard) drivesRejected.push({ law: law.title, writtenBy: "Muse Wonder", stage: "try", omega: guard.omega, motionOmega: guard.motionOmega, band: guard.band, why: guard.why });
+            const f = guard ? { ...f0, ok: false, why: `${guard.why}: code rejects such a drive (it reshapes the swing, it does not drive it), so this law would not compete` } : f0;
+            const driveCheck = dp && f0.ok && Number.isFinite(f0.theta[dp.name]) ? { fitted_omega_rad_s: +Math.abs(dp.cycles ? 2 * Math.PI * f0.theta[dp.name] : f0.theta[dp.name]).toFixed(4), verdict: guard ? `rejected: ${guard.why}` : "kept: clear of the motion's own frequency and under the frame rate's limit" } : undefined;
             if (f.ok) attemptFits.set(law.title, { law, fit: f });
             // the attempt's misses on the fitted frames as a picture, the same kind the referee reads (best effort)
             const per = f.ok ? Object.values(fittedResiduals(f, m, TRAIN)) : [];
@@ -1239,6 +1408,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               residual_by_time_bin_on_fitted_frames: residualPattern(f, m, TRAIN),
               ...(f.ok ? { residual_spectrum: spectrumSummary(spectrumOf({ law, fit: f }, m), spectrumUnits) } : {}),
               ...(seeded ? { note: "the drive frequency was started at the strongest residual frequency (of the best law in the table without a drive); that start fitted the fitted frames better than your guess" } : {}),
+              ...(driveCheck ? { drive_check: driveCheck } : {}),
               ...(plot ? { [WONDER_PLOT]: plot } : {}),
             };
           };
@@ -1262,6 +1432,12 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
           // the submitted law's drive frequency, if it has one, starts where its attempt's did: both starts, the better fit stands
           const sub = fitSeeded(inner, spectrum, (x) => { const fx = gUsed !== null ? withScaleCorrection(x) : x; return { law: x, fitted: fx, fit: fitLaw(fx, m.series, { trainFrac: TRAIN }) }; });
           if (driveFrequencyParams(inner).length) seededLog.push({ law: inner.id, params: driveFrequencyParams(inner).map((d) => d.name), kept: sub.seeded });
+          // the drive it submitted passes the same check as code's own
+          const gs = driveGuard(sub.law, sub.fit, spectrum);
+          if (gs) {
+            drivesRejected.push({ law: sub.law.id, writtenBy: "Muse Wonder", stage: "submitted", omega: gs.omega, motionOmega: gs.motionOmega, band: gs.band, why: gs.why });
+            sub.fit = { ...sub.fit, ok: false, why: gs.why };
+          }
           cands.push({ law: sub.law, fitted: sub.fitted, fit: sub.fit, origin: "revision", rank: 0 });
           inflate(cands[cands.length - 1]);
           rankCandidates(cands, noiseFloor);
@@ -1283,6 +1459,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               return { ...l, id };
             };
             const room = () => Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0) > 45_000;
+            enterHeldDrive("Muse Wonder");
             for (const r of recombinations(rev, cands, m)) {
               if (!room()) break;
               const f = fitPooled(r.law);
@@ -1299,7 +1476,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
               const dc = driveCandidate(base2, spectrumOf(base2, m), unitFor, fitPooled);
               if (dc) {
                 const law = uniq(dc.cand.law);
-                codeAdded.push({ law: law.id, how: "drive", from: [base2.law.id], stage: "after revision", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok });
+                codeAdded.push({ law: law.id, how: "drive", from: [base2.law.id], stage: "after revision", peak: dc.peak, phaseStart: dc.phaseStart, ok: dc.cand.fit.ok, ...(dc.cand.fit.ok ? {} : { why: dc.cand.fit.why }), fallback: true, enteredAfter: "Muse Wonder" });
                 if (dc.cand.fit.ok) {
                   const c: Candidate = { ...dc.cand, law };
                   inflate(c);
@@ -1312,14 +1489,27 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
             /* a combination that can't be built simply doesn't compete */
           }
         }
-        // the revision won: the referee's words were about a law that no longer leads, so it writes up the new winner
-        const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
-        if (cands[0].law.id !== winnerAtReferee && left > 25_000) {
-          const plot2 = await residualPlot(refereePlotSeries(cands, m, TRAIN), 1).catch(() => undefined);
-          const c2 = await critique(obs, tableOf(), ledger, undefined, plot2).catch(() => null);
-          // the second referee's own verdict stands in the record; the first one's is kept beside it
-          if (c2) c = { ...c2, winnerId: cands[0].law.id, ...(pre ? { preRevision: pre } : {}), postRevision: verdictOf({ ...c2, winnerId: cands[0].law.id }) };
-        }
+      }
+      // code's fallback drive, when Muse Wonder was not called (or its revision could not be used): entered now
+      if (heldDrive) {
+        enterHeldDrive("the referee");
+        rankCandidates(cands, noiseFloor);
+      }
+      // code moves on the law that now leads (a drive kept): an x² stiffness when its misses carry a drift or a 2ω₀
+      // line, and dry friction for its damping when no model wrote dry friction; recorded as code's, never as a model's
+      try {
+        leaderMoves();
+      } catch {
+        /* a move that can't be built simply doesn't compete */
+      }
+      // a new law leads (the revision, or a law code added): the referee's words were about a law that no longer
+      // leads, so it writes up the new winner
+      const left = Number(process.env.RUN_BUDGET_MS ?? 250_000) - (Date.now() - t0);
+      if (cands[0].law.id !== winnerAtReferee && left > 25_000) {
+        const plot2 = await residualPlot(refereePlotSeries(cands, m, TRAIN), 1).catch(() => undefined);
+        const c2 = await critique(obs, tableOf(), ledger, undefined, plot2).catch(() => null);
+        // the second referee's own verdict stands in the record; the first one's is kept beside it
+        if (c2) c = { ...c2, winnerId: cands[0].law.id, ...(pre ? { preRevision: pre } : {}), postRevision: verdictOf({ ...c2, winnerId: cands[0].law.id }) };
       }
       return c;
     }, (c) => (wonder ? `Muse Wonder tried ${wonder.attempts.length} law${wonder.attempts.length === 1 ? "" : "s"} on the fitted frames and submitted “${wonder.submitted ?? "none"}”` : c ? "accepted the result" : "referee unavailable; ranking stands"));
@@ -1397,6 +1587,11 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
       ...(code ? { code } : {}),
       ...(spectrumFinal ? { residualSpectrum: { ...spectrumFinal, seeded: seededLog } } : {}),
       ...(codeAdded.length ? { codeAdded: codeAdded.map((x) => ({ ...x, rank: cands.find((c) => c.law.id === x.law)?.rank })) } : {}),
+      ...(drivesRejected.length ? { drivesRejected } : {}),
+      ...(() => {
+        const entries = driveEntries(cands, spectrum as ResidualSpectrum | null);
+        return entries.length ? { drives: { entries, winner: entries.find((d) => d.law === cands[0]?.law.id && d.ok)?.writtenBy ?? null } } : {};
+      })(),
       sample: input.sample || undefined,
       title: obs.phenomenon.charAt(0).toUpperCase() + obs.phenomenon.slice(1),
       source: input.source ?? { kind: "upload", video: info.stored ?? input.filename },
