@@ -9,6 +9,8 @@ import { readoutOf, type Readout } from "./liveStripMath";
 import { canPrepare, prepareClip, type PrepResult } from "./clipPrep";
 import type { Replay } from "@/data/replays/derive";
 import styles from "./NewExperiment.module.css";
+import { runRequestBody } from "@/lib/runRequest";
+import { statedLength } from "@/lib/speech";
 
 export type { Replay };
 
@@ -17,7 +19,7 @@ type StepState = { state: "wait" | "run" | "done" | "fail" | "skip"; detail?: st
 
 const STEPS: { id: StepId; label: string; who: string; lite?: string }[] = [
   { id: "upload", label: "Read the clip and its clock", who: "ffmpeg + the file’s timestamps" },
-  { id: "listen", label: "Listen to the narration", who: "Muse Voice Transcribe", lite: "skipped in lite mode" },
+  { id: "listen", label: "Listen to the narration", who: "Muse Voice Transcribe", lite: "not listening (lite mode); a typed length is read by code" },
   { id: "observe", label: "Watch the clip: what moves, when, and what is known", who: "Muse Spark 1.3", lite: "you said what it is" },
   { id: "track", label: "Measure the object in every frame", who: "SAM 3.1" },
   { id: "measure", label: "Turn pixels into a trajectory", who: "code" },
@@ -85,6 +87,8 @@ export default function NewExperiment({
   const [rulerLen, setRulerLen] = useState("");
   const [lite, setLite] = useState(liteDefault);
   const [liteType, setLiteType] = useState<LiteType | "">("");
+  /** lite mode: transcribe the narration so a length said aloud is kept (Muse Voice Transcribe, under a cent a minute) */
+  const [listen, setListen] = useState(true);
   const [busy, setBusy] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [steps, setSteps] = useState<Record<string, StepState>>({});
@@ -154,7 +158,7 @@ export default function NewExperiment({
 
   // what will be uploaded: the clip trimmed and shrunk to 720p, prepared in the background so its size shows first
   const shrinkable = !!file && canShrink && /\.(mp4|mov|m4v)$/i.test(file.name) && dur > 0;
-  const prepKey = file && shrinkable ? `${file.name}|${file.size}|${trim[0].toFixed(2)}|${trim[1].toFixed(2)}|${lite ? "lite" : "full"}` : "";
+  const prepKey = file && shrinkable ? `${file.name}|${file.size}|${trim[0].toFixed(2)}|${trim[1].toFixed(2)}|${lite ? (listen ? "lite-listen" : "lite") : "full"}` : "";
   const startPrep = useCallback(
     (key: string) => {
       if (!file || !key) return null;
@@ -163,9 +167,10 @@ export default function NewExperiment({
       const promise = prepareClip(file, {
         start: trim[0],
         end: trim[1],
-        // lite mode transcribes nothing, so the narration stays behind; a full run keeps it or sends the clip as it is
-        keepAudio: !lite,
-        needAudio: !lite,
+        // a run that listens (a full run, or lite mode listening for a stated length) keeps the narration or sends the
+        // clip as it is; a lite run that doesn't listen leaves it behind
+        keepAudio: !lite || listen,
+        needAudio: !lite || listen,
         onProgress: (f) => setPrep((p) => (p && p.key === key ? { ...p, pct: Math.round(f * 100) } : p)),
         cancelled: () => prepRun.current?.key !== key,
       }).catch((e): PrepResult => ({ ok: false, why: (e as Error).message || "the clip couldn’t be prepared here" }));
@@ -173,7 +178,7 @@ export default function NewExperiment({
       promise.then((result) => setPrep((p) => (p && p.key === key ? { key, state: "done", pct: 100, result } : p)));
       return promise;
     },
-    [file, trim, lite],
+    [file, trim, lite, listen],
   );
   useEffect(() => {
     if (!prepKey || busy) return;
@@ -223,7 +228,7 @@ export default function NewExperiment({
   }
 
   // a live run's own nouns, for the observer → SAM handoff line (a replay's events already carry it)
-  const liveRun = useRef<{ noun: string; lite: boolean } | null>(null);
+  const liveRun = useRef<{ noun: string; lite: boolean; listen: boolean } | null>(null);
 
   function apply(d: Event) {
     // the clip's clock, so the live strip knows which frame of the clip each of SAM's measurements came from
@@ -337,12 +342,14 @@ export default function NewExperiment({
   }
 
   const liteReady = !lite || (!!liteType && !!noun.trim());
+  // lite mode reads a typed length by code, as the server will (lib/speech.ts), so the student sees what it took
+  const typedLength = lite && narration.trim() ? statedLength(narration, language || undefined) : null;
 
   async function run() {
     if (!file || !liteReady) return;
     speed.current = 1;
     replayToken.current++;
-    liveRun.current = { noun: noun.trim(), lite };
+    liveRun.current = { noun: noun.trim(), lite, listen: lite && listen };
     setStartedId(null);
     setReplaying(false);
     setReplayNow(null);
@@ -368,21 +375,27 @@ export default function NewExperiment({
       const r = await fetch("/api/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          key: uj.key,
-          // the judges' lane key travels with the run (it arrives in the page's address)
-          k: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("k") ?? undefined : undefined,
-          noun: noun || undefined,
-          narration: !lite && narration ? narration : undefined,
-          slowMotion: !lite && Number(slow) > 1 ? Number(slow) : undefined,
-          ruler: ruler && Number(rulerLen) > 0 ? { noun: ruler, metres: Number(rulerLen) } : undefined,
-          sample: fromSample || undefined,
-          language: !lite && language ? language : undefined,
-          class: classCode || undefined,
-          series: seriesId || undefined,
-          student: classCode && student ? student : undefined,
-          lite: lite && liteType ? { type: liteType } : undefined,
-        }),
+        // lib/runRequest.ts: lite mode caps what is called, never what the person states (the typed notes go in both modes)
+        body: JSON.stringify(
+          runRequestBody({
+            key: uj.key,
+            // the judges' lane key travels with the run (it arrives in the page's address)
+            k: typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("k") : undefined,
+            noun,
+            narration,
+            slow,
+            ruler,
+            rulerLen,
+            fromSample,
+            language,
+            classCode,
+            seriesId,
+            student,
+            lite,
+            liteType,
+            listen,
+          }),
+        ),
       });
       if (!r.ok || !r.body) {
         const j = await r.json().catch(() => ({}));
@@ -486,7 +499,7 @@ export default function NewExperiment({
       : lite && !busy && !noun.trim()
         ? "Lite mode needs the name of what moves, so SAM 3.1 knows what to look for: type it above."
         : lite && !busy
-          ? "Lite mode: SAM 3.1 measures, code fits the textbook laws. No Muse model is called."
+          ? `Lite mode: SAM 3.1 measures, code fits the textbook laws. No Muse Spark or Muse Wonder${listen ? "; Muse Voice Transcribe listens only for a length you say" : ""}.`
           : runNote ?? "About 2 minutes, longer when Muse Wonder steps in. Each run calls up to four Meta models, which we pay for.";
 
   const caption = busy ? (
@@ -717,7 +730,7 @@ export default function NewExperiment({
                       </span>
                       <div className={styles.stepBody}>
                         <p className={styles.stepLabel}>{s.label}</p>
-                        <p className={styles.who}>{runLite && s.lite ? s.lite : s.who}</p>
+                        <p className={styles.who}>{runLite && s.lite ? (s.id === "listen" && liveRun.current?.listen ? "Muse Voice Transcribe, listening only for a stated length" : s.lite) : s.who}</p>
                         {s.id === "upload" && state === "run" && uploading && (
                           <p className={styles.detail}>
                             {uploadPct > 0 && uploadPct < 100 ? `Uploading ${mb(uploading.size)}${uploading.size < uploading.orig ? ` instead of ${mb(uploading.orig)}` : ""}… ${uploadPct}%` : uploading.size < uploading.orig ? `Uploaded ${mb(uploading.size)} instead of ${mb(uploading.orig)}` : null}
@@ -764,7 +777,7 @@ export default function NewExperiment({
                 <label className={styles.choice}>
                   <input type="radio" name="mode" checked={lite} onChange={() => setLite(true)} />
                   <span>
-                    <b>I know what this is.</b> Lite mode: no Muse model is called.
+                    <b>I know what this is.</b> Lite mode: no Muse Spark or Muse Wonder. What you type or say is still used.
                   </span>
                 </label>
                 {lite && (
@@ -785,13 +798,31 @@ export default function NewExperiment({
                 <input value={noun} onChange={(e) => setNoun(e.target.value)} placeholder="e.g. orange ball, the keys on the string" disabled={busy} maxLength={60} required={lite} aria-invalid={lite && !!liteType && !noun.trim() ? true : undefined} />
                 <small>{lite ? "SAM 3.1 looks for exactly this, so name it as you would to a friend: colour and thing." : "Muse Spark names it from the video; type it if it picks the wrong thing."}</small>
               </label>
-              {!lite && (
-                <label className={styles.field}>
-                  <span className={styles.label}>What do you know?</span>
-                  <textarea value={narration} onChange={(e) => setNarration(e.target.value)} rows={3} placeholder="e.g. the string is 50 cm long; dropped from about one metre" disabled={busy} maxLength={2000} />
-                  <small>Anything you say in the clip is transcribed too: English, Hindi, Tamil, Bengali, Marathi, Telugu or Spanish.</small>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="know">
+                  {lite && liteType === "pendulum" ? "What do you know? Type the string’s length" : lite && (liteType === "drop" || liteType === "bounce") ? "What do you know? Type the drop height" : "What do you know?"}
                 </label>
-              )}
+                <textarea id="know" value={narration} onChange={(e) => setNarration(e.target.value)} rows={3} placeholder={lite && liteType === "pendulum" ? "e.g. the string is 60 cm long" : "e.g. the string is 50 cm long; dropped from about one metre"} disabled={busy} maxLength={2000} aria-describedby="know-note" />
+                {lite ? (
+                  <small id="know-note" aria-live="polite">
+                    {typedLength
+                      ? <>Read as <b>{typedLength.metres < 1 ? `${+(typedLength.metres * 100).toPrecision(4)} cm` : `${+typedLength.metres.toPrecision(4)} m`}</b> (&ldquo;{typedLength.said}&rdquo;). It goes into the run as given, not measured{liteType === "pendulum" ? ", and g is measured from it" : ""}.</>
+                      : narration.trim()
+                        ? "No length found yet: write a number, then cm or m (60 cm, 0.6 m)."
+                        : liteType === "pendulum"
+                          ? "Measure the string from the point of suspension to the centre of the bob. Without it, g rests on the sheet in view, or is assumed."
+                          : "A length you know (a number, then cm or m) goes into the run as given, not measured."}
+                  </small>
+                ) : (
+                  <small id="know-note">Anything you say in the clip is transcribed too: English, Hindi, Tamil, Bengali, Marathi, Telugu or Spanish.</small>
+                )}
+                {lite && (
+                  <label className={styles.choice}>
+                    <input type="checkbox" checked={listen} onChange={(e) => setListen(e.target.checked)} disabled={busy} />
+                    <span>Said the length aloud in the clip? Muse Voice Transcribe listens for it (under 1 cent a minute; the only Meta model lite mode calls).</span>
+                  </label>
+                )}
+              </div>
               <label className={styles.field}>
                 <span className={styles.label}>Something of known size in view?</span>
                 <select
@@ -812,19 +843,21 @@ export default function NewExperiment({
                 </select>
                 <small>A ruler in the same plane as the motion lets Ansatz measure g instead of assuming it.</small>
               </label>
+              {(!lite || listen) && (
+                <label className={styles.field}>
+                  <span className={styles.label}>What language do you speak in the clip?</span>
+                  <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={busy}>
+                    <option value="">Muse Voice Transcribe should work it out</option>
+                    {["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spanish"].map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {!lite && (
                 <>
-                  <label className={styles.field}>
-                    <span className={styles.label}>What language do you speak in the clip?</span>
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)} disabled={busy}>
-                      <option value="">Muse Voice Transcribe should work it out</option>
-                      {["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spanish"].map((l) => (
-                        <option key={l} value={l}>
-                          {l}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <label className={styles.field}>
                     <span className={styles.label}>Does it play in slow motion?</span>
                     <select value={slow} onChange={(e) => setSlow(e.target.value)} disabled={busy}>

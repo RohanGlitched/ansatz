@@ -15,7 +15,7 @@ const LANGS = ["English", "Hindi", "Tamil", "Bengali", "Marathi", "Telugu", "Spa
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; k?: string; student?: string; series?: string; lite?: { type?: string } };
+type Body = { key?: string; narration?: string; noun?: string; slowMotion?: number; ruler?: { noun?: string; metres?: number }; sample?: boolean; language?: string; class?: string; k?: string; student?: string; series?: string; lite?: { type?: string; listen?: boolean } };
 
 /** The judges' passphrase from the page that sent the run (/new?class=…&k=…), when the form doesn't send it itself. */
 function keyFromReferer(req: Request): string | null {
@@ -37,8 +37,9 @@ export async function POST(req: Request) {
     return Response.json({ error: "Send JSON." }, { status: 400 });
   }
   if (!body.key || !/^uploads\/[a-z0-9-]{8,60}\.(mp4|mov|webm|m4v|bin)$/.test(body.key)) return Response.json({ error: "Upload the clip first." }, { status: 400 });
-  // lite mode: the person says what kind of experiment it is and what moves, and no Muse model is called
-  const lite = body.lite && (LITE_TYPES as readonly string[]).includes(String(body.lite.type)) ? { type: body.lite.type as LiteType } : undefined;
+  // lite mode: the person says what kind of experiment it is and what moves, and no Muse Spark or Muse Wonder is called;
+  // what they type (body.narration) is kept, and with listen the narration is transcribed so a spoken length is kept too
+  const lite = body.lite && (LITE_TYPES as readonly string[]).includes(String(body.lite.type)) ? { type: body.lite.type as LiteType, listen: body.lite.listen === true } : undefined;
   if (body.lite && (!lite || !body.noun?.trim())) return Response.json({ error: "Lite mode needs the kind of experiment and the name of the moving thing." }, { status: 400 });
   const admin = sameSecret(req.headers.get("x-admin-token"), process.env.ADMIN_TOKEN);
   const claimKey = `claims/${body.key.replace(/^uploads\//, "")}.json`;

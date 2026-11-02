@@ -20,7 +20,7 @@ import { median } from "./median";
 import { lawLatex } from "./latex";
 export { toPixels };
 import { cut, frameAt, prepare } from "./transcode";
-import { liteLaws, liteObservation, NO_SPARK, type LiteType } from "./lite";
+import { liteLaws, liteObservation, liteStatedFacts, NO_SPARK, type LiteType } from "./lite";
 
 export type Step = "upload" | "listen" | "observe" | "track" | "measure" | "hypothesise" | "fit" | "referee" | "report";
 
@@ -46,7 +46,8 @@ export type Experiment = {
   source: { kind: "upload" | "showcase"; video: string; credit?: string; license?: string; page?: string; phone?: string };
   // codedWidth: the stored frame width, when pixels aren't square (old broadcast TV); SAM's coordinates live in it
   video: Pick<VideoInfo, "width" | "height" | "fps" | "duration" | "codec" | "rotation"> & { frames: number; jitter: number; codedWidth?: number };
-  narration?: { transcript: string; turns: { startMs: number; endMs: number; transcript: string }[] };
+  /** what was said in the clip (transcribed), and what was typed with it ("What do you know?"), kept apart */
+  narration?: { transcript: string; turns: { startMs: number; endMs: number; transcript: string }[]; typed?: string };
   observation: Observation;
   observationSources: { url: string; title: string }[];
   tracking: { noun: string; tracks: number; framesSeen: number; meanConfidence: number };
@@ -495,6 +496,15 @@ export function holdPendulum(law: Law, hold: PendulumHold) {
   return law;
 }
 
+/**
+ * What the observer reads: the narration as timed turns ("[2.3 s] …", so it can place the release in the clip), and the
+ * typed notes after it. A clip with sound used to replace the typed notes with its transcript; now both reach it.
+ */
+export function narrationForObserver(heard: { transcript: string; turns: { startMs: number; transcript: string }[] } | undefined, typed?: string): string {
+  const spoken = heard ? (heard.turns.length ? timedTurns(heard.turns) : heard.transcript.trim()) : "";
+  return spoken && typed ? `${spoken}\nTyped with the clip: ${typed}` : spoken || typed || "";
+}
+
 export type RunInput = {
   /** the experiment's id (chosen up front so the clip can be stored under it) */
   id?: string;
@@ -510,8 +520,10 @@ export type RunInput = {
   hints?: { slowMotion?: number; noun?: string; window?: { start_s: number; end_s: number }; ruler?: { noun: string; metres: number; dimension?: "longest side" | "shortest side"; relUncertainty?: number } };
   skipEyeball?: boolean;
   /** lite mode (lib/lite.ts): the person says what kind of experiment it is and names the moving thing (hints.noun);
-   * no Muse Spark, Muse Wonder or Muse Voice call is made, and Earth, real time and the whole clip are assumed */
-  lite?: { type: LiteType };
+   * no Muse Spark or Muse Wonder call is made, and Earth, real time and the whole clip are assumed. What they state is
+   * kept: a length typed (narrationText) or, with listen, said in the clip (Muse Voice Transcribe, the one Meta model a
+   * lite run may call) is read by code and enters the run as a stated fact */
+  lite?: { type: LiteType; listen?: boolean };
   /** the caller's ledger, so what a run spent can be counted even when it throws */
   ledger?: Ledger;
   /** called with the normalised clip (H.264, ≤1280 px) so the caller can store it for playback */
@@ -557,27 +569,41 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
   const extraFiles: string[] = [];
 
   try {
-    // 2. narration
+    // 2. narration: what was said in the clip (transcribed) and what was typed with it; neither drops the other
     let narration: Experiment["narration"];
+    let heard: NonNullable<Experiment["narration"]> | undefined;
     const wav = input.narrationWav?.length ? input.narrationWav : prep.wav;
+    const typed = input.narrationText?.trim() || undefined;
+    // a full run always listens; a lite run listens when asked (Muse Voice Transcribe, $0.18 an hour of audio)
+    const listen = !!wav?.length && (!input.lite || !!input.lite.listen);
+    const asr = () => transcribe(wav!, ledger, { keywords: asrKeywords(input.language), languages: input.language ? [input.language] : undefined });
+    const quote = (t: string) => (t ? `“${t.slice(0, 120)}${t.length > 120 ? "…" : ""}”` : "no speech heard");
+    const heardOf = (tr: Awaited<ReturnType<typeof transcribe>>) => ({ transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) });
     if (input.lite) {
       // lite mode: logged in the run's notebook, so the record says which models it skipped
-      ledger.add({ model: "lite mode", purpose: `${NO_SPARK} (observe, propose, referee, Muse Wonder and the by-eye baseline skipped; narration not transcribed)`, ms: 0, usd: 0 });
-      emit({ step: "listen", state: "done", detail: "lite mode: the narration isn’t transcribed", at: Date.now() - t0 });
-    } else if (wav?.length) {
-      // the words to listen for in the language the person speaks (and English, which narrators mix in)
-      const tr = await step("listen", () => transcribe(wav, ledger, { keywords: asrKeywords(input.language), languages: input.language ? [input.language] : undefined }), (r) => (r.transcript ? `“${r.transcript.slice(0, 120)}${r.transcript.length > 120 ? "…" : ""}”` : "no speech heard"));
-      narration = { transcript: tr.transcript, turns: tr.turns.map((t) => ({ startMs: t.startMs, endMs: t.endMs, transcript: t.transcript })) };
-    } else {
-      if (input.narrationText) narration = { transcript: input.narrationText, turns: [] };
-      emit({ step: "listen", state: "done", detail: input.narrationText ? "typed notes used; the clip has no sound" : "the clip has no sound", at: Date.now() - t0 });
+      ledger.add({ model: "lite mode", purpose: `${NO_SPARK} (observe, propose, referee, Muse Wonder and the by-eye baseline skipped; ${listen ? "narration transcribed only so code can read a stated length" : "narration not transcribed"}${typed ? "; typed notes read by code" : ""})`, ms: 0, usd: 0 });
     }
-    // the observer reads the narration as timed turns ("[2.3 s] …"), so it can place the release in the clip
-    const narr = narration?.turns.length ? timedTurns(narration.turns) : narration?.transcript ?? "";
+    if (listen && input.lite) {
+      // a lite run that can't transcribe goes on without it: a typed length still stands, and nothing else needed it
+      emit({ step: "listen", state: "start", at: Date.now() - t0 });
+      try {
+        heard = heardOf(await asr());
+        emit({ step: "listen", state: "done", detail: `lite mode, listening only for a stated length: ${quote(heard.transcript)}`, at: Date.now() - t0 });
+      } catch (e) {
+        emit({ step: "listen", state: "done", detail: `lite mode: the narration couldn’t be transcribed (${(e as Error).message.slice(0, 120)}); going on without it`, at: Date.now() - t0 });
+      }
+    } else if (listen) {
+      // the words to listen for in the language the person speaks (and English, which narrators mix in)
+      heard = heardOf(await step("listen", asr, (r) => quote(r.transcript)));
+    } else {
+      emit({ step: "listen", state: "done", detail: input.lite ? (typed ? "lite mode: not listening; the typed notes are read by code" : "lite mode: the narration isn’t transcribed") : typed ? "typed notes used; the clip has no sound" : "the clip has no sound", at: Date.now() - t0 });
+    }
+    narration = heard ? (typed ? { ...heard, typed } : heard) : typed ? { transcript: typed, turns: [] } : undefined;
+    const narr = narrationForObserver(heard, typed);
 
     // 3. observe
     const { obs, sources } = input.lite
-      ? await step("observe", async () => ({ obs: liteObservation(input.lite!.type, input.hints?.noun || "ball", vi.duration), sources: [] as { url: string; title: string }[] }), () => `${NO_SPARK}: a ${input.lite!.type}, as you said, on Earth, in real time, over the whole clip`, (r) => r.obs)
+      ? await step("observe", async () => ({ obs: liteObservation(input.lite!.type, input.hints?.noun || "ball", vi.duration, undefined, undefined, liteStatedFacts(input.lite!.type, { typed, heard: heard?.transcript, language: input.language })), sources: [] as { url: string; title: string }[] }), (r) => `${NO_SPARK}: a ${input.lite!.type}, as you said, on Earth, in real time, over the whole clip${r.obs.stated_facts.map((f) => `; ${f.quantity} ${f.value} ${f.unit}, as you ${/\(said\)$/.test(f.said) ? "said" : "typed"}`).join("")}`, (r) => r.obs)
       : await step("observe", () => observe(fileId, narr, ledger, vi.duration, vi.fps), (r) => `${r.obs.phenomenon}: tracking “${r.obs.subjects[0]?.noun_phrase}”${r.obs.reference.present ? `, ruler “${r.obs.reference.noun_phrase}” (${r.obs.reference.real_length_m} m)` : ""}${r.obs.slow_motion.factor > 1 ? `, slowed ${r.obs.slow_motion.factor}×` : ""}`, (r) => r.obs);
     if (input.hints?.slowMotion) obs.slow_motion = { factor: input.hints.slowMotion, evidence: "given with the clip" };
     if (input.hints?.noun) obs.subjects = [{ noun_phrase: input.hints.noun, alternatives: [], description: "given with the clip" }];
@@ -796,7 +822,7 @@ export async function runExperiment(input: RunInput, emit: (p: Progress) => void
     // the theorist sees only the frames the laws are fitted to: no number from the last 30% reaches any model
     const dig = digest(m, 40, TRAIN);
     const hyp = await step("hypothesise", () => (input.lite
-      ? Promise.resolve({ reasoning: `${NO_SPARK}: the textbook laws for a ${input.lite.type}.`, laws: liteLaws(input.lite.type, m.series, { g: gUsed ?? 9.81, gFixed: gUsed !== null, pendulumG: m.calibration.kind === "none" && m.series.ch.theta ? gBody : undefined, pixels: m.calibration.kind === "none" }), ifItWins: {} as Record<string, string> } as Awaited<ReturnType<typeof hypothesise>>)
+      ? Promise.resolve({ reasoning: `${NO_SPARK}: the textbook laws for a ${input.lite.type}.`, laws: liteLaws(input.lite.type, m.series, { g: gUsed ?? 9.81, gFixed: gUsed !== null, pendulumG: m.calibration.kind === "none" && m.series.ch.theta ? gBody : undefined, pixels: m.calibration.kind === "none", statedL: m.series.ch.theta ? stated.l : undefined }), ifItWins: {} as Record<string, string> } as Awaited<ReturnType<typeof hypothesise>>)
       : hypothesise(obs, dig, given, ledger)), (r) => r.laws.map((l) => l.title).join("; "), (r) => ({ reasoning: r.reasoning, laws: r.laws.map((l) => ({ id: l.id, title: l.title, summary: l.summary, latex: safeLatex(l) })) }));
 
     // 7. fit every candidate on the first 70%, predict the rest

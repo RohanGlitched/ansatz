@@ -61,7 +61,7 @@ export default async function NewPage({ searchParams }: { searchParams: Promise<
   const worlds = by.filter(([k]) => /world/.test(k)).reduce((s, [, n]) => s + n, 0);
   const slowed = by.filter(([k]) => /slow/.test(k)).reduce((s, [, n]) => s + n, 0);
   const liteNote =
-    `About ${Math.round(lite.medianSamUsd * 100)} cents (${rs(lite.medianSamUsd)}) a run for SAM 3.1 alone, the median over ${lite.clips} benchmark clips run this way, or ${rs(lite.medianSamUsd * 40)} for a class of 40. ` +
+    `About ${Math.round(lite.medianSamUsd * 100)} cents (${rs(lite.medianSamUsd)}) a run for SAM 3.1 alone, the median over ${lite.clips} benchmark clips run this way, or ${rs(lite.medianSamUsd * 40)} for a class of 40, plus under a cent when Muse Voice Transcribe listens for a spoken length. ` +
     `It assumes Earth, real time and the whole clip, so it goes wrong where only Muse Spark’s observer knows better: on ${ob.naiveWouldFail} of the ${ob.runs} clips in our observer test, ${worlds} on the Moon or Mars (every one) and ${slowed} in undeclared slow motion.`;
   // class links start in lite mode; the judges' class link shows the full run, Meta's models included
   const liteDefault = !!cls && cls.code !== JUDGES_CODE;

@@ -31,7 +31,7 @@ export default function NewClassPage() {
             <ClassMaker />
           </div>
         </section>
-        <Note who="Limits">Runs also stay within the site&rsquo;s daily limit, so a very busy day may ask students to try again tomorrow. Class links start in lite mode, where no Muse model is called; a student can switch to a full run.</Note>
+        <Note who="Limits">Runs also stay within the site&rsquo;s daily limit, so a very busy day may ask students to try again tomorrow. Class links start in lite mode: no Muse Spark or Muse Wonder is called, but the string length a student types, or says aloud in the clip (Muse Voice Transcribe, under a cent a minute), still goes into the run and g is measured from it. A student can switch to a full run.</Note>
 
         <section className={styles.part}>
           <h2>How a class uses it</h2>

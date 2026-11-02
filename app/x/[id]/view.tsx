@@ -137,6 +137,8 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
   };
   // the referee's words are shown only while the law it wrote about still leads
   const ref = e.critique && (!e.critique.winnerId || e.critique.winnerId === e.winner) ? e.critique : null;
+  // a lite run (lib/lite.ts) logs itself in the ledger: code, not Muse Spark, read what was stated
+  const liteRun = e.ledger.calls.some((c) => c.model === "lite mode");
   const plate = plateData(e);
   const lengthUnit = e.measured.calibration.kind === "none" ? "px" : "m";
   const unseenFrames = e.measured.px.length - plate.split;
@@ -1509,13 +1511,19 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
           </dd>
           {e.narration?.transcript && (
             <>
-              <dt>Narration</dt>
+              <dt>{e.narration.turns.length || e.narration.typed ? "Narration" : "Typed with the clip"}</dt>
               <dd>“{e.narration.transcript}”</dd>
+            </>
+          )}
+          {e.narration?.typed && (
+            <>
+              <dt>Typed with the clip</dt>
+              <dd>“{e.narration.typed}”</dd>
             </>
           )}
           {e.observation.stated_facts.length > 0 && (
             <>
-              <dt>Read from the clip</dt>
+              <dt>{liteRun ? "Stated with the clip" : "Read from the clip"}</dt>
               <dd>
                 {e.observation.stated_facts.map((f, i) => (
                   <span key={i} className={styles.fact}>
@@ -1538,7 +1546,9 @@ export default async function ExperimentView({ id, lang: langIn }: { id: string;
             </>
           )}
         </dl>
-        {e.narration?.transcript && <Note who="Muse Voice Transcribe">Heard the narration; Muse Spark read the facts out of it.</Note>}
+        {(e.narration?.transcript || e.narration?.typed) && (liteRun
+          ? <Note who={e.narration.turns.length ? "Muse Voice Transcribe, then code" : "Code"}>{e.narration.turns.length ? "Heard the narration; code read the stated length out of what was typed or said (lite mode: no Muse Spark)." : "Code read the stated length out of what was typed (lite mode: no Muse Spark)."}</Note>
+          : <Note who={e.narration.turns.length ? "Muse Voice Transcribe" : "Muse Spark"}>{e.narration.turns.length ? "Heard the narration; Muse Spark read the facts out of it." : "Muse Spark read the facts out of what was typed."}</Note>)}
         {e.reasoning && (
           <>
             <h3 className={styles.h3}>Why these candidates</h3>
