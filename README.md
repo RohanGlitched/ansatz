@@ -2,7 +2,7 @@
 
 ![Ansatz: film anything that moves, get the law that moves it](docs/cover.png)
 
-**[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:59](https://youtu.be/9t_ozwDBgYI)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[For teachers: /lab](https://ansatz-lab.vercel.app/lab)** · **[How it works](https://ansatz-lab.vercel.app/how)**
+**[Try it live](https://ansatz-lab.vercel.app)** · **[The demo, 2:59](https://youtu.be/WbvwFCI-M9A)** · **[The Moon’s gravity from Apollo 16 TV](https://ansatz-lab.vercel.app/x/moon-jump)** · **[Proof: the benchmark](https://ansatz-lab.vercel.app/proof)** · **[For teachers: /lab](https://ansatz-lab.vercel.app/lab)** · **[How it works](https://ansatz-lab.vercel.app/how)**
 
 **What it measured**
 
